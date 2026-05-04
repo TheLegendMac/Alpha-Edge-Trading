@@ -3815,6 +3815,224 @@ textarea.input-field {
 }
 .instrument-btn.active .instrument-btn-detail { color: var(--ink-2); }
 
+/* ============ CONTEXT PANEL — regime + sector two-in-one ============ */
+.ctx-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.ctx-backdrop.open { display: block; }
+
+.ctx-panel {
+  display: none;
+  position: fixed;
+  top: 68px;
+  right: 20px;
+  z-index: 201;
+  width: 360px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.028), transparent 25%),
+    rgba(15, 18, 28, 0.96);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: var(--r-xl);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 24px 64px rgba(0,0,0,0.65),
+    0 4px 16px rgba(0,0,0,0.4);
+  animation: ctxSlideIn 0.2s cubic-bezier(0.2,0.8,0.2,1);
+}
+.ctx-panel.open { display: block; }
+@keyframes ctxSlideIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.ctx-panel-inner { padding: 4px 0 8px; }
+.ctx-section { padding: 16px 18px 14px; }
+.ctx-section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 10px;
+}
+.ctx-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ctx-clear-btn {
+  background: none;
+  border: 1px solid var(--line-soft);
+  color: var(--ink-4);
+  padding: 2px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ctx-clear-btn:hover { color: var(--red-bright); border-color: var(--red); }
+.ctx-rated-at {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.ctx-rated-at.stale { color: var(--amber-bright); }
+
+/* Regime row */
+.ctx-regime-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.ctx-regime-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-elev);
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ctx-regime-btn:hover { color: var(--ink); }
+.ctx-regime-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  transition: all 0.2s;
+}
+.ctx-regime-btn.active.on  { background: var(--green-dim);  color: var(--green-bright);  border-color: rgba(16,185,129,0.4); }
+.ctx-regime-btn.active.on  .ctx-regime-dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.ctx-regime-btn.active.neut { background: var(--amber-dim); color: var(--amber-bright); border-color: rgba(245,158,11,0.4); }
+.ctx-regime-btn.active.neut .ctx-regime-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.ctx-regime-btn.active.off  { background: var(--red-dim);   color: var(--red-bright);   border-color: rgba(239,68,68,0.4); }
+.ctx-regime-btn.active.off  .ctx-regime-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+.ctx-rules {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.025);
+  border-radius: var(--r-sm);
+  border-left: 2px solid rgba(255,255,255,0.1);
+}
+.ctx-rules strong { color: var(--ink); }
+
+.ctx-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+  margin: 0 18px;
+}
+
+/* Sector grid inside context panel */
+.ctx-sector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ctx-sector-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--r-sm);
+  transition: border-color 0.15s;
+}
+.ctx-sector-row.strong { border-color: rgba(16,185,129,0.35);  background: rgba(16,185,129,0.06); }
+.ctx-sector-row.neutral { border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04); }
+.ctx-sector-row.weak   { border-color: rgba(239,68,68,0.25);   background: rgba(239,68,68,0.05); }
+.ctx-sector-ticker {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  min-width: 34px;
+  flex-shrink: 0;
+}
+.ctx-sector-name {
+  font-size: 11px;
+  color: var(--ink-3);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ctx-sector-input {
+  width: 50px;
+  flex-shrink: 0;
+  background: var(--bg-elev);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--ink);
+  padding: 3px 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 3px;
+  text-align: right;
+  transition: border-color 0.15s;
+}
+.ctx-sector-input:focus { outline: none; border-color: var(--cyan); }
+.ctx-sector-row.strong .ctx-sector-input { border-color: rgba(16,185,129,0.4); }
+.ctx-sector-row.weak   .ctx-sector-input { border-color: rgba(239,68,68,0.35); }
+
+.ctx-sector-summary {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.02);
+  border-radius: var(--r-sm);
+  margin-bottom: 4px;
+}
+.ctx-sector-summary .cs-top { color: var(--green-bright); font-weight: 600; }
+.ctx-sector-summary .cs-avoid { color: var(--red-bright); font-weight: 600; }
+
+.ctx-close {
+  display: block;
+  width: calc(100% - 36px);
+  margin: 4px 18px 10px;
+  padding: 10px;
+  background: var(--cyan);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ctx-close:hover { background: #1ce0ff; }
+
 /* ============================================================
    ELEVATION SYSTEM — replaces flat 1px-border cards with depth.
    Applied as a final overlay so layouts stay intact while every
@@ -4055,40 +4273,16 @@ textarea.input-field {
   <!-- ===== HOME DASHBOARD ===== -->
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
-      <div class="home-grid">
-        <div class="home-context-stack">
-          <div class="home-card">
-            <div class="home-card-title">Market Context</div>
-            <div class="home-card-kicker">Live</div>
-            <div class="home-market-scores">
-              <div>
-                <div class="home-score-label">Regime</div>
-                <button class="home-score-value regime editable" id="home-regime-value" type="button">RISK-ON</button>
-              </div>
-              <div>
-                <div class="home-score-label">Sectors</div>
-                <button class="home-score-value sectors editable" id="home-sector-score" type="button">
-                  <strong>—</strong>
-                  <span>Rate sectors</span>
-                </button>
-              </div>
-            </div>
-            <div class="home-regime-picker" id="home-regime-picker">
-              <button class="home-regime-option" data-regime="risk-on" type="button">Risk-On</button>
-              <button class="home-regime-option" data-regime="neutral" type="button">Neutral</button>
-              <button class="home-regime-option" data-regime="risk-off" type="button">Risk-Off</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="home-card green" id="home-intel-card">
-          <div class="home-card-title" style="color:#7ee787;">Alpha Intelligence</div>
-          <div class="home-card-kicker" id="home-deep-label">Live read</div>
-          <div class="home-intel-headline" id="home-intel-headline">Connect your account size in Settings to start the read.</div>
-          <ul class="home-intel-points" id="home-intel-points"></ul>
-          <!-- legacy id retained for any external callers -->
-          <div class="home-intel-text" id="home-intel-text" hidden></div>
-        </div>
+      <div class="home-card green" id="home-intel-card" style="margin-bottom:12px;">
+        <div class="home-card-title" style="color:#7ee787;">Alpha Intelligence</div>
+        <div class="home-card-kicker" id="home-deep-label">Live read</div>
+        <div class="home-intel-headline" id="home-intel-headline">Set your account size in Settings to activate the read.</div>
+        <ul class="home-intel-points" id="home-intel-points"></ul>
+        <!-- hidden ids kept for backward compat -->
+        <div id="home-regime-value" hidden></div>
+        <div id="home-sector-score" hidden></div>
+        <div id="home-regime-picker" hidden></div>
+        <div class="home-intel-text" id="home-intel-text" hidden></div>
       </div>
 
       <div class="home-row">
@@ -5440,9 +5634,15 @@ STRENGTH: 3/3</pre>
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Reset</div>
+          <div class="settings-section-title">Reset settings</div>
           <div class="settings-section-desc">Reset all settings to v3 defaults. Doesn't affect your trade log.</div>
           <button class="btn-secondary" id="btn-reset-settings">Reset to defaults</button>
+        </div>
+
+        <div class="settings-section" style="border-top: 1px solid rgba(239,68,68,0.25); padding-top: 20px;">
+          <div class="settings-section-title" style="color: var(--red-bright);">⚠ Danger zone</div>
+          <div class="settings-section-desc">Permanently delete all trades, sector ratings, and session data. Settings are preserved. This cannot be undone.</div>
+          <button class="btn-danger" id="btn-clear-all-data" style="letter-spacing:0.04em;">Clear all trades &amp; session data</button>
         </div>
       </div>
     </div>
@@ -5475,6 +5675,42 @@ STRENGTH: 3/3</pre>
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============ CONTEXT PANEL — regime + sector two-in-one ============ -->
+<div class="ctx-backdrop" id="ctx-backdrop"></div>
+<div class="ctx-panel" id="ctx-panel" role="dialog" aria-label="Regime & Sector context">
+  <div class="ctx-panel-inner">
+
+    <div class="ctx-section">
+      <div class="ctx-section-label">Market Regime</div>
+      <div class="ctx-regime-row">
+        <button class="ctx-regime-btn on" data-ctx-regime="risk-on" title="Full size, long-biased">
+          <span class="ctx-regime-dot"></span>Risk-On
+        </button>
+        <button class="ctx-regime-btn neut" data-ctx-regime="neutral" title="Half size, both directions">
+          <span class="ctx-regime-dot"></span>Neutral
+        </button>
+        <button class="ctx-regime-btn off" data-ctx-regime="risk-off" title="Reduced size, longs blocked">
+          <span class="ctx-regime-dot"></span>Risk-Off
+        </button>
+      </div>
+      <div class="ctx-rules" id="ctx-rules"></div>
+    </div>
+
+    <div class="ctx-divider"></div>
+
+    <div class="ctx-section">
+      <div class="ctx-section-header">
+        <div class="ctx-section-label">SA Sector Ratings <span class="ctx-rated-at" id="ctx-rated-at"></span></div>
+        <button class="ctx-clear-btn" id="ctx-clear-sectors" type="button">Clear</button>
+      </div>
+      <div class="ctx-sector-grid" id="ctx-sector-grid"></div>
+      <div class="ctx-sector-summary" id="ctx-sector-summary"></div>
+    </div>
+
+    <button class="ctx-close" id="ctx-close" type="button" aria-label="Close">Done</button>
   </div>
 </div>
 
@@ -6311,6 +6547,93 @@ function getRiskPctForRegime(regime) {
   if (regime === 'neutral') return s.riskNeutral / 100;
   if (regime === 'risk-off') return s.riskOff / 100;
   return s.riskOn / 100;
+}
+
+// ---------- Context Panel (regime + sector two-in-one) ----------
+function openContextPanel() {
+  document.getElementById('ctx-panel').classList.add('open');
+  document.getElementById('ctx-backdrop').classList.add('open');
+  renderContextPanel();
+}
+function closeContextPanel() {
+  document.getElementById('ctx-panel').classList.remove('open');
+  document.getElementById('ctx-backdrop').classList.remove('open');
+}
+function renderContextPanel() {
+  // Regime buttons
+  document.querySelectorAll('.ctx-regime-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.ctxRegime === state.regime);
+  });
+  // Rules text
+  const rules = document.getElementById('ctx-rules');
+  if (rules) {
+    const data = REGIME_DATA[state.regime];
+    const pct = (getRiskPctForRegime(state.regime) * 100).toFixed(2).replace(/\.?0+$/, '');
+    rules.innerHTML = data.rulesTemplate.replace('{pct}', pct);
+  }
+  // Rated-at
+  const ratedAtEl = document.getElementById('ctx-rated-at');
+  if (ratedAtEl && state.sectorRatedAt) {
+    const days = daysSinceSectorRating();
+    const label = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
+    ratedAtEl.textContent = `· ${label}`;
+    ratedAtEl.className = 'ctx-rated-at' + (days > 7 ? ' stale' : '');
+  } else if (ratedAtEl) {
+    ratedAtEl.textContent = '· never rated';
+    ratedAtEl.className = 'ctx-rated-at';
+  }
+  // Sector grid
+  const grid = document.getElementById('ctx-sector-grid');
+  if (grid) {
+    grid.innerHTML = SECTORS.map(s => {
+      const rating = state.sectorRatings[s.ticker] || '';
+      const status = ratingToStatus(rating);
+      const rowClass = status ? status.toLowerCase() : '';
+      return `
+        <div class="ctx-sector-row ${rowClass}" data-ctx-ticker="${s.ticker}">
+          <span class="ctx-sector-ticker" title="${s.name}">${s.ticker}</span>
+          <span class="ctx-sector-name" title="${s.name}">${s.name}</span>
+          <input class="ctx-sector-input" type="number" min="1" max="5" step="0.01"
+                 placeholder="—" inputmode="decimal"
+                 data-ctx-ticker="${s.ticker}"
+                 value="${rating}" />
+        </div>`;
+    }).join('');
+    // Wire inputs
+    grid.querySelectorAll('.ctx-sector-input').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const ticker = e.target.dataset.ctxTicker;
+        const raw = e.target.value.trim();
+        const num = parseFloat(raw);
+        if (raw === '' || isNaN(num)) delete state.sectorRatings[ticker];
+        else if (num >= 1 && num <= 5) state.sectorRatings[ticker] = raw;
+        else return;
+        state.sectorRatedAt = new Date().toISOString();
+        saveState();
+        // Update row class live
+        const row = e.target.closest('.ctx-sector-row');
+        if (row) {
+          const st = ratingToStatus(raw);
+          row.classList.remove('strong', 'neutral', 'weak');
+          if (st) row.classList.add(st.toLowerCase());
+        }
+        updateCtxSectorSummary();
+        if (typeof renderHome === 'function') renderHome();
+        if (typeof renderSectors === 'function') renderSectors();
+        if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
+      });
+    });
+  }
+  updateCtxSectorSummary();
+}
+function updateCtxSectorSummary() {
+  const summary = document.getElementById('ctx-sector-summary');
+  if (!summary) return;
+  const top3  = computeTop3();
+  const avoid = computeAvoidList();
+  const topNames  = top3.length  ? top3.map(s => `${s.name} (${s.ticker})`).join(', ')  : '—';
+  const avoidNames = avoid.length ? avoid.map(s => `${s.name} (${s.ticker})`).join(', ') : '—';
+  summary.innerHTML = `<span class="cs-top">▲ Long: ${topNames}</span><br><span class="cs-avoid">▼ Avoid: ${avoidNames}</span>`;
 }
 
 // ---------- Regime ----------
@@ -8226,8 +8549,12 @@ function renderHome() {
 
   // 1. Sector intel
   if (top3.length || avoid.length) {
-    const topPart = top3.length ? `<strong>${top3.slice(0, 3).map(s => s.ticker).join(' · ')}</strong>` : 'none rated strong';
-    const avoidPart = avoid.length ? `avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => s.ticker).join(' · ')}</strong>` : '';
+    const topPart = top3.length
+      ? `<strong>${top3.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
+      : 'none rated strong';
+    const avoidPart = avoid.length
+      ? `avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
+      : '';
     intelPoints.push({
       tone: top3.length ? 'good' : 'warn',
       icon: '🧭',
@@ -10100,9 +10427,39 @@ function init() {
     t.addEventListener('click', () => setTab(t.dataset.tab));
   });
 
-  // Regime toggle
+  // Regime toggle (cmdbar)
   document.querySelectorAll('.regime-btn').forEach(b => {
     b.addEventListener('click', () => setRegime(b.dataset.regime));
+  });
+
+  // Context panel — regime cluster click opens the two-in-one panel
+  const ctxTrigger = document.getElementById('regime-state');
+  if (ctxTrigger) {
+    ctxTrigger.style.cursor = 'pointer';
+    ctxTrigger.addEventListener('click', openContextPanel);
+  }
+  // Context panel — close via backdrop, Done button, Escape
+  document.getElementById('ctx-backdrop')?.addEventListener('click', closeContextPanel);
+  document.getElementById('ctx-close')?.addEventListener('click', closeContextPanel);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeContextPanel(); });
+  // Context panel — regime buttons inside panel
+  document.querySelectorAll('.ctx-regime-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      setRegime(b.dataset.ctxRegime);
+      renderContextPanel(); // refresh panel state
+    });
+  });
+  // Context panel — clear sectors
+  document.getElementById('ctx-clear-sectors')?.addEventListener('click', () => {
+    if (!confirm('Clear all sector ratings?')) return;
+    state.sectorRatings = {};
+    state.sectorRatedAt = null;
+    saveState();
+    renderContextPanel();
+    if (typeof renderHome === 'function') renderHome();
+    if (typeof renderSectors === 'function') renderSectors();
+    if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
+    toast('Sector grades cleared');
   });
 
   // Pre-trade mini checks (only manual ones - vix and news)
