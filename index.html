@@ -83,30 +83,50 @@ body {
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 
-/* ============ TOP NAV ============ */
-.top-nav {
+/* ============ COMMAND BAR — unified nav + regime ============ */
+.cmdbar {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(8, 9, 13, 0.85);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--line);
+  background: rgba(8, 9, 13, 0.82);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset, 0 8px 32px rgba(0, 0, 0, 0.35);
 }
-.top-nav-inner {
+.cmdbar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: var(--green);
+  transition: background 0.3s, box-shadow 0.3s;
+  box-shadow: 0 0 12px var(--green-glow);
+}
+.cmdbar.neutral::before { background: var(--amber); box-shadow: 0 0 12px var(--amber-glow); }
+.cmdbar.risk-off::before { background: var(--red); box-shadow: 0 0 12px var(--red-glow); }
+
+.cmdbar-inner {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 12px 24px;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 32px;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
   align-items: center;
+  min-height: 60px;
 }
+
+/* Brand */
 .brand {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--display);
   font-weight: 800;
   letter-spacing: -0.02em;
-  font-size: 17px;
+  font-size: 16px;
   cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
 }
+.brand:hover { opacity: 0.85; }
 .brand-mark {
   width: 28px; height: 28px;
   background: linear-gradient(135deg, var(--cyan), #0284c7);
@@ -115,9 +135,10 @@ input, select, textarea { font-family: inherit; }
   font-weight: 700;
   font-size: 12px;
   color: var(--bg);
-  border-radius: 4px;
-  box-shadow: 0 0 16px rgba(6, 212, 248, 0.4);
+  border-radius: 6px;
+  box-shadow: 0 0 16px rgba(6, 212, 248, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
 }
+.brand-name { color: var(--ink); }
 .brand-tag {
   font-family: var(--mono);
   font-size: 10px;
@@ -130,38 +151,139 @@ input, select, textarea { font-family: inherit; }
   border-radius: 3px;
 }
 
-/* TABS */
-.tabs {
+/* Tabs */
+.cmdbar-tabs {
   display: flex;
-  gap: 0;
+  gap: 2px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 4px;
 }
+.cmdbar-tabs::-webkit-scrollbar { display: none; }
 .tab {
   background: none;
   border: none;
   color: var(--ink-3);
-  padding: 10px 16px;
+  padding: 8px 14px;
+  font-family: var(--body);
   font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   position: relative;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.15s;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  cursor: pointer;
 }
-.tab.active { color: var(--cyan); }
-.tab:hover { color: var(--ink); }
+.tab:hover { color: var(--ink); background: rgba(255,255,255,0.03); }
+.tab.active {
+  color: var(--cyan);
+  background: rgba(6, 212, 248, 0.08);
+}
 .tab.active::after {
-  content: ''; position: absolute;
-  bottom: -15px; left: 0; right: 0; height: 2px;
+  content: '';
+  position: absolute;
+  left: 14px; right: 14px;
+  bottom: -13px;
+  height: 2px;
   background: var(--cyan);
-  box-shadow: 0 0 12px var(--cyan);
+  box-shadow: 0 0 12px var(--cyan), 0 0 4px var(--cyan);
+  border-radius: 2px 2px 0 0;
 }
 
-/* PORTFOLIO STATUS — uses traffic light semantics now */
-.portfolio-status {
-  display: flex; align-items: center; gap: 16px;
+/* Right-side actions group */
+.cmdbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   justify-self: end;
 }
+
+/* Regime cluster inside cmdbar */
+.cmdbar-regime {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+  cursor: default;
+  transition: border-color 0.2s;
+}
+.cmdbar-regime-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-4);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.cmdbar-regime-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green), 0 0 4px var(--green);
+}
+#regime-state.neutral .cmdbar-regime-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+#regime-state.risk-off .cmdbar-regime-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+.regime-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-elev);
+  padding: 2px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+}
+.regime-btn {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  transition: all 0.15s;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.regime-btn:hover { color: var(--ink); }
+.regime-btn.active.on { background: var(--green-dim); color: var(--green-bright); box-shadow: inset 0 0 0 1px rgba(16,185,129,0.3); }
+.regime-btn.active.neut { background: var(--amber-dim); color: var(--amber-bright); box-shadow: inset 0 0 0 1px rgba(245,158,11,0.3); }
+.regime-btn.active.off { background: var(--red-dim); color: var(--red-bright); box-shadow: inset 0 0 0 1px rgba(239,68,68,0.3); }
+
+/* Sync pill */
+.cmdbar-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cmdbar-sync:hover { color: var(--ink); border-color: var(--line-soft); }
+.cmdbar-sync #sync-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex-shrink: 0;
+}
+
+/* Legacy stat-pill kept for any other usage */
 .stat-pill {
   display: flex; flex-direction: column;
   font-family: var(--mono);
@@ -193,115 +315,40 @@ input, select, textarea { font-family: inherit; }
 .stat-pill.danger span { color: var(--red-bright); }
 
 .nav-icon-btn {
-  background: var(--bg-elev);
-  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--ink-3);
-  width: 36px; height: 36px;
+  width: 34px; height: 34px;
   border-radius: var(--r-sm);
   display: grid; place-items: center;
   cursor: pointer;
   transition: all 0.15s;
-  margin-left: 4px;
 }
-.nav-icon-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+.nav-icon-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.06); }
 
-/* ============ REGIME BANNER (Step 0 — Pre-trade context) ============ */
-.regime-banner {
-  background: var(--bg-elev);
-  border-bottom: 1px solid var(--line);
-  position: relative;
-}
-.regime-banner::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 2px;
-  background: var(--green);
-  transition: background 0.3s;
-}
-.regime-banner.neutral::before { background: var(--amber); }
-.regime-banner.risk-off::before { background: var(--red); }
-
-.regime-inner {
+/* Slim regime context strip below cmdbar */
+.cmdbar-rules {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 16px 24px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 24px;
-  align-items: center;
-}
-.regime-display {
-  display: flex; align-items: center; gap: 16px;
-}
-.regime-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink-4);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-}
-.regime-state {
-  font-family: var(--display);
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  display: flex; align-items: center; gap: 12px;
-}
-.regime-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.regime-state.risk-on { color: var(--green-bright); }
-.regime-state.risk-on .regime-dot {
-  background: var(--green);
-  box-shadow: 0 0 16px var(--green), 0 0 32px var(--green);
-}
-.regime-state.neutral { color: var(--amber-bright); }
-.regime-state.neutral .regime-dot {
-  background: var(--amber);
-  box-shadow: 0 0 16px var(--amber);
-}
-.regime-state.risk-off { color: var(--red-bright); }
-.regime-state.risk-off .regime-dot {
-  background: var(--red);
-  box-shadow: 0 0 16px var(--red), 0 0 32px var(--red);
-}
-.regime-rules {
-  font-size: 13px;
-  color: var(--ink-2);
-  font-family: var(--mono);
-}
-.regime-rules strong {
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 14px;
-}
-.regime-toggle {
-  display: flex; gap: 4px;
-  background: var(--bg-card);
-  padding: 4px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--line-soft);
-}
-.regime-btn {
-  background: none;
-  border: none;
-  color: var(--ink-3);
-  padding: 8px 16px;
+  padding: 0 24px;
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-weight: 600;
-  transition: all 0.15s;
-  border-radius: var(--r-sm);
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.2s ease, padding 0.2s ease;
 }
-.regime-btn:hover { color: var(--ink); }
-.regime-btn.active.on { background: var(--green-dim); color: var(--green-bright); }
-.regime-btn.active.neut { background: var(--amber-dim); color: var(--amber-bright); }
-.regime-btn.active.off { background: var(--red-dim); color: var(--red-bright); }
+.cmdbar-rules.show {
+  height: 30px;
+  padding: 8px 24px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.cmdbar-rules strong { color: var(--ink); font-weight: 700; }
+
+/* Legacy alias — old code may still expect .regime-dot to be inline */
+.regime-dot { display: inline-block; }
 
 /* ============ MAIN CONTAINER ============ */
 .main {
@@ -352,6 +399,52 @@ input, select, textarea { font-family: inherit; }
   background: rgba(4, 28, 22, 0.78);
   border-color: rgba(63, 185, 80, 0.42);
 }
+
+/* Sector data staleness — amber treatment when grades are >7 days old */
+.home-card.stale {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, rgba(245,158,11,0.06), var(--bg-card) 60%);
+}
+.home-card.stale::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--amber);
+  box-shadow: 0 0 16px rgba(245,158,11,0.4);
+}
+.home-stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--amber-bg);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber-bright);
+  letter-spacing: 0.02em;
+}
+.home-stale-banner-icon { font-size: 13px; line-height: 1; }
+.home-stale-banner button {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--amber);
+  color: var(--amber-bright);
+  padding: 3px 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.home-stale-banner button:hover { background: var(--amber-bg); }
 .home-card-title {
   font-family: var(--mono);
   font-size: 11px;
@@ -495,6 +588,49 @@ input, select, textarea { font-family: inherit; }
   line-height: 1.5;
   margin-top: 8px;
 }
+
+/* Alpha Intelligence — structured read */
+.home-intel-headline {
+  color: #7ee787;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+.home-intel-headline.neutral { color: var(--amber-bright); }
+.home-intel-headline.risk-off { color: var(--red-bright); }
+.home-intel-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.home-intel-points li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.home-intel-points li .intel-icon {
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+.home-intel-points li strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.home-intel-points li.tone-good strong { color: var(--green-bright); }
+.home-intel-points li.tone-warn strong { color: var(--amber-bright); }
+.home-intel-points li.tone-bad strong { color: var(--red-bright); }
+.home-intel-points li.tone-info strong { color: var(--cyan); }
 .home-session-value {
   font-family: var(--display);
   font-size: 34px;
@@ -832,23 +968,57 @@ input, select, textarea { font-family: inherit; }
 }
 
 .step-card {
-  background: var(--bg-card);
-  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
+    rgba(19, 23, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--r-xl);
   position: relative;
   overflow: hidden;
   transition: all 0.25s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 1px 2px rgba(0,0,0,0.3),
+    0 6px 24px rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.step-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  background: var(--cyan);
+  border-radius: var(--r-xl) 0 0 var(--r-xl);
+  transition: width 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  pointer-events: none;
+  z-index: 1;
 }
 .step-card.active {
-  box-shadow: var(--shadow-step), 0 0 0 1px var(--cyan-dim);
-  border-color: var(--cyan-dim);
+  border-color: rgba(6, 212, 248, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 0 0 1px rgba(6, 212, 248, 0.18),
+    0 12px 48px rgba(0, 0, 0, 0.45),
+    0 0 32px rgba(6, 212, 248, 0.08);
+}
+.step-card.active::before {
+  width: 4px;
+  box-shadow: 0 0 24px rgba(6, 212, 248, 0.5), 0 0 8px var(--cyan);
 }
 .step-card.complete {
-  border-color: var(--green);
-  background: linear-gradient(135deg, var(--green-bg), var(--bg-card) 60%);
+  border-color: rgba(16, 185, 129, 0.35);
+  background:
+    linear-gradient(135deg, rgba(16,185,129,0.06), rgba(19, 23, 34, 0.72) 55%);
+}
+.step-card.complete::before {
+  width: 4px;
+  background: var(--green);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45), 0 0 6px var(--green);
 }
 .step-card.locked {
-  opacity: 0.5;
+  opacity: 0.45;
+  filter: saturate(0.7);
 }
 
 .step-header {
@@ -1568,6 +1738,91 @@ select.input-field {
 }
 .log-table .pl-positive { color: var(--green-bright); }
 .log-table .pl-negative { color: var(--red-bright); }
+
+/* Date cell with mode tag stacked underneath */
+.log-table .date-cell {
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.log-table .date-cell .mode-tag {
+  display: inline-block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.log-table .mode-tag.mode-swing  { background: rgba(6, 212, 248, 0.10); color: var(--cyan); }
+.log-table .mode-tag.mode-intraday { background: rgba(236, 72, 153, 0.12); color: var(--magenta); }
+
+/* R-multiple primary column — highlighted header */
+.log-table .r-header {
+  text-align: center;
+  color: var(--cyan);
+}
+.log-table .r-cell {
+  min-width: 130px;
+  padding: 8px 12px;
+  vertical-align: middle;
+  background: rgba(255, 255, 255, 0.012);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.log-table .r-cell.empty .r-cell-value {
+  color: var(--ink-4);
+  font-weight: 600;
+  text-align: center;
+}
+.log-table .r-cell-value {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-align: center;
+}
+.log-table .r-cell-unit {
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 1px;
+  opacity: 0.6;
+}
+.log-table .r-cell.pos .r-cell-value { color: var(--green-bright); }
+.log-table .r-cell.neg .r-cell-value { color: var(--red-bright); }
+.log-table .r-cell-bar {
+  position: relative;
+  height: 4px;
+  background: var(--bg-elev);
+  border-radius: 2px;
+  margin-top: 6px;
+}
+.log-table .r-cell-bar::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: -1px; bottom: -1px;
+  width: 1px;
+  background: var(--ink-4);
+  opacity: 0.4;
+}
+.log-table .r-cell-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.log-table .r-cell-fill.pos { background: linear-gradient(90deg, var(--green-dim), var(--green)); box-shadow: 0 0 6px rgba(16,185,129,0.45); }
+.log-table .r-cell-fill.neg { background: linear-gradient(270deg, var(--red-dim), var(--red)); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+.log-table .r-cell-overflow {
+  position: absolute;
+  top: -2px;
+  font-size: 9px;
+  line-height: 1;
+}
+.log-table .r-cell-overflow.pos { right: -10px; color: var(--green-bright); }
+.log-table .r-cell-overflow.neg { left: -10px; color: var(--red-bright); }
 .log-table .status {
   display: inline-flex;
   align-items: center;
@@ -1649,11 +1904,19 @@ select.input-field {
   padding: 20px 24px;
   border-bottom: 1px solid var(--line);
   display: flex; justify-content: space-between; align-items: center;
+  gap: 16px;
 }
 .modal-title {
   font-family: var(--display);
   font-size: 20px;
   font-weight: 700;
+}
+.modal-subtitle {
+  font-size: 12px;
+  color: var(--ink-4);
+  margin-top: 2px;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
 }
 .modal-close {
   background: none;
@@ -1663,6 +1926,7 @@ select.input-field {
   width: 32px; height: 32px;
   border-radius: 4px;
   display: grid; place-items: center;
+  flex-shrink: 0;
 }
 .modal-close:hover { background: var(--bg-elev); color: var(--ink); }
 .modal-body { padding: 24px; }
@@ -1671,6 +1935,288 @@ select.input-field {
   border-top: 1px solid var(--line);
   display: flex; justify-content: flex-end; gap: 10px;
 }
+
+/* ============ TRADE MODAL — TWO-MODE STRUCTURE ============ */
+.modal.modal-trade { max-width: 720px; }
+
+.modal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--line);
+}
+.modal-tab {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  padding: 14px 18px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border-right: 1px solid var(--line);
+}
+.modal-tab:last-child { border-right: none; }
+.modal-tab:hover { background: rgba(255,255,255,0.02); color: var(--ink-2); }
+.modal-tab.active {
+  color: var(--ink);
+  background: var(--bg-card);
+}
+.modal-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+}
+.modal-tab-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+}
+.modal-tab.active .modal-tab-num { color: var(--cyan); }
+.modal-tab-label {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.modal-tab-detail {
+  font-size: 11px;
+  color: var(--ink-4);
+  font-weight: 400;
+}
+
+.modal-pane { display: none; animation: fadeIn 0.2s ease; }
+.modal-pane.active { display: block; }
+.modal-pane-hint {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-elev);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+/* Read-only entry summary — top of Review pane */
+.trade-summary {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.trade-summary-empty {
+  color: var(--ink-4);
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  padding: 10px 0;
+}
+.trade-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--line);
+}
+.trade-summary-ticker {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.trade-summary-ticker .trade-summary-mode {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  background: rgba(6, 212, 248, 0.1);
+  color: var(--cyan);
+  vertical-align: middle;
+}
+.trade-summary-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+.trade-summary-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+}
+.trade-summary-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.trade-summary-row-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.trade-summary-row-value {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* Outcome segmented control */
+.outcome-toggle-wrap { margin-bottom: 16px; }
+.outcome-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.outcome-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-3);
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.outcome-btn:hover { color: var(--ink); }
+.outcome-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  transition: all 0.15s;
+}
+.outcome-btn.open.active {
+  background: rgba(6, 212, 248, 0.1);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+.outcome-btn.open.active .outcome-dot {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.outcome-btn.win.active {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green-bright);
+}
+.outcome-btn.win.active .outcome-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.outcome-btn.loss.active {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red-bright);
+}
+.outcome-btn.loss.active .outcome-dot {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+
+/* Review fields visibility — driven by outcome */
+.review-fields { display: none; animation: fadeIn 0.2s ease; }
+.review-fields.show { display: block; }
+.review-open-nudge {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 18px;
+  background: linear-gradient(135deg, rgba(6,212,248,0.06), transparent);
+  border: 1px dashed var(--cyan-dim);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.review-open-nudge.hide { display: none; }
+.review-open-nudge-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+.review-open-nudge strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.review-open-nudge em {
+  color: var(--cyan);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* Process grade — segmented A/B/C/D/F */
+.grade-toggle {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.grade-btn {
+  background: var(--bg-elev);
+  border: 1px solid var(--line-soft);
+  color: var(--ink-3);
+  padding: 10px 6px;
+  border-radius: var(--r-sm);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+}
+.grade-btn span {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-4);
+}
+.grade-btn:hover { border-color: var(--ink-4); color: var(--ink-2); }
+.grade-btn.selected[data-grade="A"] { background: var(--green); color: var(--bg); border-color: var(--green); }
+.grade-btn.selected[data-grade="B"] { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
+.grade-btn.selected[data-grade="C"] { background: var(--amber); color: var(--bg); border-color: var(--amber); }
+.grade-btn.selected[data-grade="D"] { background: var(--red); color: var(--bg); border-color: var(--red); }
+.grade-btn.selected[data-grade="F"] { background: #7f1d1d; color: var(--ink); border-color: var(--red); }
+.grade-btn.selected span { color: rgba(0,0,0,0.55); }
+.grade-btn.selected[data-grade="F"] span { color: rgba(255,255,255,0.55); }
 
 .form-grid {
   display: grid;
@@ -2514,12 +3060,7 @@ textarea.input-field {
 
 /* ============ MOBILE ============ */
 @media (max-width: 720px) {
-  .top-nav-inner { grid-template-columns: 1fr auto; gap: 12px; padding: 12px 16px; }
-  .tabs { display: none; }
-  .portfolio-status { gap: 6px; }
   .stat-pill span { font-size: 14px; }
-  .regime-inner { grid-template-columns: 1fr; padding: 14px 16px; }
-  .regime-state { font-size: 22px; }
   .main { padding: 16px; }
   .input-row { grid-template-columns: 1fr; }
   .input-row.three { grid-template-columns: 1fr; }
@@ -2978,6 +3519,126 @@ textarea.input-field {
 }
 .instrument-btn.active .instrument-btn-detail { color: var(--ink-2); }
 
+/* ============================================================
+   ELEVATION SYSTEM — replaces flat 1px-border cards with depth.
+   Applied as a final overlay so layouts stay intact while every
+   primary surface picks up consistent inset highlight + shadow.
+   ============================================================ */
+.home-card,
+.modal,
+.block-card,
+.ref-card,
+.log-table-wrap,
+.aside-card,
+.pretrade-check,
+.snapshot-wrap,
+.ticker-bar,
+.sector-status-mini {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
+    rgba(19, 23, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 1px 2px rgba(0,0,0,0.3),
+    0 6px 24px rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.modal {
+  /* Modal sits above everything else — heavier shadow */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+/* Preserve the green-card alpha intelligence variant */
+.home-card.green {
+  background:
+    linear-gradient(180deg, rgba(126, 231, 135, 0.08), transparent 35%),
+    rgba(4, 28, 22, 0.78);
+  border-color: rgba(63, 185, 80, 0.42);
+}
+/* Preserve stale amber treatment */
+.home-card.stale {
+  background:
+    linear-gradient(180deg, rgba(245, 158, 11, 0.10), transparent 40%),
+    rgba(19, 23, 34, 0.72);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+/* Hover lift for primary cards */
+.home-card,
+.block-card,
+.ref-card {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.home-card:hover,
+.block-card:hover,
+.ref-card:hover {
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 2px 4px rgba(0,0,0,0.3),
+    0 12px 36px rgba(0,0,0,0.28);
+}
+
+/* Setup cards inside Step 1 — match elevation, not flat */
+.setup-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.018), transparent),
+    rgba(14, 17, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.setup-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(6, 212, 248, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 4px 16px rgba(0,0,0,0.35);
+}
+.setup-card.selected {
+  background:
+    linear-gradient(180deg, rgba(16, 185, 129, 0.10), rgba(14, 17, 24, 0.7) 60%);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(16, 185, 129, 0.2),
+    0 0 24px rgba(16, 185, 129, 0.12);
+}
+
+/* Modal-pane animation refinement to play with the new tabs */
+.modal-pane.active { animation: paneSlideIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes paneSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tighter spacing now that nav + regime are merged */
+.main { padding-top: 24px; }
+
+/* Mobile cmdbar — collapse padding and tab labels */
+@media (max-width: 900px) {
+  .cmdbar-inner {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+  .cmdbar-tabs {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    padding: 6px 0 0;
+  }
+  .cmdbar-actions { gap: 6px; }
+  .cmdbar-regime { padding: 4px 6px; }
+  .cmdbar-regime-label { display: none; }
+  .cmdbar-sync { display: none; }
+  .brand-name { display: none; }
+  .tab { padding: 6px 10px; font-size: 12px; }
+}
+
 </style>
 </head>
 <body>
@@ -3034,19 +3695,46 @@ textarea.input-field {
   </div>
 </div>
 
-<!-- ============ TOP NAV ============ -->
-<header class="top-nav">
-  <div class="top-nav-inner">
-    <div class="brand" id="brand-home" title="Back to Home">
+<!-- ============ COMMAND BAR (merged nav + regime) ============ -->
+<header class="cmdbar" id="regime-banner">
+  <div class="cmdbar-inner">
+    <!-- Brand -->
+    <div class="cmdbar-brand brand" id="brand-home" title="Back to Home">
       <span class="brand-mark">AE</span>
-      <span>Alpha Edge Trading</span>
+      <span class="brand-name">Alpha Edge</span>
+      <span class="brand-tag" title="Account size — edit in Settings">$10K</span>
     </div>
-    <div class="portfolio-status">
-      <div id="sync-pill" class="stat-pill" title="Click for sync menu" style="cursor:pointer; padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:6px;">
-        <span id="sync-dot" style="width:8px; height:8px; border-radius:50%; background:#6e7681; flex-shrink:0;"></span>
+
+    <!-- Tab navigation -->
+    <nav class="cmdbar-tabs" role="tablist" aria-label="Primary navigation">
+      <button class="tab" data-tab="home" role="tab">Home</button>
+      <button class="tab" data-tab="decision" role="tab">Swing</button>
+      <button class="tab" data-tab="intraday" role="tab">Intraday</button>
+      <button class="tab" data-tab="log" role="tab">Log</button>
+      <button class="tab" data-tab="sunday" role="tab">Sunday Prep</button>
+      <button class="tab" data-tab="reference" role="tab">Reference</button>
+    </nav>
+
+    <!-- Regime + actions -->
+    <div class="cmdbar-actions">
+      <div class="cmdbar-regime" id="regime-state" title="Click a regime to set the trading mode">
+        <span class="cmdbar-regime-dot regime-dot"></span>
+        <span class="cmdbar-regime-label">Regime</span>
+        <span id="regime-text" hidden>RISK-ON</span>
+        <div class="regime-toggle" role="group" aria-label="Market regime">
+          <button class="regime-btn on active" data-regime="risk-on" title="Risk-On — full size, long-biased">On</button>
+          <button class="regime-btn neut" data-regime="neutral" title="Neutral — half size, both directions">Neut</button>
+          <button class="regime-btn off" data-regime="risk-off" title="Risk-Off — reduced size, longs blocked">Off</button>
+        </div>
+      </div>
+      <!-- Hidden rules text — preserved for any external readers / tooltip source -->
+      <span id="regime-rules" hidden></span>
+
+      <div id="sync-pill" class="cmdbar-sync" title="Click for sync menu">
+        <span id="sync-dot"></span>
         <span id="sync-label">Local</span>
       </div>
-      <button class="nav-icon-btn" id="btn-reference" title="Reference & help guide">
+      <button class="nav-icon-btn" id="btn-reference" title="Reference &amp; help guide">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
@@ -3061,30 +3749,9 @@ textarea.input-field {
       </button>
     </div>
   </div>
+  <!-- Slim regime context strip — auto-hidden on Home -->
+  <div class="cmdbar-rules" id="cmdbar-rules"></div>
 </header>
-
-<!-- ============ REGIME BANNER ============ -->
-<div class="regime-banner" id="regime-banner">
-  <div class="regime-inner">
-    <div class="regime-display">
-      <div>
-        <div class="regime-label">Market Regime</div>
-        <div class="regime-state risk-on" id="regime-state">
-          <span class="regime-dot"></span>
-          <span id="regime-text">RISK-ON</span>
-        </div>
-      </div>
-      <div class="regime-rules" id="regime-rules">
-        <strong>Full size 1.5–2%</strong> &nbsp;•&nbsp; Long-biased &nbsp;•&nbsp; Set from your TOS MAC_MacroRegime label
-      </div>
-    </div>
-    <div class="regime-toggle">
-      <button class="regime-btn on active" data-regime="risk-on">Risk-On</button>
-      <button class="regime-btn neut" data-regime="neutral">Neutral</button>
-      <button class="regime-btn off" data-regime="risk-off">Risk-Off</button>
-    </div>
-  </div>
-</div>
 
 <!-- ============ MAIN ============ -->
 <main class="main">
@@ -3118,10 +3785,13 @@ textarea.input-field {
           </div>
         </div>
 
-        <div class="home-card green">
+        <div class="home-card green" id="home-intel-card">
           <div class="home-card-title" style="color:#7ee787;">Alpha Intelligence</div>
-          <div class="home-card-kicker" id="home-deep-label">Deep Analyze</div>
-          <div class="home-intel-text" id="home-intel-text">Strong macro tailwinds. Conditions support trend following.</div>
+          <div class="home-card-kicker" id="home-deep-label">Live read</div>
+          <div class="home-intel-headline" id="home-intel-headline">Connect your account size in Settings to start the read.</div>
+          <ul class="home-intel-points" id="home-intel-points"></ul>
+          <!-- legacy id retained for any external callers -->
+          <div class="home-intel-text" id="home-intel-text" hidden></div>
         </div>
       </div>
 
@@ -4155,119 +4825,139 @@ STRENGTH: 3/3</pre>
   in your broker. Verify every number before clicking Buy.
 </footer>
 
-<!-- ============ ADD TRADE MODAL ============ -->
+<!-- ============ ADD TRADE MODAL — TWO-MODE: Entry / Review ============ -->
 <div class="modal-backdrop" id="modal-add">
-  <div class="modal">
+  <div class="modal modal-trade">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Log Trade</div>
+      <div>
+        <div class="modal-title" id="modal-title">Log Trade</div>
+        <div class="modal-subtitle" id="modal-subtitle">Open: log entry data. Close: switch to Review.</div>
+      </div>
       <button class="modal-close" data-close>×</button>
     </div>
+
+    <!-- Tab strip — Entry vs Review -->
+    <div class="modal-tabs" id="trade-modal-tabs">
+      <button type="button" class="modal-tab active" data-trade-tab="entry">
+        <span class="modal-tab-num">01</span>
+        <span class="modal-tab-label">Entry</span>
+        <span class="modal-tab-detail">Setup, size, plan</span>
+      </button>
+      <button type="button" class="modal-tab" data-trade-tab="review">
+        <span class="modal-tab-num">02</span>
+        <span class="modal-tab-label">Review &amp; close</span>
+        <span class="modal-tab-detail">Exit, grade, lesson</span>
+      </button>
+    </div>
+
     <div class="modal-body">
       <form id="trade-form">
         <input type="hidden" id="t-id" />
-        <div class="form-grid">
-          <div class="input-group">
-            <label class="input-label">Mode</label>
-            <select class="input-field" id="t-mode" required>
-              <option value="swing">Swing</option>
-              <option value="intraday">Intraday</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Date</label>
-            <input type="date" class="input-field" id="t-date" required />
-          </div>
-          <div class="input-group">
-            <label class="input-label">Ticker</label>
-            <input type="text" class="input-field" id="t-ticker" required
-                   style="text-transform: uppercase;" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">Setup</label>
-            <select class="input-field" id="t-setup" required>
-              <option value="">Select...</option>
-              <!-- Options populated by JS based on selected mode -->
-            </select>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Direction</label>
-            <select class="input-field" id="t-direction" required>
-              <option>Long</option>
-              <option>Short</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Entry Premium</label>
-            <input type="number" step="0.01" class="input-field" id="t-entry" required />
-          </div>
-          <div class="input-group">
-            <label class="input-label">Contracts</label>
-            <input type="number" class="input-field" id="t-contracts" required />
-          </div>
-          <div class="input-group">
-            <label class="input-label">IVR @ Entry</label>
-            <input type="number" min="0" max="100" class="input-field" id="t-ivr" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">Regime @ Entry</label>
-            <select class="input-field" id="t-regime">
-              <option>RISK-ON</option>
-              <option>NEUTRAL</option>
-              <option>RISK-OFF</option>
-            </select>
-          </div>
-          <div class="input-group full">
-            <label class="input-label">Thesis (1 sentence)</label>
-            <textarea class="input-field" id="t-thesis"
-                      placeholder="What has to happen for this to work?"></textarea>
-          </div>
-          <div class="input-group full">
-            <label class="input-label">Pre-mortem (if it loses, why?)</label>
-            <textarea class="input-field" id="t-premortem"></textarea>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Stop Level (underlying $)</label>
-            <input type="number" step="0.01" class="input-field" id="t-stop" />
-          </div>
-          <div class="input-group">
-            <label class="input-label">Status</label>
-            <select class="input-field" id="t-status">
-              <option value="open">Open</option>
-              <option value="win">Closed (Win)</option>
-              <option value="loss">Closed (Loss)</option>
-            </select>
-          </div>
-          <div class="input-group" id="t-exit-wrap" style="display:none;">
-            <label class="input-label">Exit Premium</label>
-            <input type="number" step="0.01" class="input-field" id="t-exit" />
-          </div>
-          <div class="input-group" id="t-grade-wrap" style="display:none; grid-column: span 2;">
-            <div style="font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--cyan); letter-spacing: 0.08em; margin-bottom: 10px;">TRADE REVIEW</div>
+        <input type="hidden" id="t-status" value="open" />
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-              <div>
-                <label class="input-label">Followed the plan?</label>
-                <select class="input-field" id="t-followed-plan">
-                  <option value="">—</option>
-                  <option value="yes">Yes — followed setup, sizing, exit rules</option>
-                  <option value="partial">Partial — strayed from one rule</option>
-                  <option value="no">No — broke multiple rules</option>
-                </select>
-              </div>
-              <div>
-                <label class="input-label">Emotion at exit</label>
-                <select class="input-field" id="t-emotion">
-                  <option value="">—</option>
-                  <option value="calm">Calm — ran the rules</option>
-                  <option value="anxious">Anxious — questioned the trade</option>
-                  <option value="fomo">FOMO — chased or held too long</option>
-                  <option value="panic">Panic — bailed at worst time</option>
-                </select>
-              </div>
+        <!-- ============ ENTRY PANE ============ -->
+        <div class="modal-pane active" data-trade-pane="entry">
+          <div class="form-grid">
+            <div class="input-group">
+              <label class="input-label">Mode</label>
+              <select class="input-field" id="t-mode" required>
+                <option value="swing">Swing</option>
+                <option value="intraday">Intraday</option>
+              </select>
             </div>
+            <div class="input-group">
+              <label class="input-label">Date</label>
+              <input type="date" class="input-field" id="t-date" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Ticker</label>
+              <input type="text" class="input-field" id="t-ticker" required
+                     style="text-transform: uppercase;" />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Setup</label>
+              <select class="input-field" id="t-setup" required>
+                <option value="">Select...</option>
+                <!-- Options populated by JS based on selected mode -->
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Direction</label>
+              <select class="input-field" id="t-direction" required>
+                <option>Long</option>
+                <option>Short</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Entry Premium</label>
+              <input type="number" step="0.01" class="input-field" id="t-entry" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Contracts</label>
+              <input type="number" class="input-field" id="t-contracts" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">IVR @ Entry</label>
+              <input type="number" min="0" max="100" class="input-field" id="t-ivr" />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Regime @ Entry</label>
+              <select class="input-field" id="t-regime">
+                <option>RISK-ON</option>
+                <option>NEUTRAL</option>
+                <option>RISK-OFF</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Stop Level (underlying $)</label>
+              <input type="number" step="0.01" class="input-field" id="t-stop" />
+            </div>
+            <div class="input-group full">
+              <label class="input-label">Thesis (1 sentence)</label>
+              <textarea class="input-field" id="t-thesis"
+                        placeholder="What has to happen for this to work?"></textarea>
+            </div>
+            <div class="input-group full">
+              <label class="input-label">Pre-mortem (if it loses, why?)</label>
+              <textarea class="input-field" id="t-premortem"></textarea>
+            </div>
+          </div>
+          <div class="modal-pane-hint">
+            All required fields above. Click <strong>Review &amp; close</strong> only when the position is closed in your broker.
+          </div>
+        </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-              <div>
+        <!-- ============ REVIEW PANE ============ -->
+        <div class="modal-pane" data-trade-pane="review">
+          <!-- Read-only entry summary -->
+          <div class="trade-summary" id="trade-summary">
+            <div class="trade-summary-empty">Fill the Entry tab first.</div>
+          </div>
+
+          <!-- Outcome segmented (drives status) -->
+          <div class="outcome-toggle-wrap">
+            <label class="input-label">Outcome</label>
+            <div class="outcome-toggle" role="tablist">
+              <button type="button" class="outcome-btn open active" data-outcome="open">
+                <span class="outcome-dot"></span>Still open
+              </button>
+              <button type="button" class="outcome-btn win" data-outcome="win">
+                <span class="outcome-dot"></span>Closed — Win
+              </button>
+              <button type="button" class="outcome-btn loss" data-outcome="loss">
+                <span class="outcome-dot"></span>Closed — Loss
+              </button>
+            </div>
+          </div>
+
+          <!-- Review fields — only shown when outcome != open -->
+          <div class="review-fields" id="review-fields">
+            <div class="form-grid">
+              <div class="input-group">
+                <label class="input-label">Exit Premium</label>
+                <input type="number" step="0.01" class="input-field" id="t-exit" placeholder="0.00" />
+              </div>
+              <div class="input-group">
                 <label class="input-label">Exit reason</label>
                 <select class="input-field" id="t-exit-reason">
                   <option value="">—</option>
@@ -4278,36 +4968,64 @@ STRENGTH: 3/3</pre>
                   <option value="discretionary">Discretionary (gut call)</option>
                 </select>
               </div>
-              <div>
-                <label class="input-label">Process Grade (A–F)</label>
-                <select class="input-field" id="t-grade">
+              <div class="input-group">
+                <label class="input-label">Followed the plan?</label>
+                <select class="input-field" id="t-followed-plan">
                   <option value="">—</option>
-                  <option value="A">A — flawless execution</option>
-                  <option value="B">B — minor friction</option>
-                  <option value="C">C — meaningful mistakes</option>
-                  <option value="D">D — broke rules, got lucky</option>
-                  <option value="F">F — broke rules, paid the price</option>
+                  <option value="yes">Yes — followed setup, sizing, exit rules</option>
+                  <option value="partial">Partial — strayed from one rule</option>
+                  <option value="no">No — broke multiple rules</option>
                 </select>
               </div>
+              <div class="input-group">
+                <label class="input-label">Emotion at exit</label>
+                <select class="input-field" id="t-emotion">
+                  <option value="">—</option>
+                  <option value="calm">Calm — ran the rules</option>
+                  <option value="anxious">Anxious — questioned the trade</option>
+                  <option value="fomo">FOMO — chased or held too long</option>
+                  <option value="panic">Panic — bailed at worst time</option>
+                </select>
+              </div>
+              <div class="input-group full">
+                <label class="input-label">Process Grade (A–F)</label>
+                <div class="grade-toggle" role="tablist">
+                  <button type="button" class="grade-btn" data-grade="A">A<span>flawless</span></button>
+                  <button type="button" class="grade-btn" data-grade="B">B<span>minor friction</span></button>
+                  <button type="button" class="grade-btn" data-grade="C">C<span>mistakes</span></button>
+                  <button type="button" class="grade-btn" data-grade="D">D<span>broke rules</span></button>
+                  <button type="button" class="grade-btn" data-grade="F">F<span>punished</span></button>
+                </div>
+                <input type="hidden" id="t-grade" value="" />
+              </div>
+              <div class="input-group full">
+                <label class="input-label">One-line lesson</label>
+                <textarea class="input-field" id="t-lesson" rows="2"
+                          placeholder="What would you do differently? e.g. 'Should have exited at +25% when momentum stalled instead of holding for +50%'"></textarea>
+              </div>
             </div>
+            <div class="modal-pane-hint">
+              Process grade is independent of P/L. A winning trade where you broke your rules is still a C or D — track these honestly and you'll see whether you profit from skill or luck.
+            </div>
+          </div>
 
+          <!-- Open-state nudge — shown only when outcome == open -->
+          <div class="review-open-nudge" id="review-open-nudge">
+            <div class="review-open-nudge-icon">⏱</div>
             <div>
-              <label class="input-label">One-line lesson (what would you do differently?)</label>
-              <textarea class="input-field" id="t-lesson" rows="2" placeholder="e.g. 'Should have exited at +25% when momentum stalled instead of holding for full +50%'"></textarea>
-            </div>
-
-            <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); font-style: italic; line-height: 1.4;">
-              Process grade is independent of P/L. A winning trade where you broke your rules is still a C or D. Track these consistently and you'll see whether you're profiting from skill or luck.
+              <strong>Trade is still open.</strong>
+              <span>Pick <em>Closed — Win</em> or <em>Closed — Loss</em> above when the position is fully exited in your broker.</span>
             </div>
           </div>
         </div>
       </form>
     </div>
+
     <div class="modal-footer">
       <button class="btn-danger" id="btn-delete-trade" data-edit-only style="display:none;">Delete</button>
       <div style="flex: 1;"></div>
       <button class="btn-ghost" data-close>Cancel</button>
-      <button class="btn-primary" id="btn-save-trade">Save Trade</button>
+      <button class="btn-primary" id="btn-save-trade">Save</button>
     </div>
   </div>
 </div>
@@ -5335,30 +6053,46 @@ function setRegime(r) {
 
 function renderRegime() {
   const data = REGIME_DATA[state.regime];
+  // Cmdbar (formerly the regime banner) is always visible — only the rules strip toggles
   const banner = document.getElementById('regime-banner');
-  if (banner) banner.style.display = state.activeMode === 'home' ? 'none' : '';
   const display = document.getElementById('regime-state');
-  display.className = 'regime-state ' + state.regime;
-  document.getElementById('regime-text').textContent = data.text;
+  if (display) display.className = 'cmdbar-regime ' + state.regime;
+  const text = document.getElementById('regime-text');
+  if (text) text.textContent = data.text;
 
   // Mode-aware rules text:
   // - Swing (or anywhere except intraday): show regime-driven sizing %
   // - Intraday: show "context only" message + the fixed dollar risk
-  const rulesEl = document.getElementById('regime-rules');
-  if (state.activeMode === 'intraday') {
-    const dollar = state.settings.intradayRiskPerTrade;
-    const tilt = state.regime === 'risk-on'
-      ? 'Tilt long-side; same $ risk per trade'
-      : state.regime === 'neutral'
-        ? 'No directional tilt; consider half size'
-        : 'Tilt short-side or stand aside';
-    rulesEl.innerHTML = `<strong>Context only</strong> &nbsp;•&nbsp; Intraday uses fixed $${dollar}/trade regardless of regime &nbsp;•&nbsp; ${tilt}`;
-  } else {
+  const rulesHtml = (() => {
+    if (state.activeMode === 'intraday') {
+      const dollar = state.settings.intradayRiskPerTrade;
+      const tilt = state.regime === 'risk-on'
+        ? 'Tilt long-side; same $ risk per trade'
+        : state.regime === 'neutral'
+          ? 'No directional tilt; consider half size'
+          : 'Tilt short-side or stand aside';
+      return `<strong>Context only</strong> &nbsp;•&nbsp; Intraday uses fixed $${dollar}/trade regardless of regime &nbsp;•&nbsp; ${tilt}`;
+    }
     const pct = (getRiskPctForRegime(state.regime) * 100).toFixed(2).replace(/\.?0+$/, '');
-    rulesEl.innerHTML = data.rulesTemplate.replace('{pct}', pct);
+    return data.rulesTemplate.replace('{pct}', pct);
+  })();
+
+  // Hidden legacy element — preserved as data source for any external readers / tests
+  const legacy = document.getElementById('regime-rules');
+  if (legacy) legacy.innerHTML = rulesHtml;
+
+  // Slim contextual strip — visible everywhere except Home (where Alpha Intelligence carries the message)
+  const strip = document.getElementById('cmdbar-rules');
+  if (strip) {
+    strip.innerHTML = rulesHtml;
+    strip.classList.toggle('show', state.activeMode !== 'home');
   }
 
-  banner.className = 'regime-banner ' + data.bannerClass;
+  // Drive the colored top accent line on cmdbar
+  if (banner) {
+    banner.classList.remove('risk-on', 'neutral', 'risk-off');
+    banner.classList.add(data.bannerClass);
+  }
 
   document.querySelectorAll('.regime-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.regime === state.regime);
@@ -6650,13 +7384,39 @@ function renderLogTable() {
   }
 
   const sorted = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // R-multiple bar normalization — clamp at ±3R so outliers don't compress everything else
+  const R_BAR_MAX = 3;
+  const renderRCell = (r) => {
+    if (r === null || !Number.isFinite(r)) {
+      return `<td class="r-cell empty"><div class="r-cell-value">—</div></td>`;
+    }
+    const sign = r >= 0 ? 'pos' : 'neg';
+    const magnitude = Math.min(Math.abs(r), R_BAR_MAX) / R_BAR_MAX;
+    const widthPct = (magnitude * 50).toFixed(1);
+    const fillStyle = r >= 0
+      ? `left: 50%; width: ${widthPct}%;`
+      : `right: 50%; width: ${widthPct}%;`;
+    const overflowMark = Math.abs(r) > R_BAR_MAX
+      ? `<span class="r-cell-overflow ${sign}" title="Beyond ±${R_BAR_MAX}R">${r >= 0 ? '▶' : '◀'}</span>`
+      : '';
+    return `
+      <td class="r-cell ${sign}">
+        <div class="r-cell-value">${r >= 0 ? '+' : '−'}${Math.abs(r).toFixed(2)}<span class="r-cell-unit">R</span></div>
+        <div class="r-cell-bar">
+          <div class="r-cell-fill ${sign}" style="${fillStyle}"></div>
+          ${overflowMark}
+        </div>
+      </td>
+    `;
+  };
+
   container.innerHTML = `
     <div style="overflow-x: auto;">
       <table class="log-table">
         <thead>
           <tr>
             <th>Date</th>
-            <th>Mode</th>
             <th>Ticker</th>
             <th>Setup</th>
             <th>Dir</th>
@@ -6664,8 +7424,8 @@ function renderLogTable() {
             <th>Exit</th>
             <th>Size</th>
             <th>Status</th>
+            <th class="r-header">R-multiple</th>
             <th>P/L $</th>
-            <th>R</th>
             <th>Grade</th>
             <th></th>
           </tr>
@@ -6677,8 +7437,10 @@ function renderLogTable() {
             const mode = t.mode || 'swing';
             return `
               <tr>
-                <td class="num">${formatDate(t.date)}</td>
-                <td><span class="status ${mode === 'intraday' ? 'open' : 'win'}" style="font-size: 9px; padding: 2px 6px;">${mode}</span></td>
+                <td class="date-cell">
+                  <div class="num">${formatDate(t.date)}</div>
+                  <div class="mode-tag mode-${mode}">${mode}</div>
+                </td>
                 <td class="ticker">${t.ticker}</td>
                 <td>${t.setup}</td>
                 <td>${t.direction}</td>
@@ -6686,8 +7448,8 @@ function renderLogTable() {
                 <td class="num">${t.exit ? '$' + (+t.exit).toFixed(2) : '—'}</td>
                 <td class="num">${t.contracts}<span style="color: var(--ink-3); font-weight: 400; font-size: 10px; margin-left: 3px;">${t.instrument === 'stocks' ? 'sh' : 'ctr'}</span></td>
                 <td><span class="status ${t.status}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></td>
+                ${renderRCell(r)}
                 <td class="num ${pl > 0 ? 'pl-positive' : pl < 0 ? 'pl-negative' : ''}">${pl !== null ? (pl >= 0 ? '+$' : '−$') + Math.abs(pl).toFixed(0) : '—'}</td>
-                <td class="num ${r > 0 ? 'pl-positive' : r < 0 ? 'pl-negative' : ''}">${r !== null ? (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(2) + 'R' : '—'}</td>
                 <td>${t.grade ? `<span class="grade ${t.grade}">${t.grade}</span>` : '—'}</td>
                 <td>
                   <button class="btn-secondary" style="padding: 4px 10px; font-size: 10px;"
@@ -6734,23 +7496,120 @@ function renderHome() {
   const top3 = computeTop3();
   const avoid = computeAvoidList();
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
-  const regimeNote = state.regime === 'risk-on'
-    ? 'Trend-friendly tape. Full-size swing risk is available when the setup is clean.'
+  const regimeHeadline = state.regime === 'risk-on'
+    ? 'Risk-on tape. Trend-following bias. Full-size longs unlocked.'
     : state.regime === 'neutral'
-      ? 'Mixed tape. Keep sizing controlled and require clean confirmation.'
-      : 'Defensive tape. Capital protection comes first; longs are blocked by the plan.';
+      ? 'Neutral tape. Cut size, demand cleaner confirmation.'
+      : 'Risk-off tape. Capital protection first. Longs blocked by plan.';
   const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
   const bestTrade = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
   const worstTrade = [...closed].sort((a, b) => (calcPL(a) || 0) - (calcPL(b) || 0))[0];
   const avgR = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
-  const scoreText = closed.length
-    ? [
-        `Closed P/L is ${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)} across ${closed.length} trades with a ${winRate}% realized win rate.`,
-        `Average R is ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R.`,
-        bestTrade ? `Best performer: ${bestTrade.ticker} (${(calcPL(bestTrade) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(bestTrade) || 0).toFixed(0)}).` : '',
-        worstTrade && losses.length ? `Biggest leak: ${worstTrade.ticker} (-$${Math.abs(calcPL(worstTrade) || 0).toFixed(0)}).` : '',
-      ].filter(Boolean).join(' ')
-    : `${regimeNote} Add closed trades and Alpha Intelligence will surface your best ticker, biggest leak, win rate, and expectancy.`;
+
+  // Best/worst SETUP — patterns matter more than individual tickers for process review
+  const setupAggregate = closed.reduce((acc, t) => {
+    const k = t.setup || '—';
+    if (!acc[k]) acc[k] = { name: k, count: 0, wins: 0, pl: 0 };
+    acc[k].count++;
+    if ((calcPL(t) || 0) > 0) acc[k].wins++;
+    acc[k].pl += (calcPL(t) || 0);
+    return acc;
+  }, {});
+  const setupRows = Object.values(setupAggregate).filter(r => r.count >= 2);
+  const bestSetup = [...setupRows].sort((a, b) => b.pl - a.pl)[0] || null;
+  const worstSetup = [...setupRows].sort((a, b) => a.pl - b.pl)[0] || null;
+
+  // Build structured intel — array of {tone, icon, html}
+  const sectorStaleNow = state.sectorRatedAt && isSectorRatingStale();
+  const intelPoints = [];
+
+  // 1. Sector intel
+  if (top3.length || avoid.length) {
+    const topPart = top3.length ? `<strong>${top3.slice(0, 3).map(s => s.ticker).join(' · ')}</strong>` : 'none rated strong';
+    const avoidPart = avoid.length ? `avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => s.ticker).join(' · ')}</strong>` : '';
+    intelPoints.push({
+      tone: top3.length ? 'good' : 'warn',
+      icon: '🧭',
+      html: `Sector lean — long ${topPart}${avoidPart ? `, ${avoidPart}` : ''}.`,
+    });
+  } else {
+    intelPoints.push({
+      tone: 'warn',
+      icon: '🧭',
+      html: `<strong>No sector ratings.</strong> Run Sunday Prep before sizing this week's trades.`,
+    });
+  }
+
+  // 2. Stale sector warning
+  if (sectorStaleNow) {
+    const days = daysSinceSectorRating();
+    intelPoints.push({
+      tone: 'warn',
+      icon: '⚠️',
+      html: `Sector grades are <strong>${days} days old</strong> — re-rate before today's trade.`,
+    });
+  }
+
+  // 3. Performance read (only if there's data)
+  if (closed.length) {
+    const plLabel = `${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}`;
+    const rLabel = `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`;
+    intelPoints.push({
+      tone: totalPL >= 0 ? 'good' : 'bad',
+      icon: '📈',
+      html: `<strong>${plLabel}</strong> across ${closed.length} closed (${winRate}% win, avg ${rLabel}).`,
+    });
+  } else {
+    intelPoints.push({
+      tone: 'info',
+      icon: '📋',
+      html: `No closed trades yet. <strong>Log your first trade</strong> from the GO button to start tracking edge.`,
+    });
+  }
+
+  // 4. Pattern insight — only with enough data
+  if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && closed.length >= 5) {
+    const bestPL = `${bestSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(bestSetup.pl).toFixed(0)}`;
+    const worstPL = `${worstSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(worstSetup.pl).toFixed(0)}`;
+    intelPoints.push({
+      tone: 'info',
+      icon: '🎯',
+      html: `Best setup: <strong>${bestSetup.name}</strong> ${bestPL} · Leak: <strong style="color:var(--red-bright)">${worstSetup.name}</strong> ${worstPL}`,
+    });
+  } else if (bestTrade && closed.length >= 1) {
+    intelPoints.push({
+      tone: 'info',
+      icon: '🎯',
+      html: `Top trade: <strong>${bestTrade.ticker}</strong> (${(calcPL(bestTrade) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(bestTrade) || 0).toFixed(0)})${worstTrade && losses.length ? ` · biggest leak: <strong style="color:var(--red-bright)">${worstTrade.ticker}</strong> (-$${Math.abs(calcPL(worstTrade) || 0).toFixed(0)})` : ''}.`,
+    });
+  }
+
+  // 5. Action recommendation based on regime + position state
+  const positionsOk = openTrades.length < state.settings.maxPositions;
+  const riskOk = riskBuffer > nextRisk;
+  let actionTone = 'good', actionIcon = '✅', actionHtml = '';
+  if (state.regime === 'risk-off') {
+    actionTone = 'bad';
+    actionIcon = '🛑';
+    actionHtml = `<strong>Defensive mode.</strong> Skip longs. Only consider puts on Avoid-list sectors at half size.`;
+  } else if (!positionsOk || !riskOk) {
+    actionTone = 'warn';
+    actionIcon = '🔒';
+    actionHtml = !positionsOk
+      ? `<strong>Position cap reached.</strong> Close before opening more.`
+      : `<strong>Risk buffer thin.</strong> Next trade would push past ${state.settings.maxRiskPct}% cap.`;
+  } else if (state.regime === 'neutral') {
+    actionTone = 'warn';
+    actionIcon = '⚖️';
+    actionHtml = `<strong>Half-size mode.</strong> Both directions OK on confirmed setups only.`;
+  } else {
+    actionTone = 'good';
+    actionIcon = '✅';
+    actionHtml = `<strong>Cleared to trade.</strong> ${tradesLeft} trade${tradesLeft === 1 ? '' : 's'} of buffer remain.`;
+  }
+  intelPoints.push({ tone: actionTone, icon: actionIcon, html: actionHtml });
+
+  const scoreText = `${regimeHeadline} ${closed.length ? `${closed.length} closed.` : 'No closed trades yet.'}`;
 
   const setText = (id, text) => {
     const el = document.getElementById(id);
@@ -6768,6 +7627,63 @@ function renderHome() {
     ? `<span class="home-sector-context-line top"><strong>Top 3</strong><span>${topText}</span></span><span class="home-sector-context-line avoid"><strong>Avoid</strong><span>${avoidText}</span></span>`
     : '<span class="home-sector-context-line avoid"><strong>Sectors</strong><span>Rate in Sunday Prep</span></span>');
   setText('home-intel-text', scoreText);
+
+  // Render structured Alpha Intelligence
+  const headlineEl = document.getElementById('home-intel-headline');
+  if (headlineEl) {
+    headlineEl.textContent = regimeHeadline;
+    headlineEl.className = `home-intel-headline ${state.regime || ''}`;
+  }
+  const pointsEl = document.getElementById('home-intel-points');
+  if (pointsEl) {
+    pointsEl.innerHTML = intelPoints.map(p =>
+      `<li class="tone-${p.tone}"><span class="intel-icon">${p.icon}</span><span>${p.html}</span></li>`
+    ).join('');
+  }
+  const deepLabel = document.getElementById('home-deep-label');
+  if (deepLabel) {
+    deepLabel.textContent = sectorStaleNow ? 'Stale data' : (closed.length ? `${closed.length} closed` : 'Live read');
+  }
+
+  // Mark Market Context card as stale when sector grades are >7 days old
+  const sectorButtonHost = document.getElementById('home-sector-score');
+  const marketCard = sectorButtonHost ? sectorButtonHost.closest('.home-card') : null;
+  if (marketCard) {
+    const wasStale = marketCard.classList.contains('stale');
+    const shouldBeStale = !!sectorStaleNow;
+    marketCard.classList.toggle('stale', shouldBeStale);
+    let banner = marketCard.querySelector('.home-stale-banner');
+    if (shouldBeStale) {
+      const days = daysSinceSectorRating();
+      const msg = `<span class="home-stale-banner-icon">⚠</span> Sector grades ${days} days old · re-rate before sizing`;
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'home-stale-banner';
+        banner.innerHTML = `${msg}<button type="button" data-action="rerate">Re-rate</button>`;
+        marketCard.appendChild(banner);
+        banner.querySelector('button').addEventListener('click', e => {
+          e.stopPropagation();
+          if (typeof setTab === 'function') setTab('sunday');
+        });
+      } else {
+        banner.firstChild && (banner.firstChild.previousSibling); // no-op
+        // Update message but preserve the button
+        const btn = banner.querySelector('button');
+        banner.innerHTML = msg;
+        const newBtn = document.createElement('button');
+        newBtn.type = 'button';
+        newBtn.dataset.action = 'rerate';
+        newBtn.textContent = 'Re-rate';
+        banner.appendChild(newBtn);
+        newBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (typeof setTab === 'function') setTab('sunday');
+        });
+      }
+    } else if (banner) {
+      banner.remove();
+    }
+  }
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-win-rate', `${winRate}%`);
@@ -6880,16 +7796,22 @@ function populateTradeModalSetups(mode) {
 function openTradeModal(trade) {
   const modal = document.getElementById('modal-add');
   const title = document.getElementById('modal-title');
+  const subtitle = document.getElementById('modal-subtitle');
   const form = document.getElementById('trade-form');
   const deleteBtn = document.getElementById('btn-delete-trade');
   form.reset();
   document.getElementById('t-id').value = '';
+  document.getElementById('t-status').value = 'open';
+  document.getElementById('t-grade').value = '';
 
   // Populate setup dropdown based on mode (default swing). Function defined below.
   populateTradeModalSetups('swing');
 
   if (trade) {
     title.textContent = 'Edit Trade';
+    subtitle.textContent = trade.status === 'open'
+      ? 'Open position — switch to Review only when closed in your broker'
+      : 'Closed position — adjust review fields below';
     deleteBtn.style.display = 'inline-block';
     document.getElementById('t-id').value = trade.id;
     document.getElementById('t-mode').value = trade.mode || 'swing';
@@ -6912,8 +7834,11 @@ function openTradeModal(trade) {
     document.getElementById('t-emotion').value = trade.emotion || '';
     document.getElementById('t-exit-reason').value = trade.exit_reason || '';
     document.getElementById('t-lesson').value = trade.lesson || '';
+    // Default tab: closed trades open on Review; open trades on Entry
+    setTradeModalTab(trade.status === 'open' ? 'entry' : 'review');
   } else {
     title.textContent = 'Log Trade';
+    subtitle.textContent = 'Capture entry now. Review and grade the trade after exit.';
     deleteBtn.style.display = 'none';
     document.getElementById('t-date').value = new Date().toISOString().split('T')[0];
 
@@ -6951,8 +7876,10 @@ function openTradeModal(trade) {
         document.getElementById('t-contracts').value = contracts;
       }
     }
+    setTradeModalTab('entry');
   }
-  toggleStatusFields();
+  refreshOutcomeUI();
+  refreshGradeUI();
   modal.classList.add('show');
 }
 
@@ -6960,11 +7887,108 @@ function closeTradeModal() {
   document.getElementById('modal-add').classList.remove('show');
 }
 
+// Tab switching — Entry vs Review pane.
+function setTradeModalTab(tab) {
+  document.querySelectorAll('#trade-modal-tabs .modal-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tradeTab === tab);
+  });
+  document.querySelectorAll('#trade-form [data-trade-pane]').forEach(p => {
+    p.classList.toggle('active', p.dataset.tradePane === tab);
+  });
+  if (tab === 'review') renderTradeSummary();
+  // Save button label tracks which pane you're on for clarity
+  const saveBtn = document.getElementById('btn-save-trade');
+  if (saveBtn) {
+    const status = document.getElementById('t-status').value;
+    if (tab === 'entry') saveBtn.textContent = 'Save entry';
+    else saveBtn.textContent = status === 'open' ? 'Save' : (status === 'win' ? 'Log win' : 'Log loss');
+  }
+}
+
+// Read-only summary of the entry data — top of Review pane
+function renderTradeSummary() {
+  const wrap = document.getElementById('trade-summary');
+  if (!wrap) return;
+  const ticker = (document.getElementById('t-ticker').value || '').toUpperCase();
+  const mode = document.getElementById('t-mode').value || 'swing';
+  const date = document.getElementById('t-date').value || '';
+  const setup = document.getElementById('t-setup').value || '';
+  const direction = document.getElementById('t-direction').value || '';
+  const entry = parseFloat(document.getElementById('t-entry').value);
+  const contracts = parseInt(document.getElementById('t-contracts').value);
+  const stop = document.getElementById('t-stop').value;
+  const ivr = document.getElementById('t-ivr').value;
+  const regime = document.getElementById('t-regime').value;
+
+  if (!ticker || !setup || !entry) {
+    wrap.innerHTML = `<div class="trade-summary-empty">Fill the Entry tab first — ticker, setup, and entry price are required.</div>`;
+    return;
+  }
+  const dateStr = date ? new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—';
+  const sizeUnit = mode === 'intraday' || (entry < 50 && contracts < 100) ? 'ctr' : 'sh';
+  wrap.innerHTML = `
+    <div class="trade-summary-head">
+      <div class="trade-summary-ticker">${ticker}<span class="trade-summary-mode">${mode}</span></div>
+      <div class="trade-summary-date">${dateStr}</div>
+    </div>
+    <div class="trade-summary-rows">
+      <div class="trade-summary-row"><span class="trade-summary-row-label">Setup</span><span class="trade-summary-row-value">${setup}</span></div>
+      <div class="trade-summary-row"><span class="trade-summary-row-label">Direction</span><span class="trade-summary-row-value">${direction}</span></div>
+      <div class="trade-summary-row"><span class="trade-summary-row-label">Entry</span><span class="trade-summary-row-value">$${entry.toFixed(2)}</span></div>
+      <div class="trade-summary-row"><span class="trade-summary-row-label">Size</span><span class="trade-summary-row-value">${contracts || 0} ${sizeUnit}</span></div>
+      ${stop ? `<div class="trade-summary-row"><span class="trade-summary-row-label">Stop</span><span class="trade-summary-row-value">$${parseFloat(stop).toFixed(2)}</span></div>` : ''}
+      ${ivr ? `<div class="trade-summary-row"><span class="trade-summary-row-label">IVR</span><span class="trade-summary-row-value">${ivr}</span></div>` : ''}
+      <div class="trade-summary-row"><span class="trade-summary-row-label">Regime</span><span class="trade-summary-row-value">${regime || '—'}</span></div>
+    </div>
+  `;
+}
+
+// Outcome segmented control — drives the t-status hidden input and reveals/hides review fields
+function setTradeOutcome(outcome) {
+  if (!['open', 'win', 'loss'].includes(outcome)) return;
+  document.getElementById('t-status').value = outcome;
+  refreshOutcomeUI();
+  // Update Save button label to match
+  const saveBtn = document.getElementById('btn-save-trade');
+  if (saveBtn) {
+    saveBtn.textContent = outcome === 'open' ? 'Save' : (outcome === 'win' ? 'Log win' : 'Log loss');
+  }
+}
+
+function refreshOutcomeUI() {
+  const status = document.getElementById('t-status').value || 'open';
+  document.querySelectorAll('.outcome-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.outcome === status);
+  });
+  const fields = document.getElementById('review-fields');
+  const nudge = document.getElementById('review-open-nudge');
+  if (fields && nudge) {
+    if (status === 'open') {
+      fields.classList.remove('show');
+      nudge.classList.remove('hide');
+    } else {
+      fields.classList.add('show');
+      nudge.classList.add('hide');
+    }
+  }
+}
+
+// Process grade segmented control
+function setTradeGrade(grade) {
+  document.getElementById('t-grade').value = grade || '';
+  refreshGradeUI();
+}
+
+function refreshGradeUI() {
+  const grade = document.getElementById('t-grade').value || '';
+  document.querySelectorAll('.grade-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.grade === grade);
+  });
+}
+
+// Backwards-compatible no-op (some external callers exist)
 function toggleStatusFields() {
-  const status = document.getElementById('t-status').value;
-  const isOpen = status === 'open';
-  document.getElementById('t-exit-wrap').style.display = isOpen ? 'none' : 'block';
-  document.getElementById('t-grade-wrap').style.display = isOpen ? 'none' : 'block';
+  refreshOutcomeUI();
 }
 
 function saveTrade() {
@@ -8517,10 +9541,29 @@ function init() {
   });
   document.getElementById('btn-save-trade').addEventListener('click', saveTrade);
   document.getElementById('btn-delete-trade').addEventListener('click', deleteTrade);
-  document.getElementById('t-status').addEventListener('change', toggleStatusFields);
   document.getElementById('t-mode').addEventListener('change', e => {
     populateTradeModalSetups(e.target.value);
   });
+  // Modal tab strip — Entry / Review
+  document.querySelectorAll('#trade-modal-tabs .modal-tab').forEach(btn => {
+    btn.addEventListener('click', () => setTradeModalTab(btn.dataset.tradeTab));
+  });
+  // Outcome segmented control inside Review pane
+  document.querySelectorAll('.outcome-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTradeOutcome(btn.dataset.outcome));
+  });
+  // Process grade segmented control
+  document.querySelectorAll('.grade-btn').forEach(btn => {
+    btn.addEventListener('click', () => setTradeGrade(btn.dataset.grade));
+  });
+  // Live-refresh the Review summary card whenever Entry inputs change
+  ['t-ticker','t-mode','t-date','t-setup','t-direction','t-entry','t-contracts','t-stop','t-ivr','t-regime']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => {
+        if (document.querySelector('[data-trade-pane="review"].active')) renderTradeSummary();
+      });
+    });
 
   // Settings modal
   document.getElementById('btn-settings').addEventListener('click', openSettings);
