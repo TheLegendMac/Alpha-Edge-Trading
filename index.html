@@ -4573,6 +4573,9 @@ textarea.input-field {
 }
 #panel-trade .trade-step {
   flex: 0 1 140px;
+  appearance: none;
+  background: transparent;
+  border: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -11904,7 +11907,7 @@ function tfSwingStep2() {
   const gates = tfEvaluateGates();
   const passed = ['01','02','03','05'].filter(k => gates[k]).length;
   const ticker = state.ticker || '';
-  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}/ratings/factor-grades` : 'https://seekingalpha.com';
+  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
 
   const gateRow = (k, name, rule, isManual) => {
     const ok = gates[k];
