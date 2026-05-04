@@ -95,7 +95,7 @@ input, select, textarea { font-family: inherit; }
   margin: 0 auto;
   padding: 14px 24px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 32px;
   align-items: center;
 }
@@ -105,6 +105,7 @@ input, select, textarea { font-family: inherit; }
   font-weight: 800;
   letter-spacing: -0.02em;
   font-size: 17px;
+  cursor: pointer;
 }
 .brand-mark {
   width: 28px; height: 28px;
@@ -159,6 +160,7 @@ input, select, textarea { font-family: inherit; }
 /* PORTFOLIO STATUS — uses traffic light semantics now */
 .portfolio-status {
   display: flex; align-items: center; gap: 16px;
+  justify-self: end;
 }
 .stat-pill {
   display: flex; flex-direction: column;
@@ -326,6 +328,11 @@ input, select, textarea { font-family: inherit; }
   gap: 12px;
   margin-bottom: 12px;
 }
+.home-context-stack {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 12px;
+}
 .home-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -383,6 +390,52 @@ input, select, textarea { font-family: inherit; }
   color: var(--green-bright);
   font-weight: 900;
   line-height: 1;
+}
+.home-score-value.regime {
+  font-size: 22px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--green-bg);
+  border: 1px solid rgba(63, 185, 80, 0.35);
+}
+.home-score-value.regime.neutral {
+  color: var(--amber-bright);
+  background: var(--amber-bg);
+  border-color: rgba(187, 128, 9, 0.35);
+}
+.home-score-value.regime.risk-off {
+  color: var(--red-bright);
+  background: var(--red-bg);
+  border-color: rgba(248, 81, 73, 0.35);
+}
+.home-sector-line {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 10px;
+}
+.home-sunday-card {
+  min-height: 104px;
+}
+.home-sunday-row {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  font-size: 12px;
+  margin: 7px 0;
+}
+.home-sunday-label {
+  font-family: var(--mono);
+  color: var(--ink-4);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.home-sunday-value {
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .home-intel-text {
   color: #7ee787;
@@ -474,8 +527,10 @@ input, select, textarea { font-family: inherit; }
 }
 .home-day {
   aspect-ratio: 1.1 / 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   border-radius: 9px;
   background: rgba(10, 16, 28, 0.56);
   color: var(--ink-3);
@@ -488,17 +543,17 @@ input, select, textarea { font-family: inherit; }
 .home-day.active { outline: 1px solid #2f6df6; background: rgba(47, 109, 246, 0.18); color: var(--ink); }
 .home-day.good::after,
 .home-day.bad::after {
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  position: absolute;
-  bottom: 8px;
-  background: currentColor;
+  content: none;
+}
+.home-day-pl {
+  font-size: 9px;
+  margin-top: 3px;
+  font-weight: 800;
+  line-height: 1;
 }
 .home-actions {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr;
   gap: 10px;
   align-items: center;
   margin-bottom: 16px;
@@ -2330,22 +2385,10 @@ textarea.input-field {
   .regime-inner { grid-template-columns: 1fr; padding: 14px 16px; }
   .regime-state { font-size: 22px; }
   .main { padding: 16px; }
-  .mobile-tabs { display: flex; }
   .input-row { grid-template-columns: 1fr; }
   .input-row.three { grid-template-columns: 1fr; }
   .pretrade-check { grid-template-columns: 1fr; gap: 12px; }
 }
-.mobile-tabs {
-  display: none;
-  background: var(--bg-elev);
-  border-bottom: 1px solid var(--line);
-  padding: 8px 12px;
-  gap: 4px;
-  overflow-x: auto;
-}
-.mobile-tabs .tab { padding: 8px 12px; font-size: 12px; }
-.mobile-tabs .tab.active::after { display: none; }
-.mobile-tabs .tab.active { background: var(--bg-card); border-radius: var(--r-sm); }
 
 /* ===== MODE PICKER MODAL ===== */
 .mode-picker-grid {
@@ -2858,31 +2901,16 @@ textarea.input-field {
 <!-- ============ TOP NAV ============ -->
 <header class="top-nav">
   <div class="top-nav-inner">
-    <div class="brand">
+    <div class="brand" id="brand-home" title="Back to Home">
       <span class="brand-mark">AE</span>
       <span>Alpha Edge Trading</span>
     </div>
-    <nav class="tabs">
-      <button class="tab active" data-tab="home">Home</button>
-      <button class="tab" data-tab="decision">Swing</button>
-      <button class="tab" data-tab="intraday">Intraday</button>
-      <button class="tab" data-tab="sunday">Sunday Prep</button>
-      <button class="tab" data-tab="log">Trade Log</button>
-    </nav>
     <div class="portfolio-status">
       <div id="sync-pill" class="stat-pill" title="Click for sync menu" style="cursor:pointer; padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:6px;">
         <span id="sync-dot" style="width:8px; height:8px; border-radius:50%; background:#6e7681; flex-shrink:0;"></span>
         <span id="sync-label">Local</span>
       </div>
       <button class="btn-secondary" id="btn-sync-refresh" title="Force push local state to Supabase, then pull cloud changes" style="padding: 6px 10px; font-size: 12px;">Refresh Sync</button>
-      <button class="btn-primary" id="btn-new-trade" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">+ New Analysis</button>
-      <button class="nav-icon-btn" id="btn-reference" title="Reference & cheat sheets">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      </button>
       <button class="nav-icon-btn" id="btn-settings" title="Settings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -2892,15 +2920,6 @@ textarea.input-field {
     </div>
   </div>
 </header>
-
-<!-- ============ MOBILE TABS ============ -->
-<div class="mobile-tabs">
-  <button class="tab active" data-tab="home">Home</button>
-  <button class="tab" data-tab="decision">Swing</button>
-  <button class="tab" data-tab="intraday">Intraday</button>
-  <button class="tab" data-tab="sunday">Sunday</button>
-  <button class="tab" data-tab="log">Log</button>
-</div>
 
 <!-- ============ REGIME BANNER ============ -->
 <div class="regime-banner" id="regime-banner">
@@ -2932,17 +2951,37 @@ textarea.input-field {
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
       <div class="home-grid">
-        <div class="home-card">
-          <div class="home-card-title">Market Context</div>
-          <div class="home-card-kicker">Live</div>
-          <div class="home-market-scores">
-            <div>
-              <div class="home-score-label">Macro</div>
-              <div class="home-score-value" id="home-macro-score">96</div>
+        <div class="home-context-stack">
+          <div class="home-card">
+            <div class="home-card-title">Market Context</div>
+            <div class="home-card-kicker">Live</div>
+            <div class="home-market-scores">
+              <div>
+                <div class="home-score-label">Regime</div>
+                <div class="home-score-value regime" id="home-regime-value">RISK-ON</div>
+              </div>
+              <div>
+                <div class="home-score-label">Sector Score</div>
+                <div class="home-score-value" id="home-sector-score">—</div>
+              </div>
             </div>
-            <div>
-              <div class="home-score-label">Sector</div>
-              <div class="home-score-value" id="home-sector-score">100</div>
+            <div class="home-sector-line" id="home-sector-line">Rate sectors in Sunday Prep.</div>
+          </div>
+
+          <div class="home-card home-sunday-card">
+            <div class="home-card-title">Sunday Prep</div>
+            <button class="btn-secondary home-card-kicker" id="btn-home-edit-sectors" style="position:absolute; padding:4px 8px;">Edit</button>
+            <div class="home-sunday-row">
+              <div class="home-sunday-label">Top</div>
+              <div class="home-sunday-value" id="home-top-sectors">—</div>
+            </div>
+            <div class="home-sunday-row">
+              <div class="home-sunday-label">Avoid</div>
+              <div class="home-sunday-value" id="home-avoid-sectors">—</div>
+            </div>
+            <div class="home-sunday-row">
+              <div class="home-sunday-label">Rated</div>
+              <div class="home-sunday-value" id="home-sector-rated">— never —</div>
             </div>
           </div>
         </div>
@@ -2987,9 +3026,6 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
-        <button class="btn-secondary" id="btn-home-stats">Stats</button>
-        <button class="btn-danger" id="btn-home-end">End</button>
-        <button class="btn-secondary" id="btn-home-open-log">Log</button>
       </div>
 
       <div class="home-portfolio-head">
@@ -6546,42 +6582,71 @@ function renderHome() {
   const todayPL = todayClosed.reduce((s, t) => s + (calcPL(t) || 0), 0);
   const todayR = todayClosed.reduce((s, t) => s + (calcR(t) || 0), 0);
   const wins = closed.filter(t => (calcPL(t) || 0) > 0);
+  const losses = closed.filter(t => (calcPL(t) || 0) < 0);
   const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
   const openTrades = (state.trades || []).filter(t => t.status === 'open');
-  const tradesLeft = Math.max(0, (state.settings.maxPositions || 0) - openTrades.length);
-  const nextRisk = state.activeMode === 'intraday'
-    ? state.settings.intradayRiskPerTrade
-    : Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
-  const totalBuffer = Math.max(0, Math.round((state.settings.account || 10000) * (state.settings.maxRiskPct || 10) / 100));
+  const maxPositions = state.settings.maxPositions || 0;
+  const positionSlotsLeft = Math.max(0, maxPositions - openTrades.length);
+  const nextRisk = Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
+  const maxRiskDollars = Math.round((state.settings.account || 10000) * (state.settings.maxRiskPct || 10) / 100);
+  const openRisk = openTrades.reduce((sum, t) => {
+    const fallbackRisk = (Number(t.entry) || 0) * (state.settings.stopPct / 100) * 100 * (Number(t.contracts) || 0);
+    return sum + (Number(t.riskDollars) || fallbackRisk || 0);
+  }, 0);
+  const riskBuffer = Math.max(0, Math.round(maxRiskDollars - openRisk));
+  const riskBasedTradesLeft = nextRisk > 0 ? Math.floor(riskBuffer / nextRisk) : positionSlotsLeft;
+  const tradesLeft = Math.max(0, Math.min(positionSlotsLeft, riskBasedTradesLeft));
   const ratings = Object.values(state.sectorRatings || {}).map(Number).filter(v => Number.isFinite(v));
-  const sectorScore = ratings.length
-    ? Math.round(ratings.reduce((s, v) => s + v, 0) / ratings.length / 5 * 100)
-    : 100;
-  const macroScore = state.regime === 'risk-on' ? 96 : state.regime === 'neutral' ? 68 : 34;
-  const scoreText = state.regime === 'risk-on'
-    ? `Strong macro tailwinds (Score ${macroScore}). Conditions support trend following. Aggressive sizing permitted on A+ setups.`
+  const sectorScore = ratings.length ? Math.round(ratings.reduce((s, v) => s + v, 0) / ratings.length / 5 * 100) : null;
+  const top3 = computeTop3();
+  const avoid = computeAvoidList();
+  const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
+  const regimeNote = state.regime === 'risk-on'
+    ? 'Trend-friendly tape. Full-size swing risk is available when the setup is clean.'
     : state.regime === 'neutral'
-      ? `Mixed tape (Score ${macroScore}). Keep sizing controlled and require clean confirmation before entry.`
-      : `Defensive tape (Score ${macroScore}). Prioritize capital protection and only take the cleanest short-side ideas.`;
+      ? 'Mixed tape. Keep sizing controlled and require clean confirmation.'
+      : 'Defensive tape. Capital protection comes first; longs are blocked by the plan.';
+  const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const bestTrade = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
+  const worstTrade = [...closed].sort((a, b) => (calcPL(a) || 0) - (calcPL(b) || 0))[0];
+  const avgR = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
+  const scoreText = closed.length
+    ? [
+        `Closed P/L is ${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)} across ${closed.length} trades with a ${winRate}% realized win rate.`,
+        `Average R is ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R.`,
+        bestTrade ? `Best performer: ${bestTrade.ticker} (${(calcPL(bestTrade) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(bestTrade) || 0).toFixed(0)}).` : '',
+        worstTrade && losses.length ? `Biggest leak: ${worstTrade.ticker} (-$${Math.abs(calcPL(worstTrade) || 0).toFixed(0)}).` : '',
+      ].filter(Boolean).join(' ')
+    : `${regimeNote} Add closed trades and Alpha Intelligence will surface your best ticker, biggest leak, win rate, and expectancy.`;
 
   const setText = (id, text) => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = text;
   };
 
-  setText('home-macro-score', macroScore);
-  setText('home-sector-score', sectorScore);
+  setText('home-regime-value', regimeText);
+  setText('home-sector-score', sectorScore === null ? '—' : sectorScore);
+  setText('home-sector-line', ratings.length
+    ? `${ratings.length}/${SECTORS.length} sectors rated. ${top3.length} strong, ${avoid.length} weak.`
+    : 'No sector ratings yet. Use Sunday Prep to rate sectors.');
+  setText('home-top-sectors', top3.length ? top3.map(s => `${s.ticker} ${Number(s.rating).toFixed(1)}`).join(', ') : '— rate strong sectors —');
+  setText('home-avoid-sectors', avoid.length ? avoid.slice(0, 3).map(s => `${s.ticker} ${Number(s.rating).toFixed(1)}`).join(', ') : '— none flagged —');
+  setText('home-sector-rated', state.sectorRatedAt ? formatRatedAt(state.sectorRatedAt) : '— never —');
   setText('home-intel-text', scoreText);
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-win-rate', `${winRate}%`);
   setText('home-trades-left', tradesLeft);
-  setText('home-buffer', `$${totalBuffer}`);
+  setText('home-buffer', `$${riskBuffer}`);
   setText('home-next-risk', `$${nextRisk}`);
   setText('home-zone', tradesLeft > 1 ? 'Green Zone' : tradesLeft === 1 ? 'Caution' : 'Locked');
 
+  const regimeValue = document.getElementById('home-regime-value');
+  if (regimeValue) {
+    regimeValue.className = `home-score-value regime ${state.regime === 'neutral' ? 'neutral' : state.regime === 'risk-off' ? 'risk-off' : ''}`;
+  }
   const progress = document.getElementById('home-progress-fill');
-  if (progress) progress.style.width = `${Math.max(8, Math.min(100, tradesLeft / Math.max(1, state.settings.maxPositions) * 100))}%`;
+  if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
 
   const calendar = document.getElementById('home-calendar');
   const title = document.getElementById('home-calendar-title');
@@ -6601,7 +6666,8 @@ function renderHome() {
       const dayTrades = closed.filter(t => (t.exit_date || t.date) === iso);
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
       const cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
-      return `<div class="home-day ${cls}">${d.getDate()}</div>`;
+      const plLabel = dayTrades.length ? `<span class="home-day-pl">${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}</span>` : '';
+      return `<div class="home-day ${cls}" title="${dayTrades.length} closed trade${dayTrades.length === 1 ? '' : 's'}">${d.getDate()}${plLabel}</div>`;
     }).join('');
   }
 
@@ -6930,6 +6996,7 @@ function renderSectors() {
       }
       state.sectorRatedAt = new Date().toISOString();
       saveState();
+      renderHome();
       // Update only the surrounding card classes + label without full re-render
       // (full re-render would steal focus while user types)
       updateSectorCardLive(ticker, raw);
@@ -7071,6 +7138,7 @@ function clearSectors() {
   state.sectorRatings = {};
   state.sectorRatedAt = null;
   saveState();
+  renderHome();
   renderSectors();
   renderSectorStatusMini();
   toast('Sector grades cleared');
@@ -8183,22 +8251,14 @@ function init() {
     recomputeStepStates();
   });
 
-  // Mode picker (single "+ New Trade" entry point in top nav)
-  const newTradeBtn = document.getElementById('btn-new-trade');
-  if (newTradeBtn) {
-    newTradeBtn.addEventListener('click', () => {
-      document.getElementById('modal-mode-picker').classList.add('show');
-    });
-  }
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
+  document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
+  document.getElementById('btn-home-edit-sectors')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('home-portfolio-empty')?.addEventListener('click', () => {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
-  document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
-  document.getElementById('btn-home-open-log')?.addEventListener('click', () => setTab('log'));
-  document.getElementById('btn-home-end')?.addEventListener('click', () => toast('Session ended locally'));
   document.getElementById('btn-sync-refresh')?.addEventListener('click', manualSupabaseRefresh);
   const mpModal = document.getElementById('modal-mode-picker');
   if (mpModal) {
@@ -8303,10 +8363,6 @@ function init() {
   // Sectors panel
   const clearBtn = document.getElementById('btn-clear-sectors');
   if (clearBtn) clearBtn.addEventListener('click', clearSectors);
-
-  // Reference icon button - shows reference panel by switching to it
-  const refBtn = document.getElementById('btn-reference');
-  if (refBtn) refBtn.addEventListener('click', () => setTab('reference'));
 
   // Advanced settings toggle
   const advToggle = document.getElementById('advanced-toggle');
