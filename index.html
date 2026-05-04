@@ -679,8 +679,17 @@ input, select, textarea { font-family: inherit; }
 .home-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 6px;
   margin-top: 14px;
+}
+.home-day-dow {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  font-weight: 700;
+  padding-bottom: 4px;
 }
 .home-day {
   aspect-ratio: 1.1 / 1;
@@ -688,7 +697,7 @@ input, select, textarea { font-family: inherit; }
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border-radius: 9px;
+  border-radius: 6px;
   background: rgba(10, 16, 28, 0.56);
   color: var(--ink-3);
   font-family: var(--mono);
@@ -698,16 +707,53 @@ input, select, textarea { font-family: inherit; }
 .home-day.good { background: rgba(63, 185, 80, 0.11); color: var(--green-bright); }
 .home-day.bad { background: rgba(248, 81, 73, 0.11); color: var(--red-bright); }
 .home-day.active { outline: 1px solid #2f6df6; background: rgba(47, 109, 246, 0.18); color: var(--ink); }
+.home-day.future {
+  opacity: 0.3;
+  background: transparent;
+  border: 1px dashed var(--line-soft);
+}
 .home-day.good::after,
 .home-day.bad::after {
   content: none;
 }
+.home-day-num {
+  font-size: 13px;
+  font-weight: 700;
+}
 .home-day-pl {
   font-size: 9px;
-  margin-top: 3px;
+  margin-top: 2px;
   font-weight: 800;
   line-height: 1;
 }
+.home-calendar-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.home-calendar-legend {
+  display: flex;
+  gap: 12px;
+}
+.home-calendar-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.home-calendar-legend .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.home-calendar-legend .dot.green { background: var(--green); }
+.home-calendar-legend .dot.red { background: var(--red); }
 .home-actions {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -8584,20 +8630,31 @@ function renderHome() {
   const title = document.getElementById('home-calendar-title');
   if (calendar) {
     const now = new Date();
+    const currentDay = now.getDay();
     const start = new Date(now);
-    start.setDate(now.getDate() - 6);
+    start.setDate(now.getDate() - currentDay - 14); // Start on Sunday, 2 weeks ago
     const end = new Date(now);
-    end.setDate(now.getDate() + 7);
+    end.setDate(start.getDate() + 20); // 21 days total
     if (title) {
       title.textContent = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
-    calendar.innerHTML = Array.from({ length: 14 }, (_, i) => {
+    const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const headerHtml = weekdays.map(day => `<div class="home-day-dow">${day}</div>`).join('');
+    let totalPeriodPL = 0;
+    
+    const daysHtml = Array.from({ length: 21 }, (_, i) => {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       const iso = d.toISOString().split('T')[0];
       const dayTrades = closed.filter(t => (t.exit_date || t.date) === iso);
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
-      const cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
+      
+      totalPeriodPL += pl;
+      
+      const isFuture = iso > today;
+      let cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
+      if (isFuture) cls += ' future';
+      
       const plLabel = dayTrades.length ? `<span class="home-day-pl">${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}</span>` : '';
       
       let hoverText = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
@@ -8616,8 +8673,20 @@ function renderHome() {
         hoverText += `\nNo trades`;
       }
       
-      return `<div class="home-day ${cls}" title="${hoverText}">${d.getDate()}${plLabel}</div>`;
+      return `<div class="home-day ${cls}" title="${hoverText}"><span class="home-day-num">${d.getDate()}</span>${plLabel}</div>`;
     }).join('');
+    
+    const summaryHtml = `
+      <div class="home-calendar-summary">
+        <div class="home-calendar-legend">
+          <span><span class="dot green"></span> Win</span>
+          <span><span class="dot red"></span> Loss</span>
+        </div>
+        <div>Period P/L: <span style="color: ${totalPeriodPL >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'}; font-weight: 700;">${totalPeriodPL >= 0 ? '+$' : '-$'}${Math.abs(totalPeriodPL).toFixed(0)}</span></div>
+      </div>
+    `;
+    
+    calendar.innerHTML = headerHtml + daysHtml + summaryHtml;
   }
 
   const empty = document.getElementById('home-portfolio-empty');
