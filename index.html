@@ -605,7 +605,7 @@ input, select, textarea { font-family: inherit; }
 }
 .home-actions {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
   margin-bottom: 16px;
@@ -3158,6 +3158,7 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
+        <button class="btn-secondary" id="btn-home-stats" style="min-height:42px; padding:0 18px;">Stats</button>
       </div>
 
       <div class="home-portfolio-head">
@@ -6787,9 +6788,13 @@ function renderHome() {
     sectorButton.className = 'home-score-value sectors editable';
     if (!ratings.length) sectorButton.style.background = 'var(--bg-elev)';
     else sectorButton.style.background = '';
-    sectorButton.title = top3.length
-      ? `Top sectors: ${top3.map(s => `${s.name} ${s.ticker}`).join(', ')}`
-      : 'Click to edit sector ratings in Sunday Prep';
+    const topTip = top3.length
+      ? top3.slice(0, 3).map(s => `${s.name} (${s.ticker}) ${Number(s.rating).toFixed(2)}`).join(', ')
+      : 'None rated strong';
+    const avoidTip = avoid.length
+      ? avoid.slice(0, 3).map(s => `${s.name} (${s.ticker}) ${Number(s.rating).toFixed(2)}`).join(', ')
+      : 'None rated weak';
+    sectorButton.title = `Top 3: ${topTip}\nAvoid 3: ${avoidTip}\nClick to edit sector ratings`;
   }
   const progress = document.getElementById('home-progress-fill');
   if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
@@ -8426,6 +8431,7 @@ function init() {
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
+  document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
   document.getElementById('home-sector-score')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
@@ -8566,6 +8572,7 @@ function init() {
       if (e.key === 'Enter') handleSignIn();
     });
   });
+  document.getElementById('btn-reference')?.addEventListener('click', () => setTab('reference'));
   // Sync pill click
   document.getElementById('sync-pill')?.addEventListener('click', showSyncMenu);
   // Boot the auth flow (async, non-blocking)
