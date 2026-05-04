@@ -831,7 +831,11 @@ input, select, textarea { font-family: inherit; }
   display: inline-grid;
   place-items: center;
 }
-.home-icon-action svg { width: 18px; height: 18px; }
+.home-icon-action svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+}
 .home-activity-list {
   min-height: 190px;
   border: 1px dashed var(--line-soft);
@@ -4487,9 +4491,11 @@ textarea.input-field {
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
         <button class="btn-secondary home-icon-action" id="btn-home-log" title="Open stats and trade log" aria-label="Open stats and trade log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 3v18h18"/>
-            <path d="M7 15l4-4 3 3 5-7"/>
-            <path d="M17 7h2v2"/>
+            <path d="M4 19V5"/>
+            <path d="M4 19h16"/>
+            <rect x="7" y="11" width="3" height="5" rx="1"/>
+            <rect x="12" y="8" width="3" height="8" rx="1"/>
+            <rect x="17" y="5" width="3" height="11" rx="1"/>
           </svg>
         </button>
       </div>
