@@ -4260,6 +4260,72 @@ window.addEventListener('offline', () => {
 });
 
 // =====================================================================
+// CROSS-DEVICE SYNC — pull cloud state when this tab is reactivated
+// =====================================================================
+// The push side is solved (every saveState debounces a push to cloud).
+// The pull side needs an event: when does Device B find out Device A
+// changed something? Three triggers:
+//   1. Tab visibility change (user returns to the tab) — primary
+//   2. Window focus (clicking back into the browser) — secondary
+//   3. Periodic safety poll every 60 seconds — backup for tabs that
+//      stay focused but the user is looking at another monitor
+// =====================================================================
+
+// Pull cloud state and merge if it's newer + from a different device.
+// Called by tab focus + periodic poll. Quiet — no confirm dialog mid-session
+// because that would interrupt active trading. Conflict resolution stays
+// at sign-in only.
+async function pullAndMergeIfNewer() {
+  if (!SYNC.enabled || !SYNC.user) return;
+  if (!navigator.onLine) return;
+  // Don't pull if we're currently mid-push (would race)
+  if (SYNC.pendingPush) return;
+  try {
+    const cloud = await pullCloudState();
+    if (!cloud) return;
+    const cloudTime = new Date(cloud.updated_at).getTime();
+    const localTime = Number(localStorage.getItem('mac_cockpit_local_save_ts') || 0);
+    const sameDevice = cloud.device_id === SYNC.deviceId;
+    // Only merge if cloud is from a different device AND newer than local
+    // (5 second buffer accounts for clock skew)
+    if (!sameDevice && cloudTime > localTime + 5000) {
+      console.info('[sync] Pulling newer cloud state from device', cloud.device_id);
+      state = { ...state, ...cloud.state_json };
+      saveStateLocal();
+      // Also update local-save timestamp to match cloud so we don't immediately re-pull
+      localStorage.setItem('mac_cockpit_local_save_ts', String(cloudTime));
+      refreshAllUI();
+      // Brief visual notification
+      setSyncStatus('synced', 'Updated from cloud');
+      setTimeout(() => setSyncStatus('synced'), 2500);
+    }
+  } catch (e) {
+    console.warn('[sync] Pull-and-merge failed:', e);
+  }
+}
+
+// Trigger 1: visibility change (most reliable for "tab returned to focus")
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) pullAndMergeIfNewer();
+});
+
+// Trigger 2: window focus (covers some edge cases visibilitychange misses)
+window.addEventListener('focus', () => {
+  pullAndMergeIfNewer();
+});
+
+// Trigger 3: periodic safety poll. 60 seconds is a reasonable balance —
+// not so frequent it wastes bandwidth, frequent enough to keep multi-tab
+// open scenarios in sync. Only runs while the tab is visible.
+setInterval(() => {
+  if (!document.hidden) pullAndMergeIfNewer();
+}, 60000);
+
+// =====================================================================
+// END CROSS-DEVICE SYNC
+// =====================================================================
+
+// =====================================================================
 // END SUPABASE SYNC LAYER
 // =====================================================================
 
