@@ -4489,6 +4489,157 @@ textarea.input-field {
 }
 
 /* ============================================================== */
+/* ====== ALPHA INTEL GLOSSARY SIDE PANEL ======================= */
+/* ============================================================== */
+.ai-glossary-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+.ai-glossary-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.ai-glossary-panel {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100vh;
+  height: 100dvh;
+  width: min(560px, 92vw);
+  z-index: 201;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  box-shadow: -16px 0 48px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(0.2,0.8,0.2,1);
+}
+.ai-glossary-panel.open { transform: translateX(0); }
+
+.ai-glossary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.ai-glossary-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.ai-glossary-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.ai-glossary-close {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: color .15s, border-color .15s;
+}
+.ai-glossary-close:hover { color: var(--ink); border-color: var(--ink-4); }
+
+.ai-glossary-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 24px 36px;
+  -webkit-overflow-scrolling: touch;
+}
+.ai-glossary-intro {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.55;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}
+.ai-glossary-section { margin-bottom: 22px; }
+.ai-glossary-section + .ai-glossary-section { padding-top: 18px; border-top: 1px solid var(--line); }
+.ai-glossary-section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+.ai-glossary-term { margin-bottom: 16px; }
+.ai-glossary-term h4 {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 4px;
+  letter-spacing: -0.005em;
+}
+.ai-glossary-term p {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin: 0 0 6px;
+}
+.ai-glossary-term code {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--cyan);
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  border-radius: 4px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ? button on Alpha Intel cards — opens the glossary panel */
+.ai-help-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.ai-help-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6,212,248,0.05); }
+
+@media (max-width: 720px) {
+  .ai-glossary-panel { width: 100vw; }
+  .ai-glossary-header { padding: 16px 18px 14px; }
+  .ai-glossary-body { padding: 14px 18px 28px; }
+}
+
+/* ============================================================== */
 /* ====== UNIFIED TRADE FLOW (preview) ========================== */
 /* ============================================================== */
 /* Scoped under #panel-trade so nothing in the legacy panels is affected. */
@@ -5380,8 +5531,10 @@ textarea.input-field {
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
       <div class="home-card green" id="home-intel-card" style="margin-bottom:12px;">
-        <div class="home-card-title" style="color:#7ee787;">Alpha Intelligence</div>
-        <div class="home-card-kicker" id="home-deep-label">Live read</div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+          <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button></div>
+          <div class="home-card-kicker" id="home-deep-label" style="margin: 0;">Today's read</div>
+        </div>
         <div class="home-intel-headline" id="home-intel-headline">Set your account size in Settings to activate the read.</div>
         <ul class="home-intel-points" id="home-intel-points"></ul>
         <!-- hidden ids kept for backward compat -->
@@ -6827,6 +6980,135 @@ STRENGTH: 3/3</pre>
     </div>
   </div>
 </div>
+
+<!-- ============ ALPHA INTEL GLOSSARY SIDE PANEL ============ -->
+<div class="ai-glossary-backdrop" id="ai-glossary-backdrop"></div>
+<aside class="ai-glossary-panel" id="ai-glossary-panel" role="dialog" aria-label="Alpha Intelligence glossary" aria-hidden="true">
+  <header class="ai-glossary-header">
+    <div>
+      <div class="ai-glossary-eyebrow">Reference</div>
+      <h2 class="ai-glossary-title">How to read this</h2>
+    </div>
+    <button class="ai-glossary-close" id="ai-glossary-close" type="button" aria-label="Close glossary">×</button>
+  </header>
+  <div class="ai-glossary-body">
+    <p class="ai-glossary-intro">Plain-English definitions for everything in Alpha Intelligence and Stats Snapshot. The math each metric uses is shown beneath the description.</p>
+
+    <section class="ai-glossary-section">
+      <h3 class="ai-glossary-section-title">Today's read (Home)</h3>
+
+      <div class="ai-glossary-term">
+        <h4>Today's session</h4>
+        <p>Realized P/L from trades you closed today, plus the count.</p>
+        <code>Σ pl(t) where exit_date == today</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Buffer / Trades remaining</h4>
+        <p>How many more trades you can take before hitting your portfolio risk cap.</p>
+        <code>floor((maxRiskPct% of account − openRisk) / nextRisk)</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Sector lean</h4>
+        <p>Top-rated sectors (Strong Buy / Buy) you should bias toward; Avoid list is sectors graded Sell or Strong Sell. Update on Sundays.</p>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Last <span data-ai-glossary-window>30</span>-day P/L</h4>
+        <p>Realized P/L over the rolling window you set in Settings. The kill switch fires when this number is worse than −7% of your account.</p>
+        <code>Σ pl(t) where exit_date ≥ today − killSwitchDays</code>
+      </div>
+    </section>
+
+    <section class="ai-glossary-section">
+      <h3 class="ai-glossary-section-title">Career read (Stats)</h3>
+
+      <div class="ai-glossary-term">
+        <h4>Total P/L</h4>
+        <p>Realized profit or loss across every closed trade in the current filter. Open trades counted separately as <em>Open exposure</em>.</p>
+        <code>Σ pl(t) where status == 'closed'</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Win rate</h4>
+        <p>Percentage of closed trades with positive P/L. Doesn't say anything about <em>size</em> of wins or losses — pair with Avg R.</p>
+        <code>wins / (wins + losses) × 100</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Avg R / Trade</h4>
+        <p>Average outcome in units of risk. <strong>+1R</strong> means the trade made one times the planned risk dollars. <strong>+0.5R</strong> averaged across many trades is a strong edge.</p>
+        <code>R(t) = pl(t) / riskDollars(t)<br/>avg = mean(R) over closed trades</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>R Expectancy</h4>
+        <p>What an average trade <em>should</em> make you in R, weighted by win rate. Above 0R = profitable system.</p>
+        <code>winRate × avgWinR + lossRate × avgLossR</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Profit Factor</h4>
+        <p>Total dollars won divided by total dollars lost. <strong>1.50+</strong> is good; <strong>2.00+</strong> is rare. Above 1.00 means winners outpace losers in dollar terms.</p>
+        <code>Σ wins / |Σ losses|</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Expectancy ($)</h4>
+        <p>Average dollar result per closed trade. Multiplies trade volume to project monthly P/L.</p>
+        <code>Σ pl(t) / count(closed)</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Open exposure</h4>
+        <p>Estimated dollars at risk across currently-open positions, summed from each trade's logged risk dollars.</p>
+        <code>Σ riskDollars(t) where status == 'open'</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Best / Worst setup</h4>
+        <p>Pattern with the highest / lowest cumulative P/L across all closed trades. Needs ≥ 5 closed trades for the comparison to be meaningful.</p>
+      </div>
+    </section>
+
+    <section class="ai-glossary-section">
+      <h3 class="ai-glossary-section-title">Process quality</h3>
+
+      <div class="ai-glossary-term">
+        <h4>Process Quality (Good %)</h4>
+        <p>How often you followed the plan. Each closed trade is graded <strong>Good</strong> (followed setup, sizing, exit rules), <strong>Okay</strong> (one minor drift), or <strong>Bad</strong> (broke multiple rules).</p>
+        <code>Good count / graded count × 100</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Discretionary / thesis-broke exits</h4>
+        <p>Trades exited on a gut call or because the thesis broke before reaching target or stop. Often a behavioral leak — these tend to net negative.</p>
+      </div>
+    </section>
+
+    <section class="ai-glossary-section">
+      <h3 class="ai-glossary-section-title">Risk controls</h3>
+
+      <div class="ai-glossary-term">
+        <h4>Kill switch</h4>
+        <p>Auto-stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>−7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
+        <code>kill = (Σ pl over last N days) / account ≤ −7%</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Risk per trade (regime-based)</h4>
+        <p>How much of the account is risked on a single trade. Risk-on uses the high tier, Neutral the mid, Risk-off the low. Set in Settings.</p>
+        <code>nextRisk = account × regimeRiskPct</code>
+      </div>
+
+      <div class="ai-glossary-term">
+        <h4>Max positions / Max risk %</h4>
+        <p>Hard portfolio limits. Max positions caps simultaneously-open trades. Max risk % caps the sum of all open risk as a percent of account.</p>
+      </div>
+    </section>
+  </div>
+</aside>
 
 <!-- ============ TRADE FLOW CONFIRM MODAL (preview) ============ -->
 <div class="modal-backdrop" id="modal-tf-confirm">
@@ -9079,23 +9361,65 @@ function addTestTrades() {
 }
 
 // ──────────────────────────────────────────────────────────
+//  Alpha Intel — glossary panel
+// ──────────────────────────────────────────────────────────
+function openAIGlossary() {
+  // Sync the dynamic window label with the user's Settings value.
+  const days = (state.settings && state.settings.killSwitchDays) || 30;
+  document.querySelectorAll('[data-ai-glossary-window]').forEach(el => {
+    el.textContent = days;
+  });
+  const panel = document.getElementById('ai-glossary-panel');
+  const back  = document.getElementById('ai-glossary-backdrop');
+  if (!panel || !back) return;
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  back.classList.add('open');
+}
+function closeAIGlossary() {
+  const panel = document.getElementById('ai-glossary-panel');
+  const back  = document.getElementById('ai-glossary-backdrop');
+  if (!panel || !back) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  back.classList.remove('open');
+}
+
+// ──────────────────────────────────────────────────────────
+//  Rolling P/L over the kill-switch window. Single source of
+//  truth for both Home and Stats. Returns { totalPL, pct, days,
+//  count, winRate }.
+// ──────────────────────────────────────────────────────────
+function computeRollingPL() {
+  const days = (state.settings && state.settings.killSwitchDays) || 30;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const closed = (state.trades || []).filter(t => t.status === 'closed' && (t.exit_date || t.date));
+  const recent = closed.filter(t => new Date(t.exit_date || t.date).getTime() >= cutoff);
+  const totalPL = recent.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const wins = recent.filter(t => (calcPL(t) || 0) > 0).length;
+  const account = (state.settings && state.settings.account) || 10000;
+  const winRate = recent.length ? Math.round(wins / recent.length * 100) : null;
+  return { totalPL, pct: (totalPL / account * 100), days, count: recent.length, winRate };
+}
+
+// ──────────────────────────────────────────────────────────
 //  buildAlphaIntel — returns the alpha-intel HTML block.
 //  Called by renderLogStats; accepts pre-computed aggregates.
 // ──────────────────────────────────────────────────────────
 function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
   const n = closed.length;
-  const help = text => `<span class="stat-help" title="${text}">?</span>`;
+  const helpBtn = '<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
 
   // ── zero-data state ──────────────────────────────────────
   if (n === 0) {
     return `
       <div class="home-card ai-empty" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-          <div class="home-card-title" style="color:var(--cyan); margin: 0;">Alpha Intelligence${help('A plain-language read of your closed trades. It highlights the strongest edge, biggest leak, and any stop-trading warnings.')}</div>
+          <div class="home-card-title" style="color:var(--cyan); margin: 0;">Alpha Intelligence${helpBtn}</div>
         </div>
         <div class="ai-empty-body">
           <div class="ai-empty-icon">⌁</div>
-          <div class="ai-empty-msg"><strong>No closed trades yet.</strong> Log your first exit — win or loss — and Alpha Intelligence will surface your edge, behavioral leaks, and pattern breakdowns.</div>
+          <div class="ai-empty-msg"><strong>No closed trades yet.</strong> Log a few exits — wins or losses — and this card will surface your strongest pattern, biggest leak, and any stop-trading alerts.</div>
         </div>
       </div>`;
   }
@@ -9121,106 +9445,125 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   const bestSetup  = setups[0] || null;
   const worstSetup = setups.length > 1 ? setups[setups.length - 1] : null;
 
-  // Exit-reason breakdown
+  // Exit-reason breakdown — discretionary + thesis-broke are the early-exit leak.
   const byExit = r => closed.filter(t => t.exit_reason === r);
-  const discCount   = byExit('discretionary').length + byExit('thesis-broke').length;
-  const discPL      = [...byExit('discretionary'), ...byExit('thesis-broke')]
-                        .reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const discCount = byExit('discretionary').length + byExit('thesis-broke').length;
+  const discPL    = [...byExit('discretionary'), ...byExit('thesis-broke')]
+                      .reduce((s, t) => s + (calcPL(t) || 0), 0);
 
-  // Trade grade breakdown (old A/B/C/D/F grades are normalized)
+  // Process quality — % of reviewed trades graded "Good" (followed plan).
   const graded = closed.filter(t => t.grade);
   const goodCount = graded.filter(t => normalizeProcessQuality(t.grade) === 'clean').length;
   const gradeScore = graded.length ? Math.round(goodCount / graded.length * 100) : null;
 
-  // Kill-switch thresholds
-  const account = (state.settings && state.settings.account) || 10000;
-  const monthlyPLPct = (totalPL / account * 100);
-  const recentTrades = [...closed].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 20);
-  const recentWinRate = recentTrades.length ? Math.round(recentTrades.filter(t => (calcPL(t) || 0) > 0).length / recentTrades.length * 100) : winRate;
-  const killSwitchActive = monthlyPLPct <= -7 || recentWinRate < 45;
+  // Kill switch — uses ROLLING window (Settings.killSwitchDays). Career
+  // P/L was the wrong measure: someone with $5k of lifetime gains and a
+  // recent $1k drawdown should not be killed by their lifetime number.
+  const rolling = computeRollingPL();
+  const killActive = rolling.pct <= -7;
 
-  // ── headline diagnostic ──────────────────────────────────
-  // Pick the single most important insight based on data patterns.
+  // Money-readable formatter — keeps strings short and consistent.
+  const $ = (v) => `${v >= 0 ? '+$' : '−$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+
+  // ── headline diagnostic ─────────────────────────────────
   let headline = '', headlineTone = 'good';
 
   if (n < 5) {
-    headline = `${n} closed trade${n === 1 ? '' : 's'} — patterns need at least 10. Keep logging every exit.`;
+    headline = `Career: ${$(totalPL)} from ${n} closed trade${n === 1 ? '' : 's'} — patterns need ~10 to be reliable.`;
     headlineTone = 'info';
-  } else if (killSwitchActive && monthlyPLPct <= -7) {
-    headline = `Account is down ${Math.abs(monthlyPLPct).toFixed(1)}% — kill-switch threshold hit. Review before sizing next trade.`;
+  } else if (killActive) {
+    headline = `Last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account — kill switch active. Stop sizing up until P/L recovers.`;
     headlineTone = 'danger';
   } else if (gradeScore !== null && gradeScore < 60 && graded.length >= 5) {
-    headline = `Process discipline is the priority — only ${gradeScore}% of reviewed trades were Good. Fix execution before adding size.`;
+    headline = `Only ${gradeScore}% of reviewed trades followed the plan. Process discipline is the priority — fix execution before adding size.`;
     headlineTone = 'warn';
   } else if (avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
-    headline = `Win rate is ${winRate}% but losses are too large. Avg win $${avgWin.toFixed(0)} vs avg loss $${Math.abs(avgLoss).toFixed(0)} — tighten stops or cut faster.`;
+    headline = `Win rate ${winRate}% but losses run ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× larger than wins. Tighten stops or cut faster.`;
     headlineTone = 'warn';
   } else if (discCount >= 3 && discPL < 0) {
-    headline = `Discretionary/early exits are the primary leak ($${Math.abs(discPL).toFixed(0)} lost). Stick to the plan — let winners run.`;
+    headline = `Discretionary / thesis-broke exits cost ${$(-Math.abs(discPL))} so far — main leak. Stick to target/stop, let winners run.`;
     headlineTone = 'warn';
-  } else if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && bestSetup.pl > 0) {
-    headline = `${bestSetup.name} is your best setup (+$${bestSetup.pl.toFixed(0)}, ${Math.round(bestSetup.wins / bestSetup.n * 100)}% win rate). Prioritise it.`;
+  } else if (bestSetup && bestSetup.pl > 0) {
+    const wr = Math.round(bestSetup.wins / bestSetup.n * 100);
+    headline = `${bestSetup.name} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
     headlineTone = 'good';
   } else if (expectancy > 0 && avgR >= 0.5) {
-    headline = `Positive expectancy: +$${expectancy.toFixed(0)}/trade avg, ${avgR.toFixed(2)}R mean. Process is working — stay consistent.`;
+    headline = `Positive edge: ${$(expectancy)} per trade, ${avgR.toFixed(2)}R average. Stay consistent.`;
     headlineTone = 'good';
   } else {
-    headline = `Expectancy is ${expectancy >= 0 ? '+$' : '-$'}${Math.abs(expectancy).toFixed(0)}/trade from ${n} closed. ${expectancy >= 0 ? 'Edge detected — protect it.' : 'Negative edge — review setup selection.'}`;
+    headline = `Edge per trade: ${$(expectancy)} (${avgR.toFixed(2)}R). ${expectancy >= 0 ? 'Profitable — protect the process.' : 'Negative — review setup selection and sizing.'}`;
     headlineTone = expectancy >= 0 ? 'good' : 'warn';
   }
 
-  // ── bullet insights ──────────────────────────────────────
+  // ── bullets — career-focused, plain English, max 5 ───────
   const bullets = [];
 
+  // 1. Career line — the headline number, plus the metrics in one breath.
   bullets.push({
     tone: totalPL >= 0 ? 'good' : 'bad',
     icon: '📈',
-    text: `Net result: <strong>${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}</strong>, ${winRate}% win rate, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R average, ${profitFactor} profit factor.`,
+    text: `<strong>Career: ${$(totalPL)}</strong> across ${n} trade${n === 1 ? '' : 's'} · ${winRate}% wins · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}× your risk per trade · profit factor ${profitFactor}.`,
   });
 
+  // 2. Best vs worst setup — only if we have ≥5 trades and they differ.
   if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && n >= 5) {
     bullets.push({
       tone: bestSetup.pl >= 0 ? 'good' : 'warn',
       icon: '🎯',
-      text: `Best setup: <strong>${bestSetup.name}</strong> (${bestSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(bestSetup.pl).toFixed(0)}). Biggest leak: <strong>${worstSetup.name}</strong> (${worstSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(worstSetup.pl).toFixed(0)}).`,
+      text: `Best pattern <strong>${bestSetup.name}</strong> (${$(bestSetup.pl)}) · weakest <strong style="color:var(--red-bright)">${worstSetup.name}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
     });
   } else if (n < 5) {
     bullets.push({
-      tone: 'info',
-      icon: '📋',
-      text: `Sample is still small. Log at least 10 closed trades before trusting setup-level conclusions.`,
+      tone: 'info', icon: '📋',
+      text: `Setup-level breakdown unlocks at <strong>≥ 5 closed trades</strong>. Keep logging.`,
     });
   }
 
+  // 3. Process quality vs leak — pick the strongest signal.
   if (discCount >= 3 && discPL < 0) {
     bullets.push({
-      tone: 'warn',
-      icon: '🚪',
-      text: `Main review item: discretionary or thesis-broke exits have cost <strong>$${Math.abs(discPL).toFixed(0)}</strong>. Check whether exits are following the plan.`,
+      tone: 'warn', icon: '🚪',
+      text: `Early exits (gut call or thesis-broke) cost <strong>${$(-Math.abs(discPL))}</strong> across ${discCount} trade${discCount === 1 ? '' : 's'}. Letting them run more often would change the curve.`,
     });
   } else if (gradeScore !== null && graded.length >= 5) {
-    const gradeTone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
-    bullets.push({
-      tone: gradeTone,
-      icon: '📋',
-      text: `Trade grade: <strong>${gradeScore}% Good</strong>. ${gradeScore >= 80 ? 'Execution is supporting the edge.' : gradeScore >= 60 ? 'Some drift; review Okay/Bad trades.' : 'Execution quality is the priority.'}`,
-    });
+    const tone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
+    const verdict = gradeScore >= 80 ? 'execution is doing the work.'
+                  : gradeScore >= 60 ? 'some drift — review Okay/Bad trades.'
+                                     : 'execution quality is the next thing to fix.';
+    bullets.push({ tone, icon: '📋', text: `<strong>${gradeScore}% of reviewed trades followed the plan</strong> — ${verdict}` });
   } else if (graded.length < 3 && n >= 5) {
     bullets.push({
-      tone: 'info',
-      icon: '📋',
-      text: `<strong>${n - graded.length} trades unreviewed.</strong> Mark a simple Good/Okay/Bad grade so stats can separate process from outcome.`,
+      tone: 'info', icon: '📋',
+      text: `<strong>${n - graded.length} trade${n - graded.length === 1 ? '' : 's'} ungraded.</strong> Mark them Good / Okay / Bad after each exit so stats can separate process from outcome.`,
     });
   }
 
-  // Kill switch status
-  const killItems = [];
-  if (monthlyPLPct <= -7)  killItems.push({ text: `Account down ${Math.abs(monthlyPLPct).toFixed(1)}% — stop-trading threshold`, tone: 'danger' });
-  if (recentWinRate < 45 && recentTrades.length >= 10) killItems.push({ text: `Last ${recentTrades.length} trades win rate ${recentWinRate}% < 45%`, tone: 'warn' });
-  const ksHtml = killItems.length ? `
+  // 4. Recent-window bullet — small overlap with Home so a regression shows here too.
+  if (rolling.count >= 3) {
+    const tone = rolling.pct <= -7 ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
+    const verdict = rolling.pct <= -7 ? 'kill switch active'
+                  : rolling.pct < 0   ? 'in drawdown'
+                                      : 'in form';
+    bullets.push({
+      tone, icon: '⏱',
+      text: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> over ${rolling.count} closed (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.winRate}% wins) — ${verdict}.`,
+    });
+  }
+
+  // 5. Risk: avg win vs avg loss size, only if asymmetric.
+  if (wins.length && losses.length && avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
+    bullets.push({
+      tone: 'warn', icon: '⚖',
+      text: `Avg win ${$(avgWin)} vs avg loss ${$(avgLoss)} — losses ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× wider. Move stops in or cut sooner on broken setups.`,
+    });
+  }
+
+  // ── kill-switch panel (only when active) ────────────────
+  const ksHtml = killActive ? `
     <div class="ai-killswitch">
-      <div class="ai-section-title">⚡ Kill-Switch Check</div>
-      ${killItems.map(k => `<div class="alpha-intel-line ${k.tone}"><span>${k.text}</span></div>`).join('')}
+      <div class="ai-section-title">⚡ Kill switch active</div>
+      <div class="alpha-intel-line danger"><span>Last ${rolling.days} days: ${$(rolling.totalPL)} (${rolling.pct.toFixed(1)}% of account) — past the −7% stop-trading line.</span></div>
+      <div class="alpha-intel-line warn"><span>Pause new trades until P/L recovers. Window is editable in Settings → Alpha Intelligence.</span></div>
     </div>` : '';
 
   // ── assemble ─────────────────────────────────────────────
@@ -9231,8 +9574,8 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   return `
     <div class="home-card green" style="margin-bottom: 0;">
       <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
-        <div class="home-card-title" style="color:#7ee787; margin: 0;">Alpha Intelligence${help('A plain-language read of your closed trades. It highlights the strongest edge, biggest leak, and any stop-trading warnings.')}</div>
-        <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${n} closed trade${n === 1 ? '' : 's'}${graded.length ? ` · ${graded.length} graded` : ''}</div>
+        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence${helpBtn}</div>
+        <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${n} closed${graded.length ? ` · ${graded.length} graded` : ''}</div>
       </div>
       <div class="home-intel-headline ${hlClass}">${headline}</div>
       <ul class="home-intel-points">
@@ -9552,122 +9895,125 @@ function renderHome() {
   const top3 = computeTop3();
   const avoid = computeAvoidList();
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
-  const regimeHeadline = state.regime === 'risk-on'
-    ? 'Risk-on tape. Trend-following bias. Full-size longs unlocked.'
-    : state.regime === 'neutral'
-      ? 'Neutral tape. Cut size, demand cleaner confirmation.'
-      : 'Risk-off tape. Capital protection first. Longs blocked by plan.';
-  const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
-  const bestTrade = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
-  const worstTrade = [...closed].sort((a, b) => (calcPL(a) || 0) - (calcPL(b) || 0))[0];
-  const avgR = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
+  const positionsOk = openTrades.length < state.settings.maxPositions;
+  const riskOk = riskBuffer > nextRisk;
+  const rolling = (typeof computeRollingPL === 'function') ? computeRollingPL() : { totalPL: 0, pct: 0, days: 30, count: 0, winRate: null };
+  const killActive = rolling.pct <= -7;
 
-  // Best/worst SETUP — patterns matter more than individual tickers for process review
-  const setupAggregate = closed.reduce((acc, t) => {
-    const k = t.setup || '—';
-    if (!acc[k]) acc[k] = { name: k, count: 0, wins: 0, pl: 0 };
-    acc[k].count++;
-    if ((calcPL(t) || 0) > 0) acc[k].wins++;
-    acc[k].pl += (calcPL(t) || 0);
-    return acc;
-  }, {});
-  const setupRows = Object.values(setupAggregate).filter(r => r.count >= 2);
-  const bestSetup = [...setupRows].sort((a, b) => b.pl - a.pl)[0] || null;
-  const worstSetup = [...setupRows].sort((a, b) => a.pl - b.pl)[0] || null;
+  // Money formatter — keeps lines compact and consistent.
+  const $ = (v) => `${v >= 0 ? '+$' : '−$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
-  // Build structured intel — array of {tone, icon, html}
+  // Headline for Home — what does TODAY say? Action-oriented, not generic
+  // regime text. Priority: kill switch > caps > regime > all-clear.
+  let regimeHeadline, headlineTone = '';
+  if (killActive) {
+    regimeHeadline = `Kill switch active — last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account. Pause new trades.`;
+    headlineTone = 'risk-off';
+  } else if (!positionsOk) {
+    regimeHeadline = `Position cap reached (${openTrades.length}/${state.settings.maxPositions}). Close one before opening more.`;
+    headlineTone = 'neutral';
+  } else if (!riskOk) {
+    regimeHeadline = `Risk buffer thin — next trade would push past the ${state.settings.maxRiskPct}% portfolio cap.`;
+    headlineTone = 'neutral';
+  } else if (state.regime === 'risk-off') {
+    regimeHeadline = `Risk-off tape — longs blocked by plan. Only puts on Avoid-list sectors at half size.`;
+    headlineTone = 'risk-off';
+  } else if (state.regime === 'neutral') {
+    regimeHeadline = `Neutral tape — half-size both directions, demand cleaner confirmation.`;
+    headlineTone = 'neutral';
+  } else {
+    regimeHeadline = `Risk-on tape — cleared to size up. ${tradesLeft} trade slot${tradesLeft === 1 ? '' : 's'} of buffer remain.`;
+    headlineTone = '';
+  }
+
+  // Build structured intel — array of {tone, icon, html}. Today-focused.
   const sectorStaleNow = state.sectorRatedAt && isSectorRatingStale();
   const intelPoints = [];
 
-  // 1. Sector intel
+  // 1. Today's session — what's happened so far today.
+  if (todayClosed.length) {
+    const tone = todayPL >= 0 ? 'good' : 'bad';
+    const wins = todayClosed.filter(t => (calcPL(t) || 0) > 0).length;
+    intelPoints.push({
+      tone, icon: '📅',
+      html: `<strong>Today: ${$(todayPL)}</strong> across ${todayClosed.length} closed (${wins}W · ${todayClosed.length - wins}L${todayR ? `, ${todayR >= 0 ? '+' : ''}${todayR.toFixed(2)}R` : ''}).`,
+    });
+  } else {
+    intelPoints.push({
+      tone: 'info', icon: '📅',
+      html: `<strong>No closed trades today.</strong> Open positions: ${openTrades.length}. Plan ahead — don't chase.`,
+    });
+  }
+
+  // 2. Rolling-window read — keeps the kill switch transparent.
+  if (rolling.count > 0) {
+    const tone = killActive ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
+    const verdict = killActive ? 'kill switch active' : rolling.pct < 0 ? 'in drawdown — size cautiously' : 'in form';
+    intelPoints.push({
+      tone, icon: '⏱',
+      html: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.count} closed${rolling.winRate !== null ? ` · ${rolling.winRate}% wins` : ''}) — ${verdict}.`,
+    });
+  } else if (closed.length === 0) {
+    intelPoints.push({
+      tone: 'info', icon: '📋',
+      html: `<strong>No closed trades yet.</strong> Log your first exit from the GO flow to start the rolling window.`,
+    });
+  }
+
+  // 3. Sector lean — directional bias for the day.
   if (top3.length || avoid.length) {
     const topPart = top3.length
       ? `<strong>${top3.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : 'none rated strong';
     const avoidPart = avoid.length
-      ? `avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
+      ? ` · avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : '';
     intelPoints.push({
-      tone: top3.length ? 'good' : 'warn',
-      icon: '🧭',
-      html: `Sector lean — long ${topPart}${avoidPart ? `, ${avoidPart}` : ''}.`,
+      tone: top3.length ? 'good' : 'warn', icon: '🧭',
+      html: `Sector lean — long ${topPart}${avoidPart}.`,
     });
   } else {
     intelPoints.push({
-      tone: 'warn',
-      icon: '🧭',
+      tone: 'warn', icon: '🧭',
       html: `<strong>No sector ratings.</strong> Rate sectors in Market Context before sizing this week's trades.`,
     });
   }
 
-  // 2. Stale sector warning
+  // Stale sector — only when actually stale, on its own line.
   if (sectorStaleNow) {
     const days = daysSinceSectorRating();
     intelPoints.push({
-      tone: 'warn',
-      icon: '⚠️',
-      html: `Sector grades are <strong>${days} days old</strong> — re-rate before today's trade.`,
+      tone: 'warn', icon: '⚠️',
+      html: `Sector grades are <strong>${days} day${days === 1 ? '' : 's'} old</strong> — re-rate before today's trade.`,
     });
   }
 
-  // 3. Performance read (only if there's data)
-  if (closed.length) {
-    const plLabel = `${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}`;
-    const rLabel = `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`;
-    intelPoints.push({
-      tone: totalPL >= 0 ? 'good' : 'bad',
-      icon: '📈',
-      html: `<strong>${plLabel}</strong> across ${closed.length} closed (${winRate}% win, avg ${rLabel}).`,
-    });
-  } else {
-    intelPoints.push({
-      tone: 'info',
-      icon: '📋',
-      html: `No closed trades yet. <strong>Log your first trade</strong> from the GO button to start tracking edge.`,
-    });
-  }
-
-  // 4. Pattern insight — only with enough data
-  if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && closed.length >= 5) {
-    const bestPL = `${bestSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(bestSetup.pl).toFixed(0)}`;
-    const worstPL = `${worstSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(worstSetup.pl).toFixed(0)}`;
-    intelPoints.push({
-      tone: 'info',
-      icon: '🎯',
-      html: `Best setup: <strong>${bestSetup.name}</strong> ${bestPL} · Leak: <strong style="color:var(--red-bright)">${worstSetup.name}</strong> ${worstPL}`,
-    });
-  } else if (bestTrade && closed.length >= 1) {
-    intelPoints.push({
-      tone: 'info',
-      icon: '🎯',
-      html: `Top trade: <strong>${bestTrade.ticker}</strong> (${(calcPL(bestTrade) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(bestTrade) || 0).toFixed(0)})${worstTrade && losses.length ? ` · biggest leak: <strong style="color:var(--red-bright)">${worstTrade.ticker}</strong> (-$${Math.abs(calcPL(worstTrade) || 0).toFixed(0)})` : ''}.`,
-    });
-  }
-
-  // 5. Action recommendation based on regime + position state
-  const positionsOk = openTrades.length < state.settings.maxPositions;
-  const riskOk = riskBuffer > nextRisk;
+  // 4. Action — the explicit "what should I do right now" line.
   let actionTone = 'good', actionIcon = '✅', actionHtml = '';
-  if (state.regime === 'risk-off') {
-    actionTone = 'bad';
-    actionIcon = '🛑';
+  if (killActive) {
+    actionTone = 'bad'; actionIcon = '🛑';
+    actionHtml = `<strong>Don't trade.</strong> Wait for the rolling P/L to recover above the −7% line, or widen the window in Settings.`;
+  } else if (state.regime === 'risk-off') {
+    actionTone = 'bad'; actionIcon = '🛑';
     actionHtml = `<strong>Defensive mode.</strong> Skip longs. Only consider puts on Avoid-list sectors at half size.`;
-  } else if (!positionsOk || !riskOk) {
-    actionTone = 'warn';
-    actionIcon = '🔒';
-    actionHtml = !positionsOk
-      ? `<strong>Position cap reached.</strong> Close before opening more.`
-      : `<strong>Risk buffer thin.</strong> Next trade would push past ${state.settings.maxRiskPct}% cap.`;
+  } else if (!positionsOk) {
+    actionTone = 'warn'; actionIcon = '🔒';
+    actionHtml = `<strong>Position cap reached.</strong> Close one before opening another.`;
+  } else if (!riskOk) {
+    actionTone = 'warn'; actionIcon = '🔒';
+    actionHtml = `<strong>Risk buffer thin.</strong> Next trade would push past the ${state.settings.maxRiskPct}% cap. Close something or pass.`;
   } else if (state.regime === 'neutral') {
-    actionTone = 'warn';
-    actionIcon = '⚖️';
-    actionHtml = `<strong>Half-size mode.</strong> Both directions OK on confirmed setups only.`;
+    actionTone = 'warn'; actionIcon = '⚖️';
+    actionHtml = `<strong>Half size, both directions.</strong> Cleaner confirmation required — demand the setup, don't force it.`;
   } else {
-    actionTone = 'good';
-    actionIcon = '✅';
-    actionHtml = `<strong>Cleared to trade.</strong> ${tradesLeft} trade${tradesLeft === 1 ? '' : 's'} of buffer remain.`;
+    actionTone = 'good'; actionIcon = '✅';
+    actionHtml = `<strong>Cleared to trade.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} of buffer remain · next trade risks $${nextRisk}.`;
   }
   intelPoints.push({ tone: actionTone, icon: actionIcon, html: actionHtml });
+
+  // Stash for the headline render below — keep the existing class taxonomy.
+  // (Legacy code reads state.regime to colour the headline; we override.)
+  state._homeHeadlineClass = headlineTone;
 
   const scoreText = `${regimeHeadline} ${closed.length ? `${closed.length} closed.` : 'No closed trades yet.'}`;
 
@@ -9683,7 +10029,9 @@ function renderHome() {
   const headlineEl = document.getElementById('home-intel-headline');
   if (headlineEl) {
     headlineEl.textContent = regimeHeadline;
-    headlineEl.className = `home-intel-headline ${state.regime || ''}`;
+    // Headline class reflects ACTION priority (kill switch / cap > regime),
+    // not just regime. Falls back to '' = green.
+    headlineEl.className = `home-intel-headline ${state._homeHeadlineClass || ''}`;
   }
   const pointsEl = document.getElementById('home-intel-points');
   if (pointsEl) {
@@ -9693,7 +10041,11 @@ function renderHome() {
   }
   const deepLabel = document.getElementById('home-deep-label');
   if (deepLabel) {
-    deepLabel.textContent = sectorStaleNow ? 'Stale data' : (closed.length ? `${closed.length} closed` : 'Live read');
+    deepLabel.textContent = sectorStaleNow
+      ? 'Stale sector data'
+      : (todayClosed.length
+          ? `${todayClosed.length} closed today`
+          : "Today's read");
   }
 
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
@@ -11539,15 +11891,13 @@ const TRADE_SETUP_TEMPLATES = {
   'trend-cont':   { thesis: 'Pullback to EMA in established intraday trend; expecting trend continuation.', preMortem: 'Loses if EMA fails to hold — trend broken.' },
 };
 
-// Compute rolling P/L over last N days (kill-switch window)
+// Compute rolling P/L over last N days — delegates to the canonical
+// computeRollingPL (kept as alias so the trade flow doesn't depend on
+// load order).
 function tfComputeRolling30dPL() {
-  const days = (state.settings && state.settings.killSwitchDays) || 30;
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  const closed = (state.trades || []).filter(t => t.status === 'closed' && t.exit_date);
-  const recent = closed.filter(t => new Date(t.exit_date).getTime() >= cutoff);
-  const totalPL = recent.reduce((s, t) => s + (typeof calcPL === 'function' ? (calcPL(t) || 0) : 0), 0);
-  const account = (state.settings && state.settings.account) || 10000;
-  return { totalPL, pct: (totalPL / account) * 100, days };
+  return (typeof computeRollingPL === 'function')
+    ? computeRollingPL()
+    : { totalPL: 0, pct: 0, days: (state.settings && state.settings.killSwitchDays) || 30 };
 }
 
 // Pure gate evaluation — doesn't mutate state
@@ -13402,6 +13752,16 @@ function init() {
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
+
+  // Alpha Intel glossary panel — close on backdrop click / × / Esc.
+  document.getElementById('ai-glossary-close')?.addEventListener('click', closeAIGlossary);
+  document.getElementById('ai-glossary-backdrop')?.addEventListener('click', closeAIGlossary);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const panel = document.getElementById('ai-glossary-panel');
+      if (panel && panel.classList.contains('open')) closeAIGlossary();
+    }
+  });
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
