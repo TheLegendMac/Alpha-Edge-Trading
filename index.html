@@ -409,58 +409,41 @@ input, select, textarea { font-family: inherit; }
 .home-score-value.sectors {
   display: inline-flex;
   flex-direction: column;
-  gap: 3px;
-  align-items: flex-start;
-  max-width: 220px;
+  gap: 5px;
+  align-items: stretch;
+  min-width: 220px;
+  max-width: 260px;
   padding: 7px 10px;
   border-radius: 8px;
-  background: var(--green-bg);
-  border: 1px solid rgba(63, 185, 80, 0.35);
-  color: var(--green-bright);
-  font-size: 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line-soft);
+  font-size: 14px;
 }
-.home-score-value.sectors strong {
-  color: var(--green-bright);
-  font-size: 18px;
-  line-height: 1;
-}
-.home-score-value.sectors span {
-  max-width: 100%;
-  color: var(--ink-3);
+.home-sector-context-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.home-sector-context-line strong {
+  color: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.home-sector-context-line span {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.home-score-value.sectors.has-avoid {
-  background: var(--red-bg);
-  border-color: rgba(248, 81, 73, 0.35);
-}
-.home-score-value.sectors.has-avoid strong { color: var(--red-bright); }
-.home-sector-pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 9px;
-}
-.home-sector-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 7px;
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  background: var(--green-bg);
+.home-sector-context-line.top {
   color: var(--green-bright);
-  border: 1px solid rgba(63, 185, 80, 0.28);
 }
-.home-sector-pill.avoid {
-  background: var(--red-bg);
+.home-sector-context-line.avoid {
   color: var(--red-bright);
-  border-color: rgba(248, 81, 73, 0.28);
 }
 .home-score-value.regime.neutral {
   color: var(--amber-bright);
@@ -3126,7 +3109,6 @@ textarea.input-field {
               <button class="home-regime-option" data-regime="neutral" type="button">Neutral</button>
               <button class="home-regime-option" data-regime="risk-off" type="button">Risk-Off</button>
             </div>
-            <div class="home-sector-pill-row" id="home-sector-pills"></div>
           </div>
         </div>
 
@@ -6770,17 +6752,15 @@ function renderHome() {
   };
 
   setText('home-regime-value', regimeText);
-  setText('home-sector-score', top3.length || avoid.length
-    ? `<strong>${top3.length} Top / ${avoid.length} Avoid</strong><span>${[...top3.slice(0, 3), ...avoid.slice(0, 2)].map(s => s.ticker).join(', ')}</span>`
-    : ratings.length
-      ? `<strong>${sectorScore}</strong><span>${ratings.length}/${SECTORS.length} rated</span>`
-      : '<strong>—</strong><span>Rate sectors</span>');
-  setText('home-sector-pills', ratings.length
-    ? [
-        ...top3.slice(0, 3).map(s => `<span class="home-sector-pill">▲ ${s.ticker} ${Number(s.rating).toFixed(1)}</span>`),
-        ...avoid.slice(0, 3).map(s => `<span class="home-sector-pill avoid">▼ ${s.ticker} ${Number(s.rating).toFixed(1)}</span>`),
-      ].join('') || '<span class="home-sector-pill">Neutral market map</span>'
-    : '<span class="home-sector-pill avoid">Edit sector ratings</span>');
+  const topText = top3.length
+    ? top3.slice(0, 3).map(s => s.ticker).join(', ')
+    : '—';
+  const avoidText = avoid.length
+    ? avoid.slice(0, 3).map(s => s.ticker).join(', ')
+    : '—';
+  setText('home-sector-score', ratings.length
+    ? `<span class="home-sector-context-line top"><strong>Top 3</strong><span>${topText}</span></span><span class="home-sector-context-line avoid"><strong>Avoid</strong><span>${avoidText}</span></span>`
+    : '<span class="home-sector-context-line avoid"><strong>Sectors</strong><span>Rate in Sunday Prep</span></span>');
   setText('home-intel-text', scoreText);
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
@@ -6799,7 +6779,7 @@ function renderHome() {
   });
   const sectorButton = document.getElementById('home-sector-score');
   if (sectorButton) {
-    sectorButton.className = `home-score-value sectors editable ${avoid.length ? 'has-avoid' : ''}`;
+    sectorButton.className = 'home-score-value sectors editable';
     sectorButton.title = top3.length
       ? `Top sectors: ${top3.map(s => `${s.name} ${s.ticker}`).join(', ')}`
       : 'Click to edit sector ratings in Sunday Prep';
