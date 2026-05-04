@@ -952,17 +952,15 @@ select.input-field {
 
 /* ============ TRADE LOG ============ */
 .log-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  display: block;
+  margin-bottom: 16px;
 }
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--line);
   border-left: 3px solid var(--line-soft);
   border-radius: var(--r-md);
-  padding: 16px 18px;
+  padding: 12px 14px;
   position: relative;
   overflow: hidden;
   transition: border-left-color 0.2s;
@@ -976,7 +974,7 @@ select.input-field {
 }
 .stat-card-value {
   font-family: var(--display);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.03em;
   margin-top: 4px;
@@ -1001,8 +999,8 @@ select.input-field {
   background: linear-gradient(90deg, rgba(20, 30, 43, 0.95), rgba(37, 18, 63, 0.9));
   border: 1px solid rgba(191, 120, 255, 0.42);
   border-radius: var(--r-lg);
-  padding: 16px 20px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -1028,9 +1026,9 @@ select.input-field {
 }
 .alpha-intel-title { color: #d7a3ff; }
 .alpha-intel-line {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ink-2);
-  margin: 7px 0;
+  margin: 5px 0;
 }
 .alpha-intel-line::before {
   content: '';
@@ -1043,89 +1041,35 @@ select.input-field {
 }
 .alpha-intel-line.warn::before { background: var(--amber); }
 .alpha-intel-line.bad::before { background: var(--red); }
-.edge-equation {
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-.edge-equation-row {
-  min-height: 76px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-.edge-chip {
-  background: var(--bg-elev);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-sm);
-  padding: 12px 18px;
-  min-width: 104px;
-  text-align: center;
-}
-.edge-chip.good { border-color: rgba(63, 185, 80, 0.55); }
-.edge-chip.bad { border-color: rgba(248, 81, 73, 0.45); }
-.edge-chip.result { border-color: var(--green); background: rgba(63, 185, 80, 0.1); min-width: 130px; }
-.edge-chip-value {
-  font-family: var(--display);
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--ink);
-}
-.edge-chip.good .edge-chip-value,
-.edge-chip.result .edge-chip-value { color: var(--green-bright); }
-.edge-chip.bad .edge-chip-value { color: var(--red-bright); }
-.edge-chip-label {
-  font-family: var(--mono);
-  color: var(--ink-4);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 10px;
-  margin-top: 3px;
-}
-.edge-op {
-  color: var(--ink-4);
-  font-family: var(--mono);
-  font-weight: 900;
-}
 .analytics-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .analytics-metrics .stat-card {
   border-left: 0;
   text-align: center;
-  min-height: 80px;
+  min-height: 70px;
 }
 .analytics-panels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 18px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 .analytics-panel {
   background: var(--bg-card);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  padding: 16px 18px;
-  min-height: 220px;
-}
-.equity-svg {
-  width: 100%;
-  height: 170px;
-  display: block;
+  padding: 12px 14px;
 }
 .tag-row {
   display: grid;
-  grid-template-columns: 120px 1fr 70px;
+  grid-template-columns: 120px 1fr 74px;
   align-items: center;
   gap: 10px;
-  margin: 10px 0;
+  margin: 8px 0;
   font-size: 12px;
 }
 .tag-bar {
@@ -1169,14 +1113,14 @@ select.input-field {
 .log-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 .log-table thead {
   background: var(--bg-elev);
 }
 .log-table th {
   text-align: left;
-  padding: 12px 14px;
+  padding: 9px 10px;
   font-family: var(--mono);
   font-size: 10px;
   text-transform: uppercase;
@@ -1187,7 +1131,7 @@ select.input-field {
   white-space: nowrap;
 }
 .log-table td {
-  padding: 12px 14px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -4157,10 +4101,10 @@ function schedulePush() {
 }
 
 async function doPush() {
-  if (!SYNC.enabled || !SYNC.user) return;
+  if (!SYNC.enabled || !SYNC.user) return false;
   if (!navigator.onLine) {
     setSyncStatus('offline', 'Offline');
-    return;
+    return false;
   }
   setSyncStatus('syncing', 'Saving');
   SYNC.pushInFlight = true;
@@ -4201,10 +4145,12 @@ async function doPush() {
     await syncTradesTableMirror(snapshot);
     SYNC.lastSyncAt = Date.now();
     setSyncStatus('synced');
+    return true;
   } catch (e) {
     console.error('[sync push] FAILED:', e);
     setSyncStatus('error', 'Save failed');
     SYNC.lastError = e.message;
+    return false;
   } finally {
     SYNC.pushInFlight = false;
   }
@@ -4482,7 +4428,8 @@ async function manualSupabaseRefresh() {
       clearTimeout(SYNC.pendingPush);
       SYNC.pendingPush = null;
     }
-    await doPush();
+    const pushed = await doPush();
+    if (!pushed) throw new Error(SYNC.lastError || 'Supabase push failed');
     await pullAndMergeIfNewer();
     toast(`Supabase refreshed: ${(state.trades || []).length} trades synced`);
   } catch (e) {
@@ -5922,15 +5869,7 @@ function genTradeId() {
 function calcPL(t) {
   if (t.status === 'open' || !t.exit) return null;
   const dollarPL = (t.exit - t.entry) * 100 * t.contracts;
-  // For shorts/puts: P/L is reversed - profit when price falls. Direction stored as 'Long' or 'Short'.
-  if (t.direction === 'Short') return -dollarPL;
   return dollarPL;
-}
-
-function calcPLPct(t) {
-  if (t.status === 'open' || !t.exit) return null;
-  const pct = (t.exit - t.entry) / t.entry;
-  return t.direction === 'Short' ? -pct : pct;
 }
 
 // R-multiple: P/L expressed in units of risk dollars. 2R = 2x risk dollars profit.
@@ -6084,7 +6023,7 @@ function addTestTrades() {
       thesis: `Cloud sync test batch ${batchId}: intraday loss sample.`,
       premortem: '',
       status: 'loss',
-      exit: 2.05,
+      exit: 0.95,
       exit_date: dateOffsetISO(0),
       grade: 'C',
       followed_plan: 'partial',
@@ -6115,56 +6054,34 @@ function renderLogStats() {
   const container = document.getElementById('log-stats');
   const filter = state.logModeFilter || 'all';
   const trades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
-  const open = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => t.status !== 'open');
-  const wins = closed.filter(t => t.status === 'win');
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
+  const wins = closedWithPL.filter(x => x.pl > 0);
+  const losses = closedWithPL.filter(x => x.pl < 0);
 
-  const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
   const winRate = closed.length > 0 ? (wins.length / closed.length * 100).toFixed(0) : '—';
   const avgWin = wins.length > 0
-    ? wins.reduce((s, t) => s + (calcPL(t) || 0), 0) / wins.length
+    ? wins.reduce((s, x) => s + x.pl, 0) / wins.length
     : 0;
-  const losses = closed.filter(t => t.status === 'loss');
   const avgLoss = losses.length > 0
-    ? losses.reduce((s, t) => s + (calcPL(t) || 0), 0) / losses.length
+    ? losses.reduce((s, x) => s + x.pl, 0) / losses.length
     : 0;
 
-  const graded = closed.filter(t => t.grade && (t.grade === 'A' || t.grade === 'B'));
-  const gradePct = closed.length > 0 ? (graded.length / closed.length * 100).toFixed(0) : '—';
-
-  const now = new Date();
-  const mtdTrades = closed.filter(t => {
-    const d = new Date(t.exit_date || t.date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-  const mtdPL = mtdTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
-
-  const grossWin = wins.reduce((s, t) => s + Math.max(0, calcPL(t) || 0), 0);
-  const grossLoss = Math.abs(losses.reduce((s, t) => s + Math.min(0, calcPL(t) || 0), 0));
+  const grossWin = wins.reduce((s, x) => s + x.pl, 0);
+  const grossLoss = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
   const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
   const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
+  const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
   const riskToMake = avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) : '—';
-  const biggestWin = wins.length ? Math.max(...wins.map(t => calcPL(t) || 0)) : 0;
-  const biggestLoss = losses.length ? Math.min(...losses.map(t => calcPL(t) || 0)) : 0;
+  const biggestWin = wins.length ? Math.max(...wins.map(x => x.pl)) : 0;
+  const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
   const powerAsset = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
-  const leak = losses.find(t => t.exit_reason === 'stop') || losses[0];
-  const bestTag = wins.find(t => t.exit_reason === 'target') || wins[0];
-  const equityPoints = closed.reduce((points, t) => {
-    points.push(points[points.length - 1] + (calcPL(t) || 0));
-    return points;
-  }, [0]);
-  const maxEquity = Math.max(...equityPoints, 1);
-  const minEquity = Math.min(...equityPoints, 0);
-  const rangeEquity = Math.max(1, maxEquity - minEquity);
-  const polyPoints = equityPoints.map((v, i) => {
-    const x = equityPoints.length === 1 ? 20 : 20 + (i / (equityPoints.length - 1)) * 500;
-    const y = 150 - ((v - minEquity) / rangeEquity) * 120;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const areaPoints = `20,150 ${polyPoints} 520,150`;
+  const leak = losses.find(x => x.trade.exit_reason === 'stop')?.trade || losses[0]?.trade;
+  const bestTag = wins.find(x => x.trade.exit_reason === 'target')?.trade || wins[0]?.trade;
   const tagRows = [
-    { label: 'Target Hit', value: wins.filter(t => t.exit_reason === 'target').reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
-    { label: 'Stop Loss', value: losses.filter(t => t.exit_reason === 'stop').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
+    { label: 'Target Hit', value: closed.filter(t => t.exit_reason === 'target').reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
+    { label: 'Stop Loss', value: closed.filter(t => t.exit_reason === 'stop').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
     { label: 'Manual Close', value: closed.filter(t => t.exit_reason === 'discretionary').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
     { label: 'Breakout', value: closed.filter(t => String(t.setup || '').toLowerCase().includes('break')).reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
   ];
@@ -6174,27 +6091,16 @@ function renderLogStats() {
     <div class="alpha-intel">
       <div class="alpha-intel-title">Alpha Intelligence</div>
       <div class="alpha-intel-line">Power Asset: ${powerAsset ? `${powerAsset.ticker} is your top earner (${(calcPL(powerAsset) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(powerAsset) || 0).toFixed(0)}).` : 'Add closed trades to identify your strongest ticker.'}</div>
-      <div class="alpha-intel-line">Golden Hour: ${closed.length ? 'Review your highest quality exits and repeat the setup conditions.' : 'No closed trades yet.'}</div>
+      <div class="alpha-intel-line">Expectancy: ${expectancy >= 0 ? '+$' : '-$'}${Math.abs(expectancy).toFixed(0)} per closed trade from ${closed.length} closed trades.</div>
       <div class="alpha-intel-line ${leak ? 'bad' : ''}">Behavioral Leak: ${leak ? `${leak.ticker} ${leak.exit_reason || 'loss'} produced -$${Math.abs(calcPL(leak) || 0).toFixed(0)}.` : 'No loss leak detected yet.'}</div>
       <div class="alpha-intel-line">Behavioral Edge: ${bestTag ? `${bestTag.ticker} target-hit discipline added +$${Math.abs(calcPL(bestTag) || 0).toFixed(0)}.` : 'No target-hit edge detected yet.'}</div>
     </div>
 
-    <div class="edge-equation">
-      <div class="edge-title">The Edge Equation</div>
-      <div class="edge-equation-row">
-        <div class="edge-chip good"><div class="edge-chip-value">${winRate}${winRate !== '—' ? '%' : ''}</div><div class="edge-chip-label">Win Rate</div></div>
-        <div class="edge-op">×</div>
-        <div class="edge-chip good"><div class="edge-chip-value">$${avgWin.toFixed(0)}</div><div class="edge-chip-label">Avg Win</div></div>
-        <div class="edge-op">−</div>
-        <div class="edge-chip bad"><div class="edge-chip-value">${closed.length ? (100 - Number(winRate)).toFixed(0) : '—'}${winRate !== '—' ? '%' : ''}</div><div class="edge-chip-label">Loss Rate</div></div>
-        <div class="edge-op">×</div>
-        <div class="edge-chip bad"><div class="edge-chip-value">$${Math.abs(avgLoss).toFixed(0)}</div><div class="edge-chip-label">Avg Loss</div></div>
-        <div class="edge-op">=</div>
-        <div class="edge-chip result"><div class="edge-chip-value">${expectancy >= 0 ? '+' : '-'}$${Math.abs(expectancy).toFixed(0)}</div><div class="edge-chip-label">Expectancy / Trade</div></div>
-      </div>
-    </div>
-
     <div class="analytics-metrics">
+      <div class="stat-card ${totalPL >= 0 ? 'green' : 'red'}">
+        <div class="stat-card-label">Total P/L</div>
+        <div class="stat-card-value">${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}</div>
+      </div>
       <div class="stat-card ${parseInt(winRate) >= 50 ? 'green' : (parseInt(winRate) >= 45 ? 'amber' : 'red')}">
         <div class="stat-card-label">Win Rate</div>
         <div class="stat-card-value">${winRate}${winRate !== '—' ? '%' : ''}</div>
@@ -6204,9 +6110,8 @@ function renderLogStats() {
         <div class="stat-card-value">${profitFactor}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-card-label">Avg Hold</div>
-        <div class="stat-card-value">0.0</div>
-        <div class="stat-card-detail">days</div>
+        <div class="stat-card-label">Avg R</div>
+        <div class="stat-card-value">${closed.length ? avgR.toFixed(2) : '—'}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-label">Trades</div>
@@ -6224,28 +6129,9 @@ function renderLogStats() {
         <div class="stat-card-label">Biggest Loss</div>
         <div class="stat-card-value">-$${Math.abs(biggestLoss).toFixed(0)}</div>
       </div>
-      <button class="stat-card btn-secondary" onclick="exportCSV()" style="cursor:pointer;">
-        <div class="stat-card-label">Export CSV</div>
-        <div class="stat-card-value" style="font-size:18px;">⇩</div>
-      </button>
     </div>
 
     <div class="analytics-panels">
-      <div class="analytics-panel">
-        <div class="analytics-panel-title">Equity Curve</div>
-        <svg class="equity-svg" viewBox="0 0 540 170" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="equityFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="rgba(63,185,80,0.48)" />
-              <stop offset="100%" stop-color="rgba(63,185,80,0.03)" />
-            </linearGradient>
-          </defs>
-          <line x1="20" y1="150" x2="520" y2="150" stroke="rgba(139,148,158,0.25)" stroke-dasharray="4 4" />
-          <polygon points="${areaPoints}" fill="url(#equityFill)" />
-          <polyline points="${polyPoints}" fill="none" stroke="#3fb950" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-          <circle cx="520" cy="${polyPoints.split(' ').pop()?.split(',')[1] || 150}" r="4" fill="#7ee787" />
-        </svg>
-      </div>
       <div class="analytics-panel">
         <div class="analytics-panel-title">Tag Analysis</div>
         ${tagRows.map(row => `
@@ -6292,13 +6178,11 @@ function renderLogTable() {
             <th>Setup</th>
             <th>Dir</th>
             <th>Entry</th>
-            <th>Size</th>
-            <th>IVR</th>
-            <th>Status</th>
             <th>Exit</th>
+            <th>Size</th>
+            <th>Status</th>
             <th>P/L $</th>
             <th>R</th>
-            <th>P/L %</th>
             <th>Grade</th>
             <th></th>
           </tr>
@@ -6306,7 +6190,6 @@ function renderLogTable() {
         <tbody>
           ${sorted.map(t => {
             const pl = calcPL(t);
-            const plPct = calcPLPct(t);
             const r = calcR(t);
             const mode = t.mode || 'swing';
             return `
@@ -6317,13 +6200,11 @@ function renderLogTable() {
                 <td>${t.setup}</td>
                 <td>${t.direction}</td>
                 <td class="num">$${(+t.entry).toFixed(2)}</td>
-                <td class="num">${t.contracts}<span style="color: var(--ink-3); font-weight: 400; font-size: 10px; margin-left: 3px;">${t.instrument === 'stocks' ? 'sh' : 'ctr'}</span></td>
-                <td class="num">${t.ivr || '—'}</td>
-                <td><span class="status ${t.status}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></td>
                 <td class="num">${t.exit ? '$' + (+t.exit).toFixed(2) : '—'}</td>
+                <td class="num">${t.contracts}<span style="color: var(--ink-3); font-weight: 400; font-size: 10px; margin-left: 3px;">${t.instrument === 'stocks' ? 'sh' : 'ctr'}</span></td>
+                <td><span class="status ${t.status}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></td>
                 <td class="num ${pl > 0 ? 'pl-positive' : pl < 0 ? 'pl-negative' : ''}">${pl !== null ? (pl >= 0 ? '+$' : '−$') + Math.abs(pl).toFixed(0) : '—'}</td>
                 <td class="num ${r > 0 ? 'pl-positive' : r < 0 ? 'pl-negative' : ''}">${r !== null ? (r >= 0 ? '+' : '−') + Math.abs(r).toFixed(2) + 'R' : '—'}</td>
-                <td class="num ${plPct > 0 ? 'pl-positive' : plPct < 0 ? 'pl-negative' : ''}">${plPct !== null ? (plPct >= 0 ? '+' : '−') + Math.abs(plPct * 100).toFixed(0) + '%' : '—'}</td>
                 <td>${t.grade ? `<span class="grade ${t.grade}">${t.grade}</span>` : '—'}</td>
                 <td>
                   <button class="btn-secondary" style="padding: 4px 10px; font-size: 10px;"
