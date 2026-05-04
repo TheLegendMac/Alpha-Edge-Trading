@@ -4025,19 +4025,44 @@ async function doPush() {
   }
   setSyncStatus('syncing', 'Saving');
   SYNC.pushInFlight = true;
+  // DIAGNOSTIC: log what we're about to upload so the user can check the console
+  // when sync is misbehaving. This is intentionally chatty.
+  const tradeCount = (state.trades || []).length;
+  const lastTrade = tradeCount > 0 ? state.trades[tradeCount - 1] : null;
+  console.log('[sync push]', {
+    tradeCount,
+    lastTradeId: lastTrade?.id,
+    lastTradeTicker: lastTrade?.ticker,
+    sectorRatingCount: Object.keys(state.sectorRatings || {}).length,
+    deviceId: SYNC.deviceId,
+    userId: SYNC.user.id,
+  });
   try {
-    const { error } = await SYNC.client
+    // SNAPSHOT the state at this exact moment by deep-cloning before passing
+    // to Supabase. This eliminates any chance of state being mutated between
+    // when upsert() reads it and when the HTTP body is serialized.
+    const snapshot = JSON.parse(JSON.stringify(state));
+    const { data, error } = await SYNC.client
       .from('cockpit_state')
       .upsert({
         user_id: SYNC.user.id,
-        state_json: state,
+        state_json: snapshot,
         device_id: SYNC.deviceId,
-      }, { onConflict: 'user_id' });
+      }, { onConflict: 'user_id' })
+      .select();
     if (error) throw error;
+    // DIAGNOSTIC: confirm the row that came back has our trades
+    if (data && data[0]) {
+      const returnedTrades = (data[0].state_json?.trades || []).length;
+      console.log('[sync push] success — server returned', returnedTrades, 'trades in row');
+      if (returnedTrades !== tradeCount) {
+        console.warn('[sync push] MISMATCH: pushed', tradeCount, 'trades but server returned', returnedTrades);
+      }
+    }
     SYNC.lastSyncAt = Date.now();
     setSyncStatus('synced');
   } catch (e) {
-    console.warn('Push failed:', e);
+    console.error('[sync push] FAILED:', e);
     setSyncStatus('error', 'Save failed');
     SYNC.lastError = e.message;
   } finally {
@@ -4285,8 +4310,10 @@ async function pullAndMergeIfNewer() {
     // Only merge if cloud is from a different device AND newer than local
     // (5 second buffer accounts for clock skew)
     if (!sameDevice && cloudTime > localTime + 5000) {
-      console.info('[sync] Pulling newer cloud state from device', cloud.device_id);
-      state = { ...state, ...cloud.state_json };
+      console.info('[sync pull] Pulling newer cloud state from device', cloud.device_id);
+      // Deep-clone the cloud state to break any reference sharing
+      const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
+      state = { ...state, ...cloudClone };
       saveStateLocal();
       // Also update local-save timestamp to match cloud so we don't immediately re-pull
       localStorage.setItem('mac_cockpit_local_save_ts', String(cloudTime));
