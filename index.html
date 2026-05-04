@@ -779,6 +779,14 @@ input, select, textarea { font-family: inherit; }
   padding: 4px 8px;
   font-size: 11px;
 }
+.home-icon-action {
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+.home-icon-action svg { width: 18px; height: 18px; }
 .home-activity-list {
   min-height: 190px;
   border: 1px dashed var(--line-soft);
@@ -2896,6 +2904,20 @@ textarea.input-field {
   margin-top: 8px;
   flex-wrap: wrap;
 }
+.snapshot-launch-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+.snapshot-toggle-btn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+.snapshot-toggle-btn svg { width: 17px; height: 17px; }
+.snapshot-wrap.collapsed { display: none; }
 .snapshot-paste-hint {
   font-family: var(--mono);
   font-size: 10px;
@@ -4285,13 +4307,17 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
-        <button class="btn-secondary" id="btn-home-log" style="min-height:42px; padding:0 18px;" title="Open the trade log + stats">Trade Log</button>
-        <button class="btn-secondary" id="btn-home-sunday" style="min-height:42px; padding:0 18px;" title="Sunday prep — sector ratings + weekly checklist">Sunday Prep</button>
+        <button class="btn-secondary home-icon-action" id="btn-home-log" title="Open stats and trade log" aria-label="Open stats and trade log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/>
+            <path d="M7 15l4-4 3 3 5-7"/>
+            <path d="M17 7h2v2"/>
+          </svg>
+        </button>
       </div>
 
       <div class="home-portfolio-head">
         <div class="home-card-title" style="margin:0;">Portfolio View</div>
-        <input class="input-field" id="home-portfolio-filter" placeholder="Filter ticker, setup…" autocomplete="off" />
         <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Recent activity</div>
       </div>
       <div class="home-activity-list" id="home-portfolio-empty">
@@ -4328,7 +4354,17 @@ textarea.input-field {
     </div>
 
     <!-- ============ SMART PASTE + TOS SNAPSHOT ============ -->
-    <div class="snapshot-wrap" id="snapshot-wrap">
+    <div class="snapshot-launch-row">
+      <button class="btn-secondary snapshot-toggle-btn" id="snapshot-toggle-btn" type="button" title="Open Smart Paste" aria-label="Open Smart Paste">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/>
+          <path d="M14 2v6h6"/>
+          <path d="M9 13h6"/>
+          <path d="M9 17h3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="snapshot-wrap collapsed" id="snapshot-wrap">
       <div class="snapshot-grid">
         <div class="snapshot-paste-col">
           <div class="snapshot-section-title">Smart paste</div>
@@ -4399,6 +4435,24 @@ textarea.input-field {
           </div>
         </div>
         <div class="step-body">
+          <!-- Instrument toggle: Options vs Stocks -->
+          <div class="instrument-toggle-wrap" style="margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
+            <div class="input-label" style="margin-bottom: 8px;">What are you trading?</div>
+            <div class="instrument-toggle" role="tablist">
+              <button type="button" class="instrument-btn active" data-instrument="options" role="tab" aria-selected="true">
+                <span class="instrument-btn-title">Options</span>
+                <span class="instrument-btn-detail">Calls / puts / spreads</span>
+              </button>
+              <button type="button" class="instrument-btn" data-instrument="stocks" role="tab" aria-selected="false">
+                <span class="instrument-btn-title">Stocks</span>
+                <span class="instrument-btn-detail">Shares of the underlying</span>
+              </button>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); line-height: 1.5;">
+              <span id="instrument-hint">Options selected — Step 3 will calculate contracts. IV Rank required in Step 2. Gate 04 checks option liquidity.</span>
+            </div>
+          </div>
+
           <div class="setup-grid" id="setup-grid">
             <div class="setup-card" data-setup="21-EMA Pullback">
               <div class="setup-card-name">21-EMA Pullback</div>
@@ -4427,23 +4481,6 @@ textarea.input-field {
             </div>
           </div>
 
-          <!-- Instrument toggle: Options vs Stocks -->
-          <div class="instrument-toggle-wrap" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);">
-            <div class="input-label" style="margin-bottom: 8px;">What are you trading?</div>
-            <div class="instrument-toggle" role="tablist">
-              <button type="button" class="instrument-btn active" data-instrument="options" role="tab" aria-selected="true">
-                <span class="instrument-btn-title">Options</span>
-                <span class="instrument-btn-detail">Calls / puts / spreads</span>
-              </button>
-              <button type="button" class="instrument-btn" data-instrument="stocks" role="tab" aria-selected="false">
-                <span class="instrument-btn-title">Stocks</span>
-                <span class="instrument-btn-detail">Shares of the underlying</span>
-              </button>
-            </div>
-            <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); line-height: 1.5;">
-              <span id="instrument-hint">Options selected — Step 3 will calculate contracts. IV Rank required in Step 2. Gate 04 checks option liquidity.</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -4615,6 +4652,7 @@ textarea.input-field {
       <div class="log-toolbar">
         <div class="log-toolbar-title">Trade Log</div>
         <div style="display: flex; gap: 8px; align-items: center;">
+          <input class="input-field" id="log-trade-search" placeholder="Filter ticker, setup…" autocomplete="off" style="width: 190px; height: 34px; font-size: 12px;" />
           <select id="log-mode-filter" class="btn-secondary" style="padding: 7px 10px;">
             <option value="all">All trades</option>
             <option value="swing">Swing only</option>
@@ -4634,31 +4672,6 @@ textarea.input-field {
 
   <!-- ===== INTRADAY (5-step flow, mirrors Swing visual structure) ===== -->
   <section class="tab-panel" id="panel-intraday">
-
-    <!-- Pre-trade safety banner: regime + market conditions + day stats.
-         Hosts the VIX / news / streak / positions safety checks for BOTH swing
-         and intraday (since swing's standalone banner was removed). -->
-    <div class="pretrade-check" id="i-pretrade-banner" style="margin-bottom: 18px;">
-      <div class="pretrade-icon" id="i-pretrade-icon">🟢</div>
-      <div class="pretrade-text">
-        <strong id="i-pretrade-title">Market is safe to trade</strong>
-        <span id="i-pretrade-detail">Regime is RISK-ON. No active veto conditions.</span>
-      </div>
-      <div class="pretrade-checks-row">
-        <div class="pretrade-mini checked" id="i-check-vix" data-check="vix" title="Click to toggle. Manual override.">
-          <span class="dot"></span>VIX OK
-        </div>
-        <div class="pretrade-mini checked" id="i-check-news" data-check="news" title="Click to toggle. Manual override.">
-          <span class="dot"></span>No surprise news
-        </div>
-        <div class="pretrade-mini checked" id="i-check-streak" title="Auto-detected from trade log">
-          <span class="dot"></span><span id="i-check-streak-text">No 2 losses today</span>
-        </div>
-        <div class="pretrade-mini checked" id="i-check-positions" title="Auto-detected from open trades">
-          <span class="dot"></span><span id="i-check-positions-text">Cap room open</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Intraday day-stats strip (was inline in old banner; now its own row) -->
     <div class="aside-card" id="i-day-status-card" style="margin-bottom: 18px;">
@@ -6458,6 +6471,7 @@ let state = {
   intradayQuality: { timeOverride: false },
   // Log
   logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
+  logSearch: '',
 };
 
 function loadState() {
@@ -6479,6 +6493,7 @@ function loadState() {
       if (!state.instrument) state.instrument = 'options';
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
+      if (state.logSearch === undefined) state.logSearch = '';
       if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
     }
@@ -6690,14 +6705,9 @@ function getOpenPositionsCount() {
 }
 
 function renderPretradeCheck() {
-  // Banner location moved from swing to intraday tab. We render to whichever
-  // banner exists in the DOM. The same status applies to both modes — they
-  // share state.pretradeChecks and the streak/positions auto-detection.
-  const card = document.getElementById('pretrade-check') || document.getElementById('i-pretrade-banner');
+  const card = document.getElementById('pretrade-check');
   if (!card) return;
-  // Resolve the right element IDs based on which banner we're driving
-  const usingIntraday = card.id === 'i-pretrade-banner';
-  const idPrefix = usingIntraday ? 'i-' : '';
+  const idPrefix = '';
   const icon = document.getElementById(idPrefix + 'pretrade-icon');
   const title = document.getElementById(idPrefix + 'pretrade-title');
   const detail = document.getElementById(idPrefix + 'pretrade-detail');
@@ -8343,12 +8353,21 @@ function renderUniversalSidebar() {
 function renderLogTable() {
   const container = document.getElementById('log-table-container');
   const filter = state.logModeFilter || 'all';
-  const filtered = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const search = (state.logSearch || '').trim().toLowerCase();
+  const modeFiltered = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const filtered = search
+    ? modeFiltered.filter(t =>
+        (t.ticker || '').toLowerCase().includes(search) ||
+        (t.setup || '').toLowerCase().includes(search) ||
+        (t.direction || '').toLowerCase().includes(search) ||
+        (t.mode || '').toLowerCase().includes(search) ||
+        (t.status || '').toLowerCase().includes(search))
+    : modeFiltered;
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-title">${filter === 'all' ? 'No trades logged yet' : 'No ' + filter + ' trades'}</div>
-        <div>${filter === 'all' ? 'Click "Add Trade" when you take your first entry, or log one from the Intraday tab.' : 'Switch the filter or log a new ' + filter + ' trade.'}</div>
+        <div class="empty-state-title">${search ? 'No matching trades' : (filter === 'all' ? 'No trades logged yet' : 'No ' + filter + ' trades')}</div>
+        <div>${search ? 'Clear the search or try a different ticker/setup.' : (filter === 'all' ? 'Click "Add Trade" when you take your first entry, or log one from the Intraday tab.' : 'Switch the filter or log a new ' + filter + ' trade.')}</div>
       </div>
     `;
     return;
@@ -8511,7 +8530,7 @@ function renderHome() {
     intelPoints.push({
       tone: 'warn',
       icon: '🧭',
-      html: `<strong>No sector ratings.</strong> Run Sunday Prep before sizing this week's trades.`,
+      html: `<strong>No sector ratings.</strong> Rate sectors in Market Context before sizing this week's trades.`,
     });
   }
 
@@ -8694,16 +8713,8 @@ function renderHome() {
 
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
-    const filter = (state.homePortfolioFilter || '').trim().toLowerCase();
     const allTrades = (state.trades || []);
-    const filtered = filter
-      ? allTrades.filter(t =>
-          (t.ticker || '').toLowerCase().includes(filter) ||
-          (t.setup || '').toLowerCase().includes(filter) ||
-          (t.direction || '').toLowerCase().includes(filter) ||
-          (t.mode || '').toLowerCase().includes(filter))
-      : allTrades;
-    const listTrades = [...filtered]
+    const listTrades = [...allTrades]
       .sort((a, b) => {
         const aTime = new Date(a.updated_at || a.exit_date || a.date || 0).getTime();
         const bTime = new Date(b.updated_at || b.exit_date || b.date || 0).getTime();
@@ -8711,9 +8722,7 @@ function renderHome() {
       })
       .slice(0, 8);
     if (listTrades.length === 0) {
-      empty.innerHTML = filter
-        ? `<div class="home-activity-empty"><div><em>No trades match &ldquo;${filter}&rdquo;.</em><strong>Try a different ticker or setup.</strong></div></div>`
-        : `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
+      empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
     } else {
       empty.innerHTML = listTrades.map(t => {
         const pl = calcPL(t);
@@ -8738,16 +8747,10 @@ function renderHome() {
           </button>
         `;
       }).join('');
-      empty.insertAdjacentHTML('beforeend', listTrades.length < filtered.length
-        ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${filtered.length} ${filter ? 'matching ' : ''}trades</span></button>`
+      empty.insertAdjacentHTML('beforeend', listTrades.length < allTrades.length
+        ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${allTrades.length} trades</span></button>`
         : '');
     }
-  }
-
-  // Restore filter input value (renderHome rebuilds the chrome each call)
-  const filterEl = document.getElementById('home-portfolio-filter');
-  if (filterEl && filterEl.value !== (state.homePortfolioFilter || '')) {
-    filterEl.value = state.homePortfolioFilter || '';
   }
 }
 
@@ -9780,6 +9783,7 @@ function clearAllTradesAndData() {
     intraday: newIntradayTicket(),
     intradayQuality: { timeOverride: false },
     logModeFilter: 'all',
+    logSearch: '',
   };
 
   ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']
@@ -10534,13 +10538,7 @@ function init() {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
-  document.getElementById('btn-home-sunday')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('home-portfolio-filter')?.addEventListener('input', e => {
-    state.homePortfolioFilter = e.target.value || '';
-    // No saveState — keep the filter ephemeral so it doesn't persist across reloads.
-    renderHome();
-  });
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
@@ -10589,6 +10587,15 @@ function init() {
   // Snapshot paste
   const snapParseBtn = document.getElementById('snapshot-parse-btn');
   const snapClearBtn = document.getElementById('snapshot-clear-btn');
+  const snapToggleBtn = document.getElementById('snapshot-toggle-btn');
+  const snapWrap = document.getElementById('snapshot-wrap');
+  if (snapToggleBtn && snapWrap) {
+    snapToggleBtn.addEventListener('click', () => {
+      snapWrap.classList.toggle('collapsed');
+      snapToggleBtn.title = snapWrap.classList.contains('collapsed') ? 'Open Smart Paste' : 'Close Smart Paste';
+      if (!snapWrap.classList.contains('collapsed')) document.getElementById('snapshot-paste')?.focus();
+    });
+  }
   if (snapParseBtn) snapParseBtn.addEventListener('click', handleSnapshotPaste);
   if (snapClearBtn) snapClearBtn.addEventListener('click', clearSnapshot);
   // Render snapshot display on first load (shows current state values)
@@ -10608,6 +10615,14 @@ function init() {
       state.logModeFilter = e.target.value;
       saveState();
       renderLogStats();
+      renderLogTable();
+    });
+  }
+  const logSearch = document.getElementById('log-trade-search');
+  if (logSearch) {
+    logSearch.value = state.logSearch || '';
+    logSearch.addEventListener('input', e => {
+      state.logSearch = e.target.value || '';
       renderLogTable();
     });
   }
