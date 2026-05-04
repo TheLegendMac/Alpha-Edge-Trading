@@ -12310,6 +12310,7 @@ function tfGoToStep(n) {
 
 function tfSetMode(mode) {
   if (mode !== 'swing' && mode !== 'intraday') return;
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
   state.tradeFlow.mode = mode;
   state.tradeFlow.step = 1;
   saveState();
@@ -13308,12 +13309,13 @@ function tfMountIntradayStep4() {
 function renderTrade() {
   const panel = document.getElementById('panel-trade');
   if (!panel) return;
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+  panel.querySelectorAll('[data-trade-mode]').forEach(b => {
+    b.onclick = () => tfSetMode(b.dataset.tradeMode);
+  });
   // Bind global handlers once
   if (!panel.dataset.tfBound) {
     panel.dataset.tfBound = '1';
-    panel.querySelectorAll('[data-trade-mode]').forEach(b => {
-      b.addEventListener('click', () => tfSetMode(b.dataset.tradeMode));
-    });
     document.getElementById('trade-back-btn')?.addEventListener('click', () => tfGoToStep((state.tradeFlow.step || 1) - 1));
     document.getElementById('trade-continue-btn')?.addEventListener('click', tfContinue);
     document.getElementById('trade-reset-btn')?.addEventListener('click', tfReset);
