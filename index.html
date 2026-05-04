@@ -7976,71 +7976,45 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   // ── bullet insights ──────────────────────────────────────
   const bullets = [];
 
-  // Power asset / worst ticker
-  if (topTicker) {
+  bullets.push({
+    tone: totalPL >= 0 ? 'good' : 'bad',
+    icon: '📈',
+    text: `Net result: <strong>${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}</strong>, ${winRate}% win rate, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R average, ${profitFactor} profit factor.`,
+  });
+
+  if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && n >= 5) {
     bullets.push({
-      tone: topTicker[1].pl >= 0 ? 'good' : 'bad',
-      icon: '🏆',
-      text: `Power ticker: <strong>${topTicker[0]}</strong> +$${topTicker[1].pl.toFixed(0)} over ${topTicker[1].n} trade${topTicker[1].n === 1 ? '' : 's'}${worstTicker && worstTicker[1].pl < 0 ? ` · Leak: <strong>${worstTicker[0]}</strong> -$${Math.abs(worstTicker[1].pl).toFixed(0)}` : ''}.`,
+      tone: bestSetup.pl >= 0 ? 'good' : 'warn',
+      icon: '🎯',
+      text: `Best setup: <strong>${bestSetup.name}</strong> (${bestSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(bestSetup.pl).toFixed(0)}). Biggest leak: <strong>${worstSetup.name}</strong> (${worstSetup.pl >= 0 ? '+$' : '-$'}${Math.abs(worstSetup.pl).toFixed(0)}).`,
+    });
+  } else if (n < 5) {
+    bullets.push({
+      tone: 'info',
+      icon: '📋',
+      text: `Sample is still small. Log at least 10 closed trades before trusting setup-level conclusions.`,
     });
   }
 
-  // Exit discipline
-  if (n >= 3) {
-    const targetPct = Math.round(targetCount / n * 100);
-    const stopPct   = Math.round(stopCount / n * 100);
-    const earlyPct  = Math.round(discCount / n * 100);
-    const exitTone  = discPL < -200 ? 'warn' : targetPL > 0 ? 'good' : 'neutral';
+  if (discCount >= 3 && discPL < 0) {
     bullets.push({
-      tone: exitTone,
+      tone: 'warn',
       icon: '🚪',
-      text: `Exit mix: ${targetPct}% hit target (+$${targetPL.toFixed(0)}), ${stopPct}% stopped (-$${Math.abs(stopPL).toFixed(0)}), ${earlyPct}% early/disc (${discPL >= 0 ? '+' : '-'}$${Math.abs(discPL).toFixed(0)}).`,
+      text: `Main review item: discretionary or thesis-broke exits have cost <strong>$${Math.abs(discPL).toFixed(0)}</strong>. Check whether exits are following the plan.`,
     });
-  }
-
-  // Win/loss ratio diagnostic
-  if (wins.length && losses.length) {
-    const ratio = (avgWin / Math.abs(avgLoss));
-    const ratioTone = ratio >= 1.5 ? 'good' : ratio >= 1.0 ? 'neutral' : 'warn';
-    bullets.push({
-      tone: ratioTone,
-      icon: '⚖️',
-      text: `Avg win $${avgWin.toFixed(0)} vs avg loss $${Math.abs(avgLoss).toFixed(0)} — ratio ${ratio.toFixed(2)}x. ${ratio >= 1.5 ? 'Excellent reward/risk.' : ratio >= 1.0 ? 'Acceptable, but room to improve target discipline.' : 'Losses bigger than wins — tighten your stop or cut earlier.'}`,
-    });
-  }
-
-  // Process grade insight (only when enough grades logged)
-  if (gradeScore !== null && graded.length >= 5) {
+  } else if (gradeScore !== null && graded.length >= 5) {
     const gradeTone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
-    const gradeBreakdown = Object.entries(gradeMap)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([g, c]) => `${g}:${c}`)
-      .join('  ');
     bullets.push({
       tone: gradeTone,
       icon: '📋',
-      text: `Process: ${goodGrades}/${graded.length} trades graded A/B (${gradeScore}%) — ${gradeBreakdown}. ${gradeScore >= 80 ? 'Strong discipline.' : gradeScore >= 60 ? 'Some execution drift — review C-grade trades.' : 'Execution quality is the leak.'}`,
+      text: `Process quality: <strong>${gradeScore}%</strong> of graded trades are A/B. ${gradeScore >= 80 ? 'Execution is supporting the edge.' : gradeScore >= 60 ? 'Some drift; review lower-grade trades.' : 'Execution quality is the priority.'}`,
     });
   } else if (graded.length < 3 && n >= 5) {
     bullets.push({
       tone: 'info',
       icon: '📋',
-      text: `<strong>${n - graded.length} trades ungraded.</strong> Fill in process grade when closing — it reveals whether edge comes from skill or luck.`,
+      text: `<strong>${n - graded.length} trades ungraded.</strong> Grade closed trades so the stats can separate process from outcome.`,
     });
-  }
-
-  // Regime performance (only when multiple regimes have data)
-  const regEntries = Object.entries(regMap).filter(([, v]) => v.n >= 2);
-  if (regEntries.length >= 2) {
-    const bestReg  = regEntries.sort((a, b) => b[1].pl - a[1].pl)[0];
-    const worstReg = regEntries.sort((a, b) => a[1].pl - b[1].pl)[0];
-    if (bestReg[0] !== worstReg[0]) {
-      bullets.push({
-        tone: 'info',
-        icon: '🌡️',
-        text: `Best regime: <strong>${bestReg[0]}</strong> +$${bestReg[1].pl.toFixed(0)} (${bestReg[1].n} trades) · Worst: <strong>${worstReg[0]}</strong> $${worstReg[1].pl.toFixed(0)} (${worstReg[1].n} trades).`,
-      });
-    }
   }
 
   // Kill switch status
@@ -8051,27 +8025,6 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
     <div class="ai-killswitch">
       <div class="ai-section-title">⚡ Kill-Switch Check</div>
       ${killItems.map(k => `<div class="alpha-intel-line ${k.tone}"><span>${k.text}</span></div>`).join('')}
-    </div>` : '';
-
-  // ── setup breakdown mini-table (5+ trades) ───────────────
-  const setupTableHtml = setups.length >= 2 && n >= 5 ? `
-    <div class="ai-setup-table">
-      <div class="ai-section-title">Setup breakdown</div>
-      <div class="ai-setup-rows">
-        ${setups.map(s => {
-          const wr = Math.round(s.wins / s.n * 100);
-          const plSign = s.pl >= 0 ? 'pl-positive' : 'pl-negative';
-          const barPct = Math.min(100, Math.max(4, Math.abs(s.pl) / Math.max(...setups.map(x => Math.abs(x.pl)), 1) * 100)).toFixed(0);
-          return `
-            <div class="ai-setup-row">
-              <div class="ai-setup-name">${s.name}</div>
-              <div class="ai-setup-wr">${wr}% <span>W</span></div>
-              <div class="ai-setup-bar-wrap"><div class="ai-setup-bar ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${barPct}%"></div></div>
-              <div class="ai-setup-pl ${plSign}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
-              <div class="ai-setup-n">${s.n}×</div>
-            </div>`;
-        }).join('')}
-      </div>
     </div>` : '';
 
   // ── assemble ─────────────────────────────────────────────
@@ -8089,7 +8042,6 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
       <ul class="home-intel-points">
         ${bullets.map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
       </ul>
-      ${setupTableHtml}
       ${ksHtml}
     </div>`;
 }
