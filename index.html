@@ -423,21 +423,24 @@ input, select, textarea { font-family: inherit; }
 .stat-help {
   display: inline-grid;
   place-items: center;
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   margin-left: 6px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid rgba(6, 212, 248, 0.35);
   border-radius: 50%;
-  color: var(--ink-4);
+  background: rgba(6, 212, 248, 0.06);
+  color: var(--cyan);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1;
   vertical-align: 1px;
+  cursor: help;
 }
 .stat-help:hover {
-  color: var(--cyan);
-  border-color: var(--cyan-dim);
+  color: var(--bg);
+  background: var(--cyan);
+  border-color: var(--cyan);
 }
 .home-card-kicker {
   position: absolute;
@@ -3974,7 +3977,7 @@ textarea.input-field {
   top: 68px;
   right: 20px;
   z-index: 201;
-  width: min(680px, calc(100vw - 32px));
+  width: min(760px, calc(100vw - 32px));
   max-height: none;
   overflow: visible;
   background:
@@ -4092,16 +4095,16 @@ textarea.input-field {
 /* Sector grid inside context panel */
 .ctx-sector-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 10px;
 }
 .ctx-sector-row {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 64px;
+  grid-template-columns: 44px minmax(0, 1fr) 86px;
   align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
+  gap: 8px;
+  padding: 7px 8px;
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.05);
   border-radius: var(--r-sm);
@@ -4128,19 +4131,26 @@ textarea.input-field {
   white-space: nowrap;
 }
 .ctx-sector-input {
-  width: 64px;
-  min-width: 64px;
+  width: 86px;
+  min-width: 86px;
   flex-shrink: 0;
   background: var(--bg-elev);
   border: 1px solid rgba(255,255,255,0.08);
   color: var(--ink);
-  padding: 4px 7px;
+  padding: 5px 8px;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 600;
   border-radius: 3px;
   text-align: right;
   transition: border-color 0.15s;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.ctx-sector-input::-webkit-outer-spin-button,
+.ctx-sector-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .ctx-sector-input:focus { outline: none; border-color: var(--cyan); }
 .ctx-sector-row.strong .ctx-sector-input { border-color: rgba(16,185,129,0.4); }
@@ -4186,9 +4196,9 @@ textarea.input-field {
   .ctx-section { padding: 11px 12px 10px; }
   .ctx-regime-row,
   .ctx-sector-grid { gap: 5px; }
-  .ctx-sector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ctx-sector-name { display: none; }
-  .ctx-sector-row { grid-template-columns: 38px 68px; }
+  .ctx-sector-grid { grid-template-columns: 1fr; }
+  .ctx-sector-name { display: block; }
+  .ctx-sector-row { grid-template-columns: 44px minmax(0, 1fr) 86px; }
 }
 .ctx-close:hover { background: #1ce0ff; }
 
