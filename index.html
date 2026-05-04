@@ -958,11 +958,29 @@ input, select, textarea { font-family: inherit; }
   .home-grid,
   .home-row,
   .home-actions { grid-template-columns: 1fr; }
+  .home-actions {
+    align-items: stretch;
+  }
+  .btn-secondary.home-icon-action {
+    width: 100%;
+    height: 42px;
+  }
   .home-trade-row {
     grid-template-columns: 8px 1fr auto;
   }
   .home-trade-setup,
   .home-trade-action { display: none; }
+}
+@media (max-width: 520px) {
+  .home-new-analysis,
+  .btn-secondary.home-icon-action {
+    min-height: 46px;
+  }
+  .home-icon-action svg {
+    width: 21px;
+    height: 21px;
+    flex-basis: 21px;
+  }
 }
 
 /* ============ TRADE FLOW STEPS — top-to-bottom workflow ============ */
@@ -1693,6 +1711,28 @@ select.input-field {
   gap: 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+.stats-snapshot-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.stats-snapshot-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: right;
+}
+.stats-card-row {
+  margin-bottom: 0;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 980px) {
+  .stats-card-row { grid-template-columns: 1fr; }
+}
 .sms-cell {
   padding: 14px 18px;
   border-right: 1px solid rgba(255,255,255,0.04);
@@ -2116,11 +2156,44 @@ select.input-field {
 .ai-empty-msg strong { color: var(--ink-2); }
 @media (max-width: 900px) {
   .sms-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-card-row { grid-template-columns: 1fr; }
+  .stats-snapshot-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .stats-snapshot-meta {
+    text-align: left;
+    line-height: 1.6;
+  }
   .stats-panels { grid-template-columns: 1fr; }
   .stats-panel:nth-child(1),
   .stats-panel:nth-child(2) { border-top: 1px solid rgba(255,255,255,0.04); }
   .stats-panel:nth-child(1) { border-top: none; }
   .stats-panel:nth-child(2n) { border-right: 0; }
+}
+@media (max-width: 640px) {
+  .sms-grid { grid-template-columns: 1fr; }
+  .sms-cell {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .sms-cell:last-child { border-bottom: 0; }
+  .stats-card-row { grid-template-columns: 1fr; }
+  .stats-filter-clear {
+    display: inline-flex;
+    margin: 6px 0 0;
+  }
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) 72px;
+    gap: 8px;
+  }
+  .bar-row .bar-wrap {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .bar-value {
+    align-self: start;
+  }
 }
 
 .log-table-wrap {
@@ -4058,8 +4131,9 @@ textarea.input-field {
   right: 20px;
   z-index: 201;
   width: min(760px, calc(100vw - 32px));
-  max-height: none;
-  overflow: visible;
+  max-height: calc(100vh - 88px);
+  max-height: calc(100dvh - 88px);
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.028), transparent 25%),
     rgba(15, 18, 28, 0.96);
@@ -4076,7 +4150,13 @@ textarea.input-field {
   from { opacity: 0; transform: translateY(-8px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)   scale(1); }
 }
-.ctx-panel-inner { padding: 4px 0 8px; }
+.ctx-panel-inner {
+  max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0 8px;
+  -webkit-overflow-scrolling: touch;
+}
 .ctx-section { padding: 13px 16px 12px; }
 .ctx-section-label {
   font-family: var(--mono);
@@ -4268,17 +4348,29 @@ textarea.input-field {
 
 @media (max-width: 640px) {
   .ctx-panel {
-    top: 86px;
+    top: 72px;
+    bottom: 8px;
     right: 8px;
     left: 8px;
     width: auto;
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
   }
   .ctx-section { padding: 11px 12px 10px; }
   .ctx-regime-row,
   .ctx-sector-grid { gap: 5px; }
   .ctx-sector-grid { grid-template-columns: 1fr; }
   .ctx-sector-name { display: block; }
-  .ctx-sector-row { grid-template-columns: 44px minmax(0, 1fr) 104px; }
+  .ctx-sector-row { grid-template-columns: 44px minmax(0, 1fr) 92px; }
+  .ctx-sector-input {
+    width: 92px;
+    min-width: 92px;
+  }
+  .ctx-regime-btn {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 9px 5px;
+  }
 }
 .ctx-close:hover { background: #1ce0ff; }
 
@@ -8415,14 +8507,14 @@ function renderLogStats() {
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
 
       <div class="home-card">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px;">
+        <div class="stats-snapshot-head">
           <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Six core indicators for the selected trade set. Use these for the fastest read on performance and risk.')}</div>
-          <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
+          <div class="stats-snapshot-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
         </div>
         <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
       </div>
 
-      <div class="home-row" style="margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+      <div class="home-row stats-card-row">
         <div class="home-card">
           <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
           ${setupHtml}
