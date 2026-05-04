@@ -958,31 +958,12 @@ input, select, textarea { font-family: inherit; }
   .home-grid,
   .home-row,
   .home-actions { grid-template-columns: 1fr; }
-  .home-actions {
-    align-items: stretch;
-  }
-  .btn-secondary.home-icon-action {
-    width: 100%;
-    height: 42px;
-  }
   .home-trade-row {
     grid-template-columns: 8px 1fr auto;
   }
   .home-trade-setup,
   .home-trade-action { display: none; }
 }
-@media (max-width: 520px) {
-  .home-new-analysis,
-  .btn-secondary.home-icon-action {
-    min-height: 46px;
-  }
-  .home-icon-action svg {
-    width: 21px;
-    height: 21px;
-    flex-basis: 21px;
-  }
-}
-
 /* ============ TRADE FLOW STEPS — top-to-bottom workflow ============ */
 .flow-header {
   margin-bottom: 28px;
@@ -1632,6 +1613,26 @@ select.input-field {
   justify-content: center;
   line-height: 1;
   letter-spacing: 0;
+}
+@media (max-width: 980px) {
+  .home-actions {
+    align-items: stretch;
+  }
+  .btn-secondary.home-icon-action {
+    width: 100%;
+    height: 42px;
+  }
+}
+@media (max-width: 520px) {
+  .home-new-analysis,
+  .btn-secondary.home-icon-action {
+    min-height: 46px;
+  }
+  .home-icon-action svg {
+    width: 21px;
+    height: 21px;
+    flex-basis: 21px;
+  }
 }
 
 .execute-checklist {
