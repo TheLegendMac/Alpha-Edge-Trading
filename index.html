@@ -4261,11 +4261,6 @@ textarea.input-field {
     <!-- Tab navigation -->
     <nav class="cmdbar-tabs" role="tablist" aria-label="Primary navigation">
       <button class="tab" data-tab="home" role="tab">Home</button>
-      <button class="tab" data-tab="decision" role="tab">Swing</button>
-      <button class="tab" data-tab="intraday" role="tab">Intraday</button>
-      <button class="tab" data-tab="log" role="tab">Log</button>
-      <button class="tab" data-tab="sunday" role="tab">Sunday Prep</button>
-      <button class="tab" data-tab="reference" role="tab">Reference</button>
     </nav>
 
     <!-- Market context + actions -->
@@ -4298,8 +4293,6 @@ textarea.input-field {
       </button>
     </div>
   </div>
-  <!-- Slim regime context strip — auto-hidden on Home -->
-  <div class="cmdbar-rules" id="cmdbar-rules"></div>
 </header>
 
 <!-- ============ MAIN ============ -->
@@ -6713,7 +6706,10 @@ function renderRegime() {
   const text = document.getElementById('regime-text');
   if (text) text.textContent = data.text;
   const contextRegime = document.getElementById('cmdbar-context-regime');
-  if (contextRegime) contextRegime.textContent = data.text;
+  if (contextRegime) {
+    const pct = (getRiskPctForRegime(state.regime) * 100).toFixed(2).replace(/\.?0+$/, '');
+    contextRegime.textContent = `${data.text} (${pct}%)`;
+  }
 
   // Mode-aware rules text:
   // - Swing (or anywhere except intraday): show regime-driven sizing %
@@ -6735,13 +6731,6 @@ function renderRegime() {
   // Hidden legacy element — preserved as data source for any external readers / tests
   const legacy = document.getElementById('regime-rules');
   if (legacy) legacy.innerHTML = rulesHtml;
-
-  // Slim contextual strip — visible everywhere except Home (where Alpha Intelligence carries the message)
-  const strip = document.getElementById('cmdbar-rules');
-  if (strip) {
-    strip.innerHTML = rulesHtml;
-    strip.classList.toggle('show', state.activeMode !== 'home');
-  }
 
   // Drive the colored top accent line on cmdbar
   if (banner) {
@@ -7931,9 +7920,9 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   // ── zero-data state ──────────────────────────────────────
   if (n === 0) {
     return `
-      <div class="alpha-intel ai-empty">
-        <div class="alpha-intel-header">
-          <div class="alpha-intel-title">Alpha Intelligence</div>
+      <div class="home-card ai-empty" style="margin-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div class="home-card-title" style="color:var(--cyan); margin: 0;">Alpha Intelligence</div>
         </div>
         <div class="ai-empty-body">
           <div class="ai-empty-icon">⌁</div>
@@ -8140,16 +8129,20 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
     </div>` : '';
 
   // ── assemble ─────────────────────────────────────────────
+  let hlClass = '';
+  if (headlineTone === 'warn') hlClass = 'neutral';
+  if (headlineTone === 'danger' || headlineTone === 'bad') hlClass = 'risk-off';
+
   return `
-    <div class="alpha-intel">
-      <div class="alpha-intel-header">
-        <div class="alpha-intel-title">Alpha Intelligence</div>
-        <div class="ai-meta">${n} closed trade${n === 1 ? '' : 's'}${graded.length ? ` · ${graded.length} graded` : ''}</div>
+    <div class="home-card green" style="margin-bottom: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+        <div class="home-card-title" style="color:#7ee787; margin: 0;">Alpha Intelligence</div>
+        <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${n} closed trade${n === 1 ? '' : 's'}${graded.length ? ` · ${graded.length} graded` : ''}</div>
       </div>
-      <div class="ai-headline ai-headline-${headlineTone}">${headline}</div>
-      <div class="alpha-intel-points">
-        ${bullets.map(b => `<div class="alpha-intel-line ${b.tone}"><span class="ai-icon">${b.icon}</span><span>${b.text}</span></div>`).join('')}
-      </div>
+      <div class="home-intel-headline ${hlClass}">${headline}</div>
+      <ul class="home-intel-points">
+        ${bullets.map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
+      </ul>
       ${setupTableHtml}
       ${ksHtml}
     </div>`;
@@ -8369,24 +8362,35 @@ function renderLogStats() {
   // ── Assemble ──────────────────────────────────────────────
   const filterLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
   container.innerHTML = `
-    <div class="stats-shell">
-      <div class="stats-shell-head">
-        <div class="stats-shell-title">Performance Overview</div>
-        <div class="stats-shell-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open</div>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+      <div class="home-card">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px;">
+          <div class="home-card-title" style="margin: 0;">Performance Overview</div>
+          <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open</div>
+        </div>
+        <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
       </div>
-
-      <div class="sms-grid">${smsCells}</div>
 
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
 
-      <div class="stats-panels">
-        <div class="stats-panel">
-          <div class="stats-panel-title">Exit Discipline</div>
+      <div class="home-row" style="margin-bottom: 0; grid-template-columns: 1fr 1fr;">
+        <div class="home-card">
+          <div class="home-card-title">Exit Discipline</div>
           ${exitHtml}
         </div>
-        <div class="stats-panel">
-          <div class="stats-panel-title">Setup Performance</div>
+        <div class="home-card">
+          <div class="home-card-title">Setup Performance</div>
           ${setupHtml}
+        </div>
+      </div>
+      <div class="home-row" style="margin-bottom: 0; grid-template-columns: 1fr 1fr; margin-top: 12px;">
+        <div class="home-card">
+          <div class="home-card-title">Regime Performance</div>
+          ${regimeHtml}
+        </div>
+        <div class="home-card">
+          <div class="home-card-title">Process Quality</div>
+          ${gradeHtml}
         </div>
       </div>
     </div>
