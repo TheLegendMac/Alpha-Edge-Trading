@@ -2934,6 +2934,7 @@ textarea.input-field {
           <button class="btn-secondary" id="btn-export">Export CSV</button>
           <button class="btn-secondary" id="btn-export-json">Export JSON</button>
           <button class="btn-secondary" id="btn-import-json">Import JSON</button>
+          <button class="btn-secondary" id="btn-add-test-trades">Add Test Trades</button>
           <input type="file" id="import-json-file" accept="application/json,.json" style="display:none" />
           <button class="btn-primary" id="btn-add-trade">+ Add Trade</button>
         </div>
@@ -5698,6 +5699,175 @@ function calcR(t) {
   return pl / risk;
 }
 
+function dateOffsetISO(daysAgo) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
+function addTestTrades() {
+  const ok = confirm(
+    'Add 5 sample trades to the Trade Log for cloud sync testing?\n\n' +
+    'They will be saved locally and pushed to Supabase if you are signed in.'
+  );
+  if (!ok) return;
+
+  const batchId = Date.now().toString(36).toUpperCase();
+  const nowIso = new Date().toISOString();
+  const sampleTrades = [
+    {
+      id: `test_${batchId}_swing_win`,
+      mode: 'swing',
+      date: dateOffsetISO(5),
+      ticker: `TSTW${batchId.slice(-2)}`,
+      setup: '21-EMA Pullback',
+      direction: 'Long',
+      entry: 2.10,
+      contracts: 2,
+      ivr: 28,
+      regime: 'RISK-ON',
+      thesis: 'Sample cloud test win: pullback held support and resumed higher.',
+      premortem: 'Fails if price loses the 21-EMA with volume.',
+      stop: 184.50,
+      riskDollars: 210,
+      status: 'win',
+      exit: 3.25,
+      exit_date: dateOffsetISO(2),
+      grade: 'A',
+      followed_plan: 'yes',
+      emotion: 'calm',
+      exit_reason: 'target',
+      lesson: `Cloud sync test batch ${batchId}: winning swing details should appear on every device.`,
+    },
+    {
+      id: `test_${batchId}_swing_loss`,
+      mode: 'swing',
+      date: dateOffsetISO(4),
+      ticker: `TSTL${batchId.slice(-2)}`,
+      setup: 'Base Breakout',
+      direction: 'Long',
+      entry: 1.80,
+      contracts: 1,
+      ivr: 42,
+      regime: 'NEUTRAL',
+      thesis: 'Sample cloud test loss: breakout failed after entry.',
+      premortem: 'Fails if breakout cannot hold above prior resistance.',
+      stop: 97.25,
+      riskDollars: 90,
+      status: 'loss',
+      exit: 0.85,
+      exit_date: dateOffsetISO(3),
+      grade: 'B',
+      followed_plan: 'yes',
+      emotion: 'anxious',
+      exit_reason: 'stop',
+      lesson: `Cloud sync test batch ${batchId}: losing swing details should appear on every device.`,
+    },
+    {
+      id: `test_${batchId}_swing_open`,
+      mode: 'swing',
+      date: dateOffsetISO(1),
+      ticker: `TSTO${batchId.slice(-2)}`,
+      setup: 'Breakout Retest',
+      direction: 'Long',
+      entry: 2.45,
+      contracts: 1,
+      ivr: 35,
+      regime: 'RISK-ON',
+      thesis: 'Sample cloud test open trade: retest held after breakout.',
+      premortem: 'Fails if the retest level breaks on a close.',
+      stop: 142.10,
+      riskDollars: 123,
+      status: 'open',
+      exit: null,
+      exit_date: null,
+      grade: null,
+      followed_plan: null,
+      emotion: null,
+      exit_reason: null,
+      lesson: null,
+    },
+    {
+      id: `test_${batchId}_intraday_win`,
+      mode: 'intraday',
+      date: dateOffsetISO(0),
+      time: '10:15',
+      ticker: `ITW${batchId.slice(-2)}`,
+      setup: 'Opening Range Breakout',
+      direction: 'Long',
+      entry: 1.35,
+      stop: 1.05,
+      target: 1.95,
+      contracts: 3,
+      spreadPct: 3,
+      vwapRel: 'above',
+      notes: `Cloud sync test batch ${batchId}: intraday win sample.`,
+      riskDollars: state.settings.intradayRiskPerTrade,
+      inWindow: true,
+      tradeNumOfDay: todayIntradayTrades().length + 1,
+      regime: state.regime,
+      ivr: null,
+      thesis: `Cloud sync test batch ${batchId}: intraday win sample.`,
+      premortem: '',
+      status: 'win',
+      exit: 1.90,
+      exit_date: dateOffsetISO(0),
+      grade: 'A',
+      followed_plan: 'yes',
+      emotion: 'calm',
+      exit_reason: 'target',
+      lesson: `Cloud sync test batch ${batchId}: intraday win details should sync.`,
+    },
+    {
+      id: `test_${batchId}_intraday_loss`,
+      mode: 'intraday',
+      date: dateOffsetISO(0),
+      time: '13:40',
+      ticker: `ITL${batchId.slice(-2)}`,
+      setup: 'VWAP LOSS',
+      direction: 'Short',
+      entry: 1.60,
+      stop: 1.95,
+      target: 0.95,
+      contracts: 2,
+      spreadPct: 4,
+      vwapRel: 'below',
+      notes: `Cloud sync test batch ${batchId}: intraday loss sample.`,
+      riskDollars: state.settings.intradayRiskPerTrade,
+      inWindow: true,
+      tradeNumOfDay: todayIntradayTrades().length + 2,
+      regime: state.regime,
+      ivr: null,
+      thesis: `Cloud sync test batch ${batchId}: intraday loss sample.`,
+      premortem: '',
+      status: 'loss',
+      exit: 2.05,
+      exit_date: dateOffsetISO(0),
+      grade: 'C',
+      followed_plan: 'partial',
+      emotion: 'anxious',
+      exit_reason: 'stop',
+      lesson: `Cloud sync test batch ${batchId}: intraday loss details should sync.`,
+    },
+  ].map(t => ({
+    ...t,
+    created_at: nowIso,
+    updated_at: nowIso,
+  }));
+
+  state.trades.push(...sampleTrades);
+  saveState();
+  if (typeof doPush === 'function') {
+    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+  renderLogStats();
+  renderLogTable();
+  renderPretradeCheck();
+  recomputeStepStates();
+  toast(`Added ${sampleTrades.length} test trades for cloud sync`);
+}
+
 function renderLogStats() {
   const container = document.getElementById('log-stats');
   const filter = state.logModeFilter || 'all';
@@ -7473,6 +7643,7 @@ function init() {
 
   // Add trade button
   document.getElementById('btn-add-trade').addEventListener('click', () => openTradeModal());
+  document.getElementById('btn-add-test-trades').addEventListener('click', addTestTrades);
   document.getElementById('btn-export').addEventListener('click', exportCSV);
 
   // Snapshot paste
