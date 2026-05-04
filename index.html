@@ -10502,6 +10502,12 @@ function init() {
   });
   document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
+  document.getElementById('home-open-toggle')?.addEventListener('click', () => {
+    state.homeShowOpenOnly = !state.homeShowOpenOnly;
+    saveState();
+    renderHome();
+  });
+  document.getElementById('log-text-filter')?.addEventListener('input', renderLogTable);
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
