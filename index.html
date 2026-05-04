@@ -4379,9 +4379,42 @@ async function pullAndMergeIfNewer() {
   }
 }
 
-// Merge two trade arrays by ID. If the same id exists in both, the one with
-// the more recent updated_at wins (or whichever has more fields filled if
-// no timestamps).
+function tradeFieldScore(trade) {
+  if (!trade) return 0;
+  return Object.values(trade).reduce((score, value) => {
+    if (value === null || value === undefined || value === '') return score;
+    if (Array.isArray(value) && value.length === 0) return score;
+    return score + 1;
+  }, 0);
+}
+
+function tradeUpdatedTime(trade) {
+  const stamp = trade?.updated_at || trade?.updatedAt || trade?.modified_at || trade?.created_at;
+  const time = stamp ? new Date(stamp).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function chooseTradeVersion(localTrade, cloudTrade) {
+  const localTime = tradeUpdatedTime(localTrade);
+  const cloudTime = tradeUpdatedTime(cloudTrade);
+
+  if (localTime && cloudTime && localTime !== cloudTime) {
+    return localTime > cloudTime ? localTrade : cloudTrade;
+  }
+  if (cloudTrade?.status !== 'open' && localTrade?.status === 'open') return cloudTrade;
+  if (localTrade?.status !== 'open' && cloudTrade?.status === 'open') return localTrade;
+  if (localTime && !cloudTime) return localTrade;
+  if (cloudTime && !localTime) return cloudTrade;
+
+  const localScore = tradeFieldScore(localTrade);
+  const cloudScore = tradeFieldScore(cloudTrade);
+  if (cloudScore > localScore) return cloudTrade;
+  return localTrade;
+}
+
+// Merge two trade arrays by ID. If the same ID exists in both places, keep
+// the newest version of that trade so cross-device edits like win/loss,
+// exit premium, grade, and lesson are not overwritten by an older local copy.
 function mergeTradesArrays(localTrades, cloudTrades) {
   const byId = new Map();
   // Start with cloud
@@ -4393,9 +4426,7 @@ function mergeTradesArrays(localTrades, cloudTrades) {
   for (const t of localTrades) {
     if (!t || !t.id) continue;
     if (byId.has(t.id)) {
-      // Same trade exists in both — pick whichever has more recent exit_date
-      // or more filled fields. Default to local since it's what's on screen.
-      byId.set(t.id, t);
+      byId.set(t.id, chooseTradeVersion(t, byId.get(t.id)));
     } else {
       byId.set(t.id, t);
     }
@@ -5957,6 +5988,8 @@ function saveTrade() {
   const id = document.getElementById('t-id').value || genTradeId();
   const status = document.getElementById('t-status').value;
   const mode = document.getElementById('t-mode').value || 'swing';
+  const existingTrade = state.trades.find(t => t.id === id);
+  const nowIso = new Date().toISOString();
   // Risk dollars: swing uses regime %, intraday uses fixed $
   const riskDollars = mode === 'intraday'
     ? state.settings.intradayRiskPerTrade
@@ -5984,6 +6017,8 @@ function saveTrade() {
     emotion: status !== 'open' ? document.getElementById('t-emotion').value || null : null,
     exit_reason: status !== 'open' ? document.getElementById('t-exit-reason').value || null : null,
     lesson: status !== 'open' ? document.getElementById('t-lesson').value || null : null,
+    created_at: existingTrade?.created_at || nowIso,
+    updated_at: nowIso,
   };
 
   if (!trade.date || !trade.ticker || !trade.setup || !trade.entry || !trade.contracts) {
@@ -5991,7 +6026,7 @@ function saveTrade() {
     return;
   }
 
-  const isEdit = state.trades.findIndex(t => t.id === id) >= 0;
+  const isEdit = !!existingTrade;
   const idx = state.trades.findIndex(t => t.id === id);
   if (idx >= 0) state.trades[idx] = trade;
   else state.trades.push(trade);
@@ -7243,6 +7278,7 @@ function logIntradayTrade() {
   const stopDist = Math.abs(t.entry - t.stop);
   const contracts = t.contracts ||
     Math.max(1, Math.floor(state.settings.intradayRiskPerTrade / Math.max(0.01, stopDist * 100)));
+  const nowIso = new Date().toISOString();
   const trade = {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     mode: 'intraday',
@@ -7269,6 +7305,8 @@ function logIntradayTrade() {
     exit: null,
     grade: null,
     lesson: null,
+    created_at: nowIso,
+    updated_at: nowIso,
   };
   state.trades.push(trade);
   state.intraday = newIntradayTicket();
