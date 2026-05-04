@@ -824,13 +824,9 @@ input, select, textarea { font-family: inherit; }
   height: 34px;
   border-radius: 999px;
   background: var(--cyan);
-  transition: box-shadow 0.15s;
 }
 .home-trade-stripe.win { background: var(--green); }
 .home-trade-stripe.loss { background: var(--red); }
-.home-trade-row:hover .home-trade-stripe { box-shadow: 0 0 12px var(--cyan); }
-.home-trade-row:hover .home-trade-stripe.win { box-shadow: 0 0 12px var(--green); }
-.home-trade-row:hover .home-trade-stripe.loss { box-shadow: 0 0 12px var(--red); }
 .home-trade-main {
   min-width: 0;
 }
@@ -4043,8 +4039,7 @@ textarea.input-field {
 .pretrade-check,
 .snapshot-wrap,
 .ticker-bar,
-.sector-status-mini,
-.home-activity-list {
+.sector-status-mini {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
     rgba(19, 23, 34, 0.72);
@@ -9730,6 +9725,7 @@ function clearAllTradesAndData() {
     settings,
     regime: 'risk-on',
     activeMode: 'home',
+    homeFilterDate: null,
     trades: [],
     deletedTradeIds,
     selectedSetup: null,
@@ -10506,18 +10502,6 @@ function init() {
   });
   document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('home-open-toggle')?.addEventListener('click', () => {
-    state.homeShowOpenOnly = !state.homeShowOpenOnly;
-    saveState();
-    renderHome();
-  });
-  document.getElementById('home-calendar')?.addEventListener('click', e => {
-    const dayEl = e.target.closest('.home-day');
-    if (dayEl && dayEl.dataset.date) {
-      state.homeFilterDate = state.homeFilterDate === dayEl.dataset.date ? null : dayEl.dataset.date;
-      renderHome();
-    }
-  });
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
@@ -10588,7 +10572,6 @@ function init() {
       renderLogTable();
     });
   }
-  document.getElementById('log-text-filter')?.addEventListener('input', renderLogTable);
 
   // Intraday wiring
   bindIntraday();
