@@ -4335,21 +4335,37 @@ async function pullAndMergeIfNewer() {
       myDevice: SYNC.deviceId,
       cloudTradeCount,
       localTradeCount,
-      wouldMerge: !sameDevice && cloudTime > localTime + 5000,
     });
 
-    // CRITICAL SAFEGUARD: never replace local trades with FEWER cloud trades.
-    // This protects against the cloud-clobbers-local-trades bug entirely.
-    // Local trades that aren't in cloud yet are valuable — pushing later
-    // will sync them up. Cloud trades that aren't in local are also valuable
-    // (logged on another device). So we MERGE the trade arrays by ID instead
-    // of replacing wholesale.
+    // PULL STRATEGY (revised):
+    // The original timestamp-gated rule missed the most common case: laptop
+    // pushed a trade, phone polls a few seconds later, but the timestamps
+    // are close enough that the gate skips the merge. Result: phone never
+    // sees the trade.
+    //
+    // New rule:
+    //   1. ALWAYS check trade IDs and merge in any cloud trades local
+    //      doesn't have, regardless of timestamps. Trades have stable IDs
+    //      so this is safe — we never duplicate, never lose data.
+    //   2. For non-trade state (settings, sectors, regime, etc.), only
+    //      replace if cloud is from a different device AND clearly newer.
+    const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
+    const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+    const tradesChanged = mergedTrades.length !== (state.trades || []).length;
+
+    let nonTradeChanged = false;
     if (!sameDevice && cloudTime > localTime + 5000) {
-      console.info('[sync pull] Pulling newer cloud state from device', cloud.device_id);
-      const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
-      const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
-      // Replace state with cloud, BUT preserve the merged trades array
+      // Cloud is newer + different device — adopt cloud's non-trade state
+      console.info('[sync pull] Adopting newer cloud state from device', cloud.device_id);
       state = { ...state, ...cloudClone, trades: mergedTrades };
+      nonTradeChanged = true;
+    } else if (tradesChanged) {
+      // Just merge in the new trades; keep our other state
+      console.info('[sync pull] Merging', mergedTrades.length - (state.trades || []).length, 'new trades from cloud');
+      state.trades = mergedTrades;
+    }
+
+    if (tradesChanged || nonTradeChanged) {
       saveStateLocal();
       // Push the merged result back so cloud has the union too
       schedulePush();
