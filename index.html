@@ -4488,6 +4488,700 @@ textarea.input-field {
   .brand-name { display: none; }
 }
 
+/* ============================================================== */
+/* ====== UNIFIED TRADE FLOW (preview) ========================== */
+/* ============================================================== */
+/* Scoped under #panel-trade so nothing in the legacy panels is affected. */
+
+#panel-trade { padding: 0; }
+#panel-trade .trade-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 100px;
+  position: relative;
+}
+
+/* ---- sticky header ---- */
+#panel-trade .trade-header {
+  position: sticky;
+  top: 60px; /* sit under cmdbar */
+  z-index: 30;
+  background: rgba(8, 9, 13, 0.85);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  margin: 0 -24px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+}
+#panel-trade .trade-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+#panel-trade .trade-mode-toggle {
+  display: inline-flex;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+#panel-trade .trade-mode-btn {
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 8px 18px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+  cursor: pointer;
+}
+#panel-trade .trade-mode-btn:hover { color: var(--ink); }
+#panel-trade .trade-mode-btn.active {
+  background: var(--cyan);
+  color: var(--bg);
+  box-shadow: 0 0 0 1px var(--cyan), 0 4px 14px rgba(6,212,248,0.18);
+}
+#panel-trade .trade-header-actions { display: flex; gap: 6px; }
+#panel-trade .trade-header-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  font-family: var(--body);
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: var(--r-md);
+  transition: color .15s, border-color .15s;
+  cursor: pointer;
+}
+#panel-trade .trade-header-btn:hover { color: var(--ink); border-color: var(--ink-4); }
+
+/* stepper */
+#panel-trade .trade-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 16px;
+  flex-wrap: nowrap;
+}
+#panel-trade .trade-step {
+  flex: 0 1 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  min-width: 90px;
+  cursor: pointer;
+  user-select: none;
+}
+#panel-trade .trade-step-node {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-soft);
+  background: var(--bg-elev);
+  color: var(--ink-3);
+  display: grid; place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 2;
+  transition: all .2s;
+}
+#panel-trade .trade-step-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  transition: color .2s;
+}
+#panel-trade .trade-step::before,
+#panel-trade .trade-step::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  height: 2px;
+  background: var(--line-soft);
+  z-index: 1;
+  transition: background .25s;
+}
+#panel-trade .trade-step::before { left: 0; right: 50%; transform: translateX(-15px); }
+#panel-trade .trade-step::after  { left: 50%; right: 0; transform: translateX(15px); }
+#panel-trade .trade-step:first-child::before,
+#panel-trade .trade-step:last-child::after { display: none; }
+
+#panel-trade .trade-step.complete .trade-step-node {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+#panel-trade .trade-step.complete .trade-step-label { color: var(--green-bright); }
+#panel-trade .trade-step.complete::before,
+#panel-trade .trade-step.complete::after { background: var(--green); }
+
+#panel-trade .trade-step.active .trade-step-node {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: var(--bg);
+  box-shadow: 0 0 14px rgba(6,212,248,0.5);
+}
+#panel-trade .trade-step.active .trade-step-label { color: var(--cyan); }
+
+#panel-trade .trade-step.locked { cursor: not-allowed; opacity: 0.65; }
+
+/* summary row */
+#panel-trade .trade-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+#panel-trade .trade-summary-cell {
+  padding: 12px 16px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 56px;
+}
+#panel-trade .trade-summary-cell:last-child { border-right: 0; }
+#panel-trade .trade-summary-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+#panel-trade .trade-summary-value {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+#panel-trade .trade-summary-status .trade-summary-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#panel-trade .trade-summary-status .trade-summary-value::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex-shrink: 0;
+}
+#panel-trade .trade-summary-status.ready .trade-summary-value { color: var(--green-bright); }
+#panel-trade .trade-summary-status.ready .trade-summary-value::before { background: var(--green); box-shadow: 0 0 10px var(--green); }
+#panel-trade .trade-summary-status.progress .trade-summary-value { color: var(--cyan); }
+#panel-trade .trade-summary-status.progress .trade-summary-value::before { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+#panel-trade .trade-summary-status.blocked .trade-summary-value { color: var(--red-bright); }
+#panel-trade .trade-summary-status.blocked .trade-summary-value::before { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+/* ---- body ---- */
+#panel-trade .trade-body { padding: 24px 0 0; }
+
+#panel-trade .trade-section {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+#panel-trade .trade-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.015);
+}
+#panel-trade .trade-section-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#panel-trade .trade-section-title-icon { color: var(--cyan); font-size: 14px; }
+#panel-trade .trade-section-counter {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+#panel-trade .trade-section-counter.complete { color: var(--green-bright); border-color: var(--green-dim); background: var(--green-bg); }
+#panel-trade .trade-section-body { padding: 16px 18px; }
+#panel-trade .trade-section-body > * + * { margin-top: 10px; }
+
+#panel-trade .trade-section-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 760px) { #panel-trade .trade-section-grid-2 { grid-template-columns: 1fr; } }
+
+/* row item */
+#panel-trade .trade-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .05s;
+  width: 100%;
+  text-align: left;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+}
+#panel-trade .trade-row:hover { border-color: var(--cyan-dim); }
+#panel-trade .trade-row:active { transform: translateY(1px); }
+#panel-trade .trade-row.checked {
+  border-color: var(--green-dim);
+  background: var(--green-bg);
+}
+#panel-trade .trade-row.warn { border-color: var(--amber-dim); background: var(--amber-bg); }
+#panel-trade .trade-row.fail { border-color: var(--red-dim); background: var(--red-bg); }
+
+#panel-trade .trade-row-check {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-4);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  background: transparent;
+  font-size: 12px;
+  color: transparent;
+  transition: all .15s;
+}
+#panel-trade .trade-row.checked .trade-row-check {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+}
+#panel-trade .trade-row.warn .trade-row-check {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--bg);
+}
+#panel-trade .trade-row.fail .trade-row-check {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--bg);
+}
+
+#panel-trade .trade-row-main { flex: 1; min-width: 0; }
+#panel-trade .trade-row-name {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#panel-trade .trade-row-name small {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+}
+#panel-trade .trade-row-help {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+#panel-trade .trade-row-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#panel-trade .trade-row.checked .trade-row-pill { background: var(--green-bg); border-color: var(--green-dim); color: var(--green-bright); }
+#panel-trade .trade-row.warn .trade-row-pill { background: var(--amber-bg); border-color: var(--amber-dim); color: var(--amber-bright); }
+#panel-trade .trade-row.fail .trade-row-pill { background: var(--red-bg); border-color: var(--red-dim); color: var(--red-bright); }
+
+/* setup grid (Step 1) */
+#panel-trade .trade-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+#panel-trade .trade-setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  font-family: inherit;
+  transition: all .15s;
+}
+#panel-trade .trade-setup-card:hover { border-color: var(--cyan-dim); }
+#panel-trade .trade-setup-card.selected {
+  border-color: var(--green);
+  background: var(--green-bg);
+  box-shadow: 0 0 0 1px var(--green-dim) inset;
+}
+#panel-trade .trade-setup-card-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+#panel-trade .trade-setup-card.selected .trade-setup-card-num { color: var(--green-bright); }
+#panel-trade .trade-setup-card-name {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+#panel-trade .trade-setup-card-detail {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* direction toggle */
+#panel-trade .trade-direction-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#panel-trade .trade-direction-btn {
+  padding: 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all .15s;
+}
+#panel-trade .trade-direction-btn:hover { border-color: var(--cyan-dim); }
+#panel-trade .trade-direction-btn.long.selected {
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-bright);
+}
+#panel-trade .trade-direction-btn.short.selected {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: var(--red-bright);
+}
+#panel-trade .trade-direction-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* numeric input row */
+#panel-trade .trade-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+#panel-trade .trade-input-row .input-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+#panel-trade .trade-input-row .input-help {
+  font-size: 11px;
+  color: var(--ink-4);
+  margin-top: 4px;
+}
+#panel-trade .trade-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+#panel-trade .trade-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(6,212,248,0.15);
+}
+#panel-trade .trade-input.required-empty {
+  border-color: var(--amber-dim);
+}
+
+#panel-trade .trade-bracket {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  text-transform: uppercase;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  white-space: nowrap;
+  align-self: end;
+  margin-bottom: 1px;
+}
+#panel-trade .trade-bracket.cheap { background: var(--green-bg); border-color: var(--green-dim); color: var(--green-bright); }
+#panel-trade .trade-bracket.mid   { background: var(--amber-bg); border-color: var(--amber-dim); color: var(--amber-bright); }
+#panel-trade .trade-bracket.rich  { background: var(--red-bg); border-color: var(--red-dim); color: var(--red-bright); }
+#panel-trade .trade-bracket.tight { background: var(--green-bg); border-color: var(--green-dim); color: var(--green-bright); }
+#panel-trade .trade-bracket.wide  { background: var(--red-bg); border-color: var(--red-dim); color: var(--red-bright); }
+#panel-trade .trade-bracket.empty { color: var(--ink-4); }
+
+/* strategy / sizing output card */
+#panel-trade .trade-output {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+}
+#panel-trade .trade-output-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#panel-trade .trade-output-main {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+#panel-trade .trade-output-rationale {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+#panel-trade .trade-output-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+#panel-trade .trade-output-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#panel-trade .trade-output-cell-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+#panel-trade .trade-output-cell-value {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* gate row — visible rule */
+#panel-trade .trade-gate-rule {
+  font-size: 11px;
+  color: var(--ink-4);
+  margin-top: 4px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#panel-trade .trade-gate-rule a {
+  color: var(--cyan);
+  text-decoration: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+#panel-trade .trade-gate-rule a:hover { text-decoration: underline; }
+
+/* sticky action bar */
+#panel-trade .trade-actions {
+  position: sticky;
+  bottom: 0;
+  background: rgba(8, 9, 13, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 24px -24px 0;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  z-index: 20;
+}
+#panel-trade .trade-action-btn {
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--r-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#panel-trade .trade-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#panel-trade .trade-action-btn.go {
+  background: var(--green);
+  border: 0;
+  color: var(--bg);
+  box-shadow: 0 0 18px var(--green-glow);
+  font-family: var(--display);
+  letter-spacing: 0.02em;
+}
+#panel-trade .trade-action-btn.go:hover { background: var(--green-bright); }
+#panel-trade .trade-action-btn.go:disabled { background: var(--bg-card-2); color: var(--ink-4); box-shadow: none; }
+#panel-trade .trade-action-spacer { flex: 1; }
+#panel-trade .trade-action-reason {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber-bright);
+  letter-spacing: 0.04em;
+  text-align: right;
+  max-width: 280px;
+}
+#panel-trade .trade-action-chevron { font-size: 18px; line-height: 1; }
+
+/* templates dropdown for thesis */
+#panel-trade .trade-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+#panel-trade .trade-template-btn {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--body);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+#panel-trade .trade-template-btn:hover {
+  border-color: var(--cyan-dim);
+  color: var(--ink);
+  background: rgba(6,212,248,0.05);
+}
+#panel-trade .trade-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+#panel-trade .trade-textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(6,212,248,0.15);
+}
+
+/* mobile stepper collapse */
+@media (max-width: 720px) {
+  #panel-trade .trade-shell { padding: 0 14px 100px; }
+  #panel-trade .trade-header { padding: 14px 14px 12px; margin: 0 -14px; }
+  #panel-trade .trade-stepper { display: none; }
+  #panel-trade .trade-stepper-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    margin-bottom: 12px;
+  }
+  #panel-trade .trade-summary-row { grid-template-columns: 1fr 1fr; }
+  #panel-trade .trade-summary-status { grid-column: span 2; border-top: 1px solid var(--line); border-right: 0; }
+  #panel-trade .trade-actions { margin: 16px -14px 0; padding: 12px 14px; }
+  #panel-trade .trade-action-btn { padding: 11px 16px; font-size: 13px; }
+  #panel-trade .trade-action-reason { font-size: 10px; max-width: 50%; }
+}
+@media (min-width: 721px) {
+  #panel-trade .trade-stepper-mobile { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -5631,6 +6325,54 @@ STRENGTH: 3/3</pre>
     </div>
   </section>
 
+  <!-- ===== UNIFIED TRADE FLOW (preview behind Settings toggle) ===== -->
+  <section class="tab-panel" id="panel-trade" aria-label="Unified trade entry">
+    <div class="trade-shell">
+      <header class="trade-header">
+        <div class="trade-header-top">
+          <div class="trade-mode-toggle" role="tablist" aria-label="Trade mode">
+            <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab">SWING</button>
+            <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab">INTRADAY</button>
+          </div>
+          <div class="trade-header-actions">
+            <button class="trade-header-btn" id="trade-reset-btn" type="button" title="Clear all fields and start over">Reset</button>
+          </div>
+        </div>
+        <nav class="trade-stepper" id="trade-stepper" aria-label="Trade flow steps"></nav>
+        <div class="trade-stepper-mobile" id="trade-stepper-mobile">
+          <span><strong id="trade-stepper-mobile-num">Step 1 of 5</strong> · <span id="trade-stepper-mobile-name">Setup</span></span>
+          <span style="font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:0.1em;" id="trade-stepper-mobile-progress">0 of 5</span>
+        </div>
+        <div class="trade-summary-row">
+          <div class="trade-summary-cell">
+            <div class="trade-summary-label">Ticker</div>
+            <div class="trade-summary-value" id="trade-summary-ticker">—</div>
+          </div>
+          <div class="trade-summary-cell">
+            <div class="trade-summary-label">Strategy</div>
+            <div class="trade-summary-value" id="trade-summary-strategy">—</div>
+          </div>
+          <div class="trade-summary-cell trade-summary-status" id="trade-summary-status-cell">
+            <div class="trade-summary-label">Status</div>
+            <div class="trade-summary-value" id="trade-summary-status">PICK A SETUP</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="trade-body" id="trade-body"></div>
+
+      <div class="trade-actions">
+        <button class="btn-secondary trade-action-btn" id="trade-back-btn" type="button">Back</button>
+        <div class="trade-action-spacer"></div>
+        <div class="trade-action-reason" id="trade-action-reason"></div>
+        <button class="btn-primary trade-action-btn" id="trade-continue-btn" type="button">
+          <span id="trade-continue-label">Continue</span>
+          <span class="trade-action-chevron">›</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer style="max-width: 1480px; margin: 40px auto 24px; padding: 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--ink-4); line-height: 1.6; text-align: center;">
@@ -5948,6 +6690,29 @@ STRENGTH: 3/3</pre>
               <input type="number" min="0.1" max="1" step="0.05" class="input-field" id="set-i-delta" />
             </div>
           </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Alpha Intelligence</div>
+          <div class="settings-section-desc">How far back the kill-switch and recent-trends panels look when computing rolling P/L. Default 30 days.</div>
+          <div class="form-grid">
+            <div class="input-group full">
+              <label class="input-label">Kill-switch window (days)</label>
+              <input type="number" min="7" max="180" step="1" class="input-field" id="set-killswitch-days" />
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Preview features</div>
+          <div class="settings-section-desc">Optional UI experiments. Toggle off to revert to the current behavior at any time.</div>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: var(--bg-elev); border-radius: var(--r-md); border: 1px solid var(--line);">
+            <input type="checkbox" id="set-new-trade-flow" style="width: 18px; height: 18px; cursor: pointer;" />
+            <div>
+              <div style="font-weight: 600; color: var(--ink);">New Trade flow (preview)</div>
+              <div style="font-size: 11px; color: var(--ink-3); margin-top: 2px;">Unified Swing + Intraday entry with sticky summary header, point-budget sub-sections, and templated thesis. Routes <strong>+ New Analysis</strong> to the new panel.</div>
+            </div>
+          </label>
         </div>
 
         <div class="settings-section">
@@ -6722,6 +7487,10 @@ const DEFAULT_SETTINGS = {
   intradayMaxDailyLoss: 200, // hard daily loss cap for intraday
   intradayMaxSpreadPct: 5,
   intradayDefaultDelta: 0.65,
+  // ---- ALPHA INTEL ----
+  killSwitchDays: 30, // window (in days) for kill-switch P/L computation
+  // ---- PREVIEW ----
+  newTradeFlow: false, // when true, Home "+ New Analysis" routes to the unified Trade panel
 };
 
 // ---------- Intraday setup library ----------
@@ -6827,6 +7596,8 @@ let state = {
   logSetupFilter: '',
   homePortfolioView: 'recent', // 'recent' | 'open'
   marketContextUpdatedAt: null,
+  // Unified trade flow (preview)
+  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
 };
 
 function loadState() {
@@ -6854,6 +7625,12 @@ function loadState() {
       if (!state.homePortfolioView) state.homePortfolioView = 'recent';
       if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
+      // Migrate tradeFlow (preview)
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow.mode) state.tradeFlow.mode = 'swing';
+      if (!state.tradeFlow.step) state.tradeFlow.step = 1;
+      if (state.tradeFlow.thesis === undefined) state.tradeFlow.thesis = '';
+      if (state.tradeFlow.preMortem === undefined) state.tradeFlow.preMortem = '';
     }
   } catch (e) { console.warn('Load failed:', e); }
 }
@@ -9889,6 +10666,12 @@ function openSettings() {
   document.getElementById('set-i-max-loss').value = s.intradayMaxDailyLoss;
   document.getElementById('set-i-max-spread').value = s.intradayMaxSpreadPct;
   document.getElementById('set-i-delta').value = s.intradayDefaultDelta;
+  // Alpha Intel
+  const ksEl = document.getElementById('set-killswitch-days');
+  if (ksEl) ksEl.value = s.killSwitchDays || DEFAULT_SETTINGS.killSwitchDays;
+  // Preview features
+  const ntfEl = document.getElementById('set-new-trade-flow');
+  if (ntfEl) ntfEl.checked = !!s.newTradeFlow;
   document.getElementById('modal-settings').classList.add('show');
 }
 
@@ -9912,6 +10695,8 @@ function saveSettings() {
     intradayMaxDailyLoss: parseFloat(document.getElementById('set-i-max-loss').value) || DEFAULT_SETTINGS.intradayMaxDailyLoss,
     intradayMaxSpreadPct: parseFloat(document.getElementById('set-i-max-spread').value) || DEFAULT_SETTINGS.intradayMaxSpreadPct,
     intradayDefaultDelta: parseFloat(document.getElementById('set-i-delta').value) || DEFAULT_SETTINGS.intradayDefaultDelta,
+    killSwitchDays: parseInt(document.getElementById('set-killswitch-days')?.value) || DEFAULT_SETTINGS.killSwitchDays,
+    newTradeFlow: document.getElementById('set-new-trade-flow')?.checked || false,
   };
   state.settings = newSettings;
   saveState();
@@ -10602,6 +11387,1309 @@ function logIntradayTrade() {
   toast('Intraday trade logged');
 }
 
+// =====================================================================
+// UNIFIED TRADE FLOW (preview behind state.settings.newTradeFlow)
+// =====================================================================
+// Self-contained module. Reads/writes the same state fields as the
+// legacy panels (selectedSetup, ivr, premium, atr, underlyingPrice,
+// gateChecks, intraday) so trade data round-trips between flows.
+
+const TRADE_SWING_SETUPS = [
+  { id: '21-EMA Pullback',  num: '01', desc: 'Stock in clear uptrend pulls back to its 21-day MA, then prints a green/up bar.' },
+  { id: 'Base Breakout',    num: '02', desc: 'Trading flat in a tight range for 15+ days, then breaks above on 1.5×+ avg volume.' },
+  { id: 'Breakout Retest',  num: '03', desc: 'Stock breaks out, pulls back to retest the breakout level, then bounces.' },
+  { id: '9-EMA Reclaim',    num: '04', desc: 'Intraday wick below the 9-day MA closes back above by EOD — dip-buyers showed up.' },
+  { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true },
+];
+
+const TRADE_INTRADAY_SETUPS = [
+  { id: 'orb-break',    num: '01', name: 'ORB Break',          desc: '30-min opening range high/low break with volume.' },
+  { id: 'orb-retest',   num: '02', name: 'ORB Retest',         desc: 'Pullback to opening range break level.' },
+  { id: 'vwap-reclaim', num: '03', name: 'VWAP Reclaim',       desc: 'Long only. Reclaim of VWAP after morning pullback.' },
+  { id: 'vwap-loss',    num: '04', name: 'VWAP Loss',          desc: 'Short only. Loss of VWAP on volume.' },
+  { id: 'momo-edge',    num: '05', name: 'Momentum Edge',      desc: 'Edge Scan signal (5m). Continuation expected.' },
+  { id: 'trend-cont',   num: '06', name: 'Trend Continuation', desc: 'Pullback to EMA in established intraday trend.' },
+];
+
+const TRADE_SETUP_TEMPLATES = {
+  // swing
+  '21-EMA Pullback':  { thesis: 'Pullback to rising 21-EMA in confirmed uptrend; expecting bounce + trend resumption.', preMortem: 'Loses if it closes back below the 21-EMA on volume — trend is broken.' },
+  'Base Breakout':    { thesis: 'Breakout from a multi-week base on 1.5×+ volume; expecting expansion to next resistance.', preMortem: 'Loses if it falls back inside the base — failed breakout.' },
+  'Breakout Retest':  { thesis: 'Retest of broken resistance now acting as support; expecting continuation higher.', preMortem: 'Loses if support level fails on volume — base is broken.' },
+  '9-EMA Reclaim':    { thesis: 'Reclaim of 9-EMA after intraday wick; dip-buyers defended — expecting trend resumption.', preMortem: 'Loses if it closes below 9-EMA again — dip-buyers gave up.' },
+  'Edge Reversal':    { thesis: 'Counter-trend reversal at trend exhaustion; HALF size — playing for mean reversion.', preMortem: 'Loses if trend continues against me — counter-trend trades fail more often.' },
+  // intraday
+  'orb-break':    { thesis: 'Break of opening range on volume; expecting day-trend continuation.', preMortem: 'Loses on a fade back inside the range — false break.' },
+  'orb-retest':   { thesis: 'Retest of opening range break level; expecting continuation in the break direction.', preMortem: 'Loses if level fails on volume — fakeout.' },
+  'vwap-reclaim': { thesis: 'Reclaim of VWAP after morning pullback; long-side bias.', preMortem: 'Loses if it gives back VWAP — control flipped to sellers.' },
+  'vwap-loss':    { thesis: 'Loss of VWAP on volume; short-side bias.', preMortem: 'Loses if it reclaims VWAP — buyers stepped in.' },
+  'momo-edge':    { thesis: 'Momentum Edge Scan signal; expecting continuation on 5-min timeframe.', preMortem: 'Loses if signal fails on next bar close — edge gone.' },
+  'trend-cont':   { thesis: 'Pullback to EMA in established intraday trend; expecting trend continuation.', preMortem: 'Loses if EMA fails to hold — trend broken.' },
+};
+
+// Compute rolling P/L over last N days (kill-switch window)
+function tfComputeRolling30dPL() {
+  const days = (state.settings && state.settings.killSwitchDays) || 30;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const closed = (state.trades || []).filter(t => t.status === 'closed' && t.exit_date);
+  const recent = closed.filter(t => new Date(t.exit_date).getTime() >= cutoff);
+  const totalPL = recent.reduce((s, t) => s + (typeof calcPL === 'function' ? (calcPL(t) || 0) : 0), 0);
+  const account = (state.settings && state.settings.account) || 10000;
+  return { totalPL, pct: (totalPL / account) * 100, days };
+}
+
+// Pure gate evaluation — doesn't mutate state
+function tfEvaluateGates() {
+  const liqOk = (typeof liquidityOK === 'function') ? liquidityOK() : !!state.gateChecks['04'];
+  return {
+    '01': state.saQuant !== null && state.saQuant !== undefined && state.saQuant >= 3.5,
+    '02': !!state.gateChecks['02'],
+    '03': !!state.gateChecks['03'],
+    '04': liqOk,
+    '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= 8,
+    '06': state.atr !== null && state.atr > 0 && state.underlyingPrice !== null && state.underlyingPrice > 0,
+  };
+}
+
+// Live status: { tone, label, reason } — used for the sticky header status pill.
+function tfComputeStatus() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const s = state.settings || DEFAULT_SETTINGS;
+
+  // Universal kill-switch — hard block no matter the step.
+  const ks = tfComputeRolling30dPL();
+  if (ks.pct <= -7) {
+    return { tone: 'blocked', label: 'BLOCKED', reason: `Last ${ks.days}d down ${Math.abs(ks.pct).toFixed(1)}% — kill switch` };
+  }
+
+  if (m === 'swing') {
+    if (!state.selectedSetup) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Pick a setup' };
+    if (!state.direction) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Pick direction' };
+    const isOptions = state.instrument !== 'stocks';
+    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Add IV Rank' };
+    if (state.premium === null || state.premium === undefined || state.premium <= 0) {
+      return { tone: 'progress', label: 'IN PROGRESS', reason: isOptions ? 'Add option premium' : 'Add share price' };
+    }
+    if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
+      return { tone: 'progress', label: 'IN PROGRESS', reason: 'Add ATR for stop' };
+    }
+    // Gates
+    const g = tfEvaluateGates();
+    const failing = ['01','02','03','04','05','06'].filter(k => !g[k]);
+    if (failing.length) {
+      const labels = { '01': 'SA Quant rating', '02': 'Profitability grade', '03': 'Momentum grade', '04': 'Liquidity', '05': 'Earnings ≥ 7d away', '06': 'Stop level' };
+      return { tone: 'blocked', label: 'BLOCKED', reason: `Gate ${failing[0]}: ${labels[failing[0]]}` };
+    }
+    return { tone: 'ready', label: 'READY', reason: 'All checks pass — go execute' };
+  }
+
+  if (m === 'intraday') {
+    const it = state.intraday || {};
+    if (!it.ticker) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Add ticker' };
+    if (!it.direction) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Pick direction' };
+    if (!it.setup) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Pick a setup' };
+    if (!it.entry || !it.stop || !it.target) return { tone: 'progress', label: 'IN PROGRESS', reason: 'Add entry / stop / target' };
+
+    if (it.vwapRel === 'above' && it.direction === 'short') return { tone: 'blocked', label: 'BLOCKED', reason: 'Short with VWAP above — mismatch' };
+    if (it.vwapRel === 'below' && it.direction === 'long')  return { tone: 'blocked', label: 'BLOCKED', reason: 'Long with VWAP below — mismatch' };
+
+    if (it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > s.intradayMaxSpreadPct) {
+      return { tone: 'blocked', label: 'BLOCKED', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%` };
+    }
+
+    const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
+    if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
+      return { tone: 'blocked', label: 'BLOCKED', reason: 'Outside entry window' };
+    }
+
+    // Loss budget
+    const dayPL = tfComputeIntradayDayPL();
+    const lossBudget = s.intradayMaxDailyLoss + dayPL;
+    if (lossBudget <= 0) return { tone: 'blocked', label: 'BLOCKED', reason: 'Daily loss budget reached' };
+
+    return { tone: 'ready', label: 'READY', reason: 'All checks pass — go execute' };
+  }
+
+  return { tone: 'progress', label: 'IN PROGRESS', reason: 'Pick a setup' };
+}
+
+// Today's intraday P/L (negative on losing day) — copied semantics from existing intraday code.
+function tfComputeIntradayDayPL() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayMs = today.getTime();
+  return (state.trades || [])
+    .filter(t => t.mode === 'intraday' && t.status === 'closed' && t.exit_date && new Date(t.exit_date).getTime() >= todayMs)
+    .reduce((s, t) => s + (typeof calcPL === 'function' ? (calcPL(t) || 0) : 0), 0);
+}
+
+// Strategy label for the sticky header.
+function tfComputeStrategyLabel() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'swing') {
+    if (!state.direction) return '—';
+    if (state.instrument === 'stocks') return state.direction === 'long' ? 'LONG STOCK' : 'SHORT STOCK';
+    if (state.ivr === null || state.ivr === undefined) return state.direction === 'long' ? 'LONG (TBD)' : 'SHORT (TBD)';
+    const sObj = (typeof getStrategyForIVR === 'function') ? getStrategyForIVR(state.ivr, state.direction) : null;
+    if (!sObj) return state.direction === 'long' ? 'LONG' : 'SHORT';
+    return (sObj.name || '').toUpperCase();
+  }
+  if (m === 'intraday') {
+    const it = state.intraday || {};
+    if (!it.direction) return '—';
+    return it.direction === 'long' ? 'INTRADAY LONG' : 'INTRADAY SHORT';
+  }
+  return '—';
+}
+
+// IVR bracket for the input badge.
+function tfIvrBracket(ivr) {
+  if (ivr === null || ivr === undefined || ivr === '') return { cls: 'empty', text: '— enter IVR' };
+  const v = Number(ivr);
+  if (isNaN(v)) return { cls: 'empty', text: '—' };
+  if (v < 30) return { cls: 'cheap', text: '→ CHEAP' };
+  if (v < 50) return { cls: 'mid',   text: '→ MODERATE' };
+  if (v < 70) return { cls: 'rich',  text: '→ RICH (½ size)' };
+  return                { cls: 'rich',  text: '→ TOO RICH (skip)' };
+}
+
+// Spread bracket for intraday.
+function tfSpreadBracket(spread) {
+  const max = (state.settings && state.settings.intradayMaxSpreadPct) || 5;
+  if (spread === null || spread === undefined || spread === '') return { cls: 'empty', text: '—' };
+  const v = Number(spread);
+  if (isNaN(v)) return { cls: 'empty', text: '—' };
+  if (v <= max * 0.6) return { cls: 'tight', text: '→ TIGHT' };
+  if (v <= max)       return { cls: 'mid',   text: '→ OK' };
+  return                       { cls: 'wide',  text: '→ TOO WIDE' };
+}
+
+// ----- Rendering -----
+
+function tfStepCount() { return 5; }
+function tfStepNames() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  return m === 'swing'
+    ? ['Setup', 'Structure', 'Cockpit', 'Verify', 'Execute']
+    : ['Setup', 'Define', 'Checks', 'Notes', 'Go'];
+}
+
+// Determine which steps are "complete" — for the stepper checkmarks.
+function tfStepCompletion() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const c = [false, false, false, false, false];
+  if (m === 'swing') {
+    c[0] = !!(state.selectedSetup && state.direction);
+    const isOptions = state.instrument !== 'stocks';
+    c[1] = !!(state.direction && (!isOptions || (state.ivr !== null && state.ivr !== undefined)));
+    c[2] = !!(state.premium && state.premium > 0 && (!isOptions || (state.atr && state.atr > 0)));
+    c[3] = ['01','02','03','04','05','06'].every(k => tfEvaluateGates()[k]);
+    c[4] = c[0] && c[1] && c[2] && c[3];
+  } else {
+    const it = state.intraday || {};
+    c[0] = !!(it.ticker && it.direction && it.setup);
+    c[1] = !!(it.entry && it.stop && it.target);
+    const st = tfComputeStatus();
+    c[2] = c[1] && st.tone !== 'blocked';
+    c[3] = true; // notes always optional
+    c[4] = c[0] && c[1] && c[2] && st.tone === 'ready';
+  }
+  return c;
+}
+
+function tfRenderStepper() {
+  const stepper = document.getElementById('trade-stepper');
+  const mob     = document.getElementById('trade-stepper-mobile');
+  if (!stepper) return;
+  const names = tfStepNames();
+  const compl = tfStepCompletion();
+  const cur = state.tradeFlow.step || 1;
+  stepper.innerHTML = names.map((n, i) => {
+    const idx = i + 1;
+    const isComplete = compl[i];
+    const isActive = idx === cur;
+    const cls = isComplete ? 'complete' : isActive ? 'active' : (idx < cur ? '' : (compl.slice(0, i).every(Boolean) ? '' : 'locked'));
+    const inner = isComplete ? '✓' : idx;
+    return `<button class="trade-step ${cls}" data-trade-step="${idx}" type="button">
+      <span class="trade-step-node">${inner}</span>
+      <span class="trade-step-label">${n}</span>
+    </button>`;
+  }).join('');
+  stepper.querySelectorAll('[data-trade-step]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = parseInt(el.dataset.tradeStep, 10);
+      if (target && target !== cur) tfGoToStep(target);
+    });
+  });
+  if (mob) {
+    const numEl = document.getElementById('trade-stepper-mobile-num');
+    const nameEl = document.getElementById('trade-stepper-mobile-name');
+    const progEl = document.getElementById('trade-stepper-mobile-progress');
+    if (numEl) numEl.textContent = `Step ${cur} of ${names.length}`;
+    if (nameEl) nameEl.textContent = names[cur - 1] || '';
+    if (progEl) progEl.textContent = `${compl.filter(Boolean).length} of ${names.length}`;
+  }
+}
+
+function tfRenderHeader() {
+  const tickerEl = document.getElementById('trade-summary-ticker');
+  const stratEl  = document.getElementById('trade-summary-strategy');
+  const statusEl = document.getElementById('trade-summary-status');
+  const cell     = document.getElementById('trade-summary-status-cell');
+  if (!tickerEl || !stratEl || !statusEl || !cell) return;
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const ticker = m === 'swing' ? (state.ticker || '—') : ((state.intraday && state.intraday.ticker) || '—');
+  tickerEl.textContent = ticker || '—';
+  stratEl.textContent  = tfComputeStrategyLabel();
+  const st = tfComputeStatus();
+  cell.classList.remove('ready', 'progress', 'blocked');
+  cell.classList.add(st.tone);
+  statusEl.textContent = st.tone === 'ready' ? `READY — ${st.reason}` : `${st.label} — ${st.reason}`;
+  // Mode toggle highlight
+  document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tradeMode === m);
+  });
+}
+
+function tfRenderActions() {
+  const backBtn = document.getElementById('trade-back-btn');
+  const contBtn = document.getElementById('trade-continue-btn');
+  const contLbl = document.getElementById('trade-continue-label');
+  const reasonEl = document.getElementById('trade-action-reason');
+  if (!backBtn || !contBtn) return;
+  const cur = state.tradeFlow.step || 1;
+  const max = tfStepCount();
+  backBtn.disabled = cur <= 1;
+  const names = tfStepNames();
+  const compl = tfStepCompletion();
+  const isLast = cur >= max;
+  const st = tfComputeStatus();
+  if (isLast) {
+    contBtn.classList.add('go');
+    contLbl.textContent = st.tone === 'ready'
+      ? `GO — Log ${tfComputeStrategyLabel()}`
+      : `Blocked`;
+    contBtn.disabled = st.tone !== 'ready';
+    reasonEl.textContent = st.tone !== 'ready' ? st.reason : '';
+  } else {
+    contBtn.classList.remove('go');
+    contLbl.textContent = `Continue: ${names[cur]}`;
+    // Allow continue only if current step has its prerequisites
+    const stepOk = compl.slice(0, cur).every(Boolean);
+    contBtn.disabled = !stepOk;
+    reasonEl.textContent = !stepOk ? `Finish step ${cur}: ${names[cur - 1]}` : '';
+  }
+}
+
+function tfGoToStep(n) {
+  const max = tfStepCount();
+  state.tradeFlow.step = Math.max(1, Math.min(max, n));
+  saveState();
+  renderTrade();
+}
+
+function tfSetMode(mode) {
+  if (mode !== 'swing' && mode !== 'intraday') return;
+  state.tradeFlow.mode = mode;
+  state.tradeFlow.step = 1;
+  saveState();
+  renderTrade();
+}
+
+function tfReset() {
+  if (!confirm('Clear all current analysis fields? Trade log is unchanged.')) return;
+  const m = state.tradeFlow.mode;
+  state.selectedSetup = null;
+  if (m === 'swing') {
+    state.ivr = null;
+    state.premium = null;
+    state.atr = null;
+    state.underlyingPrice = null;
+    state.gateChecks = {};
+    state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+  } else {
+    state.intraday = newIntradayTicket();
+    state.intradayQuality = { timeOverride: false };
+  }
+  state.tradeFlow.step = 1;
+  state.tradeFlow.thesis = '';
+  state.tradeFlow.preMortem = '';
+  saveState();
+  renderTrade();
+  // Also refresh legacy panels so things stay in sync
+  if (typeof renderSetupGrid === 'function') renderSetupGrid();
+  if (typeof renderStrategy === 'function') renderStrategy();
+  if (typeof renderCalc === 'function') renderCalc();
+  if (typeof renderGate === 'function') renderGate();
+  if (typeof renderIntraday === 'function') renderIntraday();
+}
+
+// ============== Step body renderers ==============
+
+function tfStepBody(step) {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'swing') {
+    if (step === 1) return tfSwingStep1();
+    if (step === 2) return tfSwingStep2();
+    if (step === 3) return tfSwingStep3();
+    if (step === 4) return tfSwingStep4();
+    if (step === 5) return tfSwingStep5();
+  } else {
+    if (step === 1) return tfIntradayStep1();
+    if (step === 2) return tfIntradayStep2();
+    if (step === 3) return tfIntradayStep3();
+    if (step === 4) return tfIntradayStep4();
+    if (step === 5) return tfIntradayStep5();
+  }
+  return '';
+}
+
+// ----- Swing step 1 — Setup + direction -----
+
+function tfSwingStep1() {
+  const sel = state.selectedSetup;
+  const dir = state.direction;
+  const cards = TRADE_SWING_SETUPS.map(s => `
+    <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
+      <span class="trade-setup-card-num">SETUP ${s.num}${s.halfSize ? ' · ½ SIZE' : ''}</span>
+      <span class="trade-setup-card-name">${s.id}</span>
+      <span class="trade-setup-card-detail">${s.desc}</span>
+    </button>`).join('');
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Pick the setup</div>
+        <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-setup-grid" id="tf-setup-grid">${cards}</div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Direction</div>
+        <div class="trade-section-counter ${dir ? 'complete' : ''}">${dir ? dir.toUpperCase() : 'pick 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-direction-toggle" id="tf-direction-toggle">
+          <button type="button" class="trade-direction-btn long ${dir === 'long' ? 'selected' : ''}" data-tf-dir="long">▲ LONG (bullish)</button>
+          <button type="button" class="trade-direction-btn short ${dir === 'short' ? 'selected' : ''}" data-tf-dir="short">▼ SHORT (bearish)</button>
+        </div>
+        <p class="trade-row-help" style="margin-top: 8px;">Direction sets the option type in step 2. Long = call structures, Short = put structures.</p>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Ticker (optional here, required by Verify)</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">Ticker</label>
+            <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="e.g. AAPL"
+              value="${(state.ticker || '').toString()}" autocomplete="off" />
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountSwingStep1() {
+  document.querySelectorAll('#panel-trade [data-tf-setup]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.selectedSetup = b.dataset.tfSetup;
+      saveState();
+      tfRefreshAll();
+      if (typeof renderSetupGrid === 'function') renderSetupGrid();
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-dir]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.direction = b.dataset.tfDir;
+      saveState();
+      tfRefreshAll();
+      const di = document.getElementById('direction-input');
+      if (di) di.value = state.direction;
+      if (typeof renderStrategy === 'function') renderStrategy();
+    });
+  });
+  const t = document.getElementById('tf-ticker');
+  if (t) {
+    t.addEventListener('input', e => {
+      state.ticker = (e.target.value || '').toUpperCase();
+      saveState();
+      tfRefreshHeaderOnly();
+      const lt = document.getElementById('ticker-input');
+      if (lt) lt.value = state.ticker;
+    });
+  }
+}
+
+// ----- Swing step 2 — IV Rank + structure preview -----
+
+function tfSwingStep2() {
+  const ivr = state.ivr;
+  const dir = state.direction;
+  const isOptions = state.instrument !== 'stocks';
+  const bracket = tfIvrBracket(ivr);
+  const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
+    ? getStrategyForIVR(Number(ivr), dir) : null;
+
+  const stocksNote = !isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">i</span> Stocks mode</div>
+      </div>
+      <div class="trade-section-body">
+        <p class="trade-row-help">You're in stocks mode (set in Settings). IV Rank doesn't apply. Skip ahead to the cockpit step to size the position.</p>
+      </div>
+    </div>` : '';
+
+  const ivrSection = isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> IV Rank from TOS Volatility tab</div>
+        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">IV Rank (0–100)</label>
+            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
+              placeholder="e.g. 24"
+              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
+            <div class="input-help">Cheap below 30 · Moderate 30–50 · Rich 50+ · Skip if 70+</div>
+          </div>
+          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
+        </div>
+      </div>
+    </div>` : '';
+
+  const stratOut = sObj ? `
+    <div class="trade-output">
+      <div class="trade-output-title">Recommended structure</div>
+      <div class="trade-output-main">${sObj.name}</div>
+      <div class="trade-output-rationale">${sObj.rationale}</div>
+      <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Delta</span><span class="trade-output-cell-value">${sObj.delta}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">DTE</span><span class="trade-output-cell-value">${sObj.dte}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Spread Width</span><span class="trade-output-cell-value">${sObj.width}</span></div>
+      </div>
+    </div>` : '';
+
+  return `
+    ${stocksNote}
+    ${ivrSection}
+    ${stratOut ? `<div class="trade-section"><div class="trade-section-head"><div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Auto-derived structure</div></div><div class="trade-section-body">${stratOut}</div></div>` : ''}
+  `;
+}
+
+function tfMountSwingStep2() {
+  const ivrEl = document.getElementById('tf-ivr');
+  if (ivrEl) {
+    ivrEl.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.ivr = isNaN(v) ? null : v;
+      saveState();
+      // Update only header + bracket badge; don't re-render the input itself.
+      tfRefreshHeaderOnly();
+      const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
+      if (wrap) {
+        const badge = wrap.querySelector('.trade-bracket');
+        if (badge) {
+          const b = tfIvrBracket(state.ivr);
+          badge.className = `trade-bracket ${b.cls}`;
+          badge.textContent = b.text;
+        }
+      }
+      const li = document.getElementById('ivr-input');
+      if (li) li.value = state.ivr === null ? '' : state.ivr;
+    });
+    ivrEl.addEventListener('blur', () => {
+      tfRefreshAll(); // refresh strategy output
+      if (typeof renderStrategy === 'function') renderStrategy();
+    });
+  }
+}
+
+// ----- Swing step 3 — Cockpit (premium + ATR required pair) -----
+
+function tfSwingStep3() {
+  const isOptions = state.instrument !== 'stocks';
+  const premium = state.premium;
+  const atr     = state.atr;
+  const upx     = state.underlyingPrice;
+  const reqLabel = isOptions ? 'Premium per contract ($)' : 'Share price ($)';
+  const reqHelp = isOptions ? 'Mid of bid/ask from TOS option chain.' : 'Current share price for sizing math.';
+  const sizingCard = (() => {
+    if (!premium || premium <= 0) return '';
+    const settings = state.settings || DEFAULT_SETTINGS;
+    const account = settings.account || 10000;
+    const riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+    const riskDollars = Math.round(account * riskPct);
+    if (isOptions) {
+      const stopFraction = (settings.stopPct || 50) / 100;
+      const maxLossPerContract = premium * stopFraction * 100;
+      const contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+      const totalRisk = contracts * maxLossPerContract;
+      const totalPremium = contracts * premium * 100;
+      const target = premium * (1 + (settings.targetPct || 50) / 100);
+      const stop   = premium * (1 - stopFraction);
+      const stopDollar = (atr && upx && atr > 0 && upx > 0) ? `${(upx - atr * 1.5).toFixed(2)}` : '—';
+      return `
+        <div class="trade-output">
+          <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
+          <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
+          <div class="trade-output-rationale">Account $${account.toLocaleString()} × ${(riskPct * 100).toFixed(2)}% = $${riskDollars} risk per trade. Stop at ${(settings.stopPct || 50)}% of premium → max loss per contract $${maxLossPerContract.toFixed(0)}.</div>
+          <div class="trade-output-grid">
+            <div class="trade-output-cell"><span class="trade-output-cell-label">Total premium</span><span class="trade-output-cell-value">$${Math.round(totalPremium)}</span></div>
+            <div class="trade-output-cell"><span class="trade-output-cell-label">Profit target</span><span class="trade-output-cell-value">$${target.toFixed(2)} / ct</span></div>
+            <div class="trade-output-cell"><span class="trade-output-cell-label">Premium stop</span><span class="trade-output-cell-value">$${stop.toFixed(2)} / ct</span></div>
+            <div class="trade-output-cell"><span class="trade-output-cell-label">Underlying stop</span><span class="trade-output-cell-value">$${stopDollar}</span></div>
+          </div>
+        </div>`;
+    } else {
+      const stopPct = (settings.stopPct || 5) / 100; // for stocks we treat stopPct as % of share price
+      const maxLossPerShare = premium * stopPct;
+      const shares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+      return `
+        <div class="trade-output">
+          <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
+          <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
+          <div class="trade-output-rationale">Stop at ${(settings.stopPct || 5)}% of price → max loss per share $${maxLossPerShare.toFixed(2)}.</div>
+        </div>`;
+    }
+  })();
+
+  const atrSection = isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Volatility for stop placement (required)</div>
+        <div class="trade-section-counter ${atr && atr > 0 && upx && upx > 0 ? 'complete' : ''}">${atr && atr > 0 && upx && upx > 0 ? '2 set' : 'fill 2'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row">
+            <div>
+              <label class="input-label">ATR(14) on the underlying</label>
+              <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
+                placeholder="e.g. 2.45"
+                value="${atr ?? ''}" />
+              <div class="input-help">From TOS daily chart, study: ATR with length 14.</div>
+            </div>
+          </div>
+          <div class="trade-input-row">
+            <div>
+              <label class="input-label">Underlying current price ($)</label>
+              <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
+                placeholder="e.g. 188.50"
+                value="${upx ?? ''}" />
+              <div class="input-help">Used with ATR to compute volatility-adjusted stop.</div>
+            </div>
+          </div>
+        </div>
+        <p class="trade-row-help" style="margin-top:8px;">Both required. Skipping these means no volatility-adjusted stop, which is the highest-friction failure mode of the old flow.</p>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
+        <div class="trade-section-counter ${premium && premium > 0 ? 'complete' : ''}">${premium && premium > 0 ? '1 set' : 'fill 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">${reqLabel}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
+              placeholder="e.g. 2.45"
+              value="${premium ?? ''}" />
+            <div class="input-help">${reqHelp}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${atrSection}
+    ${sizingCard ? `<div class="trade-section"><div class="trade-section-head"><div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Auto-sized position</div></div><div class="trade-section-body">${sizingCard}</div></div>` : ''}
+  `;
+}
+
+function tfMountSwingStep3() {
+  const wireNum = (id, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state[key] = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    el.addEventListener('blur', () => {
+      tfRefreshAll();
+      if (typeof renderCalc === 'function') renderCalc();
+    });
+  };
+  wireNum('tf-premium', 'premium');
+  wireNum('tf-atr', 'atr');
+  wireNum('tf-upx', 'underlyingPrice');
+}
+
+// ----- Swing step 4 — Verify gates (rules visible, liquidity sub-section) -----
+
+function tfSwingStep4() {
+  const gateState = tfEvaluateGates();
+  const passed = Object.values(gateState).filter(Boolean).length;
+  const liq = state.liquidity || {};
+
+  const liqInputs = [
+    { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
+    { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
+    { key: 'optionVol', label: 'Option volume today',   rule: '≥ 100',       step: '1' },
+    { key: 'bid',       label: 'Option Bid ($)',        rule: 'paired',      step: '0.01' },
+    { key: 'ask',       label: 'Option Ask ($)',        rule: 'spread auto', step: '0.01' },
+  ];
+  const isStocks = state.instrument === 'stocks';
+  const liqGrid = liqInputs
+    .filter(f => !isStocks || f.key === 'stockVol' || f.key === 'bid' || f.key === 'ask')
+    .map(f => `
+      <div class="trade-input-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label class="input-label">${f.label} <span style="float:right; color:var(--ink-4); font-weight:400; font-size:10px;">need ${f.rule}</span></label>
+          <input type="number" min="0" step="${f.step}" class="trade-input" data-tf-liq="${f.key}"
+            value="${liq[f.key] ?? ''}" />
+        </div>
+      </div>`).join('');
+
+  const gateMeta = {
+    '01': { name: 'SA Quant Rating ≥ 3.50 (Buy or Strong Buy)', rule: 'Auto-passes when SA Quant field is set to 3.50+. Click ticker on Seeking Alpha → check Quant Rating decimal.' },
+    '02': { name: 'Profitability grade B- or better', rule: 'On Seeking Alpha → ticker → Factor Grades. Click to mark passed once verified. (Manual)' },
+    '03': { name: 'Momentum grade B- or better', rule: 'Same Factor Grades section. Want a stock in an uptrend vs peers. Click to mark passed. (Manual)' },
+    '04': { name: 'Stock + option liquidity', rule: 'Auto-passes when liquidity fields below all meet the rules. Bid/Ask drive spread% automatically.' },
+    '05': { name: 'Earnings ≥ 7 days away', rule: 'Auto-passes when Days to Earnings (set in legacy panel) is 8+. Avoid holding through earnings unless trading the event.' },
+    '06': { name: 'Stop level set before entry', rule: 'Auto-passes when ATR + underlying price are filled in step 3 (volatility-adjusted stop). Otherwise click to set manually.' },
+  };
+
+  const rows = ['01','02','03','04','05','06'].map(k => {
+    const ok = gateState[k];
+    const isManual = k === '02' || k === '03';
+    return `
+      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-gate="${k}">
+        <span class="trade-row-check">${ok ? '✓' : ''}</span>
+        <span class="trade-row-main">
+          <span class="trade-row-name"><small>GATE ${k}</small> ${gateMeta[k].name}</span>
+          <span class="trade-row-help">${gateMeta[k].rule}${isManual ? ` · <a href="https://seekingalpha.com/symbol/${state.ticker || ''}/ratings/factor-grades" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);">Verify on SA →</a>` : ''}</span>
+        </span>
+        <span class="trade-row-pill">${ok ? 'PASS' : (isManual ? 'CLICK TO MARK' : 'FAIL')}</span>
+      </button>`;
+  }).join('');
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality gates</div>
+        <div class="trade-section-counter ${passed === 6 ? 'complete' : ''}">${passed} of 6 passed</div>
+      </div>
+      <div class="trade-section-body">
+        <div style="display: flex; flex-direction: column; gap: 8px;">${rows}</div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Liquidity inputs (drives Gate 04)</div>
+        <div class="trade-section-counter ${gateState['04'] ? 'complete' : ''}">${gateState['04'] ? 'pass' : 'fill'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">${liqGrid}</div>
+        ${liq.bid && liq.ask && liq.bid > 0 && liq.ask > 0 ? `<p class="trade-row-help" style="margin-top:8px;">Spread mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · spread${' '} ${(((Number(liq.ask)-Number(liq.bid))/((Number(liq.bid)+Number(liq.ask))/2))*100).toFixed(1)}%</p>` : ''}
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> SA + earnings inputs (set in legacy panel)</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">SA Quant Rating (1.00–5.00)</label>
+              <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
+                placeholder="e.g. 4.12" value="${state.saQuant ?? ''}" />
+              <div class="input-help">Auto-passes Gate 01 when ≥ 3.50.</div>
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Days to next earnings</label>
+              <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
+                placeholder="e.g. 21" value="${state.daysToEarnings ?? ''}" />
+              <div class="input-help">Auto-passes Gate 05 when ≥ 8.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountSwingStep4() {
+  document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.tfGate;
+      // Only manual gates are user-toggleable
+      if (k !== '02' && k !== '03') return;
+      state.gateChecks[k] = !state.gateChecks[k];
+      saveState();
+      tfRefreshAll();
+      if (typeof renderGate === 'function') renderGate();
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
+    el.addEventListener('input', e => {
+      const k = e.target.dataset.tfLiq;
+      const v = parseFloat(e.target.value);
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      state.liquidity[k] = isNaN(v) ? null : v;
+      // Auto-derive spread%
+      if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
+        const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
+        state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
+      }
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    el.addEventListener('blur', () => {
+      tfRefreshAll();
+      if (typeof renderGate === 'function') renderGate();
+    });
+  });
+  const sa = document.getElementById('tf-sa-quant');
+  if (sa) {
+    sa.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.saQuant = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    sa.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+  }
+  const der = document.getElementById('tf-days-er');
+  if (der) {
+    der.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.daysToEarnings = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    der.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+  }
+}
+
+// ----- Swing step 5 — Execute -----
+
+function tfSwingStep5() {
+  const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
+  const thesis = state.tradeFlow.thesis || (tpl ? tpl.thesis : '');
+  const preMortem = state.tradeFlow.preMortem || (tpl ? tpl.preMortem : '');
+  const st = tfComputeStatus();
+  const ready = st.tone === 'ready';
+
+  const templateBtns = tpl ? `
+    <div class="trade-templates">
+      <button type="button" class="trade-template-btn" data-tf-tpl-thesis="default">Default thesis for ${state.selectedSetup}</button>
+      <button type="button" class="trade-template-btn" data-tf-tpl-pre="default">Default pre-mortem</button>
+      <button type="button" class="trade-template-btn" data-tf-tpl-clear="1">Clear</button>
+    </div>` : '<p class="trade-row-help">Pick a setup in step 1 to enable templated thesis text.</p>';
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Order checklist (TOS)</div>
+      </div>
+      <div class="trade-section-body">
+        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
+          <li>Open option chain in TOS (Trade tab → ticker → Option Chain).</li>
+          <li>Right-click the contract you want → Buy → With OCO Bracket.</li>
+          <li>Set entry limit, profit target +${(state.settings && state.settings.targetPct) || 50}%, stop at ${(state.settings && state.settings.stopPct) || 50}% of premium.</li>
+          <li>Submit in TOS, then click GO below to log the thesis.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Thesis &amp; pre-mortem</div>
+      </div>
+      <div class="trade-section-body">
+        ${templateBtns}
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Thesis — why is this trade on?</label>
+              <textarea class="trade-textarea" id="tf-thesis" rows="3" placeholder="One sentence. What has to happen for this to work?">${thesis}</textarea>
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Pre-mortem — if it loses, why?</label>
+              <textarea class="trade-textarea" id="tf-premortem" rows="3" placeholder="What invalidates the thesis?">${preMortem}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Status</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-output">
+          <div class="trade-output-title">Final check</div>
+          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
+          <div class="trade-output-rationale">${st.reason}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountSwingStep5() {
+  const t = document.getElementById('tf-thesis');
+  const p = document.getElementById('tf-premortem');
+  if (t) t.addEventListener('input', e => { state.tradeFlow.thesis = e.target.value; saveState(); });
+  if (p) p.addEventListener('input', e => { state.tradeFlow.preMortem = e.target.value; saveState(); });
+
+  document.querySelectorAll('#panel-trade [data-tf-tpl-thesis]').forEach(b => {
+    b.addEventListener('click', () => {
+      const tpl = TRADE_SETUP_TEMPLATES[state.selectedSetup];
+      if (!tpl) return;
+      state.tradeFlow.thesis = tpl.thesis;
+      saveState();
+      const t = document.getElementById('tf-thesis');
+      if (t) t.value = tpl.thesis;
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-tpl-pre]').forEach(b => {
+    b.addEventListener('click', () => {
+      const tpl = TRADE_SETUP_TEMPLATES[state.selectedSetup];
+      if (!tpl) return;
+      state.tradeFlow.preMortem = tpl.preMortem;
+      saveState();
+      const p = document.getElementById('tf-premortem');
+      if (p) p.value = tpl.preMortem;
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-tpl-clear]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.tradeFlow.thesis = '';
+      state.tradeFlow.preMortem = '';
+      saveState();
+      const t = document.getElementById('tf-thesis');
+      const p = document.getElementById('tf-premortem');
+      if (t) t.value = '';
+      if (p) p.value = '';
+    });
+  });
+}
+
+// ----- Intraday steps -----
+
+function tfIntradayStep1() {
+  const it = state.intraday || {};
+  const cards = TRADE_INTRADAY_SETUPS.map(s => `
+    <button class="trade-setup-card ${it.setup === s.id ? 'selected' : ''}" type="button" data-tf-i-setup="${s.id}">
+      <span class="trade-setup-card-num">INTRADAY ${s.num}</span>
+      <span class="trade-setup-card-name">${s.name}</span>
+      <span class="trade-setup-card-detail">${s.desc}</span>
+    </button>`).join('');
+  const dirLong  = it.direction === 'long';
+  const dirShort = it.direction === 'short';
+  const vrLong   = it.vwapRel === 'above';
+  const vrShort  = it.vwapRel === 'below';
+  const vrAt     = it.vwapRel === 'at';
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Ticker</label>
+              <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY" value="${(it.ticker || '').toString()}" autocomplete="off" />
+            </div>
+          </div>
+          <div>
+            <label class="input-label">Direction</label>
+            <div class="trade-direction-toggle">
+              <button type="button" class="trade-direction-btn long ${dirLong ? 'selected' : ''}" data-tf-i-dir="long">▲ LONG</button>
+              <button type="button" class="trade-direction-btn short ${dirShort ? 'selected' : ''}" data-tf-i-dir="short">▼ SHORT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> VWAP relation</div>
+      </div>
+      <div class="trade-section-body">
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+          <button type="button" class="trade-direction-btn ${vrLong ? 'long selected' : ''}" data-tf-i-vwap="above" ${dirShort ? 'disabled' : ''}>Above VWAP</button>
+          <button type="button" class="trade-direction-btn ${vrAt ? 'selected' : ''}" data-tf-i-vwap="at">At VWAP</button>
+          <button type="button" class="trade-direction-btn ${vrShort ? 'short selected' : ''}" data-tf-i-vwap="below" ${dirLong ? 'disabled' : ''}>Below VWAP</button>
+        </div>
+        <p class="trade-row-help" style="margin-top:8px;">Long requires Above or At VWAP. Short requires Below or At VWAP. Mismatches block GO.</p>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Setup</div>
+        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-setup-grid">${cards}</div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep1() {
+  const t = document.getElementById('tf-i-ticker');
+  if (t) t.addEventListener('input', e => {
+    state.intraday.ticker = (e.target.value || '').toUpperCase();
+    saveState();
+    tfRefreshHeaderOnly();
+  });
+  document.querySelectorAll('#panel-trade [data-tf-i-dir]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.intraday.direction = b.dataset.tfIDir;
+      saveState();
+      tfRefreshAll();
+      if (typeof renderIntraday === 'function') renderIntraday();
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-i-vwap]').forEach(b => {
+    b.addEventListener('click', () => {
+      if (b.disabled) return;
+      state.intraday.vwapRel = b.dataset.tfIVwap;
+      saveState();
+      tfRefreshAll();
+      if (typeof renderIntraday === 'function') renderIntraday();
+    });
+  });
+  document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.intraday.setup = b.dataset.tfISetup;
+      saveState();
+      tfRefreshAll();
+      if (typeof renderIntraday === 'function') renderIntraday();
+    });
+  });
+}
+
+function tfIntradayStep2() {
+  const it = state.intraday || {};
+  const sb = tfSpreadBracket(it.spreadPct);
+  const filled = (v) => v !== null && v !== undefined && v !== '';
+  const setN = [filled(it.entry), filled(it.stop), filled(it.target), filled(it.spreadPct)].filter(Boolean).length;
+  const r = (it.entry && it.stop && it.target)
+    ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
+    : null;
+  const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Levels</div>
+        <div class="trade-section-counter ${setN >= 3 ? 'complete' : ''}">${setN} of 4</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Entry $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${it.entry ?? ''}" placeholder="e.g. 188.50" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Stop $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${it.stop ?? ''}" placeholder="below structure" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Target $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${it.target ?? ''}" placeholder="prior high / VWAP / etc." />
+          </div></div>
+          <div class="trade-input-row"><div>
+            <label class="input-label">Spread %</label>
+            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${it.spreadPct ?? ''}" placeholder="e.g. 2.0" />
+            <div class="input-help">Bid-ask as % of mid. Cap is ${(state.settings && state.settings.intradayMaxSpreadPct) || 5}%.</div>
+          </div>
+          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
+          </div>
+        </div>
+        <div class="trade-output">
+          <div class="trade-output-title">R-multiple</div>
+          <div class="trade-output-main">${rText}</div>
+          <div class="trade-output-rationale">Distance to target divided by distance to stop. Aim for at least 1.5R on intraday.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Contracts (optional — auto-sized if empty)</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+          <label class="input-label">Contracts</label>
+          <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${it.contracts ?? ''}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk if blank" />
+        </div></div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep2() {
+  const wire = (id, key, isInt) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', e => {
+      const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
+      state.intraday[key] = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+      if (id === 'tf-i-spread') {
+        // update spread bracket without rebuild
+        const wrap = el.parentElement && el.parentElement.parentElement;
+        if (wrap) {
+          const badge = wrap.querySelector('.trade-bracket');
+          if (badge) {
+            const b = tfSpreadBracket(state.intraday.spreadPct);
+            badge.className = `trade-bracket ${b.cls}`;
+            badge.textContent = b.text;
+          }
+        }
+      }
+    });
+    el.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderIntraday === 'function') renderIntraday(); });
+  };
+  wire('tf-i-entry', 'entry');
+  wire('tf-i-stop', 'stop');
+  wire('tf-i-target', 'target');
+  wire('tf-i-spread', 'spreadPct');
+  wire('tf-i-contracts', 'contracts', true);
+}
+
+function tfIntradayStep3() {
+  const it = state.intraday || {};
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
+  const tov   = !!(state.intradayQuality && state.intradayQuality.timeOverride);
+  const dayPL = tfComputeIntradayDayPL();
+  const lossBudget = settings.intradayMaxDailyLoss + dayPL;
+
+  const checks = [
+    { key: 'setup', name: 'Setup matches one of the 6 approved patterns', ok: !!it.setup, rule: 'Set in step 1.' },
+    { key: 'dir',   name: 'Direction matches VWAP relation', ok: !((it.vwapRel === 'above' && it.direction === 'short') || (it.vwapRel === 'below' && it.direction === 'long')), rule: 'Long with Above/At VWAP, Short with Below/At VWAP.' },
+    { key: 'spread',name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`, ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct), rule: `Spread % from step 2.` },
+    { key: 'window',name: 'Inside an entry window', ok: inWin || tov, rule: '09:35–11:30 or 14:00–15:30 local. Override available for paper trading.' },
+    { key: 'budget',name: 'Loss budget remains', ok: lossBudget > 0, rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '−$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
+  ];
+  const passed = checks.filter(c => c.ok).length;
+
+  const rows = checks.map(c => `
+    <div class="trade-row ${c.ok ? 'checked' : 'fail'}">
+      <span class="trade-row-check">${c.ok ? '✓' : ''}</span>
+      <span class="trade-row-main">
+        <span class="trade-row-name">${c.name}</span>
+        <span class="trade-row-help">${c.rule}${c.key === 'window' && !inWin ? ` <button type="button" class="trade-template-btn" data-tf-i-tov style="margin-left:6px;">${tov ? 'Override on — turn off' : 'Override (paper)'}</button>` : ''}</span>
+      </span>
+      <span class="trade-row-pill">${c.ok ? 'PASS' : 'FAIL'}</span>
+    </div>`).join('');
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality checks</div>
+        <div class="trade-section-counter ${passed === 5 ? 'complete' : ''}">${passed} of 5 passed</div>
+      </div>
+      <div class="trade-section-body">
+        <div style="display:flex; flex-direction:column; gap:8px;">${rows}</div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep3() {
+  document.querySelectorAll('#panel-trade [data-tf-i-tov]').forEach(b => {
+    b.addEventListener('click', () => {
+      if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
+      state.intradayQuality.timeOverride = !state.intradayQuality.timeOverride;
+      saveState();
+      tfRefreshAll();
+      if (typeof renderIntraday === 'function') renderIntraday();
+    });
+  });
+}
+
+function tfIntradayStep4() {
+  const it = state.intraday || {};
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Trigger &amp; exit notes (optional)</div>
+      </div>
+      <div class="trade-section-body">
+        <textarea class="trade-textarea" id="tf-i-notes" rows="4" placeholder="e.g. 'Reclaimed VWAP on 5m vol surge after holding session low. Wrong if loses VWAP again. Out at prior intraday high.'">${it.notes || ''}</textarea>
+        <p class="trade-row-help" style="margin-top:8px;">Saved to the trade log. Skip if speed matters more than journaling.</p>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep4() {
+  const t = document.getElementById('tf-i-notes');
+  if (t) {
+    t.addEventListener('input', e => {
+      state.intraday.notes = e.target.value;
+      saveState();
+    });
+  }
+}
+
+function tfIntradayStep5() {
+  const it = state.intraday || {};
+  const st = tfComputeStatus();
+  const ready = st.tone === 'ready';
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Order checklist (TOS)</div>
+      </div>
+      <div class="trade-section-body">
+        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
+          <li>Place the bracket in TOS: entry $${it.entry ?? '—'} · target $${it.target ?? '—'} · stop $${it.stop ?? '—'}.</li>
+          <li>Confirm fill, then click GO below to log.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Status</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-output">
+          <div class="trade-output-title">Final check</div>
+          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
+          <div class="trade-output-rationale">${st.reason}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep5() { /* no inputs to mount */ }
+
+// ============== Orchestrator ==============
+
+function renderTrade() {
+  const panel = document.getElementById('panel-trade');
+  if (!panel) return;
+  // Bind global handlers once
+  if (!panel.dataset.tfBound) {
+    panel.dataset.tfBound = '1';
+    panel.querySelectorAll('[data-trade-mode]').forEach(b => {
+      b.addEventListener('click', () => tfSetMode(b.dataset.tradeMode));
+    });
+    document.getElementById('trade-back-btn')?.addEventListener('click', () => tfGoToStep((state.tradeFlow.step || 1) - 1));
+    document.getElementById('trade-continue-btn')?.addEventListener('click', tfContinue);
+    document.getElementById('trade-reset-btn')?.addEventListener('click', tfReset);
+  }
+  tfRenderHeader();
+  tfRenderStepper();
+  const body = document.getElementById('trade-body');
+  if (body) {
+    body.innerHTML = tfStepBody(state.tradeFlow.step || 1);
+    tfMountStep(state.tradeFlow.step || 1);
+  }
+  tfRenderActions();
+}
+
+function tfMountStep(step) {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'swing') {
+    if (step === 1) tfMountSwingStep1();
+    if (step === 2) tfMountSwingStep2();
+    if (step === 3) tfMountSwingStep3();
+    if (step === 4) tfMountSwingStep4();
+    if (step === 5) tfMountSwingStep5();
+  } else {
+    if (step === 1) tfMountIntradayStep1();
+    if (step === 2) tfMountIntradayStep2();
+    if (step === 3) tfMountIntradayStep3();
+    if (step === 4) tfMountIntradayStep4();
+    if (step === 5) tfMountIntradayStep5();
+  }
+}
+
+function tfRefreshHeaderOnly() {
+  tfRenderHeader();
+  tfRenderStepper();
+  tfRenderActions();
+}
+
+function tfRefreshAll() {
+  // Re-renders step body too. Use only when input focus isn't an issue.
+  renderTrade();
+}
+
+function tfContinue() {
+  const cur = state.tradeFlow.step || 1;
+  const max = tfStepCount();
+  if (cur < max) {
+    tfGoToStep(cur + 1);
+    return;
+  }
+  // Last step → GO. Open the existing trade modal pre-filled.
+  const m = state.tradeFlow.mode;
+  if (m === 'swing') {
+    if (state.tradeFlow.thesis || state.tradeFlow.preMortem) {
+      // Push our buffered thesis text into the modal fields when it opens.
+      window.__tfPendingThesis = state.tradeFlow.thesis || '';
+      window.__tfPendingPreMortem = state.tradeFlow.preMortem || '';
+    }
+    if (typeof openTradeModal === 'function') {
+      openTradeModal();
+      // Apply pending thesis/premortem into modal fields after open.
+      setTimeout(() => {
+        const t = document.getElementById('t-thesis');
+        const p = document.getElementById('t-premortem');
+        if (t && window.__tfPendingThesis) t.value = window.__tfPendingThesis;
+        if (p && window.__tfPendingPreMortem) p.value = window.__tfPendingPreMortem;
+        window.__tfPendingThesis = null;
+        window.__tfPendingPreMortem = null;
+      }, 50);
+    } else {
+      alert('Trade logging is unavailable. Use the legacy panel temporarily.');
+    }
+  } else {
+    // Intraday: existing flow has its own GO button + modal. Reuse if exposed.
+    if (typeof logIntradayTrade === 'function') {
+      logIntradayTrade();
+    } else {
+      alert('Intraday logging is unavailable. Use the legacy panel temporarily.');
+    }
+  }
+}
+
 // ---------- Tabs ----------
 function setTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
@@ -10617,6 +12705,7 @@ function setTab(name) {
   if (name === 'reference') renderReference();
   if (name === 'intraday') { renderIntradaySetupGrid(); renderIntraday(); }
   if (name === 'log') { renderLogStats(); renderLogTable(); }
+  if (name === 'trade') renderTrade();
 }
 
 // ---------- Init ----------
@@ -10736,7 +12825,11 @@ function init() {
   });
 
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
-    document.getElementById('modal-mode-picker').classList.add('show');
+    if (state.settings && state.settings.newTradeFlow) {
+      setTab('trade');
+    } else {
+      document.getElementById('modal-mode-picker').classList.add('show');
+    }
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
@@ -10893,7 +12986,7 @@ function init() {
   if (clearBtn) clearBtn.addEventListener('click', clearSectors);
 
   // Restore last-active mode
-  if (state.activeMode && ['home','decision','intraday','sunday','log','reference'].includes(state.activeMode)) {
+  if (state.activeMode && ['home','decision','intraday','sunday','log','reference','trade'].includes(state.activeMode)) {
     setTab(state.activeMode);
   }
 
