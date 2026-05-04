@@ -5248,7 +5248,7 @@ function renderLiquidityFields() {
     const spreadLabel = derivedSpread <= 5 ? 'OK' : 'too wide — skip';
     const mid = (Number(liq.bid) + Number(liq.ask)) / 2;
     spreadDisplay = `
-      <div style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid ${spreadColor}; border-radius: var(--r-sm); font-size: 12px;">
+      <div class="liq-spread-display" style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid ${spreadColor}; border-radius: var(--r-sm); font-size: 12px;">
         <span style="color: var(--ink-4); font-family: var(--mono);">Mid:</span> <strong>$${mid.toFixed(2)}</strong>
         &nbsp;·&nbsp;
         <span style="color: var(--ink-4); font-family: var(--mono);">Spread:</span>
@@ -5257,7 +5257,7 @@ function renderLiquidityFields() {
     `;
   } else if (Number(liq.bid) > 0 || Number(liq.ask) > 0) {
     spreadDisplay = `
-      <div style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid var(--ink-4); border-radius: var(--r-sm); font-size: 11px; color: var(--ink-4);">
+      <div class="liq-spread-display" style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid var(--ink-4); border-radius: var(--r-sm); font-size: 11px; color: var(--ink-4);">
         Enter both Bid and Ask to see spread
       </div>
     `;
@@ -5289,6 +5289,86 @@ function liquidityOK() {
       && derivedSpread !== null && derivedSpread <= 5;
 }
 
+// Refresh liquidity-related visuals WITHOUT re-rendering the inputs.
+// Called on every keystroke from the input handler. Touching the inputs
+// would steal focus and drop keystrokes (the original bug).
+function updateLiquidityVisualsLive() {
+  const liq = state.liquidity || {};
+  const derivedSpread = deriveSpreadPct(liq);
+  const isStocks = state.instrument === 'stocks';
+
+  // Row pass/fail tinting
+  const passMap = {
+    stockVol:  Number(liq.stockVol)  >= 1000000,
+    optionOI:  Number(liq.optionOI)  >= 500,
+    optionVol: Number(liq.optionVol) >= 100,
+    bid:       Number(liq.bid) > 0 && Number(liq.ask) > 0 && derivedSpread !== null && derivedSpread <= 5,
+    ask:       Number(liq.bid) > 0 && Number(liq.ask) > 0 && derivedSpread !== null && derivedSpread <= 5,
+  };
+  document.querySelectorAll('.liq-inline-row').forEach(row => {
+    const inp = row.querySelector('input.liq-inline-input');
+    if (!inp) return;
+    const key = inp.dataset.liqKey;
+    const v = liq[key];
+    const filled = v !== null && v !== undefined && v !== '';
+    row.classList.remove('pass', 'fail');
+    if (filled) row.classList.add(passMap[key] ? 'pass' : 'fail');
+  });
+
+  // Spread display row — find the existing one and rewrite its content,
+  // or insert one if it doesn't exist yet.
+  const wrap = document.querySelector('.liq-inline-wrap');
+  if (wrap) {
+    let spreadEl = wrap.querySelector('.liq-spread-display');
+    if (derivedSpread !== null) {
+      const spreadColor = derivedSpread <= 5 ? 'var(--green)' : 'var(--red)';
+      const spreadLabel = derivedSpread <= 5 ? 'OK' : 'too wide — skip';
+      const mid = (Number(liq.bid) + Number(liq.ask)) / 2;
+      const html = `
+        <span style="color: var(--ink-4); font-family: var(--mono);">Mid:</span> <strong>$${mid.toFixed(2)}</strong>
+        &nbsp;·&nbsp;
+        <span style="color: var(--ink-4); font-family: var(--mono);">Spread:</span>
+        <strong style="color: ${spreadColor};">${derivedSpread.toFixed(1)}% ${spreadLabel}</strong>
+      `;
+      if (!spreadEl) {
+        spreadEl = document.createElement('div');
+        spreadEl.className = 'liq-spread-display';
+        spreadEl.style.cssText = 'margin-top: 4px; padding: 8px 10px; background: var(--bg); border-radius: var(--r-sm); font-size: 12px;';
+        wrap.appendChild(spreadEl);
+      }
+      spreadEl.style.borderLeft = `3px solid ${spreadColor}`;
+      spreadEl.innerHTML = html;
+    } else if (Number(liq.bid) > 0 || Number(liq.ask) > 0) {
+      // Half-filled state
+      if (!spreadEl) {
+        spreadEl = document.createElement('div');
+        spreadEl.className = 'liq-spread-display';
+        spreadEl.style.cssText = 'margin-top: 4px; padding: 8px 10px; background: var(--bg); border-radius: var(--r-sm); font-size: 11px; color: var(--ink-4);';
+        wrap.appendChild(spreadEl);
+      }
+      spreadEl.style.borderLeft = '3px solid var(--ink-4)';
+      spreadEl.textContent = 'Enter both Bid and Ask to see spread';
+    } else if (spreadEl) {
+      // Both empty — remove the display
+      spreadEl.remove();
+    }
+  }
+
+  // Gate 04 auto-pass state + checkmark
+  const ok = liquidityOK();
+  state.gateChecks['04'] = ok;
+  const gate04 = document.querySelector('.gate-item[data-gate="04"]');
+  if (gate04) gate04.classList.toggle('passed', ok);
+
+  // Gate progress bar / passed count
+  const passed = Object.values(state.gateChecks).filter(Boolean).length;
+  const total = GATES.length;
+  const labelEl = document.getElementById('gate-progress-label');
+  const fillEl = document.getElementById('gate-fill');
+  if (labelEl) labelEl.textContent = passed;
+  if (fillEl) fillEl.style.width = ((passed / total) * 100) + '%';
+}
+
 function renderGate() {
   migrateGateChecks();
   const list = document.getElementById('gate-list');
@@ -5315,7 +5395,10 @@ function renderGate() {
     </div>
   `;}).join('');
 
-  // Wire inline liquidity inputs (rendered fresh on each renderGate call)
+  // Wire inline liquidity inputs (rendered fresh on each renderGate call).
+  // CRITICAL: do NOT call renderGate() on input — it would rebuild this very
+  // input and steal your focus + drop your keystrokes. Update state silently
+  // and refresh derived UI (pass/fail color, spread display) inline.
   list.querySelectorAll('.liq-inline-input').forEach(input => {
     input.addEventListener('input', e => {
       const k = e.target.dataset.liqKey;
@@ -5323,11 +5406,19 @@ function renderGate() {
       if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
       state.liquidity[k] = isNaN(v) ? null : v;
       saveState();
-      renderGate();
+      // Update only the cosmetic side without re-rendering the inputs:
+      updateLiquidityVisualsLive();
+      // Quietly recompute gate auto-pass + step states; these just update
+      // status pills and progress bars, not the input markup.
       recomputeStepStates();
     });
     // Stop the gate-item click handler from firing when user types in a field
     input.addEventListener('click', e => e.stopPropagation());
+    // On blur, do a full re-render so any edge cases settle (formatting, etc.)
+    input.addEventListener('blur', () => {
+      renderGate();
+      recomputeStepStates();
+    });
   });
 
   list.querySelectorAll('.gate-item').forEach(el => {
