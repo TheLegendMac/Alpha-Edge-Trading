@@ -2118,11 +2118,361 @@ textarea.input-field {
 .quality-list li .q-text {
   flex: 1; font-family: var(--mono); font-size: 12px; color: var(--ink-2);
 }
-.quality-list li .q-toggle {
-  background: var(--bg-card); border: 1px solid var(--line); color: var(--ink-2);
-  padding: 4px 9px; border-radius: var(--r-sm); font-size: 10px; cursor: pointer;
-  font-family: var(--mono);
+/* ============================================================
+   UNIFIED VISUAL LANGUAGE
+   Applies the swing flow's card/button/badge treatments across
+   Intraday, Sunday Prep, Trade Log, Settings, and Reference tabs.
+   Additive overlay — does not modify existing rules.
+   ============================================================ */
+
+/* --- Generic card (used by all tabs) --- */
+.u-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
 }
+.u-card.bordered-cyan { border-left: 3px solid var(--cyan); }
+.u-card.bordered-green { border-left: 3px solid var(--green); }
+.u-card.bordered-amber { border-left: 3px solid var(--amber); }
+.u-card.bordered-red { border-left: 3px solid var(--red); }
+
+/* Card header with title + optional subtitle */
+.u-card-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 14px;
+}
+.u-card-title {
+  font-family: var(--display); font-size: 16px; font-weight: 700;
+  color: var(--ink); letter-spacing: 0.01em;
+}
+.u-card-subtitle {
+  font-size: 12px; color: var(--ink-3); margin-top: 2px;
+}
+.u-card-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--cyan); text-transform: uppercase;
+}
+
+/* --- Intraday: restyle the existing classes to match swing --- */
+.aside-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.aside-card:hover { border-color: var(--line-soft); }
+.aside-title {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--cyan); margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* Intraday setup cards — match swing's setup grid */
+.i-setup-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.i-setup-card:hover {
+  border-color: var(--cyan-dim);
+  background: rgba(6, 212, 248, 0.04);
+  transform: translateY(-1px);
+}
+.i-setup-card.selected {
+  border-color: var(--cyan);
+  background: rgba(6, 212, 248, 0.10);
+  box-shadow: 0 0 0 1px var(--cyan-dim);
+}
+.i-setup-name {
+  font-family: var(--display); font-size: 12px; font-weight: 700; color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.i-setup-detail {
+  font-size: 10px; color: var(--ink-3); margin-top: 5px;
+  font-family: var(--sans); line-height: 1.4;
+}
+
+/* Direction toggle — match swing's button style */
+.dir-toggle {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  border-radius: var(--r-md); overflow: visible;
+}
+.dir-btn {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 12px 16px;
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  transition: all 0.2s ease;
+}
+.dir-btn:hover { border-color: var(--line-soft); }
+.dir-btn.active.long {
+  background: var(--green-bg);
+  color: var(--green-bright);
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+.dir-btn.active.short {
+  background: var(--red-bg);
+  color: var(--red-bright);
+  border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red);
+}
+
+/* Quality checklist — match swing's gate-item visual */
+.quality-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.quality-list li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-elev);
+  transition: all 0.2s ease;
+}
+.quality-list li:hover { border-color: var(--line-soft); }
+.quality-list li.pass {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+.quality-list li.fail {
+  background: var(--red-bg);
+  border-color: var(--red);
+}
+.quality-list li .q-dot {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--ink-4);
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.quality-list li.pass .q-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.quality-list li.fail .q-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.quality-list li .q-text {
+  flex: 1; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink-2);
+}
+.quality-list li.pass .q-text { color: var(--green-bright); }
+.quality-list li.fail .q-text { color: var(--red-bright); }
+.quality-list li .q-toggle {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 5px 11px;
+  border-radius: var(--r-sm);
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.quality-list li .q-toggle:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* --- Trade Log: card-based table --- */
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.log-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  border-left: 3px solid var(--line-soft);
+}
+.log-stat-card.green { border-left-color: var(--green); }
+.log-stat-card.red { border-left-color: var(--red); }
+.log-stat-card.cyan { border-left-color: var(--cyan); }
+.log-stat-card.amber { border-left-color: var(--amber); }
+.log-stat-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--ink-3);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.log-stat-value {
+  font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--ink);
+}
+
+/* Log table wrapper as a card */
+.log-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+.log-toolbar {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.log-toolbar-title {
+  font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--ink);
+}
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table thead { background: var(--bg-elev); }
+.log-table th {
+  padding: 12px 16px; text-align: left;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--ink-3);
+  text-transform: uppercase; border-bottom: 1px solid var(--line);
+}
+.log-table td {
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+  font-size: 13px; color: var(--ink);
+}
+
+/* --- Sunday Prep: cards & sector grid --- */
+.sector-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.sector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.sector-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+}
+.sector-card:hover { border-color: var(--line-soft); }
+.sector-card.strong { border-left: 3px solid var(--green); }
+.sector-card.neutral { border-left: 3px solid var(--amber); }
+.sector-card.weak { border-left: 3px solid var(--red); }
+
+/* Block cards (used in Sunday Prep blocks) */
+.block-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.block-num {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.10em; color: var(--cyan);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+
+/* --- Settings: cleaner section dividers --- */
+.settings-section {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-section-title {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.settings-section-desc {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* --- Reference: same card treatment --- */
+.ref-section {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+/* --- Universal status badges (used everywhere) --- */
+.u-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.u-badge.green { background: var(--green-bg); color: var(--green-bright); border: 1px solid var(--green); }
+.u-badge.amber { background: var(--amber-bg); color: var(--amber-bright); border: 1px solid var(--amber); }
+.u-badge.red { background: var(--red-bg); color: var(--red-bright); border: 1px solid var(--red); }
+.u-badge.cyan { background: rgba(6,212,248,0.10); color: var(--cyan); border: 1px solid var(--cyan-dim); }
+.u-badge.muted { background: var(--bg-elev); color: var(--ink-3); border: 1px solid var(--line); }
+.u-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+}
+
+/* --- Sync pill: match the unified pill aesthetic --- */
+#sync-pill {
+  background: var(--bg-elev) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 999px !important;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--ink-2);
+  transition: all 0.2s;
+}
+#sync-pill:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* --- Instrument toggle (Step 1: Options vs Stocks) --- */
+.instrument-toggle {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.instrument-btn {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+.instrument-btn:hover { border-color: var(--line-soft); }
+.instrument-btn.active {
+  background: rgba(6,212,248,0.08);
+  border-color: var(--cyan);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--cyan-dim);
+}
+.instrument-btn-title {
+  font-family: var(--display);
+  font-size: 14px; font-weight: 700;
+  color: var(--ink);
+}
+.instrument-btn.active .instrument-btn-title { color: var(--cyan); }
+.instrument-btn-detail {
+  font-size: 11px; color: var(--ink-3);
+}
+.instrument-btn.active .instrument-btn-detail { color: var(--ink-2); }
+
 </style>
 </head>
 <body>
@@ -2136,8 +2486,8 @@ textarea.input-field {
 -->
 <script>
   window.SUPABASE_CONFIG = {
-    url: 'https://jthvhxznbhsvszpaemus.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0aHZoeHpuYmhzdnN6cGFlbXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MTU1MTksImV4cCI6MjA5MzM5MTUxOX0.Lh0-9PiPvDvqFS0uojyk9f22Ldtew5n4CYqkH9qP2fY',
+    url: 'https://YOUR-PROJECT.supabase.co',
+    anonKey: 'YOUR-ANON-KEY-HERE',
   };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2408,6 +2758,24 @@ textarea.input-field {
               <div class="setup-card-name">Edge Reversal</div>
               <div class="setup-card-desc">Counter-trend trade: an extended trend shows exhaustion (gap-up after long rally, etc.). Use HALF size — these are lower-probability than the other 4 setups</div>
               <div class="setup-card-tag">SETUP 05 · ½ size</div>
+            </div>
+          </div>
+
+          <!-- Instrument toggle: Options vs Stocks -->
+          <div class="instrument-toggle-wrap" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);">
+            <div class="input-label" style="margin-bottom: 8px;">What are you trading?</div>
+            <div class="instrument-toggle" role="tablist">
+              <button type="button" class="instrument-btn active" data-instrument="options" role="tab" aria-selected="true">
+                <span class="instrument-btn-title">Options</span>
+                <span class="instrument-btn-detail">Calls / puts / spreads</span>
+              </button>
+              <button type="button" class="instrument-btn" data-instrument="stocks" role="tab" aria-selected="false">
+                <span class="instrument-btn-title">Stocks</span>
+                <span class="instrument-btn-detail">Shares of the underlying</span>
+              </button>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); line-height: 1.5;">
+              <span id="instrument-hint">Options selected — Step 3 will calculate contracts. IV Rank required in Step 2. Gate 04 checks option liquidity.</span>
             </div>
           </div>
         </div>
@@ -2798,11 +3166,22 @@ textarea.input-field {
           </div>
         </div>
         <div class="step-body">
-          <div class="execute-area">
-            <button class="btn-execute" id="btn-i-go" disabled>
-              <span class="btn-execute-label">GO — Log Intraday Trade</span>
-              <span class="btn-execute-hint">Order goes in TOS first, then click here</span>
+          <div class="execute-row">
+            <button class="btn-go" id="btn-i-go" disabled>
+              <span class="light"></span>
+              <span id="btn-i-go-text">Finish the steps above to enable trade</span>
             </button>
+          </div>
+          <div class="execute-checklist">
+            <div class="execute-checklist-title">When GO is green, do this in TOS:</div>
+            <div class="execute-step">
+              <span class="execute-step-num">01</span>
+              <span>Place your bracket order in TOS at the cockpit's recommended entry, target, and stop levels</span>
+            </div>
+            <div class="execute-step">
+              <span class="execute-step-num">02</span>
+              <span>Once the order is live in TOS, click <strong>GO</strong> here to log the trade</span>
+            </div>
           </div>
         </div>
       </div>
@@ -3982,6 +4361,7 @@ let state = {
   trades: [],
   // Swing flow
   selectedSetup: null,
+  instrument: 'options',  // 'options' | 'stocks' — drives Step 3 calc + Gate 04 fields
   ivr: null,
   direction: 'long',
   premium: null,
@@ -3996,7 +4376,7 @@ let state = {
   sectorNotes: '',
   sectorRatings: {},
   sectorRatedAt: null,
-  liquidity: { stockVol: null, optionOI: null, optionVol: null, spreadPct: null },
+  liquidity: { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null },
   // Intraday
   intraday: newIntradayTicket(),
   intradayQuality: { timeOverride: false },
@@ -4014,8 +4394,13 @@ function loadState() {
       // Ensure new fields exist
       if (!state.sectorRatings) state.sectorRatings = {};
       if (!state.sectorRatedAt) state.sectorRatedAt = null;
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, spreadPct: null };
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      // Migrate older state that has spreadPct but no bid/ask
+      if (state.liquidity.bid === undefined) state.liquidity.bid = null;
+      if (state.liquidity.ask === undefined) state.liquidity.ask = null;
       if (!state.intraday) state.intraday = newIntradayTicket();
+      // Migrate older state without instrument field
+      if (!state.instrument) state.instrument = 'options';
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
       if (!state.activeMode) state.activeMode = 'swing';
@@ -4337,28 +4722,199 @@ function renderCalc() {
   const underlyingPrice = parseFloat(underlyingInput?.value);
 
   // Liquidity inputs live in Gate 04 (Step 4) — not read here.
-  // state.liquidity is managed by renderGate's input listeners.
 
   state.premium = isNaN(premium) ? null : premium;
   state.atr = isNaN(atr) ? null : atr;
   state.underlyingPrice = isNaN(underlyingPrice) ? null : underlyingPrice;
   saveState();
 
+  // Update labels/placeholders based on instrument mode
+  updateStep3LabelsForInstrument();
+
   const out = document.getElementById('calc-result');
   if (state.premium === null || state.premium <= 0) {
-    out.innerHTML = `<div class="calc-result empty">Enter premium to compute<br/>contract count and risk</div>`;
+    const what = state.instrument === 'stocks' ? 'share price' : 'premium';
+    const result = state.instrument === 'stocks' ? 'share count and risk' : 'contract count and risk';
+    out.innerHTML = `<div class="calc-result empty">Enter ${what} to compute<br/>${result}</div>`;
     recomputeStepStates();
     return;
   }
 
+  if (state.instrument === 'stocks') {
+    renderStocksCalc(out);
+  } else {
+    renderOptionsCalc(out);
+  }
+  recomputeStepStates();
+}
+
+function updateStep3LabelsForInstrument() {
+  const step3Sub = document.querySelector('#step-3 .step-subtitle');
+  const premiumLabel = document.querySelector('label[for="premium-input"]') ||
+                       document.getElementById('premium-input')?.closest('.input-group')?.querySelector('.input-label');
+  const atrLabel = document.getElementById('atr-input')?.closest('.input-group')?.querySelector('.input-label');
+  const underlyingLabel = document.getElementById('underlying-price-input')?.closest('.input-group')?.querySelector('.input-label');
+  const premiumInput = document.getElementById('premium-input');
+  const underlyingInput = document.getElementById('underlying-price-input');
+
+  if (state.instrument === 'stocks') {
+    if (step3Sub) step3Sub.textContent = 'Three inputs. Cockpit returns share count, stop, and target. Liquidity checks live in Step 4.';
+    if (premiumLabel) premiumLabel.innerHTML = 'Share price ($) <span style="color: var(--red); font-weight: 700;">*</span>';
+    if (premiumInput) premiumInput.placeholder = 'e.g. 185.50 — current share price';
+    if (atrLabel) atrLabel.innerHTML = 'ATR(14) <span style="color: var(--ink-4); font-weight: 400; font-size: 11px; margin-left: 6px;">in TOS: ATR study, period 14</span>';
+    if (underlyingLabel) underlyingLabel.textContent = 'Reference price (auto-fills with share price if blank)';
+    if (underlyingInput) underlyingInput.placeholder = '(optional — defaults to share price)';
+  } else {
+    if (step3Sub) step3Sub.textContent = 'Three inputs. Cockpit returns contracts, stop, and target. Liquidity checks live in Step 4.';
+    if (premiumLabel) premiumLabel.innerHTML = 'Option premium per contract ($) <span style="color: var(--red); font-weight: 700;">*</span>';
+    if (premiumInput) premiumInput.placeholder = 'e.g. 2.00 — the price shown in TOS option chain';
+    if (atrLabel) atrLabel.innerHTML = 'Underlying ATR(14) <span style="color: var(--ink-4); font-weight: 400; font-size: 11px; margin-left: 6px;">in TOS: ATR study, period 14</span>';
+    if (underlyingLabel) underlyingLabel.textContent = 'Underlying current price';
+    if (underlyingInput) underlyingInput.placeholder = 'e.g. 185.50';
+  }
+}
+
+// ---------- STOCKS-MODE CALC ----------
+// Stock sizing: shares = risk_dollars / (sharePrice × stopPct)
+// Default stop% should be tighter for stocks (8%) vs options (50%), but we use
+// settings.stopPct so user can override globally. We expose a "stocksStopPct"
+// fallback in case it's missing — safer to assume 8% for stocks than 50%.
+function renderStocksCalc(out) {
+  const settings = state.settings;
+  const account = settings.account;
+  const sharePrice = state.premium;  // reused field
+  // Stocks use a tighter stop. Use settings.stopPctStocks if defined, else 8%.
+  const stopPctStocks = (settings.stopPctStocks != null) ? settings.stopPctStocks : 8;
+  const targetPctStocks = (settings.targetPctStocks != null) ? settings.targetPctStocks : 16;
+  const stopFraction = stopPctStocks / 100;
+  const targetFraction = targetPctStocks / 100;
+
+  let riskPct = getRiskPctForRegime(state.regime);
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskDollars = account * riskPct;
+
+  // Risk per share = sharePrice × stop%
+  const maxLossPerShare = sharePrice * stopFraction;
+  const rawShares = riskDollars / maxLossPerShare;
+  let shares = Math.floor(rawShares);
+  if (shares < 1) shares = 0;
+
+  let totalPosition = shares * sharePrice;
+  const pctOfAccount = (totalPosition / account) * 100;
+
+  // ATR-aware sizing for stocks
+  const refPrice = (state.underlyingPrice && state.underlyingPrice > 0) ? state.underlyingPrice : sharePrice;
+  let volSizingHtml = '';
+  if (state.atr && state.atr > 0 && refPrice > 0) {
+    const atrPctOfPrice = (state.atr / refPrice) * 100;
+    const recommendedStopDistance = state.atr * 1.5;
+    const isLong = state.direction !== 'short';
+    const stopPriceUnderlying = isLong
+      ? refPrice - recommendedStopDistance
+      : refPrice + recommendedStopDistance;
+    const stopPctATR = (recommendedStopDistance / refPrice) * 100;
+    const stopRelLabel = isLong ? 'below entry' : 'above entry';
+    const volAdjShares = Math.floor(riskDollars / recommendedStopDistance);
+    const volSizeDelta = volAdjShares - shares;
+
+    let volTier = 'normal', volColor = 'var(--ink)';
+    if (atrPctOfPrice > 4) { volTier = 'EXTREME'; volColor = 'var(--red)'; }
+    else if (atrPctOfPrice > 2.5) { volTier = 'HIGH'; volColor = 'var(--amber)'; }
+    else if (atrPctOfPrice < 1.0) { volTier = 'LOW'; volColor = 'var(--cyan)'; }
+
+    volSizingHtml = `
+      <div style="margin-top: 14px; padding: 12px; background: var(--bg-elev); border-left: 3px solid var(--cyan); border-radius: var(--r-sm);">
+        <div style="font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--cyan); margin-bottom: 8px;">VOLATILITY-ADJUSTED SIZING (${isLong ? 'LONG' : 'SHORT'})</div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">ATR as % of price</span>
+          <span class="calc-detail-value" style="color: ${volColor}; font-weight: 700;">${atrPctOfPrice.toFixed(2)}% (${volTier})</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Recommended stop distance (1.5×ATR)</span>
+          <span class="calc-detail-value">$${recommendedStopDistance.toFixed(2)} per share</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Suggested stop price</span>
+          <span class="calc-detail-value">$${stopPriceUnderlying.toFixed(2)} (${stopPctATR.toFixed(1)}% ${stopRelLabel})</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Vol-adjusted shares (using ATR stop)</span>
+          <span class="calc-detail-value" style="font-weight: 700;">${volAdjShares}${volSizeDelta !== 0 ? ` (${volSizeDelta > 0 ? '+' : ''}${volSizeDelta} vs flat sizing)` : ''}</span>
+        </div>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); font-style: italic; line-height: 1.4;">
+          ${volTier === 'EXTREME' ? 'EXTREME vol — consider half size or skip.' : volTier === 'HIGH' ? 'HIGH vol — fewer shares than flat sizing suggests.' : volTier === 'LOW' ? 'LOW vol — more shares possible while keeping risk constant.' : 'Normal vol — sizing should match flat % calc closely.'}
+        </div>
+      </div>
+    `;
+  }
+
+  // Portfolio caps for stocks
+  const openTrades = state.trades.filter(t => t.status === 'open' && (t.instrument === 'stocks'));
+  const existingPosition = openTrades.reduce((s, t) => s + (t.entry * (t.shares || t.contracts || 0)), 0);
+  const existingRisk = openTrades.reduce((s, t) => {
+    const tradeStopPct = (t.stopPct != null ? t.stopPct : stopPctStocks) / 100;
+    return s + (t.entry * tradeStopPct * (t.shares || t.contracts || 0));
+  }, 0);
+  const newTotalPosition = existingPosition + totalPosition;
+  const newTotalRisk = existingRisk + (shares * sharePrice * stopFraction);
+  // Stocks max position cap: use maxPremiumPct as proxy (or full account if unset). Most stock traders allow 100% allocated.
+  const maxPositionDollars = account * ((settings.maxPositionPctStocks != null) ? settings.maxPositionPctStocks : 100) / 100;
+  const maxRiskDollars = account * (settings.maxRiskPct / 100);
+
+  let warningHtml = '';
+  let sizeClass = 'healthy';
+  if (shares === 0) {
+    warningHtml = `<div class="calc-warning danger show">🔴 Share price too high to size at ${(riskPct * 100).toFixed(2)}% risk ($${riskDollars.toFixed(0)}). Skip or pick a cheaper share.</div>`;
+    sizeClass = 'danger';
+  } else if (newTotalRisk > maxRiskDollars) {
+    const remainingRisk = Math.max(0, maxRiskDollars - existingRisk);
+    const cappedShares = Math.floor(remainingRisk / (sharePrice * stopFraction));
+    warningHtml = `<div class="calc-warning danger show">🔴 Adding this trade pushes total at-risk over the ${settings.maxRiskPct}% cap. Cut to ${cappedShares} share${cappedShares !== 1 ? 's' : ''}.</div>`;
+    sizeClass = 'danger';
+    shares = cappedShares;
+    totalPosition = shares * sharePrice;
+  }
+
+  out.innerHTML = `
+    <div class="calc-result">
+      <div class="calc-contracts ${sizeClass}">${shares}</div>
+      <div class="calc-contracts-label">Shares</div>
+      <div style="margin-top: 14px; text-align: left;">
+        <div class="calc-detail">
+          <span class="calc-detail-label">Risk budget</span>
+          <span class="calc-detail-value">$${riskDollars.toFixed(0)} (${(riskPct * 100).toFixed(2)}%)</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Max loss / share</span>
+          <span class="calc-detail-value">$${maxLossPerShare.toFixed(2)} (price &minus;${stopPctStocks}%)</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Total position</span>
+          <span class="calc-detail-value">$${totalPosition.toFixed(0)} (${pctOfAccount.toFixed(1)}%)</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Profit target (+${targetPctStocks}%)</span>
+          <span class="calc-detail-value">$${(sharePrice * (1 + targetFraction)).toFixed(2)} / share</span>
+        </div>
+        <div class="calc-detail">
+          <span class="calc-detail-label">Stop trigger (&minus;${stopPctStocks}%)</span>
+          <span class="calc-detail-value">$${(sharePrice * (1 - stopFraction)).toFixed(2)} / share</span>
+        </div>
+      </div>
+      ${warningHtml}
+      ${volSizingHtml}
+    </div>
+  `;
+}
+
+// ---------- OPTIONS-MODE CALC (the original logic) ----------
+function renderOptionsCalc(out) {
   const settings = state.settings;
   const account = settings.account;
   let riskPct = getRiskPctForRegime(state.regime);
-  // Edge reversal = half size always
   if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
 
   const riskDollars = account * riskPct;
-  // Max loss per contract in DOLLARS = premium × stop% × 100 (multiplier)
   const stopFraction = settings.stopPct / 100;
   const targetFraction = settings.targetPct / 100;
   const maxLossPerContract = state.premium * stopFraction * 100;
@@ -4369,26 +4925,21 @@ function renderCalc() {
   let totalPremium = contracts * state.premium * 100;
   const pctOfAccount = (totalPremium / account) * 100;
 
-  // ATR-based vol-aware sizing (only when ATR + underlying price provided)
-  // Industry-standard model: stop distance = K × ATR; position size = risk_$ / stop_distance
-  // Direction-aware: long stop = price - 1.5*ATR  /  short stop = price + 1.5*ATR
   let volSizingHtml = '';
   if (state.atr && state.atr > 0 && state.underlyingPrice && state.underlyingPrice > 0) {
     const atrPctOfPrice = (state.atr / state.underlyingPrice) * 100;
-    const recommendedStopDistance = state.atr * 1.5;  // 1.5×ATR is the swing-trader standard
+    const recommendedStopDistance = state.atr * 1.5;
     const isLongDir = state.direction !== 'short';
     const stopPriceUnderlying = isLongDir
       ? state.underlyingPrice - recommendedStopDistance
       : state.underlyingPrice + recommendedStopDistance;
     const stopPctUnderlying = (recommendedStopDistance / state.underlyingPrice) * 100;
     const stopRelLabel = isLongDir ? 'below entry' : 'above entry';
-    // Approximate impact on option premium using delta ~0.65 (ITM call/put)
     const approxOptionLossPerShare = recommendedStopDistance * 0.65;
     const approxOptionLossPerContract = approxOptionLossPerShare * 100;
     const volAdjContracts = Math.floor(riskDollars / approxOptionLossPerContract);
     const volSizeDelta = volAdjContracts - contracts;
 
-    // Vol classification
     let volTier = 'normal', volColor = 'var(--ink)';
     if (atrPctOfPrice > 4) { volTier = 'EXTREME'; volColor = 'var(--red)'; }
     else if (atrPctOfPrice > 2.5) { volTier = 'HIGH'; volColor = 'var(--amber)'; }
@@ -4420,8 +4971,8 @@ function renderCalc() {
     `;
   }
 
-  // Compute already-deployed and at-risk to enforce portfolio caps across open trades
-  const openTrades = state.trades.filter(t => t.status === 'open');
+  // Portfolio caps (options-only open trades)
+  const openTrades = state.trades.filter(t => t.status === 'open' && (t.instrument !== 'stocks'));
   const existingPremium = openTrades.reduce((s, t) => s + (t.entry * 100 * t.contracts), 0);
   const existingRisk = openTrades.reduce((s, t) => s + (t.entry * (settings.stopPct/100) * 100 * t.contracts), 0);
   const newTotalPremium = existingPremium + totalPremium;
@@ -4429,7 +4980,6 @@ function renderCalc() {
   const maxPremiumDollars = account * (settings.maxPremiumPct / 100);
   const maxRiskDollars = account * (settings.maxRiskPct / 100);
 
-  // Warnings & traffic-light coloring
   let warningHtml = '';
   let contractClass = 'healthy';
   if (contracts === 0) {
@@ -4484,7 +5034,6 @@ function renderCalc() {
       ${volSizingHtml}
     </div>
   `;
-  recomputeStepStates();
 }
 
 // ---------- GO/NO-GO Gate ----------
@@ -4500,7 +5049,7 @@ const GATES = [
   { num: '03', name: 'Momentum grade is B- or better',
     detail: 'Same Factor Grades section on SA. B- or better means the stock is in an uptrend relative to peers. You want to ride a trend, not catch a falling knife. Manual check.' },
   { num: '04', name: 'Stock and options trade enough volume',
-    detail: 'All four boxes below must pass. Auto-passes the moment all four are filled and within range.',
+    detail: 'Fill the boxes below. Auto-passes when all required fields are filled and within range. (In Stocks mode, only stock volume + bid/ask are checked.)',
     autoKey: 'liquidity', manualToggleBlocked: true,
     inlineFields: 'liquidity' },
   { num: '05', name: 'Earnings are more than 7 days away',
@@ -4522,49 +5071,115 @@ function migrateGateChecks() {
 }
 
 // Liquidity field definitions — rendered inline inside Gate 04
+// Bid/Ask auto-derive spreadPct so user doesn't have to do mental math.
 const LIQUIDITY_FIELDS = [
   { id: 'liq-stock-vol',  key: 'stockVol',  label: 'Stock 30-day average volume (shares)',  rule: '1,000,000 or higher',         placeholder: 'e.g. 35000000', step: '1' },
   { id: 'liq-option-oi',  key: 'optionOI',  label: 'Option open interest',                  rule: '500 or higher',               placeholder: 'e.g. 2500',     step: '1' },
   { id: 'liq-option-vol', key: 'optionVol', label: 'Option volume today',                   rule: '100 or higher',               placeholder: 'e.g. 800',      step: '1' },
-  { id: 'liq-spread-pct', key: 'spreadPct', label: 'Bid-ask spread as percent of mid',      rule: '5 percent or less',           placeholder: 'e.g. 2.5',      step: '0.1' },
+  // Bid/Ask are special — rendered as a paired row, auto-derive spreadPct
+  { id: 'liq-bid',        key: 'bid',       label: 'Option Bid ($)',                        rule: 'paired with Ask',             placeholder: 'e.g. 1.95',     step: '0.01', paired: 'bidask' },
+  { id: 'liq-ask',        key: 'ask',       label: 'Option Ask ($)',                        rule: 'spread auto-calculated',      placeholder: 'e.g. 2.05',     step: '0.01', paired: 'bidask' },
 ];
+
+// Derive spread % from bid/ask. Mid = (bid+ask)/2, spread% = (ask-bid)/mid * 100.
+function deriveSpreadPct(liq) {
+  const bid = Number(liq.bid);
+  const ask = Number(liq.ask);
+  if (!bid || !ask || bid <= 0 || ask <= 0 || ask < bid) return null;
+  const mid = (bid + ask) / 2;
+  if (mid <= 0) return null;
+  return ((ask - bid) / mid) * 100;
+}
 
 function renderLiquidityFields() {
   const liq = state.liquidity || {};
+  const isStocks = state.instrument === 'stocks';
+  const derivedSpread = deriveSpreadPct(liq);
+  if (derivedSpread !== null) liq.spreadPct = derivedSpread;
+
+  // For stocks: only stockVol + bid/ask matter (treating bid/ask as the stock's bid/ask)
+  // For options: all 4 sets of fields (stockVol, optionOI, optionVol, bid/ask of option)
+  const fieldsToShow = isStocks
+    ? LIQUIDITY_FIELDS.filter(f => f.key === 'stockVol' || f.paired === 'bidask')
+    : LIQUIDITY_FIELDS;
+
   const isPass = {
     stockVol:  Number(liq.stockVol)  >= 1000000,
     optionOI:  Number(liq.optionOI)  >= 500,
     optionVol: Number(liq.optionVol) >= 100,
-    spreadPct: Number(liq.spreadPct) > 0 && Number(liq.spreadPct) <= 5,
+    bid:       Number(liq.bid) > 0 && Number(liq.ask) > 0 && derivedSpread !== null && derivedSpread <= 5,
+    ask:       Number(liq.bid) > 0 && Number(liq.ask) > 0 && derivedSpread !== null && derivedSpread <= 5,
   };
+
+  const standaloneFields = fieldsToShow.filter(f => !f.paired);
+  const pairedFields = fieldsToShow.filter(f => f.paired === 'bidask');
+
+  const renderField = (f) => {
+    const v = liq[f.key];
+    const filled = v !== null && v !== undefined && v !== '';
+    const passClass = filled ? (isPass[f.key] ? 'pass' : 'fail') : '';
+    // Relabel bid/ask label for stocks mode
+    const label = isStocks && f.key === 'bid' ? 'Stock Bid ($)'
+                : isStocks && f.key === 'ask' ? 'Stock Ask ($)'
+                : f.label;
+    return `
+      <div class="input-group liq-inline-row ${passClass}" style="margin-bottom: 8px;">
+        <label class="input-label" style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span>${label}</span>
+          <span style="color: var(--ink-4); font-weight: 400; font-size: 10px; font-family: var(--mono);">need: ${f.rule}</span>
+        </label>
+        <input type="number" id="${f.id}" class="input-field liq-inline-input" data-liq-key="${f.key}"
+               min="0" step="${f.step}" placeholder="${f.placeholder}"
+               value="${filled ? v : ''}" />
+      </div>
+    `;
+  };
+
+  let spreadDisplay = '';
+  if (derivedSpread !== null) {
+    const spreadColor = derivedSpread <= 5 ? 'var(--green)' : 'var(--red)';
+    const spreadLabel = derivedSpread <= 5 ? 'OK' : 'too wide — skip';
+    const mid = (Number(liq.bid) + Number(liq.ask)) / 2;
+    spreadDisplay = `
+      <div style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid ${spreadColor}; border-radius: var(--r-sm); font-size: 12px;">
+        <span style="color: var(--ink-4); font-family: var(--mono);">Mid:</span> <strong>$${mid.toFixed(2)}</strong>
+        &nbsp;·&nbsp;
+        <span style="color: var(--ink-4); font-family: var(--mono);">Spread:</span>
+        <strong style="color: ${spreadColor};">${derivedSpread.toFixed(1)}% ${spreadLabel}</strong>
+      </div>
+    `;
+  } else if (Number(liq.bid) > 0 || Number(liq.ask) > 0) {
+    spreadDisplay = `
+      <div style="margin-top: 4px; padding: 8px 10px; background: var(--bg); border-left: 3px solid var(--ink-4); border-radius: var(--r-sm); font-size: 11px; color: var(--ink-4);">
+        Enter both Bid and Ask to see spread
+      </div>
+    `;
+  }
+
   return `
     <div class="liq-inline-wrap" style="margin-top: 10px; padding: 12px; background: var(--bg-elev); border-left: 3px solid var(--cyan); border-radius: var(--r-sm);">
-      ${LIQUIDITY_FIELDS.map(f => {
-        const v = liq[f.key];
-        const filled = v !== null && v !== undefined && v !== '';
-        const passClass = filled ? (isPass[f.key] ? 'pass' : 'fail') : '';
-        return `
-          <div class="input-group liq-inline-row ${passClass}" style="margin-bottom: 8px;">
-            <label class="input-label" style="display: flex; justify-content: space-between; align-items: baseline;">
-              <span>${f.label}</span>
-              <span style="color: var(--ink-4); font-weight: 400; font-size: 10px; font-family: var(--mono);">need: ${f.rule}</span>
-            </label>
-            <input type="number" id="${f.id}" class="input-field liq-inline-input" data-liq-key="${f.key}"
-                   min="0" step="${f.step}" placeholder="${f.placeholder}"
-                   value="${filled ? v : ''}" />
-          </div>
-        `;
-      }).join('')}
+      ${standaloneFields.map(renderField).join('')}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        ${pairedFields.map(renderField).join('')}
+      </div>
+      ${spreadDisplay}
     </div>
   `;
 }
 
 function liquidityOK() {
   const liq = state.liquidity || {};
+  const derivedSpread = deriveSpreadPct(liq);
+  // Stocks: only check stockVol + bid/ask
+  if (state.instrument === 'stocks') {
+    return Number(liq.stockVol) >= 1000000
+        && derivedSpread !== null && derivedSpread <= 5;
+  }
+  // Options: full check
   return Number(liq.stockVol)  >= 1000000
       && Number(liq.optionOI)  >= 500
       && Number(liq.optionVol) >= 100
-      && Number(liq.spreadPct) > 0 && Number(liq.spreadPct) <= 5;
+      && derivedSpread !== null && derivedSpread <= 5;
 }
 
 function renderGate() {
@@ -4598,7 +5213,7 @@ function renderGate() {
     input.addEventListener('input', e => {
       const k = e.target.dataset.liqKey;
       const v = parseFloat(e.target.value);
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, spreadPct: null };
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
       state.liquidity[k] = isNaN(v) ? null : v;
       saveState();
       renderGate();
@@ -4637,6 +5252,32 @@ function renderSetupGrid() {
   document.querySelectorAll('.setup-card').forEach(el => {
     el.classList.toggle('selected', el.dataset.setup === state.selectedSetup);
   });
+  renderInstrumentToggle();
+}
+
+function renderInstrumentToggle() {
+  const buttons = document.querySelectorAll('.instrument-btn');
+  buttons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.instrument === state.instrument);
+    btn.setAttribute('aria-selected', btn.dataset.instrument === state.instrument ? 'true' : 'false');
+  });
+  const hint = document.getElementById('instrument-hint');
+  if (hint) {
+    hint.textContent = state.instrument === 'stocks'
+      ? 'Stocks selected — Step 3 calculates shares. IV Rank is optional. Gate 04 skips option-specific checks.'
+      : 'Options selected — Step 3 calculates contracts. IV Rank required in Step 2. Gate 04 checks option liquidity.';
+  }
+}
+
+function selectInstrument(inst) {
+  if (inst !== 'options' && inst !== 'stocks') return;
+  state.instrument = inst;
+  saveState();
+  renderInstrumentToggle();
+  renderStrategy();
+  renderCalc();
+  renderGate();
+  recomputeStepStates();
 }
 
 function selectSetup(setup) {
@@ -4661,7 +5302,8 @@ function recomputeStepStates() {
     state.pretradeChecks.vix && state.pretradeChecks.news &&
     streakOK && positionsOK;
   const step1Done = !!state.selectedSetup;
-  const step2Done = state.ivr !== null;
+  // Stocks mode: IVR is optional. Options mode: IVR required.
+  const step2Done = state.instrument === 'stocks' || state.ivr !== null;
   const step3Done = state.premium !== null && state.premium > 0;
   const allGates = Object.values(state.gateChecks).filter(Boolean).length === GATES.length;
   const step4Done = allGates;
@@ -5123,7 +5765,7 @@ function resetFlowSilent() {
   state.saQuant = null;
   state.daysToEarnings = null;
   state.gateChecks = {};
-  state.liquidity = { stockVol: null, optionOI: null, optionVol: null, spreadPct: null };
+  state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
   saveState();
   document.getElementById('ivr-input').value = '';
   document.getElementById('premium-input').value = '';
@@ -5901,7 +6543,7 @@ function importJSON(file) {
       if (!ok) return;
       state = data.state;
       // Re-init missing fields after import
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, spreadPct: null };
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
       if (!state.sectorRatings) state.sectorRatings = {};
       if (!state.pretradeChecks) state.pretradeChecks = { vix: true, news: true };
       saveState();
@@ -6187,11 +6829,20 @@ function renderIntraday() {
   }
 
   const goBtn = document.getElementById('btn-i-go');
-  if (goBtn) {
+  const goText = document.getElementById('btn-i-go-text');
+  if (goBtn && goText) {
     goBtn.disabled = !step5Ready;
-    goBtn.querySelector('.btn-execute-label').textContent = step5Ready
-      ? `GO — Log ${t.direction.toUpperCase()} Intraday Trade`
-      : (budgetExhausted ? 'GO — Locked, budget exhausted' : 'GO — Log Intraday Trade');
+    // Apply the same state classes swing's GO button uses: ready / partial / (default = red)
+    goBtn.classList.remove('ready', 'partial');
+    if (step5Ready) {
+      goBtn.classList.add('ready');
+      goText.textContent = `GO — Log ${t.direction.toUpperCase()} Intraday Trade`;
+    } else if (budgetExhausted) {
+      goText.textContent = 'GO — Locked, budget exhausted';
+    } else {
+      goBtn.classList.add('partial');
+      goText.textContent = 'Finish the steps above to enable trade';
+    }
   }
 }
 
@@ -6369,6 +7020,11 @@ function init() {
   // Setup picker
   document.querySelectorAll('.setup-card').forEach(el => {
     el.addEventListener('click', () => selectSetup(el.dataset.setup));
+  });
+
+  // Instrument toggle (Options vs Stocks)
+  document.querySelectorAll('.instrument-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectInstrument(btn.dataset.instrument));
   });
 
   // IV input
