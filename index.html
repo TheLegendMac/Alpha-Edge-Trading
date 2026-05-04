@@ -1541,10 +1541,211 @@ select.input-field {
 }
 
 /* ============ TRADE LOG ============ */
-.log-stats {
-  display: block;
-  margin-bottom: 16px;
+/* ============ STATS SHELL — unified container for the log stats section ============ */
+.log-stats { margin-bottom: 20px; }
+
+.stats-shell {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
+    rgba(19, 23, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--r-xl);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 1px 2px rgba(0,0,0,0.3),
+    0 6px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+  margin-bottom: 20px;
 }
+
+/* Header bar inside the shell */
+.stats-shell-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.stats-shell-title {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.stats-shell-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Metric strip ─────────────────────────────────────────── */
+.sms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.sms-cell {
+  padding: 14px 18px;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  position: relative;
+}
+.sms-cell:last-child { border-right: none; }
+.sms-cell::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 18px; right: 18px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+  transition: background 0.2s;
+}
+.sms-cell.pos::before { background: var(--green); }
+.sms-cell.neg::before { background: var(--red); }
+.sms-cell.cyan::before { background: var(--cyan); }
+.sms-cell.amber::before { background: var(--amber); }
+.sms-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+.sms-value {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.sms-cell.pos .sms-value  { color: var(--green-bright); }
+.sms-cell.neg .sms-value  { color: var(--red-bright); }
+.sms-cell.cyan .sms-value { color: var(--cyan); }
+.sms-cell.amber .sms-value { color: var(--amber-bright); }
+.sms-cell.neutral .sms-value { color: var(--ink-2); }
+.sms-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 5px;
+  line-height: 1.3;
+}
+
+/* ── Alpha Intelligence section inside shell ──────────────── */
+.alpha-intel {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+.alpha-intel::before {
+  content: '◈';
+  position: absolute;
+  right: 20px;
+  top: 16px;
+  font-size: 48px;
+  line-height: 1;
+  color: rgba(6, 212, 248, 0.06);
+  pointer-events: none;
+}
+.alpha-intel-title { color: var(--cyan); }
+
+/* ── Stats analysis panels grid ──────────────────────────── */
+.stats-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.stats-panel {
+  padding: 16px 20px;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.stats-panel:nth-child(2n) { border-right: none; }
+.stats-panel:nth-child(1),
+.stats-panel:nth-child(2) { border-top: none; }
+.stats-panel-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  margin-bottom: 14px;
+}
+
+/* Horizontal bar rows used inside panels */
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.2fr) 1fr 64px;
+  align-items: center;
+  gap: 10px;
+  margin: 9px 0;
+  font-size: 12px;
+}
+.bar-row-label {
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-row-sub {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  margin-top: 1px;
+  font-weight: 400;
+}
+.bar-wrap {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+.bar-fill.pos { background: linear-gradient(90deg, rgba(16,185,129,0.5), var(--green)); }
+.bar-fill.neg { background: linear-gradient(90deg, rgba(239,68,68,0.5), var(--red)); }
+.bar-fill.cyan { background: linear-gradient(90deg, rgba(6,212,248,0.4), var(--cyan)); }
+.bar-fill.amber { background: linear-gradient(90deg, rgba(245,158,11,0.4), var(--amber)); }
+.bar-fill.neutral { background: rgba(255,255,255,0.15); }
+.bar-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* Streak badge */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 5px;
+}
+.streak-badge.win  { background: var(--green-bg);  color: var(--green-bright);  border: 1px solid rgba(16,185,129,0.3); }
+.streak-badge.loss { background: var(--red-bg);    color: var(--red-bright);    border: 1px solid rgba(239,68,68,0.3); }
+.streak-badge.none { background: var(--bg-elev);   color: var(--ink-4);         border: 1px solid var(--line); }
+
+/* Legacy stat-card — kept for any non-log usage */
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--line);
@@ -1578,31 +1779,12 @@ select.input-field {
 }
 .stat-card.green { border-left-color: var(--green); }
 .stat-card.green .stat-card-value { color: var(--green-bright); }
-.stat-card.red { border-left-color: var(--red); }
-.stat-card.red .stat-card-value { color: var(--red-bright); }
-.stat-card.cyan { border-left-color: var(--cyan); }
-.stat-card.cyan .stat-card-value { color: var(--cyan); }
+.stat-card.red   { border-left-color: var(--red); }
+.stat-card.red .stat-card-value   { color: var(--red-bright); }
+.stat-card.cyan  { border-left-color: var(--cyan); }
+.stat-card.cyan .stat-card-value  { color: var(--cyan); }
 .stat-card.amber { border-left-color: var(--amber); }
 .stat-card.amber .stat-card-value { color: var(--amber-bright); }
-
-.alpha-intel {
-  background: linear-gradient(90deg, rgba(20, 30, 43, 0.95), rgba(37, 18, 63, 0.9));
-  border: 1px solid rgba(191, 120, 255, 0.42);
-  border-radius: var(--r-lg);
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  position: relative;
-  overflow: hidden;
-}
-.alpha-intel::after {
-  content: '✦';
-  position: absolute;
-  right: 20px;
-  top: 10px;
-  font-size: 72px;
-  line-height: 1;
-  color: rgba(191, 120, 255, 0.14);
-}
 .alpha-intel-title,
 .edge-title,
 .analytics-panel-title {
@@ -1789,57 +1971,13 @@ select.input-field {
   line-height: 1.5;
 }
 .ai-empty-msg strong { color: var(--ink-2); }
-.analytics-metrics {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.analytics-metrics .stat-card {
-  border-left: 0;
-  text-align: center;
-  min-height: 70px;
-}
-.analytics-panels {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.analytics-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 12px 14px;
-}
-.tag-row {
-  display: grid;
-  grid-template-columns: 120px 1fr 74px;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 0;
-  font-size: 12px;
-}
-.tag-bar {
-  height: 7px;
-  background: var(--bg-elev);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.tag-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--green);
-}
-.tag-fill.bad { background: var(--red); }
-.tag-value {
-  text-align: right;
-  font-family: var(--mono);
-  font-weight: 800;
-}
 @media (max-width: 900px) {
-  .analytics-metrics,
-  .analytics-panels { grid-template-columns: 1fr; }
+  .sms-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-panels { grid-template-columns: 1fr; }
+  .stats-panel:nth-child(1),
+  .stats-panel:nth-child(2) { border-top: 1px solid rgba(255,255,255,0.04); }
+  .stats-panel:nth-child(1) { border-top: none; }
+  .stats-panel:nth-child(2n) { border-right: 0; }
 }
 
 .log-table-wrap {
@@ -7662,87 +7800,264 @@ function renderLogStats() {
   const container = document.getElementById('log-stats');
   const filter = state.logModeFilter || 'all';
   const trades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const open   = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => t.status !== 'open');
   const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
-  const wins = closedWithPL.filter(x => x.pl > 0);
+  const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
 
-  const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
-  const winRate = closed.length > 0 ? (wins.length / closed.length * 100).toFixed(0) : '—';
-  const avgWin = wins.length > 0
-    ? wins.reduce((s, x) => s + x.pl, 0) / wins.length
-    : 0;
-  const avgLoss = losses.length > 0
-    ? losses.reduce((s, x) => s + x.pl, 0) / losses.length
-    : 0;
-
-  const grossWin = wins.reduce((s, x) => s + x.pl, 0);
-  const grossLoss = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
+  // Core P/L
+  const totalPL    = closedWithPL.reduce((s, x) => s + x.pl, 0);
+  const winRateNum = closed.length > 0 ? wins.length / closed.length * 100 : null;
+  const winRateStr = winRateNum !== null ? winRateNum.toFixed(0) + '%' : '—';
+  const avgWin     = wins.length   ? wins.reduce((s, x) => s + x.pl, 0)   / wins.length   : 0;
+  const avgLoss    = losses.length ? losses.reduce((s, x) => s + x.pl, 0) / losses.length : 0;
+  const grossWin   = wins.reduce((s, x) => s + x.pl, 0);
+  const grossLoss  = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
   const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
   const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
-  const riskToMake = avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) : '—';
-  const biggestWin = wins.length ? Math.max(...wins.map(x => x.pl)) : 0;
+  const biggestWin  = wins.length   ? Math.max(...wins.map(x => x.pl))   : 0;
   const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
-  const powerAsset = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
-  const leak = losses.find(x => x.trade.exit_reason === 'stop')?.trade || losses[0]?.trade;
-  const bestTag = wins.find(x => x.trade.exit_reason === 'target')?.trade || wins[0]?.trade;
-  const tagRows = [
-    { label: 'Target Hit', value: closed.filter(t => t.exit_reason === 'target').reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
-    { label: 'Stop Loss', value: closed.filter(t => t.exit_reason === 'stop').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
-    { label: 'Manual Close', value: closed.filter(t => t.exit_reason === 'discretionary').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
-    { label: 'Breakout', value: closed.filter(t => String(t.setup || '').toLowerCase().includes('break')).reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
+
+  // NEW: current streak (consecutive W or L from latest backward)
+  const sortedClosed = [...closed].sort((a, b) => (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || ''));
+  let streak = 0, streakType = 'none';
+  if (sortedClosed.length) {
+    const firstPL = calcPL(sortedClosed[0]) || 0;
+    streakType = firstPL > 0 ? 'win' : firstPL < 0 ? 'loss' : 'none';
+    for (const t of sortedClosed) {
+      const pl = calcPL(t) || 0;
+      if (streakType === 'win' && pl > 0) streak++;
+      else if (streakType === 'loss' && pl < 0) streak++;
+      else break;
+    }
+  }
+
+  // NEW: avg hold days (exit_date - date) for closed swing trades with both dates
+  const swingClosed = closed.filter(t => t.mode !== 'intraday' && t.date && t.exit_date);
+  const avgHold = swingClosed.length
+    ? (swingClosed.reduce((s, t) => {
+        const entry = new Date(t.date), exit = new Date(t.exit_date);
+        return s + Math.max(0, (exit - entry) / 86400000);
+      }, 0) / swingClosed.length)
+    : null;
+
+  // NEW: open exposure
+  const settings = state.settings || {};
+  const openRisk = open.reduce((s, t) => {
+    const fallback = (Number(t.entry) || 0) * ((settings.stopPct || 50) / 100) * 100 * (Number(t.contracts) || 0);
+    return s + (Number(t.riskDollars) || fallback || 0);
+  }, 0);
+
+  // NEW: R expectancy per trade = winRate × avgWin_R + lossRate × avgLoss_R
+  const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
+  const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
+  const rExpectancy = winRateNum !== null
+    ? (winRateNum / 100) * avgWinR + (1 - winRateNum / 100) * avgLossR
+    : null;
+
+  // ── Metric strip ──────────────────────────────────────────
+  const plTone    = totalPL >= 0 ? 'pos' : 'neg';
+  const wrTone    = winRateNum === null ? 'neutral' : winRateNum >= 50 ? 'pos' : winRateNum >= 45 ? 'amber' : 'neg';
+  const avgRTone  = closed.length ? (avgR >= 0.5 ? 'pos' : avgR >= 0 ? 'neutral' : 'neg') : 'neutral';
+  const rExpTone  = rExpectancy === null ? 'neutral' : rExpectancy >= 0.2 ? 'pos' : rExpectancy >= 0 ? 'neutral' : 'neg';
+
+  const streakBadge = streak > 0 && streakType !== 'none'
+    ? `<span class="streak-badge ${streakType}">${streakType === 'win' ? '▲' : '▼'} ${streak} ${streakType}</span>`
+    : `<span class="streak-badge none">— flat</span>`;
+
+  const metricCells = [
+    {
+      label: 'Total P/L', tone: plTone,
+      value: (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toFixed(0),
+      sub: `${closed.length} closed · ${open.length} open`,
+    },
+    {
+      label: 'Win Rate', tone: wrTone,
+      value: winRateStr,
+      sub: winRateNum !== null ? `${wins.length}W · ${losses.length}L` : 'no closed trades',
+    },
+    {
+      label: 'Avg R / Trade', tone: avgRTone,
+      value: closed.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—',
+      sub: rExpectancy !== null ? `R exp: ${rExpectancy >= 0 ? '+' : ''}${rExpectancy.toFixed(2)}R` : '',
+    },
+    {
+      label: 'Profit Factor', tone: 'cyan',
+      value: profitFactor,
+      sub: grossLoss > 0 ? `$${grossWin.toFixed(0)} gross win` : '',
+    },
+    {
+      label: 'Expectancy', tone: expectancy >= 0 ? 'pos' : 'neg',
+      value: (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0),
+      sub: 'per closed trade',
+    },
+    {
+      label: 'Avg Win / Avg Loss', tone: avgLoss !== 0 && avgWin / Math.abs(avgLoss) >= 1 ? 'pos' : (avgLoss !== 0 ? 'amber' : 'neutral'),
+      value: avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) + 'x' : '—',
+      sub: avgWin ? `$${avgWin.toFixed(0)} / $${Math.abs(avgLoss).toFixed(0)}` : '',
+    },
+    {
+      label: 'Best Trade', tone: 'pos',
+      value: biggestWin > 0 ? '+$' + biggestWin.toFixed(0) : '—',
+      sub: biggestLoss < 0 ? `worst: -$${Math.abs(biggestLoss).toFixed(0)}` : '',
+    },
+    {
+      label: 'Current Streak', tone: streakType === 'win' ? 'pos' : streakType === 'loss' ? 'neg' : 'neutral',
+      value: streak > 0 ? `${streak}` : '—',
+      extra: streakBadge,
+      sub: '',
+    },
+    {
+      label: 'Avg Hold (swing)', tone: 'neutral',
+      value: avgHold !== null ? avgHold.toFixed(1) + 'd' : '—',
+      sub: avgHold !== null ? `${swingClosed.length} swing trades` : 'no swing exits',
+    },
+    {
+      label: 'Open Exposure', tone: openRisk > 0 ? 'amber' : 'neutral',
+      value: open.length > 0 ? '$' + openRisk.toFixed(0) : '$0',
+      sub: open.length > 0 ? `${open.length} position${open.length === 1 ? '' : 's'}` : 'no open positions',
+    },
   ];
-  const maxTag = Math.max(...tagRows.map(r => Math.abs(r.value)), 1);
 
+  const smsCells = metricCells.map(c => `
+    <div class="sms-cell ${c.tone || 'neutral'}">
+      <div class="sms-label">${c.label}</div>
+      <div class="sms-value">${c.value}</div>
+      ${c.extra ? c.extra : ''}
+      ${c.sub ? `<div class="sms-sub">${c.sub}</div>` : ''}
+    </div>`).join('');
+
+  // ── Exit discipline panel ──────────────────────────────────
+  const exitDefs = [
+    { key: 'target',       label: 'Hit target',      color: 'pos' },
+    { key: 'stop',         label: 'Stopped out',     color: 'neg' },
+    { key: 'thesis-broke', label: 'Thesis broke',    color: 'amber' },
+    { key: 'discretionary',label: 'Discretionary',   color: 'amber' },
+    { key: 'time',         label: 'Time exit',       color: 'neutral' },
+  ];
+  const exitRows = exitDefs.map(d => {
+    const group = closed.filter(t => t.exit_reason === d.key);
+    if (!group.length) return null;
+    const pl = group.reduce((s, t) => s + (calcPL(t) || 0), 0);
+    const pct = Math.round(group.length / closed.length * 100);
+    return { label: d.label, n: group.length, pct, pl, color: d.color };
+  }).filter(Boolean);
+  const maxExitPL = Math.max(...exitRows.map(r => Math.abs(r.pl)), 1);
+  const exitHtml = exitRows.length ? exitRows.map(r => `
+    <div class="bar-row">
+      <div class="bar-row-label">${r.label}<span class="bar-row-sub">${r.n} trades · ${r.pct}%</span></div>
+      <div class="bar-wrap"><div class="bar-fill ${r.color}" style="width:${Math.max(4, Math.abs(r.pl) / maxExitPL * 100).toFixed(0)}%"></div></div>
+      <div class="bar-value ${r.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${r.pl >= 0 ? '+$' : '-$'}${Math.abs(r.pl).toFixed(0)}</div>
+    </div>`).join('')
+    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Exit reasons will appear once you close trades with a reason logged.</div>`;
+
+  // ── Setup performance panel ────────────────────────────────
+  const setupMap = {};
+  closed.forEach(t => {
+    const k = t.setup || '—';
+    if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0 };
+    const pl = calcPL(t) || 0;
+    setupMap[k].n++;
+    if (pl > 0) setupMap[k].wins++;
+    setupMap[k].pl += pl;
+    setupMap[k].totalR += calcR(t) || 0;
+  });
+  const setups = Object.entries(setupMap).sort((a, b) => b[1].pl - a[1].pl);
+  const maxSetupPL = Math.max(...setups.map(([, s]) => Math.abs(s.pl)), 1);
+  const setupHtml = setups.length ? setups.map(([name, s]) => {
+    const wr  = Math.round(s.wins / s.n * 100);
+    const avgRv = s.totalR / s.n;
+    return `
+      <div class="bar-row">
+        <div class="bar-row-label">${name}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R avg</span></div>
+        <div class="bar-wrap"><div class="bar-fill ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${Math.max(4, Math.abs(s.pl) / maxSetupPL * 100).toFixed(0)}%"></div></div>
+        <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
+      </div>`;
+  }).join('')
+    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
+
+  // ── Regime performance panel ───────────────────────────────
+  const regMap = {};
+  closed.forEach(t => {
+    const r = (t.regime || 'Unknown').replace('RISK-ON', 'Risk-On').replace('RISK-OFF', 'Risk-Off');
+    if (!regMap[r]) regMap[r] = { n: 0, wins: 0, pl: 0 };
+    const pl = calcPL(t) || 0;
+    regMap[r].n++;
+    if (pl > 0) regMap[r].wins++;
+    regMap[r].pl += pl;
+  });
+  const regEntries = Object.entries(regMap).sort((a, b) => b[1].pl - a[1].pl);
+  const maxRegPL  = Math.max(...regEntries.map(([, r]) => Math.abs(r.pl)), 1);
+  const regColor  = r => r === 'Risk-On' ? 'pos' : r === 'Neutral' ? 'amber' : r === 'Risk-Off' ? 'neg' : 'neutral';
+  const regimeHtml = regEntries.length ? regEntries.map(([name, r]) => {
+    const wr = Math.round(r.wins / r.n * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-row-label">${name}<span class="bar-row-sub">${r.n} trade${r.n === 1 ? '' : 's'} · ${wr}%W</span></div>
+        <div class="bar-wrap"><div class="bar-fill ${regColor(name)}" style="width:${Math.max(4, Math.abs(r.pl) / maxRegPL * 100).toFixed(0)}%"></div></div>
+        <div class="bar-value ${r.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${r.pl >= 0 ? '+$' : '-$'}${Math.abs(r.pl).toFixed(0)}</div>
+      </div>`;
+  }).join('')
+    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Regime breakdown appears once trades are logged with a regime.</div>`;
+
+  // ── Process quality panel ──────────────────────────────────
+  const graded = closed.filter(t => t.grade);
+  const gradeOrder = ['A', 'B', 'C', 'D', 'F'];
+  const gradeColors = { A: 'pos', B: 'pos', C: 'amber', D: 'neg', F: 'neg' };
+  const gradeMap = graded.reduce((acc, t) => {
+    acc[t.grade] = acc[t.grade] || { n: 0, pl: 0, wins: 0 };
+    const pl = calcPL(t) || 0;
+    acc[t.grade].n++;
+    acc[t.grade].pl += pl;
+    if (pl > 0) acc[t.grade].wins++;
+    return acc;
+  }, {});
+  const gradeEntries = gradeOrder.filter(g => gradeMap[g]);
+  const maxGradePL  = Math.max(...gradeEntries.map(g => Math.abs(gradeMap[g].pl)), 1);
+  const gradeHtml = gradeEntries.length ? gradeEntries.map(g => {
+    const row = gradeMap[g];
+    const wr  = Math.round(row.wins / row.n * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-row-label">Grade ${g}<span class="bar-row-sub">${row.n} trade${row.n === 1 ? '' : 's'} · ${wr}%W</span></div>
+        <div class="bar-wrap"><div class="bar-fill ${gradeColors[g]}" style="width:${Math.max(4, Math.abs(row.pl) / maxGradePL * 100).toFixed(0)}%"></div></div>
+        <div class="bar-value ${row.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${row.pl >= 0 ? '+$' : '-$'}${Math.abs(row.pl).toFixed(0)}</div>
+      </div>`;
+  }).join('')
+    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Grade trades when closing to unlock process quality analysis.</div>`;
+
+  // ── Assemble ──────────────────────────────────────────────
+  const filterLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
   container.innerHTML = `
-    ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
+    <div class="stats-shell">
+      <div class="stats-shell-head">
+        <div class="stats-shell-title">Performance Overview</div>
+        <div class="stats-shell-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open</div>
+      </div>
 
-    <div class="analytics-metrics">
-      <div class="stat-card ${totalPL >= 0 ? 'green' : 'red'}">
-        <div class="stat-card-label">Total P/L</div>
-        <div class="stat-card-value">${totalPL >= 0 ? '+$' : '-$'}${Math.abs(totalPL).toFixed(0)}</div>
-      </div>
-      <div class="stat-card ${parseInt(winRate) >= 50 ? 'green' : (parseInt(winRate) >= 45 ? 'amber' : 'red')}">
-        <div class="stat-card-label">Win Rate</div>
-        <div class="stat-card-value">${winRate}${winRate !== '—' ? '%' : ''}</div>
-      </div>
-      <div class="stat-card cyan">
-        <div class="stat-card-label">Profit Factor</div>
-        <div class="stat-card-value">${profitFactor}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-label">Avg R</div>
-        <div class="stat-card-value">${closed.length ? avgR.toFixed(2) : '—'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-label">Trades</div>
-        <div class="stat-card-value">${trades.length}</div>
-      </div>
-      <div class="stat-card amber">
-        <div class="stat-card-label">Risk $1 To Make</div>
-        <div class="stat-card-value">$${riskToMake}</div>
-      </div>
-      <div class="stat-card green">
-        <div class="stat-card-label">Biggest Win</div>
-        <div class="stat-card-value">+$${Math.abs(biggestWin).toFixed(0)}</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-card-label">Biggest Loss</div>
-        <div class="stat-card-value">-$${Math.abs(biggestLoss).toFixed(0)}</div>
-      </div>
-    </div>
+      <div class="sms-grid">${smsCells}</div>
 
-    <div class="analytics-panels">
-      <div class="analytics-panel">
-        <div class="analytics-panel-title">Tag Analysis</div>
-        ${tagRows.map(row => `
-          <div class="tag-row">
-            <div>${row.label}</div>
-            <div class="tag-bar"><div class="tag-fill ${row.value < 0 ? 'bad' : ''}" style="width:${Math.max(6, Math.abs(row.value) / maxTag * 100).toFixed(0)}%;"></div></div>
-            <div class="tag-value ${row.value >= 0 ? 'pl-positive' : 'pl-negative'}">${row.value >= 0 ? '+$' : '-$'}${Math.abs(row.value).toFixed(0)}</div>
-          </div>
-        `).join('')}
+      ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
+
+      <div class="stats-panels">
+        <div class="stats-panel">
+          <div class="stats-panel-title">Exit Discipline</div>
+          ${exitHtml}
+        </div>
+        <div class="stats-panel">
+          <div class="stats-panel-title">Setup Performance</div>
+          ${setupHtml}
+        </div>
+        <div class="stats-panel">
+          <div class="stats-panel-title">By Regime</div>
+          ${regimeHtml}
+        </div>
+        <div class="stats-panel">
+          <div class="stats-panel-title">Process Quality</div>
+          ${gradeHtml}
+        </div>
       </div>
     </div>
   `;
