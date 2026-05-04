@@ -420,6 +420,25 @@ input, select, textarea { font-family: inherit; }
   font-weight: 800;
   margin-bottom: 14px;
 }
+.stat-help {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  vertical-align: 1px;
+}
+.stat-help:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+}
 .home-card-kicker {
   position: absolute;
   top: 18px;
@@ -3955,7 +3974,7 @@ textarea.input-field {
   top: 68px;
   right: 20px;
   z-index: 201;
-  width: min(560px, calc(100vw - 32px));
+  width: min(680px, calc(100vw - 32px));
   max-height: none;
   overflow: visible;
   background:
@@ -4078,7 +4097,8 @@ textarea.input-field {
   margin-bottom: 10px;
 }
 .ctx-sector-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 64px;
   align-items: center;
   gap: 6px;
   padding: 5px 7px;
@@ -4108,12 +4128,13 @@ textarea.input-field {
   white-space: nowrap;
 }
 .ctx-sector-input {
-  width: 46px;
+  width: 64px;
+  min-width: 64px;
   flex-shrink: 0;
   background: var(--bg-elev);
   border: 1px solid rgba(255,255,255,0.08);
   color: var(--ink);
-  padding: 3px 6px;
+  padding: 4px 7px;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 600;
@@ -4165,8 +4186,9 @@ textarea.input-field {
   .ctx-section { padding: 11px 12px 10px; }
   .ctx-regime-row,
   .ctx-sector-grid { gap: 5px; }
-  .ctx-sector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ctx-sector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ctx-sector-name { display: none; }
+  .ctx-sector-row { grid-template-columns: 38px 68px; }
 }
 .ctx-close:hover { background: #1ce0ff; }
 
@@ -8097,6 +8119,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
 
 function renderLogStats() {
   const container = document.getElementById('log-stats');
+  const help = text => `<span class="stat-help" title="${text}">?</span>`;
   const filter = state.logModeFilter || 'all';
   const trades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
   const open   = trades.filter(t => t.status === 'open');
@@ -8139,31 +8162,37 @@ function renderLogStats() {
   const metricCells = [
     {
       label: 'Total P/L', tone: plTone,
+      help: 'Realized profit or loss across closed trades in the current filter. Open trades are counted separately.',
       value: (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toFixed(0),
       sub: `${closed.length} closed · ${open.length} open`,
     },
     {
       label: 'Win Rate', tone: wrTone,
+      help: 'Percentage of closed trades with positive P/L. It does not measure how large wins or losses are.',
       value: winRateStr,
       sub: winRateNum !== null ? `${wins.length}W · ${losses.length}L` : 'no closed trades',
     },
     {
       label: 'Avg R / Trade', tone: avgRTone,
+      help: 'Average result measured in units of risk. +1R means the trade made one times the planned risk.',
       value: closed.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—',
       sub: rExpectancy !== null ? `R exp: ${rExpectancy >= 0 ? '+' : ''}${rExpectancy.toFixed(2)}R` : '',
     },
     {
       label: 'Profit Factor', tone: 'cyan',
+      help: 'Gross wins divided by gross losses. Above 1.00 means wins are larger than losses overall.',
       value: profitFactor,
       sub: grossLoss > 0 ? `$${grossWin.toFixed(0)} gross win` : '',
     },
     {
       label: 'Expectancy', tone: expectancy >= 0 ? 'pos' : 'neg',
+      help: 'Average dollars made or lost per closed trade.',
       value: (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0),
       sub: 'per closed trade',
     },
     {
       label: 'Open Exposure', tone: openRisk > 0 ? 'amber' : 'neutral',
+      help: 'Estimated dollars currently at risk in open positions.',
       value: open.length > 0 ? '$' + openRisk.toFixed(0) : '$0',
       sub: open.length > 0 ? `${open.length} position${open.length === 1 ? '' : 's'}` : 'no open positions',
     },
@@ -8171,7 +8200,7 @@ function renderLogStats() {
 
   const smsCells = metricCells.map(c => `
     <div class="sms-cell ${c.tone || 'neutral'}">
-      <div class="sms-label">${c.label}</div>
+      <div class="sms-label">${c.label}${c.help ? help(c.help) : ''}</div>
       <div class="sms-value">${c.value}</div>
       ${c.extra ? c.extra : ''}
       ${c.sub ? `<div class="sms-sub">${c.sub}</div>` : ''}
@@ -8234,7 +8263,7 @@ function renderLogStats() {
 
       <div class="home-card">
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px;">
-          <div class="home-card-title" style="margin: 0;">Stats Snapshot</div>
+          <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Six core indicators for the selected trade set. Use these for the fastest read on performance and risk.')}</div>
           <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open</div>
         </div>
         <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
@@ -8242,12 +8271,12 @@ function renderLogStats() {
 
       <div class="home-row" style="margin-bottom: 0; grid-template-columns: 1fr 1fr;">
         <div class="home-card">
-          <div class="home-card-title">Exit Discipline</div>
-          ${exitHtml}
+          <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
+          ${setupHtml}
         </div>
         <div class="home-card">
-          <div class="home-card-title">Setup Performance</div>
-          ${setupHtml}
+          <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
+          ${exitHtml}
         </div>
       </div>
     </div>
