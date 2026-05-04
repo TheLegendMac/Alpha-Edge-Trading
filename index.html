@@ -10584,6 +10584,7 @@ function init() {
       renderLogTable();
     });
   }
+  document.getElementById('log-text-filter')?.addEventListener('input', renderLogTable);
 
   // Intraday wiring
   bindIntraday();
