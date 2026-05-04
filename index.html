@@ -824,9 +824,13 @@ input, select, textarea { font-family: inherit; }
   height: 34px;
   border-radius: 999px;
   background: var(--cyan);
+  transition: box-shadow 0.15s;
 }
 .home-trade-stripe.win { background: var(--green); }
 .home-trade-stripe.loss { background: var(--red); }
+.home-trade-row:hover .home-trade-stripe { box-shadow: 0 0 12px var(--cyan); }
+.home-trade-row:hover .home-trade-stripe.win { box-shadow: 0 0 12px var(--green); }
+.home-trade-row:hover .home-trade-stripe.loss { box-shadow: 0 0 12px var(--red); }
 .home-trade-main {
   min-width: 0;
 }
@@ -4039,7 +4043,8 @@ textarea.input-field {
 .pretrade-check,
 .snapshot-wrap,
 .ticker-bar,
-.sector-status-mini {
+.sector-status-mini,
+.home-activity-list {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
     rgba(19, 23, 34, 0.72);
