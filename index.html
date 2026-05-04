@@ -10501,6 +10501,13 @@ function init() {
   });
   document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
+  document.getElementById('home-calendar')?.addEventListener('click', e => {
+    const dayEl = e.target.closest('.home-day');
+    if (dayEl && dayEl.dataset.date) {
+      state.homeFilterDate = state.homeFilterDate === dayEl.dataset.date ? null : dayEl.dataset.date;
+      renderHome();
+    }
+  });
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
