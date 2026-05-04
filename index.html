@@ -875,6 +875,24 @@ input, select, textarea { font-family: inherit; }
 }
 .home-trade-value.win { color: var(--green-bright); }
 .home-trade-value.loss { color: var(--red-bright); }
+.home-trade-value.open { color: var(--cyan); }
+.home-trade-setup .home-trade-detail {
+  display: block;
+  font-weight: 500;
+}
+.home-trade-ticker .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.home-trade-ticker .status.open { background: rgba(6, 212, 248, 0.1); color: var(--cyan); }
+.home-trade-ticker .status.win { background: var(--green-bg); color: var(--green-bright); }
+.home-trade-ticker .status.loss { background: var(--red-bg); color: var(--red-bright); }
 .home-trade-action {
   justify-self: end;
   font-family: var(--mono);
@@ -3678,6 +3696,54 @@ textarea.input-field {
 .log-table td {
   padding: 14px 16px; border-bottom: 1px solid var(--line);
   font-size: 13px; color: var(--ink);
+}
+.log-trade-list {
+  background: rgba(13, 17, 23, 0.45);
+}
+.log-trade-row {
+  grid-template-columns: 9px minmax(126px, 1.1fr) minmax(170px, 1.45fr) minmax(118px, 0.8fr) minmax(88px, 0.65fr) 72px;
+  padding: 13px 16px;
+}
+.log-trade-row .home-trade-value {
+  min-width: 0;
+}
+.log-trade-risk {
+  min-width: 0;
+  font-family: var(--mono);
+  color: var(--ink-2);
+  font-weight: 800;
+}
+.log-trade-risk .home-trade-detail {
+  display: block;
+  font-weight: 600;
+}
+.log-trade-action-btn {
+  justify-self: end;
+  border: 1px solid rgba(6, 212, 248, 0.28);
+  background: rgba(6, 212, 248, 0.06);
+  color: var(--cyan);
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.log-trade-action-btn:hover {
+  border-color: var(--cyan);
+  color: var(--ink);
+}
+@media (max-width: 980px) {
+  .log-trade-row {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .log-trade-row .home-trade-setup,
+  .log-trade-row .log-trade-risk,
+  .log-trade-row .log-trade-action-btn {
+    display: none;
+  }
 }
 
 /* --- Sunday Prep: cards & sector grid --- */
@@ -8211,81 +8277,49 @@ function renderLogTable() {
 
   const sorted = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  // R-multiple bar normalization — clamp at ±3R so outliers don't compress everything else
-  const R_BAR_MAX = 3;
-  const renderRCell = (r) => {
-    if (r === null || !Number.isFinite(r)) {
-      return `<td class="r-cell empty"><div class="r-cell-value">—</div></td>`;
-    }
-    const sign = r >= 0 ? 'pos' : 'neg';
-    const magnitude = Math.min(Math.abs(r), R_BAR_MAX) / R_BAR_MAX;
-    const widthPct = (magnitude * 50).toFixed(1);
-    const fillStyle = r >= 0
-      ? `left: 50%; width: ${widthPct}%;`
-      : `right: 50%; width: ${widthPct}%;`;
-    const overflowMark = Math.abs(r) > R_BAR_MAX
-      ? `<span class="r-cell-overflow ${sign}" title="Beyond ±${R_BAR_MAX}R">${r >= 0 ? '▶' : '◀'}</span>`
-      : '';
-    return `
-      <td class="r-cell ${sign}">
-        <div class="r-cell-value">${r >= 0 ? '+' : '−'}${Math.abs(r).toFixed(2)}<span class="r-cell-unit">R</span></div>
-        <div class="r-cell-bar">
-          <div class="r-cell-fill ${sign}" style="${fillStyle}"></div>
-          ${overflowMark}
-        </div>
-      </td>
-    `;
-  };
+  const formatMoney = value => `${value >= 0 ? '+$' : '-$'}${Math.abs(value || 0).toFixed(0)}`;
+  const formatR = r => r !== null && Number.isFinite(r)
+    ? `${r >= 0 ? '+' : '-'}${Math.abs(r).toFixed(2)}R`
+    : '—';
 
   container.innerHTML = `
-    <div style="overflow-x: auto;">
-      <table class="log-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Ticker</th>
-            <th>Setup</th>
-            <th>Dir</th>
-            <th>Entry</th>
-            <th>Exit</th>
-            <th>Size</th>
-            <th>Status</th>
-            <th class="r-header">R-multiple</th>
-            <th>P/L $</th>
-            <th>Grade</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map(t => {
-            const pl = calcPL(t);
-            const r = calcR(t);
-            const mode = t.mode || 'swing';
-            return `
-              <tr>
-                <td class="date-cell">
-                  <div class="num">${formatDate(t.date)}</div>
-                  <div class="mode-tag mode-${mode}">${mode}</div>
-                </td>
-                <td class="ticker">${t.ticker}</td>
-                <td>${t.setup}</td>
-                <td>${t.direction}</td>
-                <td class="num">$${(+t.entry).toFixed(2)}</td>
-                <td class="num">${t.exit ? '$' + (+t.exit).toFixed(2) : '—'}</td>
-                <td class="num">${t.contracts}<span style="color: var(--ink-3); font-weight: 400; font-size: 10px; margin-left: 3px;">${t.instrument === 'stocks' ? 'sh' : 'ctr'}</span></td>
-                <td><span class="status ${t.status}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></td>
-                ${renderRCell(r)}
-                <td class="num ${pl > 0 ? 'pl-positive' : pl < 0 ? 'pl-negative' : ''}">${pl !== null ? (pl >= 0 ? '+$' : '−$') + Math.abs(pl).toFixed(0) : '—'}</td>
-                <td>${t.grade ? `<span class="grade ${t.grade}">${t.grade}</span>` : '—'}</td>
-                <td>
-                  <button class="btn-secondary" style="padding: 4px 10px; font-size: 10px;"
-                          onclick="editTrade('${t.id}')">Edit</button>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
+    <div class="log-trade-list">
+      ${sorted.map(t => {
+        const pl = calcPL(t);
+        const r = calcR(t);
+        const mode = t.mode || 'swing';
+        const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
+        const sizeUnit = t.instrument === 'stocks' ? 'sh' : 'ctr';
+        const entry = Number(t.entry || 0);
+        const exit = t.exit ? Number(t.exit) : null;
+        const risk = Number(t.riskDollars) || (entry * (state.settings.stopPct / 100) * 100 * (Number(t.contracts) || 0)) || 0;
+        const valueText = t.status === 'open' ? `$${Math.round(risk)}` : formatMoney(pl || 0);
+        const valueDetail = t.status === 'open'
+          ? 'risk open'
+          : `${formatR(r)}${t.grade ? ` · Grade ${t.grade}` : ''}`;
+        return `
+          <button class="home-trade-row log-trade-row" type="button" onclick="editTrade('${t.id}')">
+            <span class="home-trade-stripe ${statusClass}"></span>
+            <span class="home-trade-main">
+              <span class="home-trade-ticker">${t.ticker || '—'} <span class="status ${t.status}" style="font-size:9px; padding:2px 6px;">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${mode} · ${t.direction || '—'}</span>
+            </span>
+            <span class="home-trade-setup">
+              ${t.setup || 'No setup'}
+              <span class="home-trade-detail">Entry $${entry.toFixed(2)} · Exit ${exit !== null ? '$' + exit.toFixed(2) : '—'} · ${t.contracts || 0} ${sizeUnit}</span>
+            </span>
+            <span class="log-trade-risk">
+              ${formatR(r)}
+              <span class="home-trade-detail">Risk $${Math.round(risk)}</span>
+            </span>
+            <span class="home-trade-value ${statusClass}">
+              ${valueText}
+              <span class="home-trade-detail">${valueDetail}</span>
+            </span>
+            <span class="log-trade-action-btn">Edit</span>
+          </button>
+        `;
+      }).join('')}
     </div>
   `;
 }
