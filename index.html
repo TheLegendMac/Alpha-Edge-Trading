@@ -391,12 +391,47 @@ input, select, textarea { font-family: inherit; }
   font-weight: 900;
   line-height: 1;
 }
+.home-score-value.editable {
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+.home-score-value.editable:hover {
+  transform: translateY(-1px);
+  border-color: var(--cyan);
+}
 .home-score-value.regime {
   font-size: 22px;
   padding: 7px 10px;
   border-radius: 8px;
   background: var(--green-bg);
   border: 1px solid rgba(63, 185, 80, 0.35);
+}
+.home-score-value.sectors {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  max-width: 220px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 16px;
+}
+.home-score-value.sectors strong {
+  color: var(--green-bright);
+  font-size: 18px;
+  line-height: 1;
+}
+.home-score-value.sectors span {
+  max-width: 100%;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .home-score-value.regime.neutral {
   color: var(--amber-bright);
@@ -413,6 +448,40 @@ input, select, textarea { font-family: inherit; }
   font-size: 11px;
   color: var(--ink-3);
   margin-top: 10px;
+}
+.home-regime-picker {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+.home-regime-picker.show { display: grid; }
+.home-regime-option {
+  padding: 7px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.home-regime-option.active {
+  border-color: var(--green);
+  color: var(--green-bright);
+  background: var(--green-bg);
+}
+.home-regime-option[data-regime="neutral"].active {
+  border-color: var(--amber);
+  color: var(--amber-bright);
+  background: var(--amber-bg);
+}
+.home-regime-option[data-regime="risk-off"].active {
+  border-color: var(--red);
+  color: var(--red-bright);
+  background: var(--red-bg);
 }
 .home-sunday-card {
   min-height: 104px;
@@ -2958,12 +3027,20 @@ textarea.input-field {
             <div class="home-market-scores">
               <div>
                 <div class="home-score-label">Regime</div>
-                <div class="home-score-value regime" id="home-regime-value">RISK-ON</div>
+                <button class="home-score-value regime editable" id="home-regime-value" type="button">RISK-ON</button>
               </div>
               <div>
-                <div class="home-score-label">Sector Score</div>
-                <div class="home-score-value" id="home-sector-score">—</div>
+                <div class="home-score-label">Sectors</div>
+                <button class="home-score-value sectors editable" id="home-sector-score" type="button">
+                  <strong>—</strong>
+                  <span>Rate sectors</span>
+                </button>
               </div>
+            </div>
+            <div class="home-regime-picker" id="home-regime-picker">
+              <button class="home-regime-option" data-regime="risk-on" type="button">Risk-On</button>
+              <button class="home-regime-option" data-regime="neutral" type="button">Neutral</button>
+              <button class="home-regime-option" data-regime="risk-off" type="button">Risk-Off</button>
             </div>
             <div class="home-sector-line" id="home-sector-line">Rate sectors in Sunday Prep.</div>
           </div>
@@ -5193,6 +5270,7 @@ const REGIME_DATA = {
 function setRegime(r) {
   state.regime = r;
   saveState();
+  renderHome();
   renderRegime();
   renderPretradeCheck();
   renderCalc();
@@ -6625,7 +6703,11 @@ function renderHome() {
   };
 
   setText('home-regime-value', regimeText);
-  setText('home-sector-score', sectorScore === null ? '—' : sectorScore);
+  setText('home-sector-score', top3.length
+    ? `<strong>${top3.length} Strong</strong><span>${top3.map(s => s.ticker).join(', ')}</span>`
+    : ratings.length
+      ? `<strong>${sectorScore}</strong><span>${ratings.length}/${SECTORS.length} rated</span>`
+      : '<strong>—</strong><span>Rate sectors</span>');
   setText('home-sector-line', ratings.length
     ? `${ratings.length}/${SECTORS.length} sectors rated. ${top3.length} strong, ${avoid.length} weak.`
     : 'No sector ratings yet. Use Sunday Prep to rate sectors.');
@@ -6643,7 +6725,16 @@ function renderHome() {
 
   const regimeValue = document.getElementById('home-regime-value');
   if (regimeValue) {
-    regimeValue.className = `home-score-value regime ${state.regime === 'neutral' ? 'neutral' : state.regime === 'risk-off' ? 'risk-off' : ''}`;
+    regimeValue.className = `home-score-value regime editable ${state.regime === 'neutral' ? 'neutral' : state.regime === 'risk-off' ? 'risk-off' : ''}`;
+  }
+  document.querySelectorAll('.home-regime-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.regime === state.regime);
+  });
+  const sectorButton = document.getElementById('home-sector-score');
+  if (sectorButton) {
+    sectorButton.title = top3.length
+      ? `Top sectors: ${top3.map(s => `${s.name} ${s.ticker}`).join(', ')}`
+      : 'Click to edit sector ratings in Sunday Prep';
   }
   const progress = document.getElementById('home-progress-fill');
   if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
@@ -8256,6 +8347,17 @@ function init() {
   });
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
   document.getElementById('btn-home-edit-sectors')?.addEventListener('click', () => setTab('sunday'));
+  document.getElementById('home-sector-score')?.addEventListener('click', () => setTab('sunday'));
+  document.getElementById('home-regime-value')?.addEventListener('click', () => {
+    document.getElementById('home-regime-picker')?.classList.toggle('show');
+  });
+  document.querySelectorAll('.home-regime-option').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      setRegime(btn.dataset.regime);
+      document.getElementById('home-regime-picker')?.classList.remove('show');
+    });
+  });
   document.getElementById('home-portfolio-empty')?.addEventListener('click', () => {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
