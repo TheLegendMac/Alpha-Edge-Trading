@@ -4285,13 +4285,14 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
-        <button class="btn-secondary" id="btn-home-stats" style="min-height:42px; padding:0 18px;">Stats</button>
+        <button class="btn-secondary" id="btn-home-log" style="min-height:42px; padding:0 18px;" title="Open the trade log + stats">Trade Log</button>
+        <button class="btn-secondary" id="btn-home-sunday" style="min-height:42px; padding:0 18px;" title="Sunday prep — sector ratings + weekly checklist">Sunday Prep</button>
       </div>
 
       <div class="home-portfolio-head">
         <div class="home-card-title" style="margin:0;">Portfolio View</div>
-        <input class="input-field" placeholder="Filter ticker, tag" />
-        <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Open Positions</div>
+        <input class="input-field" id="home-portfolio-filter" placeholder="Filter ticker, setup…" autocomplete="off" />
+        <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Recent activity</div>
       </div>
       <div class="home-activity-list" id="home-portfolio-empty">
         <div>
@@ -7660,7 +7661,9 @@ function genTradeId() {
 
 function calcPL(t) {
   if (t.status === 'open' || !t.exit) return null;
-  const dollarPL = (t.exit - t.entry) * 100 * t.contracts;
+  // Options use a 100x contract multiplier; stocks/shares are 1:1.
+  const multiplier = t.instrument === 'stocks' ? 1 : 100;
+  const dollarPL = (t.exit - t.entry) * multiplier * (t.contracts || t.shares || 0);
   return dollarPL;
 }
 
@@ -8691,7 +8694,16 @@ function renderHome() {
 
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
-    const listTrades = [...(state.trades || [])]
+    const filter = (state.homePortfolioFilter || '').trim().toLowerCase();
+    const allTrades = (state.trades || []);
+    const filtered = filter
+      ? allTrades.filter(t =>
+          (t.ticker || '').toLowerCase().includes(filter) ||
+          (t.setup || '').toLowerCase().includes(filter) ||
+          (t.direction || '').toLowerCase().includes(filter) ||
+          (t.mode || '').toLowerCase().includes(filter))
+      : allTrades;
+    const listTrades = [...filtered]
       .sort((a, b) => {
         const aTime = new Date(a.updated_at || a.exit_date || a.date || 0).getTime();
         const bTime = new Date(b.updated_at || b.exit_date || b.date || 0).getTime();
@@ -8699,7 +8711,9 @@ function renderHome() {
       })
       .slice(0, 8);
     if (listTrades.length === 0) {
-      empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
+      empty.innerHTML = filter
+        ? `<div class="home-activity-empty"><div><em>No trades match &ldquo;${filter}&rdquo;.</em><strong>Try a different ticker or setup.</strong></div></div>`
+        : `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
     } else {
       empty.innerHTML = listTrades.map(t => {
         const pl = calcPL(t);
@@ -8712,7 +8726,7 @@ function renderHome() {
           ? `${t.contracts || 0} ctr @ $${Number(t.entry || 0).toFixed(2)}`
           : `${formatDate(t.exit_date || t.date)}${r !== null ? ` · ${r >= 0 ? '+' : '-'}${Math.abs(r).toFixed(2)}R` : ''}`;
         return `
-          <button class="home-trade-row" type="button" onclick="event.stopPropagation(); editTrade('${t.id}')">
+          <button class="home-trade-row" type="button" onclick="event.stopPropagation(); reviewTrade('${t.id}')">
             <span class="home-trade-stripe ${statusClass}"></span>
             <span class="home-trade-main">
               <span class="home-trade-ticker">${t.ticker || '—'} <span class="status ${t.status}" style="font-size:9px; padding:2px 6px;">${t.status}</span></span>
@@ -8724,10 +8738,16 @@ function renderHome() {
           </button>
         `;
       }).join('');
-      empty.insertAdjacentHTML('beforeend', listTrades.length < (state.trades || []).length
-        ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${(state.trades || []).length} trades</span></button>`
+      empty.insertAdjacentHTML('beforeend', listTrades.length < filtered.length
+        ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${filtered.length} ${filter ? 'matching ' : ''}trades</span></button>`
         : '');
     }
+  }
+
+  // Restore filter input value (renderHome rebuilds the chrome each call)
+  const filterEl = document.getElementById('home-portfolio-filter');
+  if (filterEl && filterEl.value !== (state.homePortfolioFilter || '')) {
+    filterEl.value = state.homePortfolioFilter || '';
   }
 }
 
@@ -8952,9 +8972,12 @@ function saveTrade() {
   const riskDollars = mode === 'intraday'
     ? state.settings.intradayRiskPerTrade
     : (state.settings.account || 10000) * getRiskPctForRegime(state.regime || 'risk-on');
+  // Preserve instrument across edits; default new trades to the active analysis-flow instrument.
+  const instrument = existingTrade?.instrument || (mode === 'intraday' ? 'options' : (state.instrument || 'options'));
   const trade = {
     id,
     mode,
+    instrument,
     date: document.getElementById('t-date').value,
     ticker: document.getElementById('t-ticker').value.toUpperCase(),
     setup: document.getElementById('t-setup').value,
@@ -9066,6 +9089,15 @@ function resetFlowSilent() {
 window.editTrade = function(id) {
   const t = state.trades.find(t => t.id === id);
   if (t) openTradeModal(t);
+};
+
+// Same as editTrade but defaults to the Review pane — used by the Home portfolio rows
+// where the action label says "Review" so the modal should land on review/close, not entry.
+window.reviewTrade = function(id) {
+  const t = state.trades.find(t => t.id === id);
+  if (!t) return;
+  openTradeModal(t);
+  setTradeModalTab('review');
 };
 
 // ---------- Sunday checklist ----------
@@ -10049,16 +10081,16 @@ function renderIntradayPretradeBanner(ctx) {
 
   // Banner top-line title: hard-stop only when loss budget exhausted
   const title = document.getElementById('i-pretrade-title');
-  const subtitle = document.getElementById('i-pretrade-subtitle');
+  const subtitle = document.getElementById('i-pretrade-detail');
   const icon = document.getElementById('i-pretrade-icon');
   if (ctx.lossBudget <= 0) {
-    title.textContent = 'STOP — Daily loss budget exhausted';
-    subtitle.textContent = 'No more intraday entries today. Flow is locked. Step away from the screen.';
-    icon.textContent = '🛑';
+    if (title) title.textContent = 'STOP — Daily loss budget exhausted';
+    if (subtitle) subtitle.textContent = 'No more intraday entries today. Flow is locked. Step away from the screen.';
+    if (icon) icon.textContent = '🛑';
   } else {
-    title.textContent = 'Intraday — fast but defensible';
-    subtitle.textContent = '5 steps. Required fields only. Same skeleton as Swing.';
-    icon.textContent = '⚡';
+    if (title) title.textContent = 'Intraday — fast but defensible';
+    if (subtitle) subtitle.textContent = '5 steps. Required fields only. Same skeleton as Swing.';
+    if (icon) icon.textContent = '⚡';
   }
 }
 
@@ -10318,6 +10350,7 @@ function logIntradayTrade() {
   const trade = {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     mode: 'intraday',
+    instrument: 'options',
     date: todayISO(),
     time: new Date().toTimeString().slice(0, 5),
     ticker: t.ticker,
@@ -10500,14 +10533,14 @@ function init() {
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
-  document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
+  document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
+  document.getElementById('btn-home-sunday')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('home-open-toggle')?.addEventListener('click', () => {
-    state.homeShowOpenOnly = !state.homeShowOpenOnly;
-    saveState();
+  document.getElementById('home-portfolio-filter')?.addEventListener('input', e => {
+    state.homePortfolioFilter = e.target.value || '';
+    // No saveState — keep the filter ephemeral so it doesn't persist across reloads.
     renderHome();
   });
-  document.getElementById('log-text-filter')?.addEventListener('input', renderLogTable);
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
