@@ -108,9 +108,8 @@ input, select, textarea { font-family: inherit; }
   max-width: 1600px;
   margin: 0 auto;
   padding: 12px 24px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 24px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   min-height: 60px;
 }
@@ -139,59 +138,6 @@ input, select, textarea { font-family: inherit; }
   box-shadow: 0 0 16px rgba(6, 212, 248, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
 }
 .brand-name { color: var(--ink); }
-.brand-tag {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink-3);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-left: 4px;
-  padding: 3px 7px;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-}
-
-/* Tabs */
-.cmdbar-tabs {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  justify-content: flex-start;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 0 4px;
-}
-.cmdbar-tabs::-webkit-scrollbar { display: none; }
-.tab {
-  background: none;
-  border: none;
-  color: var(--ink-3);
-  padding: 8px 14px;
-  font-family: var(--body);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  position: relative;
-  transition: color 0.15s, background 0.15s;
-  border-radius: var(--r-sm);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.tab:hover { color: var(--ink); background: rgba(255,255,255,0.03); }
-.tab.active {
-  color: var(--cyan);
-  background: rgba(6, 212, 248, 0.08);
-}
-.tab.active::after {
-  content: '';
-  position: absolute;
-  left: 14px; right: 14px;
-  bottom: -13px;
-  height: 2px;
-  background: var(--cyan);
-  box-shadow: 0 0 12px var(--cyan), 0 0 4px var(--cyan);
-  border-radius: 2px 2px 0 0;
-}
 
 /* Right-side actions group */
 .cmdbar-actions {
@@ -3094,43 +3040,6 @@ textarea.input-field {
   .ref-card-tag, .routine-title { font-weight: 700; }
 }
 
-/* ============ ADVANCED TOGGLE (Settings modal) ============ */
-.advanced-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  cursor: pointer;
-  user-select: none;
-  border-top: 1px solid var(--line);
-  margin-top: 18px;
-}
-.advanced-toggle:hover { color: var(--cyan); }
-.advanced-toggle-label {
-  font-family: var(--display);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink);
-}
-.advanced-toggle-chevron {
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--ink-3);
-  transition: transform 0.15s;
-}
-.advanced-toggle.expanded .advanced-toggle-chevron {
-  transform: rotate(90deg);
-}
-.advanced-toggle-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.2s;
-}
-.advanced-toggle.expanded + .advanced-toggle-content {
-  max-height: 2000px;  /* effectively unlimited */
-  padding-top: 8px;
-}
-
 
 /* ============ SUNDAY PREP ============ */
 .sunday-grid {
@@ -4172,15 +4081,7 @@ textarea.input-field {
 /* Mobile cmdbar — collapse padding and tab labels */
 @media (max-width: 900px) {
   .cmdbar-inner {
-    grid-template-columns: auto 1fr;
-    gap: 12px;
     padding: 10px 14px;
-  }
-  .cmdbar-tabs {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    border-top: 1px solid rgba(255,255,255,0.04);
-    padding: 6px 0 0;
   }
   .cmdbar-actions { gap: 6px; }
   .cmdbar-regime,
@@ -4189,7 +4090,6 @@ textarea.input-field {
   .cmdbar-context-regime { display: none; }
   .cmdbar-sync { display: none; }
   .brand-name { display: none; }
-  .tab { padding: 6px 10px; font-size: 12px; }
 }
 
 </style>
@@ -4255,13 +4155,7 @@ textarea.input-field {
     <div class="cmdbar-brand brand" id="brand-home" title="Back to Home">
       <span class="brand-mark">AE</span>
       <span class="brand-name">Alpha Edge</span>
-      <span class="brand-tag" title="Account size — edit in Settings">$10K</span>
     </div>
-
-    <!-- Tab navigation -->
-    <nav class="cmdbar-tabs" role="tablist" aria-label="Primary navigation">
-      <button class="tab" data-tab="home" role="tab">Home</button>
-    </nav>
 
     <!-- Market context + actions -->
     <div class="cmdbar-actions">
@@ -5566,13 +5460,7 @@ STRENGTH: 3/3</pre>
         </div>
       </div>
 
-      <!-- Advanced toggle - all other settings collapsed by default -->
-      <div class="advanced-toggle" id="advanced-toggle">
-        <span class="advanced-toggle-label">Advanced settings</span>
-        <span class="advanced-toggle-chevron">▶</span>
-      </div>
-      <div class="advanced-toggle-content">
-        <div class="settings-section" style="border-top: none; padding-top: 0;">
+      <div class="settings-section">
           <div class="settings-section-title">Risk per trade by regime</div>
           <div class="settings-section-desc">Percent of account risked on a single trade. Default v2 settings shown.</div>
           <div class="form-grid">
@@ -5671,7 +5559,6 @@ STRENGTH: 3/3</pre>
           <div class="settings-section-desc">Permanently delete all trades, sector ratings, and session data. Settings are preserved. This cannot be undone.</div>
           <button class="btn-danger" id="btn-clear-all-data" style="letter-spacing:0.04em;">Clear all trades &amp; data</button>
         </div>
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-ghost" data-close-settings>Cancel</button>
@@ -8712,7 +8599,24 @@ function renderHome() {
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
       const cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
       const plLabel = dayTrades.length ? `<span class="home-day-pl">${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}</span>` : '';
-      return `<div class="home-day ${cls}" title="${dayTrades.length} closed trade${dayTrades.length === 1 ? '' : 's'}">${d.getDate()}${plLabel}</div>`;
+      
+      let hoverText = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+      if (dayTrades.length > 0) {
+        hoverText += `\nTrades: ${dayTrades.length}\nP/L: ${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}`;
+        const setupMap = {};
+        dayTrades.forEach(t => {
+          const s = t.setup || 'Other';
+          setupMap[s] = (setupMap[s] || 0) + (calcPL(t) || 0);
+        });
+        const topSetup = Object.entries(setupMap).sort((a,b) => b[1] - a[1])[0];
+        if (topSetup) {
+          hoverText += `\nTop Setup: ${topSetup[0]} (${topSetup[1] >= 0 ? '+$' : '-$'}${Math.abs(topSetup[1]).toFixed(0)})`;
+        }
+      } else {
+        hoverText += `\nNo trades`;
+      }
+      
+      return `<div class="home-day ${cls}" title="${hoverText}">${d.getDate()}${plLabel}</div>`;
     }).join('');
   }
 
@@ -9715,7 +9619,6 @@ function saveSettings() {
   closeSettings();
 
   // Re-render everything that depends on settings
-  renderBrandTag();
   renderHome();
   renderRegime();
   renderPretradeCheck();
@@ -9796,7 +9699,6 @@ function clearAllTradesAndData() {
   closeSettings();
   closeContextPanel();
   setTab('home');
-  renderBrandTag();
   renderHome();
   renderRegime();
   renderPretradeCheck();
@@ -9813,17 +9715,6 @@ function clearAllTradesAndData() {
   renderIntraday();
   recomputeStepStates();
   toast('All trades and cockpit data cleared');
-}
-
-function renderBrandTag() {
-  const tag = document.querySelector('.brand-tag');
-  if (!tag) return;
-  const account = state.settings.account;
-  if (account >= 1000) {
-    tag.textContent = '$' + (account / 1000).toFixed(account % 1000 === 0 ? 0 : 1) + 'K';
-  } else {
-    tag.textContent = '$' + account;
-  }
 }
 
 function renderReference() {
@@ -10439,7 +10330,6 @@ function init() {
   if (state.daysToEarnings !== null && state.daysToEarnings !== undefined) document.getElementById('days-to-earnings-input').value = state.daysToEarnings;
 
   // Render initial state
-  renderBrandTag();
   renderHome();
   renderRegime();
   renderPretradeCheck();
@@ -10453,11 +10343,6 @@ function init() {
   renderReference();
   renderSectorStatusMini();
   recomputeStepStates();
-
-  // Tabs
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => setTab(t.dataset.tab));
-  });
 
   // Regime toggle (cmdbar)
   document.querySelectorAll('.regime-btn').forEach(b => {
@@ -10680,14 +10565,6 @@ function init() {
   // Sectors panel
   const clearBtn = document.getElementById('btn-clear-sectors');
   if (clearBtn) clearBtn.addEventListener('click', clearSectors);
-
-  // Advanced settings toggle
-  const advToggle = document.getElementById('advanced-toggle');
-  if (advToggle) {
-    advToggle.addEventListener('click', () => {
-      advToggle.classList.toggle('expanded');
-    });
-  }
 
   // Restore last-active mode
   if (state.activeMode && ['home','decision','intraday','sunday','log','reference'].includes(state.activeMode)) {
