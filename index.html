@@ -3700,6 +3700,25 @@ textarea.input-field {
 .log-trade-list {
   background: rgba(13, 17, 23, 0.45);
 }
+.log-trade-header {
+  display: grid;
+  grid-template-columns: 9px minmax(126px, 1.1fr) minmax(170px, 1.45fr) minmax(118px, 0.8fr) minmax(88px, 0.65fr) 72px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.025);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.log-trade-header span:nth-child(5),
+.log-trade-header span:nth-child(6) {
+  text-align: right;
+}
 .log-trade-row {
   grid-template-columns: 9px minmax(126px, 1.1fr) minmax(170px, 1.45fr) minmax(118px, 0.8fr) minmax(88px, 0.65fr) 72px;
   padding: 13px 16px;
@@ -3735,6 +3754,25 @@ textarea.input-field {
   color: var(--ink);
 }
 @media (max-width: 980px) {
+  .log-toolbar {
+    align-items: stretch;
+  }
+  .log-toolbar > div:last-child,
+  #log-trade-search {
+    width: 100% !important;
+  }
+  .log-trade-header {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .log-trade-header span:nth-child(3),
+  .log-trade-header span:nth-child(4),
+  .log-trade-header span:nth-child(6) {
+    display: none;
+  }
+  .log-trade-header span:nth-child(5) {
+    text-align: right;
+  }
   .log-trade-row {
     grid-template-columns: 8px minmax(0, 1fr) auto;
     gap: 10px;
@@ -4719,17 +4757,6 @@ textarea.input-field {
         <div class="log-toolbar-title">Trade Log</div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <input class="input-field" id="log-trade-search" placeholder="Filter ticker, setup…" autocomplete="off" style="width: 190px; height: 34px; font-size: 12px;" />
-          <select id="log-mode-filter" class="btn-secondary" style="padding: 7px 10px;">
-            <option value="all">All trades</option>
-            <option value="swing">Swing only</option>
-            <option value="intraday">Intraday only</option>
-          </select>
-          <button class="btn-secondary" id="btn-export">Export CSV</button>
-          <button class="btn-secondary" id="btn-export-json">Export JSON</button>
-          <button class="btn-secondary" id="btn-import-json">Import JSON</button>
-          <button class="btn-secondary" id="btn-add-test-trades">Add Test Trades</button>
-          <input type="file" id="import-json-file" accept="application/json,.json" style="display:none" />
-          <button class="btn-primary" id="btn-add-trade">+ Add Trade</button>
         </div>
       </div>
       <div id="log-table-container"></div>
@@ -8284,6 +8311,14 @@ function renderLogTable() {
 
   container.innerHTML = `
     <div class="log-trade-list">
+      <div class="log-trade-header" aria-hidden="true">
+        <span></span>
+        <span>Trade</span>
+        <span>Setup</span>
+        <span>Risk</span>
+        <span>P/L</span>
+        <span>Action</span>
+      </div>
       ${sorted.map(t => {
         const pl = calcPL(t);
         const r = calcR(t);
@@ -10450,9 +10485,9 @@ function init() {
   });
 
   // Add trade button
-  document.getElementById('btn-add-trade').addEventListener('click', () => openTradeModal());
-  document.getElementById('btn-add-test-trades').addEventListener('click', addTestTrades);
-  document.getElementById('btn-export').addEventListener('click', exportCSV);
+  document.getElementById('btn-add-trade')?.addEventListener('click', () => openTradeModal());
+  document.getElementById('btn-add-test-trades')?.addEventListener('click', addTestTrades);
+  document.getElementById('btn-export')?.addEventListener('click', exportCSV);
 
   // Snapshot paste
   const snapParseBtn = document.getElementById('snapshot-parse-btn');
@@ -10470,9 +10505,9 @@ function init() {
   if (snapClearBtn) snapClearBtn.addEventListener('click', clearSnapshot);
   // Render snapshot display on first load (shows current state values)
   renderSnapshotDisplay();
-  document.getElementById('btn-export-json').addEventListener('click', exportJSON);
-  document.getElementById('btn-import-json').addEventListener('click', () => document.getElementById('import-json-file').click());
-  document.getElementById('import-json-file').addEventListener('change', (e) => {
+  document.getElementById('btn-export-json')?.addEventListener('click', exportJSON);
+  document.getElementById('btn-import-json')?.addEventListener('click', () => document.getElementById('import-json-file')?.click());
+  document.getElementById('import-json-file')?.addEventListener('change', (e) => {
     if (e.target.files[0]) importJSON(e.target.files[0]);
     e.target.value = '';
   });
