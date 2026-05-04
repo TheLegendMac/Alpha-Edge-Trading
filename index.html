@@ -414,9 +414,9 @@ input, select, textarea { font-family: inherit; }
   max-width: 220px;
   padding: 7px 10px;
   border-radius: 8px;
-  background: var(--bg-elev);
-  border: 1px solid var(--line-soft);
-  color: var(--ink);
+  background: var(--green-bg);
+  border: 1px solid rgba(63, 185, 80, 0.35);
+  color: var(--green-bright);
   font-size: 16px;
 }
 .home-score-value.sectors strong {
@@ -433,6 +433,35 @@ input, select, textarea { font-family: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.home-score-value.sectors.has-avoid {
+  background: var(--red-bg);
+  border-color: rgba(248, 81, 73, 0.35);
+}
+.home-score-value.sectors.has-avoid strong { color: var(--red-bright); }
+.home-sector-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+.home-sector-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--green-bg);
+  color: var(--green-bright);
+  border: 1px solid rgba(63, 185, 80, 0.28);
+}
+.home-sector-pill.avoid {
+  background: var(--red-bg);
+  color: var(--red-bright);
+  border-color: rgba(248, 81, 73, 0.28);
+}
 .home-score-value.regime.neutral {
   color: var(--amber-bright);
   background: var(--amber-bg);
@@ -442,12 +471,6 @@ input, select, textarea { font-family: inherit; }
   color: var(--red-bright);
   background: var(--red-bg);
   border-color: rgba(248, 81, 73, 0.35);
-}
-.home-sector-line {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-3);
-  margin-top: 10px;
 }
 .home-regime-picker {
   display: none;
@@ -482,29 +505,6 @@ input, select, textarea { font-family: inherit; }
   border-color: var(--red);
   color: var(--red-bright);
   background: var(--red-bg);
-}
-.home-sunday-card {
-  min-height: 104px;
-}
-.home-sunday-row {
-  display: grid;
-  grid-template-columns: 74px 1fr;
-  gap: 10px;
-  font-size: 12px;
-  margin: 7px 0;
-}
-.home-sunday-label {
-  font-family: var(--mono);
-  color: var(--ink-4);
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-}
-.home-sunday-value {
-  color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .home-intel-text {
   color: #7ee787;
@@ -645,27 +645,111 @@ input, select, textarea { font-family: inherit; }
   padding: 4px 8px;
   font-size: 11px;
 }
-.home-empty {
-  min-height: 150px;
+.home-activity-list {
+  min-height: 190px;
   border: 1px dashed var(--line-soft);
   border-radius: var(--r-lg);
   background: rgba(13, 17, 23, 0.65);
+  color: var(--ink-4);
+  font-size: 13px;
+  overflow: hidden;
+}
+.home-activity-empty {
+  min-height: 190px;
   display: grid;
   place-items: center;
   text-align: center;
-  color: var(--ink-4);
-  font-size: 13px;
 }
-.home-empty strong {
+.home-activity-empty strong {
   display: block;
   color: var(--cyan);
   margin-top: 8px;
   font-size: 12px;
 }
+.home-trade-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 9px minmax(120px, 1.1fr) minmax(160px, 1.8fr) minmax(82px, 0.6fr) 84px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.home-trade-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+.home-trade-row:last-child { border-bottom: 0; }
+.home-trade-stripe {
+  width: 4px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--cyan);
+}
+.home-trade-stripe.win { background: var(--green); }
+.home-trade-stripe.loss { background: var(--red); }
+.home-trade-main {
+  min-width: 0;
+}
+.home-trade-ticker {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-family: var(--mono);
+  color: var(--ink);
+  font-weight: 900;
+}
+.home-trade-meta,
+.home-trade-detail {
+  margin-top: 3px;
+  color: var(--ink-4);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-trade-setup {
+  min-width: 0;
+  color: var(--ink-2);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-trade-value {
+  font-family: var(--mono);
+  font-weight: 900;
+  text-align: right;
+}
+.home-trade-value .home-trade-detail {
+  display: block;
+  text-align: right;
+  font-weight: 600;
+}
+.home-trade-value.win { color: var(--green-bright); }
+.home-trade-value.loss { color: var(--red-bright); }
+.home-trade-action {
+  justify-self: end;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 @media (max-width: 980px) {
   .home-grid,
   .home-row,
   .home-actions { grid-template-columns: 1fr; }
+  .home-trade-row {
+    grid-template-columns: 8px 1fr auto;
+  }
+  .home-trade-setup,
+  .home-trade-action { display: none; }
 }
 
 /* ============ TRADE FLOW STEPS — top-to-bottom workflow ============ */
@@ -3042,24 +3126,7 @@ textarea.input-field {
               <button class="home-regime-option" data-regime="neutral" type="button">Neutral</button>
               <button class="home-regime-option" data-regime="risk-off" type="button">Risk-Off</button>
             </div>
-            <div class="home-sector-line" id="home-sector-line">Rate sectors in Sunday Prep.</div>
-          </div>
-
-          <div class="home-card home-sunday-card">
-            <div class="home-card-title">Sunday Prep</div>
-            <button class="btn-secondary home-card-kicker" id="btn-home-edit-sectors" style="position:absolute; padding:4px 8px;">Edit</button>
-            <div class="home-sunday-row">
-              <div class="home-sunday-label">Top</div>
-              <div class="home-sunday-value" id="home-top-sectors">—</div>
-            </div>
-            <div class="home-sunday-row">
-              <div class="home-sunday-label">Avoid</div>
-              <div class="home-sunday-value" id="home-avoid-sectors">—</div>
-            </div>
-            <div class="home-sunday-row">
-              <div class="home-sunday-label">Rated</div>
-              <div class="home-sunday-value" id="home-sector-rated">— never —</div>
-            </div>
+            <div class="home-sector-pill-row" id="home-sector-pills"></div>
           </div>
         </div>
 
@@ -3110,7 +3177,7 @@ textarea.input-field {
         <input class="input-field" placeholder="Filter ticker, tag" />
         <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Open Positions</div>
       </div>
-      <div class="home-empty" id="home-portfolio-empty">
+      <div class="home-activity-list" id="home-portfolio-empty">
         <div>
           <div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div>
           <em>Your active session is empty.</em>
@@ -6703,17 +6770,17 @@ function renderHome() {
   };
 
   setText('home-regime-value', regimeText);
-  setText('home-sector-score', top3.length
-    ? `<strong>${top3.length} Strong</strong><span>${top3.map(s => s.ticker).join(', ')}</span>`
+  setText('home-sector-score', top3.length || avoid.length
+    ? `<strong>${top3.length} Top / ${avoid.length} Avoid</strong><span>${[...top3.slice(0, 3), ...avoid.slice(0, 2)].map(s => s.ticker).join(', ')}</span>`
     : ratings.length
       ? `<strong>${sectorScore}</strong><span>${ratings.length}/${SECTORS.length} rated</span>`
       : '<strong>—</strong><span>Rate sectors</span>');
-  setText('home-sector-line', ratings.length
-    ? `${ratings.length}/${SECTORS.length} sectors rated. ${top3.length} strong, ${avoid.length} weak.`
-    : 'No sector ratings yet. Use Sunday Prep to rate sectors.');
-  setText('home-top-sectors', top3.length ? top3.map(s => `${s.ticker} ${Number(s.rating).toFixed(1)}`).join(', ') : '— rate strong sectors —');
-  setText('home-avoid-sectors', avoid.length ? avoid.slice(0, 3).map(s => `${s.ticker} ${Number(s.rating).toFixed(1)}`).join(', ') : '— none flagged —');
-  setText('home-sector-rated', state.sectorRatedAt ? formatRatedAt(state.sectorRatedAt) : '— never —');
+  setText('home-sector-pills', ratings.length
+    ? [
+        ...top3.slice(0, 3).map(s => `<span class="home-sector-pill">▲ ${s.ticker} ${Number(s.rating).toFixed(1)}</span>`),
+        ...avoid.slice(0, 3).map(s => `<span class="home-sector-pill avoid">▼ ${s.ticker} ${Number(s.rating).toFixed(1)}</span>`),
+      ].join('') || '<span class="home-sector-pill">Neutral market map</span>'
+    : '<span class="home-sector-pill avoid">Edit sector ratings</span>');
   setText('home-intel-text', scoreText);
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
@@ -6732,6 +6799,7 @@ function renderHome() {
   });
   const sectorButton = document.getElementById('home-sector-score');
   if (sectorButton) {
+    sectorButton.className = `home-score-value sectors editable ${avoid.length ? 'has-avoid' : ''}`;
     sectorButton.title = top3.length
       ? `Top sectors: ${top3.map(s => `${s.name} ${s.ticker}`).join(', ')}`
       : 'Click to edit sector ratings in Sunday Prep';
@@ -6764,16 +6832,42 @@ function renderHome() {
 
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
-    if (openTrades.length === 0) {
-      empty.innerHTML = `<div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div>`;
+    const listTrades = [...(state.trades || [])]
+      .sort((a, b) => {
+        const aTime = new Date(a.updated_at || a.exit_date || a.date || 0).getTime();
+        const bTime = new Date(b.updated_at || b.exit_date || b.date || 0).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 8);
+    if (listTrades.length === 0) {
+      empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
     } else {
-      empty.innerHTML = openTrades.map(t => `
-        <div style="display:flex; justify-content:space-between; align-items:center; width:min(680px, 92vw); padding:10px 0; border-bottom:1px solid var(--line); text-align:left;">
-          <strong style="color:var(--ink); margin:0;">${t.ticker}</strong>
-          <span>${t.setup || 'Open trade'}</span>
-          <span class="status open" style="font-family:var(--mono); color:var(--cyan);">OPEN</span>
-        </div>
-      `).join('');
+      empty.innerHTML = listTrades.map(t => {
+        const pl = calcPL(t);
+        const r = calcR(t);
+        const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
+        const valueText = t.status === 'open'
+          ? `Risk $${Math.round(Number(t.riskDollars) || ((Number(t.entry) || 0) * (state.settings.stopPct / 100) * 100 * (Number(t.contracts) || 0)) || 0)}`
+          : `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}`;
+        const detailText = t.status === 'open'
+          ? `${t.contracts || 0} ctr @ $${Number(t.entry || 0).toFixed(2)}`
+          : `${formatDate(t.exit_date || t.date)}${r !== null ? ` · ${r >= 0 ? '+' : '-'}${Math.abs(r).toFixed(2)}R` : ''}`;
+        return `
+          <button class="home-trade-row" type="button" onclick="editTrade('${t.id}')">
+            <span class="home-trade-stripe ${statusClass}"></span>
+            <span class="home-trade-main">
+              <span class="home-trade-ticker">${t.ticker || '—'} <span class="status ${t.status}" style="font-size:9px; padding:2px 6px;">${t.status}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${t.mode || 'swing'} · ${t.direction || '—'}</span>
+            </span>
+            <span class="home-trade-setup">${t.setup || 'No setup'}</span>
+            <span class="home-trade-value ${statusClass}">${valueText}<span class="home-trade-detail">${detailText}</span></span>
+            <span class="home-trade-action">Review</span>
+          </button>
+        `;
+      }).join('');
+      empty.insertAdjacentHTML('beforeend', listTrades.length < (state.trades || []).length
+        ? `<button class="home-trade-row" type="button" onclick="setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${(state.trades || []).length} trades</span></button>`
+        : '');
     }
   }
 }
@@ -8346,7 +8440,6 @@ function init() {
     document.getElementById('modal-mode-picker').classList.add('show');
   });
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('btn-home-edit-sectors')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('home-sector-score')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
