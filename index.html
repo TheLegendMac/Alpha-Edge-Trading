@@ -1794,6 +1794,44 @@ select.input-field {
   margin: 9px 0;
   font-size: 12px;
 }
+.setup-filter-row {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  padding: 5px 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.setup-filter-row:hover {
+  background: rgba(6, 212, 248, 0.06);
+}
+.setup-filter-row.active {
+  background: rgba(6, 212, 248, 0.09);
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+.stats-filter-clear {
+  background: none;
+  border: 1px solid var(--line-soft);
+  color: var(--cyan);
+  border-radius: 3px;
+  padding: 3px 7px;
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.stats-filter-clear:hover {
+  border-color: var(--cyan);
+  background: rgba(6, 212, 248, 0.08);
+}
 .bar-row-label {
   color: var(--ink-2);
   font-weight: 600;
@@ -6693,6 +6731,7 @@ let state = {
   // Log
   logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
   logSearch: '',
+  logSetupFilter: '',
   homePortfolioView: 'recent', // 'recent' | 'open'
   marketContextUpdatedAt: null,
 };
@@ -6718,6 +6757,7 @@ function loadState() {
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
       if (state.logSearch === undefined) state.logSearch = '';
+      if (state.logSetupFilter === undefined) state.logSetupFilter = '';
       if (!state.homePortfolioView) state.homePortfolioView = 'recent';
       if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
@@ -8225,7 +8265,9 @@ function renderLogStats() {
   const container = document.getElementById('log-stats');
   const help = text => `<span class="stat-help" title="${text}">?</span>`;
   const filter = state.logModeFilter || 'all';
-  const trades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const setupFilter = state.logSetupFilter || '';
+  const modeTrades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const trades = setupFilter ? modeTrades.filter(t => (t.setup || '—') === setupFilter) : modeTrades;
   const open   = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => t.status !== 'open');
   const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
@@ -8336,7 +8378,8 @@ function renderLogStats() {
 
   // ── Setup performance panel ────────────────────────────────
   const setupMap = {};
-  closed.forEach(t => {
+  const setupSourceClosed = modeTrades.filter(t => t.status !== 'open');
+  setupSourceClosed.forEach(t => {
     const k = t.setup || '—';
     if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0 };
     const pl = calcPL(t) || 0;
@@ -8350,17 +8393,23 @@ function renderLogStats() {
   const setupHtml = setups.length ? setups.map(([name, s]) => {
     const wr  = Math.round(s.wins / s.n * 100);
     const avgRv = s.totalR / s.n;
+    const isActive = setupFilter === name;
+    const encodedName = encodeURIComponent(name).replace(/'/g, '%27');
     return `
-      <div class="bar-row">
+      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" onclick="setLogSetupFilter(decodeURIComponent('${encodedName}'))">
         <div class="bar-row-label">${name}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R avg</span></div>
         <div class="bar-wrap"><div class="bar-fill ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${Math.max(4, Math.abs(s.pl) / maxSetupPL * 100).toFixed(0)}%"></div></div>
         <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
-      </div>`;
+      </button>`;
   }).join('')
     : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
 
   // ── Assemble ──────────────────────────────────────────────
-  const filterLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
+  const modeLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
+  const filterLabel = setupFilter ? `${modeLabel} · ${setupFilter}` : modeLabel;
+  const clearSetupHtml = setupFilter
+    ? `<button class="stats-filter-clear" type="button" onclick="clearLogSetupFilter()">Clear setup</button>`
+    : '';
   container.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
@@ -8368,7 +8417,7 @@ function renderLogStats() {
       <div class="home-card">
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px;">
           <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Six core indicators for the selected trade set. Use these for the fastest read on performance and risk.')}</div>
-          <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open</div>
+          <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
         </div>
         <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
       </div>
@@ -8394,24 +8443,39 @@ function renderUniversalSidebar() {
   renderLogStats();
 }
 
+function setLogSetupFilter(setup) {
+  state.logSetupFilter = setup || '';
+  saveState();
+  renderLogStats();
+  renderLogTable();
+  const search = document.getElementById('log-trade-search');
+  if (search) search.placeholder = state.logSetupFilter ? `Filtered: ${state.logSetupFilter}` : 'Filter ticker, setup…';
+}
+
+function clearLogSetupFilter() {
+  setLogSetupFilter('');
+}
+
 function renderLogTable() {
   const container = document.getElementById('log-table-container');
   const filter = state.logModeFilter || 'all';
+  const setupFilter = state.logSetupFilter || '';
   const search = (state.logSearch || '').trim().toLowerCase();
   const modeFiltered = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const setupFiltered = setupFilter ? modeFiltered.filter(t => (t.setup || '—') === setupFilter) : modeFiltered;
   const filtered = search
-    ? modeFiltered.filter(t =>
+    ? setupFiltered.filter(t =>
         (t.ticker || '').toLowerCase().includes(search) ||
         (t.setup || '').toLowerCase().includes(search) ||
         (t.direction || '').toLowerCase().includes(search) ||
         (t.mode || '').toLowerCase().includes(search) ||
         (t.status || '').toLowerCase().includes(search))
-    : modeFiltered;
+    : setupFiltered;
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-title">${search ? 'No matching trades' : (filter === 'all' ? 'No trades logged yet' : 'No ' + filter + ' trades')}</div>
-        <div>${search ? 'Clear the search or try a different ticker/setup.' : (filter === 'all' ? 'Click "Add Trade" when you take your first entry, or log one from the Intraday tab.' : 'Switch the filter or log a new ' + filter + ' trade.')}</div>
+        <div class="empty-state-title">${search ? 'No matching trades' : setupFilter ? 'No trades for this setup' : (filter === 'all' ? 'No trades logged yet' : 'No ' + filter + ' trades')}</div>
+        <div>${search ? 'Clear the search or try a different ticker/setup.' : setupFilter ? 'Choose another setup or clear the setup filter.' : (filter === 'all' ? 'Click "Add Trade" when you take your first entry, or log one from the Intraday tab.' : 'Switch the filter or log a new ' + filter + ' trade.')}</div>
       </div>
     `;
     return;
@@ -9823,6 +9887,7 @@ function clearAllTradesAndData() {
     intradayQuality: { timeOverride: false },
     logModeFilter: 'all',
     logSearch: '',
+    logSetupFilter: '',
     homePortfolioView: 'recent',
   };
 
@@ -10664,6 +10729,7 @@ function init() {
   const logSearch = document.getElementById('log-trade-search');
   if (logSearch) {
     logSearch.value = state.logSearch || '';
+    logSearch.placeholder = state.logSetupFilter ? `Filtered: ${state.logSetupFilter}` : 'Filter ticker, setup…';
     logSearch.addEventListener('input', e => {
       state.logSearch = e.target.value || '';
       renderLogTable();
