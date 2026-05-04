@@ -11390,6 +11390,7 @@ function logIntradayTrade() {
   state.trades.push(trade);
   state.intraday = newIntradayTicket();
   state.intradayQuality.timeOverride = false;
+  if (state.tradeFlow) state.tradeFlow.intradayDraft = {};
   saveState();
   // Force immediate push of the new trade
   if (typeof doPush === 'function') {
@@ -11771,6 +11772,7 @@ function tfReset() {
   state.tradeFlow.step = 1;
   state.tradeFlow.thesis = '';
   state.tradeFlow.preMortem = '';
+  state.tradeFlow.intradayDraft = {};
   saveState();
   renderTrade();
   // Also refresh legacy panels so things stay in sync
@@ -12574,8 +12576,10 @@ function tfMountIntradayStep1() {
 
 function tfIntradayStep2() {
   const it = state.intraday || {};
+  const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
   const sb = tfSpreadBracket(it.spreadPct);
   const filled = (v) => v !== null && v !== undefined && v !== '';
+  const inputValue = (key) => draft[key] !== undefined ? draft[key] : (it[key] ?? '');
   const lvlN = [filled(it.entry), filled(it.stop), filled(it.target)].filter(Boolean).length;
   const r = (it.entry && it.stop && it.target)
     ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
@@ -12596,15 +12600,15 @@ function tfIntradayStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">Entry $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${it.entry ?? ''}" placeholder="e.g. 188.50" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="e.g. 188.50" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">Stop $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${it.stop ?? ''}" placeholder="below structure" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="below structure" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">Target $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${it.target ?? ''}" placeholder="prior high / VWAP / etc." />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="prior high / VWAP / etc." />
           </div></div>
         </div>
         <div class="trade-output" style="${rGood ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
@@ -12626,14 +12630,14 @@ function tfIntradayStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row"><div>
             <label class="input-label">Spread %</label>
-            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${it.spreadPct ?? ''}" placeholder="e.g. 2.0" />
+            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="e.g. 2.0" />
             <div class="input-help">Bid-ask as % of mid. Cap ${(state.settings && state.settings.intradayMaxSpreadPct) || 5}%.</div>
           </div>
           <div class="trade-bracket ${sb.cls}">${sb.text}</div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">Contracts (optional)</label>
-            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${it.contracts ?? ''}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk" />
+            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk" />
             <div class="input-help">Leave blank to auto-size from per-trade risk budget.</div>
           </div></div>
         </div>
@@ -12647,6 +12651,9 @@ function tfMountIntradayStep2() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
+      state.tradeFlow.intradayDraft[key] = e.target.value;
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
       state.intraday[key] = isNaN(v) ? null : v;
       saveState();
