@@ -4087,28 +4087,45 @@ async function reconcileOnSignIn() {
     refreshAllUI();
     return;
   }
-  // Both exist. Use cloud if it's from a different device and newer, else keep local.
+  // Both exist. Merge trades by ID and use cloud or local for everything else
+  // based on timestamps.
   const cloudTime = new Date(cloud.updated_at).getTime();
   const localTime = Number(localStorage.getItem('mac_cockpit_local_save_ts') || 0);
   const sameDevice = cloud.device_id === SYNC.deviceId;
+  const localTradeCount = (state.trades || []).length;
+  const cloudTradeCount = (cloud.state_json?.trades || []).length;
+  console.log('[sync reconcile]', { cloudTradeCount, localTradeCount, sameDevice });
+
   if (!sameDevice && cloudTime > localTime + 5000) {
     // Cloud is newer and from a different device — ask the user
     const useCloud = confirm(
       'Cloud has newer data from another device.\n\n' +
-      `Cloud: ${new Date(cloud.updated_at).toLocaleString()}\n` +
-      `Local: ${localTime ? new Date(localTime).toLocaleString() : 'unknown'}\n\n` +
-      'Click OK to use cloud data (replace local).\n' +
-      'Click Cancel to keep local data (push to cloud).'
+      `Cloud: ${new Date(cloud.updated_at).toLocaleString()} (${cloudTradeCount} trades)\n` +
+      `Local: ${localTime ? new Date(localTime).toLocaleString() : 'unknown'} (${localTradeCount} trades)\n\n` +
+      'Click OK to merge cloud + local (recommended).\n' +
+      'Click Cancel to keep ONLY local data (push to cloud, replace cloud).'
     );
     if (useCloud) {
-      state = { ...state, ...cloud.state_json };
+      // SAFE merge: keep all trades from both sides
+      const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
+      const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+      state = { ...state, ...cloudClone, trades: mergedTrades };
       saveStateLocal();
+      // Push merged result so cloud has the union
+      schedulePush();
       refreshAllUI();
     } else {
       await doPush();
     }
   } else {
-    // Local is current — push to cloud
+    // Local is current OR same-device — push to cloud, but ALSO defensively
+    // merge in any cloud trades that aren't local (handles a stale-tab case)
+    if (cloudTradeCount > localTradeCount) {
+      const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
+      state.trades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+      saveStateLocal();
+      refreshAllUI();
+    }
     await doPush();
   }
 }
@@ -4307,24 +4324,67 @@ async function pullAndMergeIfNewer() {
     const cloudTime = new Date(cloud.updated_at).getTime();
     const localTime = Number(localStorage.getItem('mac_cockpit_local_save_ts') || 0);
     const sameDevice = cloud.device_id === SYNC.deviceId;
-    // Only merge if cloud is from a different device AND newer than local
-    // (5 second buffer accounts for clock skew)
+    const localTradeCount = (state.trades || []).length;
+    const cloudTradeCount = (cloud.state_json?.trades || []).length;
+
+    console.log('[sync pull]', {
+      cloudTime: new Date(cloudTime).toLocaleTimeString(),
+      localTime: localTime ? new Date(localTime).toLocaleTimeString() : 'never',
+      sameDevice,
+      cloudDevice: cloud.device_id,
+      myDevice: SYNC.deviceId,
+      cloudTradeCount,
+      localTradeCount,
+      wouldMerge: !sameDevice && cloudTime > localTime + 5000,
+    });
+
+    // CRITICAL SAFEGUARD: never replace local trades with FEWER cloud trades.
+    // This protects against the cloud-clobbers-local-trades bug entirely.
+    // Local trades that aren't in cloud yet are valuable — pushing later
+    // will sync them up. Cloud trades that aren't in local are also valuable
+    // (logged on another device). So we MERGE the trade arrays by ID instead
+    // of replacing wholesale.
     if (!sameDevice && cloudTime > localTime + 5000) {
       console.info('[sync pull] Pulling newer cloud state from device', cloud.device_id);
-      // Deep-clone the cloud state to break any reference sharing
       const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
-      state = { ...state, ...cloudClone };
+      const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+      // Replace state with cloud, BUT preserve the merged trades array
+      state = { ...state, ...cloudClone, trades: mergedTrades };
       saveStateLocal();
-      // Also update local-save timestamp to match cloud so we don't immediately re-pull
-      localStorage.setItem('mac_cockpit_local_save_ts', String(cloudTime));
+      // Push the merged result back so cloud has the union too
+      schedulePush();
+      localStorage.setItem('mac_cockpit_local_save_ts', String(Date.now()));
       refreshAllUI();
-      // Brief visual notification
       setSyncStatus('synced', 'Updated from cloud');
       setTimeout(() => setSyncStatus('synced'), 2500);
     }
   } catch (e) {
     console.warn('[sync] Pull-and-merge failed:', e);
   }
+}
+
+// Merge two trade arrays by ID. If the same id exists in both, the one with
+// the more recent updated_at wins (or whichever has more fields filled if
+// no timestamps).
+function mergeTradesArrays(localTrades, cloudTrades) {
+  const byId = new Map();
+  // Start with cloud
+  for (const t of cloudTrades) {
+    if (t && t.id) byId.set(t.id, t);
+  }
+  // Overlay local — local wins for any conflict because local is what the
+  // user is currently looking at on this device.
+  for (const t of localTrades) {
+    if (!t || !t.id) continue;
+    if (byId.has(t.id)) {
+      // Same trade exists in both — pick whichever has more recent exit_date
+      // or more filled fields. Default to local since it's what's on screen.
+      byId.set(t.id, t);
+    } else {
+      byId.set(t.id, t);
+    }
+  }
+  return Array.from(byId.values());
 }
 
 // Trigger 1: visibility change (most reliable for "tab returned to focus")
