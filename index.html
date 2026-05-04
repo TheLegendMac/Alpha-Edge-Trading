@@ -8657,8 +8657,8 @@ function renderHome() {
     ? avoid.slice(0, 3).map(s => s.ticker).join(', ')
     : '—';
   setText('home-sector-score', ratings.length
-    ? `<span class="home-sector-context-line top"><strong>Top 3</strong><span>${topText}</span></span><span class="home-sector-context-line avoid"><strong>Avoid</strong><span>${avoidText}</span></span>`
-    : '<span class="home-sector-context-line avoid"><strong>Sectors</strong><span>Rate in Sunday Prep</span></span>');
+    ? `<span class="home-sector-context-line top"><strong>Top 3</strong><span>${topText}</span></span>`
+    : '<span class="home-sector-context-line top"><strong>Sectors</strong><span>Rate in Sunday Prep</span></span>');
   setText('home-intel-text', scoreText);
 
   // Render structured Alpha Intelligence
