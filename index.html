@@ -421,10 +421,12 @@ input, select, textarea { font-family: inherit; }
   margin-bottom: 14px;
 }
 .stat-help {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 17px;
   height: 17px;
+  padding: 0;
   margin-left: 6px;
   border: 1px solid rgba(6, 212, 248, 0.35);
   border-radius: 50%;
@@ -433,8 +435,9 @@ input, select, textarea { font-family: inherit; }
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 900;
-  line-height: 1;
-  vertical-align: 1px;
+  line-height: 17px;
+  text-align: center;
+  vertical-align: middle;
   cursor: help;
 }
 .stat-help:hover {
@@ -800,6 +803,26 @@ input, select, textarea { font-family: inherit; }
   height: 26px;
   padding: 4px 8px;
   font-size: 11px;
+}
+.home-portfolio-toggle {
+  margin-left: auto;
+  background: rgba(6, 212, 248, 0.06);
+  border: 1px solid rgba(6, 212, 248, 0.28);
+  border-radius: var(--r-sm);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.home-portfolio-toggle:hover {
+  background: rgba(6, 212, 248, 0.12);
+  border-color: var(--cyan);
+  color: var(--ink);
 }
 .home-icon-action {
   width: 42px;
@@ -4101,7 +4124,7 @@ textarea.input-field {
 }
 .ctx-sector-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 86px;
+  grid-template-columns: 44px minmax(0, 1fr) 104px;
   align-items: center;
   gap: 8px;
   padding: 7px 8px;
@@ -4131,8 +4154,8 @@ textarea.input-field {
   white-space: nowrap;
 }
 .ctx-sector-input {
-  width: 86px;
-  min-width: 86px;
+  width: 104px;
+  min-width: 104px;
   flex-shrink: 0;
   background: var(--bg-elev);
   border: 1px solid rgba(255,255,255,0.08);
@@ -4198,7 +4221,7 @@ textarea.input-field {
   .ctx-sector-grid { gap: 5px; }
   .ctx-sector-grid { grid-template-columns: 1fr; }
   .ctx-sector-name { display: block; }
-  .ctx-sector-row { grid-template-columns: 44px minmax(0, 1fr) 86px; }
+  .ctx-sector-row { grid-template-columns: 44px minmax(0, 1fr) 104px; }
 }
 .ctx-close:hover { background: #1ce0ff; }
 
@@ -4473,7 +4496,7 @@ textarea.input-field {
 
       <div class="home-portfolio-head">
         <div class="home-card-title" style="margin:0;">Portfolio View</div>
-        <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Recent activity</div>
+        <button class="home-portfolio-toggle" id="home-portfolio-toggle" type="button">Open positions</button>
       </div>
       <div class="home-activity-list" id="home-portfolio-empty">
         <div>
@@ -6639,6 +6662,7 @@ let state = {
   // Log
   logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
   logSearch: '',
+  homePortfolioView: 'recent', // 'recent' | 'open'
 };
 
 function loadState() {
@@ -6661,6 +6685,7 @@ function loadState() {
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
       if (state.logSearch === undefined) state.logSearch = '';
+      if (!state.homePortfolioView) state.homePortfolioView = 'recent';
       if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
     }
@@ -6736,8 +6761,8 @@ function renderContextPanel() {
         <div class="ctx-sector-row ${rowClass}" data-ctx-ticker="${s.ticker}">
           <span class="ctx-sector-ticker" title="${s.name}">${s.ticker}</span>
           <span class="ctx-sector-name" title="${s.name}">${s.name}</span>
-          <input class="ctx-sector-input" type="number" min="1" max="5" step="0.01"
-                 placeholder="—" inputmode="decimal"
+          <input class="ctx-sector-input" type="text"
+                 placeholder="—" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*"
                  data-ctx-ticker="${s.ticker}"
                  value="${rating}" />
         </div>`;
@@ -8282,12 +8307,12 @@ function renderLogStats() {
 
       <div class="home-row" style="margin-bottom: 0; grid-template-columns: 1fr 1fr;">
         <div class="home-card">
-          <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
-          ${exitHtml}
-        </div>
-        <div class="home-card">
           <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
           ${setupHtml}
+        </div>
+        <div class="home-card">
+          <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
+          ${exitHtml}
         </div>
       </div>
     </div>
@@ -8642,7 +8667,14 @@ function renderHome() {
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
     const allTrades = (state.trades || []);
-    const listTrades = [...allTrades]
+    const showingOpen = state.homePortfolioView === 'open';
+    const sourceTrades = showingOpen ? openTrades : allTrades;
+    const toggle = document.getElementById('home-portfolio-toggle');
+    if (toggle) {
+      toggle.textContent = showingOpen ? 'Recent activity' : `Open positions (${openTrades.length})`;
+      toggle.title = showingOpen ? 'Show recent activity' : 'Show open positions';
+    }
+    const listTrades = [...sourceTrades]
       .sort((a, b) => {
         const aTime = new Date(a.updated_at || a.exit_date || a.date || 0).getTime();
         const bTime = new Date(b.updated_at || b.exit_date || b.date || 0).getTime();
@@ -8650,7 +8682,9 @@ function renderHome() {
       })
       .slice(0, 8);
     if (listTrades.length === 0) {
-      empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
+      empty.innerHTML = showingOpen
+        ? `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No open positions.</em><strong>Review recent activity</strong></div></div>`
+        : `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
     } else {
       empty.innerHTML = listTrades.map(t => {
         const pl = calcPL(t);
@@ -8675,11 +8709,17 @@ function renderHome() {
           </button>
         `;
       }).join('');
-      empty.insertAdjacentHTML('beforeend', listTrades.length < allTrades.length
+      empty.insertAdjacentHTML('beforeend', !showingOpen && listTrades.length < allTrades.length
         ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${allTrades.length} trades</span></button>`
         : '');
     }
   }
+}
+
+function toggleHomePortfolioView() {
+  state.homePortfolioView = state.homePortfolioView === 'open' ? 'recent' : 'open';
+  saveState();
+  renderHome();
 }
 
 // ---------- Trade modal ----------
@@ -10378,6 +10418,8 @@ function init() {
   renderReference();
   renderSectorStatusMini();
   recomputeStepStates();
+
+  document.getElementById('home-portfolio-toggle')?.addEventListener('click', toggleHomePortfolioView);
 
   // Regime toggle (cmdbar)
   document.querySelectorAll('.regime-btn').forEach(b => {
