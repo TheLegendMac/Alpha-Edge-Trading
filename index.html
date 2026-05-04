@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mac // Cockpit</title>
+<title>Alpha Edge Trading</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -996,6 +996,159 @@ select.input-field {
 .stat-card.cyan .stat-card-value { color: var(--cyan); }
 .stat-card.amber { border-left-color: var(--amber); }
 .stat-card.amber .stat-card-value { color: var(--amber-bright); }
+
+.alpha-intel {
+  background: linear-gradient(90deg, rgba(20, 30, 43, 0.95), rgba(37, 18, 63, 0.9));
+  border: 1px solid rgba(191, 120, 255, 0.42);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.alpha-intel::after {
+  content: '✦';
+  position: absolute;
+  right: 20px;
+  top: 10px;
+  font-size: 72px;
+  line-height: 1;
+  color: rgba(191, 120, 255, 0.14);
+}
+.alpha-intel-title,
+.edge-title,
+.analytics-panel-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.alpha-intel-title { color: #d7a3ff; }
+.alpha-intel-line {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 7px 0;
+}
+.alpha-intel-line::before {
+  content: '';
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  margin-right: 9px;
+  vertical-align: 2px;
+  background: var(--green);
+}
+.alpha-intel-line.warn::before { background: var(--amber); }
+.alpha-intel-line.bad::before { background: var(--red); }
+.edge-equation {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.edge-equation-row {
+  min-height: 76px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.edge-chip {
+  background: var(--bg-elev);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  padding: 12px 18px;
+  min-width: 104px;
+  text-align: center;
+}
+.edge-chip.good { border-color: rgba(63, 185, 80, 0.55); }
+.edge-chip.bad { border-color: rgba(248, 81, 73, 0.45); }
+.edge-chip.result { border-color: var(--green); background: rgba(63, 185, 80, 0.1); min-width: 130px; }
+.edge-chip-value {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.edge-chip.good .edge-chip-value,
+.edge-chip.result .edge-chip-value { color: var(--green-bright); }
+.edge-chip.bad .edge-chip-value { color: var(--red-bright); }
+.edge-chip-label {
+  font-family: var(--mono);
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.edge-op {
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-weight: 900;
+}
+.analytics-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.analytics-metrics .stat-card {
+  border-left: 0;
+  text-align: center;
+  min-height: 80px;
+}
+.analytics-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.analytics-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  min-height: 220px;
+}
+.equity-svg {
+  width: 100%;
+  height: 170px;
+  display: block;
+}
+.tag-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.tag-bar {
+  height: 7px;
+  background: var(--bg-elev);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.tag-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+.tag-fill.bad { background: var(--red); }
+.tag-value {
+  text-align: right;
+  font-family: var(--mono);
+  font-weight: 800;
+}
+@media (max-width: 900px) {
+  .analytics-metrics,
+  .analytics-panels { grid-template-columns: 1fr; }
+}
 
 .log-table-wrap {
   background: var(--bg-card);
@@ -2496,7 +2649,7 @@ textarea.input-field {
 <div id="auth-modal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(7,11,16,0.92); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px;">
   <div style="background:#0c1117; border:1px solid #30363d; border-radius:12px; padding:32px; max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
     <div style="text-align:center; margin-bottom:24px;">
-      <div style="font-size:24px; font-weight:700; margin-bottom:4px;">Mac's Cockpit</div>
+      <div style="font-size:24px; font-weight:700; margin-bottom:4px;">Alpha Edge Trading</div>
       <div style="font-size:13px; color:#8b949e;">Sign in to sync across devices</div>
     </div>
     <div style="margin-bottom:14px;">
@@ -2533,9 +2686,8 @@ textarea.input-field {
 <header class="top-nav">
   <div class="top-nav-inner">
     <div class="brand">
-      <span class="brand-mark">v3</span>
-      <span>Cockpit</span>
-      <span class="brand-tag">$10K</span>
+      <span class="brand-mark">AE</span>
+      <span>Alpha Edge Trading</span>
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="decision">Swing</button>
@@ -2544,25 +2696,11 @@ textarea.input-field {
       <button class="tab" data-tab="log">Trade Log</button>
     </nav>
     <div class="portfolio-status">
-      <div class="stat-pill healthy" id="stat-positions">
-        Open<span>0/5</span>
-      </div>
-      <div class="stat-pill healthy" id="stat-risk">
-        At Risk<span>$0</span>
-      </div>
-      <div class="stat-pill healthy" id="stat-today-pl">
-        Today<span>$0</span>
-      </div>
-      <div class="stat-pill healthy" id="stat-today-r">
-        Today R<span>0R</span>
-      </div>
-      <div class="stat-pill healthy" id="stat-mtd">
-        MTD<span>+$0</span>
-      </div>
       <div id="sync-pill" class="stat-pill" title="Click for sync menu" style="cursor:pointer; padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:6px;">
         <span id="sync-dot" style="width:8px; height:8px; border-radius:50%; background:#6e7681; flex-shrink:0;"></span>
         <span id="sync-label">Local</span>
       </div>
+      <button class="btn-secondary" id="btn-sync-refresh" title="Force push local state to Supabase, then pull cloud changes" style="padding: 6px 10px; font-size: 12px;">Refresh Sync</button>
       <button class="btn-primary" id="btn-new-trade" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">+ New Trade</button>
       <button class="nav-icon-btn" id="btn-reference" title="Reference & cheat sheets">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -4060,6 +4198,7 @@ async function doPush() {
         console.warn('[sync push] MISMATCH: pushed', tradeCount, 'trades but server returned', returnedTrades);
       }
     }
+    await syncTradesTableMirror(snapshot);
     SYNC.lastSyncAt = Date.now();
     setSyncStatus('synced');
   } catch (e) {
@@ -4068,6 +4207,61 @@ async function doPush() {
     SYNC.lastError = e.message;
   } finally {
     SYNC.pushInFlight = false;
+  }
+}
+
+async function syncTradesTableMirror(snapshot) {
+  if (!SYNC.enabled || !SYNC.user) return;
+  const trades = snapshot.trades || [];
+  try {
+    if (trades.length > 0) {
+      const rows = trades.map(t => ({
+        id: t.id,
+        user_id: SYNC.user.id,
+        mode: t.mode || 'swing',
+        trade_date: t.date || null,
+        ticker: t.ticker || null,
+        setup: t.setup || null,
+        direction: t.direction || null,
+        entry: t.entry ?? null,
+        contracts: t.contracts ?? null,
+        status: t.status || 'open',
+        exit: t.exit ?? null,
+        exit_date: t.exit_date || null,
+        grade: t.grade || null,
+        trade_json: t,
+        updated_at: t.updated_at || new Date().toISOString(),
+      }));
+      const { error } = await SYNC.client
+        .from('trades')
+        .upsert(rows, { onConflict: 'id' });
+      if (error) {
+        const minimalRows = trades.map(t => ({
+          id: t.id,
+          user_id: SYNC.user.id,
+          trade_json: t,
+          updated_at: t.updated_at || new Date().toISOString(),
+        }));
+        const { error: minimalError } = await SYNC.client
+          .from('trades')
+          .upsert(minimalRows, { onConflict: 'id' });
+        if (minimalError) throw minimalError;
+      }
+      console.log('[sync trades mirror] upserted', rows.length, 'trade rows');
+    }
+
+    const deletedIds = Object.keys(snapshot.deletedTradeIds || {});
+    if (deletedIds.length > 0) {
+      const { error } = await SYNC.client
+        .from('trades')
+        .delete()
+        .eq('user_id', SYNC.user.id)
+        .in('id', deletedIds);
+      if (error) throw error;
+      console.log('[sync trades mirror] deleted', deletedIds.length, 'trade rows');
+    }
+  } catch (e) {
+    console.warn('[sync trades mirror] skipped. Create an optional trades table to enable row-by-row trade viewing.', e);
   }
 }
 
@@ -4109,8 +4303,10 @@ async function reconcileOnSignIn() {
     if (useCloud) {
       // SAFE merge: keep all trades from both sides
       const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
-      const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+      const mergedDeleted = mergeDeletedTradeIds(state.deletedTradeIds, cloudClone.deletedTradeIds);
+      const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || [], mergedDeleted);
       state = { ...state, ...cloudClone, trades: mergedTrades };
+      state.deletedTradeIds = mergedDeleted;
       saveStateLocal();
       // Push merged result so cloud has the union
       schedulePush();
@@ -4120,10 +4316,16 @@ async function reconcileOnSignIn() {
     }
   } else {
     // Local is current OR same-device — push to cloud, but ALSO defensively
-    // merge in any cloud trades that aren't local (handles a stale-tab case)
-    if (cloudTradeCount > localTradeCount) {
-      const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
-      state.trades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
+    // merge in any cloud trade changes/deletions (handles stale-tab cases)
+    const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
+    const mergedDeleted = mergeDeletedTradeIds(state.deletedTradeIds, cloudClone.deletedTradeIds);
+    const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || [], mergedDeleted);
+    if (
+      JSON.stringify(mergedTrades) !== JSON.stringify(state.trades || []) ||
+      JSON.stringify(mergedDeleted) !== JSON.stringify(state.deletedTradeIds || {})
+    ) {
+      state.deletedTradeIds = mergedDeleted;
+      state.trades = mergedTrades;
       saveStateLocal();
       refreshAllUI();
     }
@@ -4265,6 +4467,31 @@ function showSyncMenu() {
   }
 }
 
+async function manualSupabaseRefresh() {
+  if (!SYNC.enabled) {
+    alert('Cloud sync is not configured.');
+    return;
+  }
+  if (!SYNC.user) {
+    showAuthModal();
+    return;
+  }
+  try {
+    setSyncStatus('syncing', 'Refreshing');
+    if (SYNC.pendingPush) {
+      clearTimeout(SYNC.pendingPush);
+      SYNC.pendingPush = null;
+    }
+    await doPush();
+    await pullAndMergeIfNewer();
+    toast(`Supabase refreshed: ${(state.trades || []).length} trades synced`);
+  } catch (e) {
+    console.warn('[sync refresh] failed:', e);
+    setSyncStatus('error', 'Refresh failed');
+    toast('Supabase refresh failed. Check console for details.', true);
+  }
+}
+
 // Bootstrap auth flow on page load
 async function bootstrapAuth() {
   if (!initSupabase()) return;  // No config — stay local-only
@@ -4351,19 +4578,23 @@ async function pullAndMergeIfNewer() {
     //   2. For non-trade state (settings, sectors, regime, etc.), only
     //      replace if cloud is from a different device AND clearly newer.
     const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
-    const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || []);
-    const tradesChanged = mergedTrades.length !== (state.trades || []).length;
+    const mergedDeleted = mergeDeletedTradeIds(state.deletedTradeIds, cloudClone.deletedTradeIds);
+    const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || [], mergedDeleted);
+    const tradesChanged = JSON.stringify(mergedTrades) !== JSON.stringify(state.trades || []) ||
+      JSON.stringify(mergedDeleted) !== JSON.stringify(state.deletedTradeIds || {});
 
     let nonTradeChanged = false;
     if (!sameDevice && cloudTime > localTime + 5000) {
       // Cloud is newer + different device — adopt cloud's non-trade state
       console.info('[sync pull] Adopting newer cloud state from device', cloud.device_id);
       state = { ...state, ...cloudClone, trades: mergedTrades };
+      state.deletedTradeIds = mergedDeleted;
       nonTradeChanged = true;
     } else if (tradesChanged) {
       // Just merge in the new trades; keep our other state
       console.info('[sync pull] Merging', mergedTrades.length - (state.trades || []).length, 'new trades from cloud');
       state.trades = mergedTrades;
+      state.deletedTradeIds = mergedDeleted;
     }
 
     if (tradesChanged || nonTradeChanged) {
@@ -4413,10 +4644,20 @@ function chooseTradeVersion(localTrade, cloudTrade) {
   return localTrade;
 }
 
+function mergeDeletedTradeIds(localDeleted, cloudDeleted) {
+  const merged = { ...(cloudDeleted || {}) };
+  Object.entries(localDeleted || {}).forEach(([id, stamp]) => {
+    if (!merged[id] || new Date(stamp).getTime() > new Date(merged[id]).getTime()) {
+      merged[id] = stamp;
+    }
+  });
+  return merged;
+}
+
 // Merge two trade arrays by ID. If the same ID exists in both places, keep
 // the newest version of that trade so cross-device edits like win/loss,
 // exit premium, grade, and lesson are not overwritten by an older local copy.
-function mergeTradesArrays(localTrades, cloudTrades) {
+function mergeTradesArrays(localTrades, cloudTrades, deletedTradeIds = state.deletedTradeIds || {}) {
   const byId = new Map();
   // Start with cloud
   for (const t of cloudTrades) {
@@ -4432,7 +4673,7 @@ function mergeTradesArrays(localTrades, cloudTrades) {
       byId.set(t.id, t);
     }
   }
-  return Array.from(byId.values());
+  return Array.from(byId.values()).filter(t => !deletedTradeIds[t.id]);
 }
 
 // Trigger 1: visibility change (most reliable for "tab returned to focus")
@@ -4556,6 +4797,7 @@ let state = {
   regime: 'risk-on',
   activeMode: 'swing',     // current top-level mode: 'swing' | 'intraday' | 'sunday' | 'log'
   trades: [],
+  deletedTradeIds: {},
   // Swing flow
   selectedSetup: null,
   instrument: 'options',  // 'options' | 'stocks' — drives Step 3 calc + Gate 04 fields
@@ -4601,6 +4843,7 @@ function loadState() {
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
       if (!state.activeMode) state.activeMode = 'swing';
+      if (!state.deletedTradeIds) state.deletedTradeIds = {};
     }
   } catch (e) { console.warn('Load failed:', e); }
 }
@@ -5896,80 +6139,130 @@ function renderLogStats() {
   });
   const mtdPL = mtdTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
 
-  const account = state.settings.account;
-  const maxPositions = state.settings.maxPositions;
+  const grossWin = wins.reduce((s, t) => s + Math.max(0, calcPL(t) || 0), 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + Math.min(0, calcPL(t) || 0), 0));
+  const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
+  const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
+  const riskToMake = avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) : '—';
+  const biggestWin = wins.length ? Math.max(...wins.map(t => calcPL(t) || 0)) : 0;
+  const biggestLoss = losses.length ? Math.min(...losses.map(t => calcPL(t) || 0)) : 0;
+  const powerAsset = [...closed].sort((a, b) => (calcPL(b) || 0) - (calcPL(a) || 0))[0];
+  const leak = losses.find(t => t.exit_reason === 'stop') || losses[0];
+  const bestTag = wins.find(t => t.exit_reason === 'target') || wins[0];
+  const equityPoints = closed.reduce((points, t) => {
+    points.push(points[points.length - 1] + (calcPL(t) || 0));
+    return points;
+  }, [0]);
+  const maxEquity = Math.max(...equityPoints, 1);
+  const minEquity = Math.min(...equityPoints, 0);
+  const rangeEquity = Math.max(1, maxEquity - minEquity);
+  const polyPoints = equityPoints.map((v, i) => {
+    const x = equityPoints.length === 1 ? 20 : 20 + (i / (equityPoints.length - 1)) * 500;
+    const y = 150 - ((v - minEquity) / rangeEquity) * 120;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const areaPoints = `20,150 ${polyPoints} 520,150`;
+  const tagRows = [
+    { label: 'Target Hit', value: wins.filter(t => t.exit_reason === 'target').reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
+    { label: 'Stop Loss', value: losses.filter(t => t.exit_reason === 'stop').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
+    { label: 'Manual Close', value: closed.filter(t => t.exit_reason === 'discretionary').reduce((s, t) => s + (calcPL(t) || 0), 0), good: false },
+    { label: 'Breakout', value: closed.filter(t => String(t.setup || '').toLowerCase().includes('break')).reduce((s, t) => s + (calcPL(t) || 0), 0), good: true },
+  ];
+  const maxTag = Math.max(...tagRows.map(r => Math.abs(r.value)), 1);
 
   container.innerHTML = `
-    <div class="stat-card ${totalPL >= 0 ? 'green' : 'red'}">
-      <div class="stat-card-label">Total P/L</div>
-      <div class="stat-card-value">${totalPL >= 0 ? '+$' : '−$'}${Math.abs(totalPL).toFixed(0)}</div>
-      <div class="stat-card-detail">${closed.length} closed trades</div>
+    <div class="alpha-intel">
+      <div class="alpha-intel-title">Alpha Intelligence</div>
+      <div class="alpha-intel-line">Power Asset: ${powerAsset ? `${powerAsset.ticker} is your top earner (${(calcPL(powerAsset) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(powerAsset) || 0).toFixed(0)}).` : 'Add closed trades to identify your strongest ticker.'}</div>
+      <div class="alpha-intel-line">Golden Hour: ${closed.length ? 'Review your highest quality exits and repeat the setup conditions.' : 'No closed trades yet.'}</div>
+      <div class="alpha-intel-line ${leak ? 'bad' : ''}">Behavioral Leak: ${leak ? `${leak.ticker} ${leak.exit_reason || 'loss'} produced -$${Math.abs(calcPL(leak) || 0).toFixed(0)}.` : 'No loss leak detected yet.'}</div>
+      <div class="alpha-intel-line">Behavioral Edge: ${bestTag ? `${bestTag.ticker} target-hit discipline added +$${Math.abs(calcPL(bestTag) || 0).toFixed(0)}.` : 'No target-hit edge detected yet.'}</div>
     </div>
-    <div class="stat-card ${parseInt(winRate) >= 50 ? 'green' : (parseInt(winRate) >= 45 ? 'amber' : 'red')}">
-      <div class="stat-card-label">Win Rate</div>
-      <div class="stat-card-value">${winRate}${winRate !== '—' ? '%' : ''}</div>
-      <div class="stat-card-detail">${wins.length}W / ${losses.length}L</div>
+
+    <div class="edge-equation">
+      <div class="edge-title">The Edge Equation</div>
+      <div class="edge-equation-row">
+        <div class="edge-chip good"><div class="edge-chip-value">${winRate}${winRate !== '—' ? '%' : ''}</div><div class="edge-chip-label">Win Rate</div></div>
+        <div class="edge-op">×</div>
+        <div class="edge-chip good"><div class="edge-chip-value">$${avgWin.toFixed(0)}</div><div class="edge-chip-label">Avg Win</div></div>
+        <div class="edge-op">−</div>
+        <div class="edge-chip bad"><div class="edge-chip-value">${closed.length ? (100 - Number(winRate)).toFixed(0) : '—'}${winRate !== '—' ? '%' : ''}</div><div class="edge-chip-label">Loss Rate</div></div>
+        <div class="edge-op">×</div>
+        <div class="edge-chip bad"><div class="edge-chip-value">$${Math.abs(avgLoss).toFixed(0)}</div><div class="edge-chip-label">Avg Loss</div></div>
+        <div class="edge-op">=</div>
+        <div class="edge-chip result"><div class="edge-chip-value">${expectancy >= 0 ? '+' : '-'}$${Math.abs(expectancy).toFixed(0)}</div><div class="edge-chip-label">Expectancy / Trade</div></div>
+      </div>
     </div>
-    <div class="stat-card cyan">
-      <div class="stat-card-label">Avg R</div>
-      <div class="stat-card-value">${avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) : '—'}</div>
-      <div class="stat-card-detail">avg win / avg loss</div>
+
+    <div class="analytics-metrics">
+      <div class="stat-card ${parseInt(winRate) >= 50 ? 'green' : (parseInt(winRate) >= 45 ? 'amber' : 'red')}">
+        <div class="stat-card-label">Win Rate</div>
+        <div class="stat-card-value">${winRate}${winRate !== '—' ? '%' : ''}</div>
+      </div>
+      <div class="stat-card cyan">
+        <div class="stat-card-label">Profit Factor</div>
+        <div class="stat-card-value">${profitFactor}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Avg Hold</div>
+        <div class="stat-card-value">0.0</div>
+        <div class="stat-card-detail">days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Trades</div>
+        <div class="stat-card-value">${trades.length}</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-card-label">Risk $1 To Make</div>
+        <div class="stat-card-value">$${riskToMake}</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-card-label">Biggest Win</div>
+        <div class="stat-card-value">+$${Math.abs(biggestWin).toFixed(0)}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-card-label">Biggest Loss</div>
+        <div class="stat-card-value">-$${Math.abs(biggestLoss).toFixed(0)}</div>
+      </div>
+      <button class="stat-card btn-secondary" onclick="exportCSV()" style="cursor:pointer;">
+        <div class="stat-card-label">Export CSV</div>
+        <div class="stat-card-value" style="font-size:18px;">⇩</div>
+      </button>
     </div>
-    <div class="stat-card ${parseInt(gradePct) >= 80 ? 'green' : (parseInt(gradePct) >= 60 ? 'amber' : 'red')}">
-      <div class="stat-card-label">Process A/B</div>
-      <div class="stat-card-value">${gradePct}${gradePct !== '—' ? '%' : ''}</div>
-      <div class="stat-card-detail">target 80% or higher</div>
-    </div>
-    <div class="stat-card ${open.length >= maxPositions ? 'red' : (open.length >= maxPositions - 1 ? 'amber' : 'green')}">
-      <div class="stat-card-label">Open</div>
-      <div class="stat-card-value">${open.length}</div>
-      <div class="stat-card-detail">cap: ${maxPositions}</div>
-    </div>
-    <div class="stat-card ${mtdPL >= 0 ? 'green' : (mtdPL >= -account*0.05 ? 'amber' : 'red')}">
-      <div class="stat-card-label">Month-to-Date</div>
-      <div class="stat-card-value">${mtdPL >= 0 ? '+$' : '−$'}${Math.abs(mtdPL).toFixed(0)}</div>
-      <div class="stat-card-detail">${mtdTrades.length} closed this month</div>
+
+    <div class="analytics-panels">
+      <div class="analytics-panel">
+        <div class="analytics-panel-title">Equity Curve</div>
+        <svg class="equity-svg" viewBox="0 0 540 170" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="equityFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="rgba(63,185,80,0.48)" />
+              <stop offset="100%" stop-color="rgba(63,185,80,0.03)" />
+            </linearGradient>
+          </defs>
+          <line x1="20" y1="150" x2="520" y2="150" stroke="rgba(139,148,158,0.25)" stroke-dasharray="4 4" />
+          <polygon points="${areaPoints}" fill="url(#equityFill)" />
+          <polyline points="${polyPoints}" fill="none" stroke="#3fb950" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="520" cy="${polyPoints.split(' ').pop()?.split(',')[1] || 150}" r="4" fill="#7ee787" />
+        </svg>
+      </div>
+      <div class="analytics-panel">
+        <div class="analytics-panel-title">Tag Analysis</div>
+        ${tagRows.map(row => `
+          <div class="tag-row">
+            <div>${row.label}</div>
+            <div class="tag-bar"><div class="tag-fill ${row.value < 0 ? 'bad' : ''}" style="width:${Math.max(6, Math.abs(row.value) / maxTag * 100).toFixed(0)}%;"></div></div>
+            <div class="tag-value ${row.value >= 0 ? 'pl-positive' : 'pl-negative'}">${row.value >= 0 ? '+$' : '-$'}${Math.abs(row.value).toFixed(0)}</div>
+          </div>
+        `).join('')}
+      </div>
     </div>
   `;
-
-  // Top nav portfolio status — traffic light pills
-  const stopFraction = state.settings.stopPct / 100;
-  const openRisk = open.reduce((s, t) => s + (t.entry * 100 * t.contracts * stopFraction), 0);
-  const maxRiskDollars = account * (state.settings.maxRiskPct / 100);
-
-  const positionsPill = document.getElementById('stat-positions');
-  positionsPill.querySelector('span').textContent = `${open.length}/${maxPositions}`;
-  positionsPill.className = 'stat-pill ' + (open.length >= maxPositions ? 'danger' : (open.length >= maxPositions - 1 ? 'warn' : 'healthy'));
-
-  const riskPill = document.getElementById('stat-risk');
-  riskPill.querySelector('span').textContent = '$' + openRisk.toFixed(0);
-  riskPill.className = 'stat-pill ' + (openRisk >= maxRiskDollars ? 'danger' : (openRisk >= maxRiskDollars * 0.8 ? 'warn' : 'healthy'));
-
-  const mtdPill = document.getElementById('stat-mtd');
-  mtdPill.querySelector('span').textContent = (mtdPL >= 0 ? '+$' : '−$') + Math.abs(mtdPL).toFixed(0);
-  mtdPill.className = 'stat-pill ' + (mtdPL <= -account * 0.07 ? 'danger' : (mtdPL < 0 ? 'warn' : 'healthy'));
-
-  // Today pills (universal: counts BOTH swing and intraday closed trades today)
-  const todayISO_ = new Date().toISOString().split('T')[0];
-  const todayClosed = closed.filter(t => (t.exit_date || t.date) === todayISO_);
-  const todayPL = todayClosed.reduce((s, t) => s + (calcPL(t) || 0), 0);
-  const todayR = todayClosed.reduce((s, t) => s + (calcR(t) || 0), 0);
-  const todayPLPill = document.getElementById('stat-today-pl');
-  if (todayPLPill) {
-    todayPLPill.querySelector('span').textContent = (todayPL >= 0 ? '+$' : '−$') + Math.abs(todayPL).toFixed(0);
-    todayPLPill.className = 'stat-pill ' + (todayPL < 0 ? 'warn' : 'healthy');
-  }
-  const todayRPill = document.getElementById('stat-today-r');
-  if (todayRPill) {
-    todayRPill.querySelector('span').textContent = (todayR >= 0 ? '+' : '−') + Math.abs(todayR).toFixed(2) + 'R';
-    todayRPill.className = 'stat-pill ' + (todayR < 0 ? 'warn' : 'healthy');
-  }
 }
 
 // Universal sidebar refresher - call from anywhere a trade lifecycle event happens
 function renderUniversalSidebar() {
-  // The "sidebar" lives in the top nav pills; renderLogStats does the heavy lifting.
-  // This is a stable function name other modules can call without coupling.
+  // Stable function name other modules can call without coupling.
   renderLogStats();
 }
 
@@ -6200,6 +6493,7 @@ function saveTrade() {
   const idx = state.trades.findIndex(t => t.id === id);
   if (idx >= 0) state.trades[idx] = trade;
   else state.trades.push(trade);
+  if (state.deletedTradeIds) delete state.deletedTradeIds[id];
 
   saveState();
   // Trades are too important to wait the 1.5s debounce — push right now.
@@ -6230,6 +6524,8 @@ function deleteTrade() {
   const trade = state.trades.find(t => t.id === id);
   if (!trade) return;
   if (!confirm(`Delete this trade?\n\n${trade.ticker} ${trade.setup} ${trade.date}\n\nThis cannot be undone.`)) return;
+  if (!state.deletedTradeIds) state.deletedTradeIds = {};
+  state.deletedTradeIds[id] = new Date().toISOString();
   state.trades = state.trades.filter(t => t.id !== id);
   saveState();
   // Force immediate push (same reason as saveTrade)
@@ -6913,6 +7209,7 @@ function resetSettingsToDefaults() {
 
 function renderBrandTag() {
   const tag = document.querySelector('.brand-tag');
+  if (!tag) return;
   const account = state.settings.account;
   if (account >= 1000) {
     tag.textContent = '$' + (account / 1000).toFixed(account % 1000 === 0 ? 0 : 1) + 'K';
@@ -7611,6 +7908,7 @@ function init() {
       document.getElementById('modal-mode-picker').classList.add('show');
     });
   }
+  document.getElementById('btn-sync-refresh')?.addEventListener('click', manualSupabaseRefresh);
   const mpModal = document.getElementById('modal-mode-picker');
   if (mpModal) {
     mpModal.addEventListener('click', e => {
