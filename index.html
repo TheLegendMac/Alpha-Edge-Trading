@@ -4506,7 +4506,10 @@ textarea.input-field {
   position: sticky;
   top: 60px; /* sit under cmdbar */
   z-index: 30;
-  background: rgba(8, 9, 13, 0.85);
+  background: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.012), transparent 60%),
+    radial-gradient(ellipse 600px 200px at 50% 0, rgba(6,212,248,0.04), transparent 70%);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   margin: 0 -24px;
@@ -4643,7 +4646,7 @@ textarea.input-field {
   display: grid;
   grid-template-columns: 1fr 1fr 1.4fr;
   gap: 0;
-  background: var(--bg-card);
+  background: var(--bg-elev);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   overflow: hidden;
@@ -4700,19 +4703,35 @@ textarea.input-field {
 #panel-trade .trade-body { padding: 24px 0 0; }
 
 #panel-trade .trade-section {
-  background: var(--bg-card);
+  background: var(--bg-elev);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   margin-bottom: 16px;
   overflow: hidden;
 }
+#panel-trade .trade-section.muted {
+  background: rgba(14, 17, 24, 0.55);
+  border-style: dashed;
+}
 #panel-trade .trade-section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--line);
-  background: rgba(255,255,255,0.015);
+  background: rgba(255,255,255,0.012);
+}
+#panel-trade .trade-section-head-stack {
+  display: flex; flex-direction: column; gap: 3px;
+}
+#panel-trade .trade-section-subtitle {
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 #panel-trade .trade-section-title {
   font-family: var(--mono);
@@ -4755,7 +4774,7 @@ textarea.input-field {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: var(--bg-elev);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   cursor: pointer;
@@ -4774,6 +4793,11 @@ textarea.input-field {
 }
 #panel-trade .trade-row.warn { border-color: var(--amber-dim); background: var(--amber-bg); }
 #panel-trade .trade-row.fail { border-color: var(--red-dim); background: var(--red-bg); }
+#panel-trade .trade-row[data-tf-readonly="1"] { cursor: default; }
+#panel-trade .trade-row[data-tf-readonly="1"]:hover { border-color: var(--line); }
+#panel-trade .trade-row[data-tf-readonly="1"].checked:hover { border-color: var(--green-dim); }
+#panel-trade .trade-row[data-tf-readonly="1"].fail:hover { border-color: var(--red-dim); }
+#panel-trade .trade-row[data-tf-readonly="1"]:active { transform: none; }
 
 #panel-trade .trade-row-check {
   width: 22px; height: 22px;
@@ -4832,7 +4856,7 @@ textarea.input-field {
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--bg-card);
+  background: var(--bg-elev);
   border: 1px solid var(--line);
   color: var(--ink-3);
   text-transform: uppercase;
@@ -4854,7 +4878,7 @@ textarea.input-field {
   flex-direction: column;
   gap: 6px;
   padding: 14px;
-  background: var(--bg-elev);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   cursor: pointer;
@@ -4898,7 +4922,7 @@ textarea.input-field {
 }
 #panel-trade .trade-direction-btn {
   padding: 14px;
-  background: var(--bg-elev);
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   color: var(--ink);
@@ -4976,7 +5000,7 @@ textarea.input-field {
   padding: 6px 12px;
   border-radius: var(--r-md);
   text-transform: uppercase;
-  background: var(--bg-elev);
+  background: var(--bg);
   border: 1px solid var(--line);
   color: var(--ink-3);
   white-space: nowrap;
@@ -6340,8 +6364,8 @@ STRENGTH: 3/3</pre>
         </div>
         <nav class="trade-stepper" id="trade-stepper" aria-label="Trade flow steps"></nav>
         <div class="trade-stepper-mobile" id="trade-stepper-mobile">
-          <span><strong id="trade-stepper-mobile-num">Step 1 of 5</strong> · <span id="trade-stepper-mobile-name">Setup</span></span>
-          <span style="font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:0.1em;" id="trade-stepper-mobile-progress">0 of 5</span>
+          <span><strong id="trade-stepper-mobile-num">Step 1</strong> · <span id="trade-stepper-mobile-name">Setup</span></span>
+          <span style="font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:0.1em;" id="trade-stepper-mobile-progress">0 done</span>
         </div>
         <div class="trade-summary-row">
           <div class="trade-summary-cell">
@@ -11565,34 +11589,69 @@ function tfSpreadBracket(spread) {
 
 // ----- Rendering -----
 
-function tfStepCount() { return 5; }
+function tfStepCount() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  return m === 'swing' ? 5 : 4;
+}
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  // Swing: forward flow — pick the trade → does it qualify? → what to buy → how big → fire it
+  // Intraday: tighter loop — pick the trade → plan levels → verify → fire it
   return m === 'swing'
-    ? ['Setup', 'Structure', 'Cockpit', 'Verify', 'Execute']
-    : ['Setup', 'Define', 'Checks', 'Notes', 'Go'];
+    ? ['Setup', 'Eligibility', 'Structure', 'Sizing', 'Execute']
+    : ['Setup', 'Plan', 'Verify', 'Execute'];
 }
 
 // Determine which steps are "complete" — for the stepper checkmarks.
+// Each step is "complete" when its on-screen inputs are filled. Status pill
+// in the header is the source of truth for whether the trade is OK to fire.
 function tfStepCompletion() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const c = [false, false, false, false, false];
   if (m === 'swing') {
-    c[0] = !!(state.selectedSetup && state.direction);
+    const c = [false, false, false, false, false];
     const isOptions = state.instrument !== 'stocks';
-    c[1] = !!(state.direction && (!isOptions || (state.ivr !== null && state.ivr !== undefined)));
-    c[2] = !!(state.premium && state.premium > 0 && (!isOptions || (state.atr && state.atr > 0)));
-    c[3] = ['01','02','03','04','05','06'].every(k => tfEvaluateGates()[k]);
-    c[4] = c[0] && c[1] && c[2] && c[3];
-  } else {
-    const it = state.intraday || {};
-    c[0] = !!(it.ticker && it.direction && it.setup);
-    c[1] = !!(it.entry && it.stop && it.target);
+    const liq = state.liquidity || {};
+    const gates = tfEvaluateGates();
+
+    // 1. Setup — pattern + direction (+ ticker counts toward complete)
+    c[0] = !!(state.selectedSetup && state.direction && state.ticker);
+
+    // 2. Eligibility — SA quant filled, factor grades acknowledged, days-to-earnings filled
+    const elig = (state.saQuant !== null && state.saQuant !== undefined)
+              && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
+              && gates['02'] && gates['03'];
+    c[1] = !!elig;
+
+    // 3. Structure — IV Rank set + liquidity inputs filled (drive Gate 04)
+    const liqFilled = isOptions
+      ? (liq.stockVol > 0 && liq.optionOI > 0 && liq.optionVol > 0 && liq.bid > 0 && liq.ask > 0)
+      : (liq.stockVol > 0);
+    const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
+    c[2] = !!(ivrSet && liqFilled);
+
+    // 4. Sizing & stop — premium, ATR, underlying price (volatility-adjusted stop)
+    c[3] = isOptions
+      ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
+      : !!(state.premium > 0);
+
+    // 5. Execute — only flips green when status is ready
     const st = tfComputeStatus();
-    c[2] = c[1] && st.tone !== 'blocked';
-    c[3] = true; // notes always optional
-    c[4] = c[0] && c[1] && c[2] && st.tone === 'ready';
+    c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
+    return c;
   }
+
+  // Intraday — 4 steps
+  const c = [false, false, false, false];
+  const it = state.intraday || {};
+  // 1. Setup — ticker + direction + setup pattern + VWAP relation
+  c[0] = !!(it.ticker && it.direction && it.setup && it.vwapRel);
+  // 2. Plan — entry/stop/target levels (spread is verified in step 3)
+  c[1] = !!(it.entry && it.stop && it.target);
+  // 3. Verify — quality checks pass (status is not 'blocked')
+  const st = tfComputeStatus();
+  c[2] = c[0] && c[1] && st.tone !== 'blocked';
+  // 4. Execute — everything ready
+  c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
   return c;
 }
 
@@ -11727,6 +11786,11 @@ function tfReset() {
 
 function tfStepBody(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  // Defensive clamp: a stale state.tradeFlow.step (e.g. user was on step 5
+  // intraday before we trimmed to 4) is bumped down to a real step.
+  const max = tfStepCount();
+  if (step > max) step = max;
+  if (step < 1) step = 1;
   if (m === 'swing') {
     if (step === 1) return tfSwingStep1();
     if (step === 2) return tfSwingStep2();
@@ -11738,16 +11802,18 @@ function tfStepBody(step) {
     if (step === 2) return tfIntradayStep2();
     if (step === 3) return tfIntradayStep3();
     if (step === 4) return tfIntradayStep4();
-    if (step === 5) return tfIntradayStep5();
   }
   return '';
 }
 
-// ----- Swing step 1 — Setup + direction -----
+// ----- Swing step 1 — Setup: ticker + direction + pattern -----
+// Goal: in one screen, name the trade. Everything from here on is "is this
+// trade good" not "what is this trade".
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
   const dir = state.direction;
+  const ticker = state.ticker || '';
   const cards = TRADE_SWING_SETUPS.map(s => `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
       <span class="trade-setup-card-num">SETUP ${s.num}${s.halfSize ? ' · ½ SIZE' : ''}</span>
@@ -11758,40 +11824,43 @@ function tfSwingStep1() {
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Pick the setup</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
+          <div class="trade-section-subtitle">What stock, and which way are you betting? Direction sets the option type later.</div>
+        </div>
+        <div class="trade-section-counter ${ticker && dir ? 'complete' : ''}">${ticker && dir ? 'set' : 'fill 2'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Ticker</label>
+              <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="e.g. AAPL"
+                value="${ticker.toString()}" autocomplete="off" style="text-transform: uppercase;" />
+              <div class="input-help">Used downstream for SA factor-grade links and order checklist.</div>
+            </div>
+          </div>
+          <div>
+            <label class="input-label">Direction</label>
+            <div class="trade-direction-toggle" id="tf-direction-toggle">
+              <button type="button" class="trade-direction-btn long ${dir === 'long' ? 'selected' : ''}" data-tf-dir="long">▲ LONG</button>
+              <button type="button" class="trade-direction-btn short ${dir === 'short' ? 'selected' : ''}" data-tf-dir="short">▼ SHORT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Pick the setup</div>
+          <div class="trade-section-subtitle">One of 5 approved patterns. If none fit the chart, do not trade.</div>
+        </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid" id="tf-setup-grid">${cards}</div>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Direction</div>
-        <div class="trade-section-counter ${dir ? 'complete' : ''}">${dir ? dir.toUpperCase() : 'pick 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-direction-toggle" id="tf-direction-toggle">
-          <button type="button" class="trade-direction-btn long ${dir === 'long' ? 'selected' : ''}" data-tf-dir="long">▲ LONG (bullish)</button>
-          <button type="button" class="trade-direction-btn short ${dir === 'short' ? 'selected' : ''}" data-tf-dir="short">▼ SHORT (bearish)</button>
-        </div>
-        <p class="trade-row-help" style="margin-top: 8px;">Direction sets the option type in step 2. Long = call structures, Short = put structures.</p>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Ticker (optional here, required by Verify)</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-input-row">
-          <div>
-            <label class="input-label">Ticker</label>
-            <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="e.g. AAPL"
-              value="${(state.ticker || '').toString()}" autocomplete="off" />
-          </div>
-        </div>
       </div>
     </div>
   `;
@@ -11828,45 +11897,133 @@ function tfMountSwingStep1() {
   }
 }
 
-// ----- Swing step 2 — IV Rank + structure preview -----
+// ----- Swing step 2 — Eligibility: SA Quant, Factor Grades, Earnings -----
+// Goal: fail fast. Before doing IV/liquidity/sizing math, verify the stock is
+// even worth trading. Gates 01/02/03/05 all live here with their own inputs.
 
 function tfSwingStep2() {
+  const gates = tfEvaluateGates();
+  const passed = ['01','02','03','05'].filter(k => gates[k]).length;
+  const ticker = state.ticker || '';
+  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}/ratings/factor-grades` : 'https://seekingalpha.com';
+
+  const gateRow = (k, name, rule, isManual) => {
+    const ok = gates[k];
+    return `
+      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-gate="${k}" ${!isManual ? 'data-tf-readonly="1"' : ''}>
+        <span class="trade-row-check">${ok ? '✓' : ''}</span>
+        <span class="trade-row-main">
+          <span class="trade-row-name"><small>GATE ${k}</small> ${name}</span>
+          <span class="trade-row-help">${rule}${isManual ? ` · <a href="${saUrl}" target="_blank" rel="noopener noreferrer">Verify on SA →</a>` : ''}</span>
+        </span>
+        <span class="trade-row-pill">${ok ? 'PASS' : (isManual ? 'CLICK TO MARK' : 'FAIL')}</span>
+      </button>`;
+  };
+
+  const noTickerWarn = !ticker ? `
+    <p class="trade-row-help" style="color: var(--amber-bright); margin-bottom: 10px;">
+      Set a ticker in step 1 first — the SA factor-grade links need it.
+    </p>` : '';
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality inputs</div>
+          <div class="trade-section-subtitle">Pull these from Seeking Alpha. They drive the auto-passing gates below.</div>
+        </div>
+        <div class="trade-section-counter ${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'complete' : ''}">${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? '2 set' : 'fill 2'}</div>
+      </div>
+      <div class="trade-section-body">
+        ${noTickerWarn}
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">SA Quant Rating (1.00–5.00)</label>
+              <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
+                placeholder="e.g. 4.12" value="${state.saQuant ?? ''}" />
+              <div class="input-help">Auto-passes Gate 01 when ≥ 3.50 (Buy or Strong Buy).</div>
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Days to next earnings</label>
+              <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
+                placeholder="e.g. 21" value="${state.daysToEarnings ?? ''}" />
+              <div class="input-help">Auto-passes Gate 05 when ≥ 8. Don't hold through earnings.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Eligibility gates</div>
+          <div class="trade-section-subtitle">All four must pass before you move on. Manual gates need a click after verification.</div>
+        </div>
+        <div class="trade-section-counter ${passed === 4 ? 'complete' : ''}">${passed} of 4 passed</div>
+      </div>
+      <div class="trade-section-body">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${gateRow('01', 'SA Quant Rating ≥ 3.50', 'Auto-passes from the input above.', false)}
+          ${gateRow('02', 'Profitability grade B- or better', 'Open SA → Factor Grades → confirm grade. Click to mark.', true)}
+          ${gateRow('03', 'Momentum grade B- or better', 'Same SA Factor Grades section. Click to mark once verified.', true)}
+          ${gateRow('05', 'Earnings ≥ 7 days away', 'Auto-passes when days-to-earnings input is 8+.', false)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountSwingStep2() {
+  const sa = document.getElementById('tf-sa-quant');
+  if (sa) {
+    sa.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.saQuant = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    sa.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+  }
+  const der = document.getElementById('tf-days-er');
+  if (der) {
+    der.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.daysToEarnings = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    der.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+  }
+  document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.tfGate;
+      if (k !== '02' && k !== '03') return; // only manual gates are toggleable
+      state.gateChecks[k] = !state.gateChecks[k];
+      saveState();
+      tfRefreshAll();
+      if (typeof renderGate === 'function') renderGate();
+    });
+  });
+}
+
+// ----- Swing step 3 — Structure: IV Rank, derived contract spec, liquidity -----
+// Goal: decide what to buy. IV → strategy/delta/DTE/width → liquidity check
+// (Gate 04). Stocks mode skips IV and just does the volume check.
+
+function tfSwingStep3() {
+  const isOptions = state.instrument !== 'stocks';
   const ivr = state.ivr;
   const dir = state.direction;
-  const isOptions = state.instrument !== 'stocks';
   const bracket = tfIvrBracket(ivr);
   const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
     ? getStrategyForIVR(Number(ivr), dir) : null;
 
-  const stocksNote = !isOptions ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">i</span> Stocks mode</div>
-      </div>
-      <div class="trade-section-body">
-        <p class="trade-row-help">You're in stocks mode (set in Settings). IV Rank doesn't apply. Skip ahead to the cockpit step to size the position.</p>
-      </div>
-    </div>` : '';
-
-  const ivrSection = isOptions ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> IV Rank from TOS Volatility tab</div>
-        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-input-row">
-          <div>
-            <label class="input-label">IV Rank (0–100)</label>
-            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
-              placeholder="e.g. 24"
-              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
-            <div class="input-help">Cheap below 30 · Moderate 30–50 · Rich 50+ · Skip if 70+</div>
-          </div>
-          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
-        </div>
-      </div>
-    </div>` : '';
+  const liq = state.liquidity || {};
+  const gates = tfEvaluateGates();
 
   const stratOut = sObj ? `
     <div class="trade-output">
@@ -11880,21 +12037,85 @@ function tfSwingStep2() {
       </div>
     </div>` : '';
 
+  const ivrSection = isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> IV Rank → contract spec</div>
+          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
+        </div>
+        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">IV Rank (0–100)</label>
+            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
+              placeholder="e.g. 24"
+              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
+            <div class="input-help">Cheap below 30 · Moderate 30–50 · Rich 50+ · Skip if 70+</div>
+          </div>
+          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
+        </div>
+        ${stratOut}
+      </div>
+    </div>` : `
+    <div class="trade-section muted">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">i</span> Stocks mode — IV doesn't apply</div>
+          <div class="trade-section-subtitle">Set in Settings. Sizing math runs off share price in step 4.</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Liquidity row inputs — fields differ between options and stocks.
+  const liqInputs = [
+    { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
+    { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
+    { key: 'optionVol', label: 'Option volume today',   rule: '≥ 100',       step: '1' },
+    { key: 'bid',       label: 'Option Bid ($)',        rule: 'paired',      step: '0.01' },
+    { key: 'ask',       label: 'Option Ask ($)',        rule: 'spread auto', step: '0.01' },
+  ].filter(f => isOptions || f.key === 'stockVol');
+
+  const liqGrid = liqInputs.map(f => `
+    <div class="trade-input-row" style="grid-template-columns: 1fr;">
+      <div>
+        <label class="input-label">${f.label} <span style="float:right; color:var(--ink-4); font-weight:400; font-size:10px;">need ${f.rule}</span></label>
+        <input type="number" min="0" step="${f.step}" class="trade-input" data-tf-liq="${f.key}"
+          value="${liq[f.key] ?? ''}" />
+      </div>
+    </div>`).join('');
+
+  const spreadLine = (isOptions && liq.bid > 0 && liq.ask > 0)
+    ? `<p class="trade-row-help" style="margin-top:8px;">Mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · spread ${(((Number(liq.ask)-Number(liq.bid))/((Number(liq.bid)+Number(liq.ask))/2))*100).toFixed(1)}%</p>`
+    : '';
+
   return `
-    ${stocksNote}
     ${ivrSection}
-    ${stratOut ? `<div class="trade-section"><div class="trade-section-head"><div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Auto-derived structure</div></div><div class="trade-section-body">${stratOut}</div></div>` : ''}
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Liquidity ${isOptions ? '(stock + option)' : '(stock)'}</div>
+          <div class="trade-section-subtitle">Drives Gate 04. Without enough volume you can't get a clean fill or exit.</div>
+        </div>
+        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill ' + liqInputs.length}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">${liqGrid}</div>
+        ${spreadLine}
+      </div>
+    </div>
   `;
 }
 
-function tfMountSwingStep2() {
+function tfMountSwingStep3() {
   const ivrEl = document.getElementById('tf-ivr');
   if (ivrEl) {
     ivrEl.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       state.ivr = isNaN(v) ? null : v;
       saveState();
-      // Update only header + bracket badge; don't re-render the input itself.
       tfRefreshHeaderOnly();
       const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
       if (wrap) {
@@ -11909,21 +12130,44 @@ function tfMountSwingStep2() {
       if (li) li.value = state.ivr === null ? '' : state.ivr;
     });
     ivrEl.addEventListener('blur', () => {
-      tfRefreshAll(); // refresh strategy output
+      tfRefreshAll(); // re-render to show derived structure card
       if (typeof renderStrategy === 'function') renderStrategy();
     });
   }
+  document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
+    el.addEventListener('input', e => {
+      const k = e.target.dataset.tfLiq;
+      const v = parseFloat(e.target.value);
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      state.liquidity[k] = isNaN(v) ? null : v;
+      if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
+        const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
+        state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
+      }
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    el.addEventListener('blur', () => {
+      tfRefreshAll();
+      if (typeof renderGate === 'function') renderGate();
+    });
+  });
 }
 
-// ----- Swing step 3 — Cockpit (premium + ATR required pair) -----
+// ----- Swing step 4 — Sizing & stop -----
+// Goal: position math. Premium + ATR + underlying = auto-sized position with
+// volatility stop and profit target. Stop level set here passes Gate 06.
 
-function tfSwingStep3() {
+function tfSwingStep4() {
   const isOptions = state.instrument !== 'stocks';
   const premium = state.premium;
   const atr     = state.atr;
   const upx     = state.underlyingPrice;
+  const gates   = tfEvaluateGates();
+
   const reqLabel = isOptions ? 'Premium per contract ($)' : 'Share price ($)';
-  const reqHelp = isOptions ? 'Mid of bid/ask from TOS option chain.' : 'Current share price for sizing math.';
+  const reqHelp  = isOptions ? 'Mid of bid/ask from the TOS option chain.' : 'Current share price for sizing math.';
+
   const sizingCard = (() => {
     if (!premium || premium <= 0) return '';
     const settings = state.settings || DEFAULT_SETTINGS;
@@ -11952,7 +12196,7 @@ function tfSwingStep3() {
           </div>
         </div>`;
     } else {
-      const stopPct = (settings.stopPct || 5) / 100; // for stocks we treat stopPct as % of share price
+      const stopPct = (settings.stopPct || 5) / 100;
       const maxLossPerShare = premium * stopPct;
       const shares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
       return `
@@ -11964,11 +12208,24 @@ function tfSwingStep3() {
     }
   })();
 
+  const stopGateRow = `
+    <div class="trade-row ${gates['06'] ? 'checked' : 'fail'}" data-tf-readonly="1">
+      <span class="trade-row-check">${gates['06'] ? '✓' : ''}</span>
+      <span class="trade-row-main">
+        <span class="trade-row-name"><small>GATE 06</small> Stop level set before entry</span>
+        <span class="trade-row-help">Auto-passes when ATR(14) and underlying price are both filled.</span>
+      </span>
+      <span class="trade-row-pill">${gates['06'] ? 'PASS' : 'FAIL'}</span>
+    </div>`;
+
   const atrSection = isOptions ? `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Volatility for stop placement (required)</div>
-        <div class="trade-section-counter ${atr && atr > 0 && upx && upx > 0 ? 'complete' : ''}">${atr && atr > 0 && upx && upx > 0 ? '2 set' : 'fill 2'}</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Volatility stop (Gate 06)</div>
+          <div class="trade-section-subtitle">ATR + underlying price compute a volatility-adjusted stop. Skipping this is the #1 way to over-risk.</div>
+        </div>
+        <div class="trade-section-counter ${atr > 0 && upx > 0 ? 'complete' : ''}">${atr > 0 && upx > 0 ? '2 set' : 'fill 2'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
@@ -11976,49 +12233,48 @@ function tfSwingStep3() {
             <div>
               <label class="input-label">ATR(14) on the underlying</label>
               <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
-                placeholder="e.g. 2.45"
-                value="${atr ?? ''}" />
-              <div class="input-help">From TOS daily chart, study: ATR with length 14.</div>
+                placeholder="e.g. 2.45" value="${atr ?? ''}" />
+              <div class="input-help">From TOS daily chart, study: ATR length 14.</div>
             </div>
           </div>
           <div class="trade-input-row">
             <div>
               <label class="input-label">Underlying current price ($)</label>
               <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
-                placeholder="e.g. 188.50"
-                value="${upx ?? ''}" />
-              <div class="input-help">Used with ATR to compute volatility-adjusted stop.</div>
+                placeholder="e.g. 188.50" value="${upx ?? ''}" />
+              <div class="input-help">Combined with ATR for the stop level.</div>
             </div>
           </div>
         </div>
-        <p class="trade-row-help" style="margin-top:8px;">Both required. Skipping these means no volatility-adjusted stop, which is the highest-friction failure mode of the old flow.</p>
+        <div style="margin-top:10px;">${stopGateRow}</div>
       </div>
     </div>` : '';
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
-        <div class="trade-section-counter ${premium && premium > 0 ? 'complete' : ''}">${premium && premium > 0 ? '1 set' : 'fill 1'}</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
+          <div class="trade-section-subtitle">${reqHelp}</div>
+        </div>
+        <div class="trade-section-counter ${premium > 0 ? 'complete' : ''}">${premium > 0 ? '1 set' : 'fill 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-input-row">
           <div>
             <label class="input-label">${reqLabel}</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-              placeholder="e.g. 2.45"
-              value="${premium ?? ''}" />
-            <div class="input-help">${reqHelp}</div>
+              placeholder="e.g. 2.45" value="${premium ?? ''}" />
           </div>
         </div>
+        ${sizingCard}
       </div>
     </div>
     ${atrSection}
-    ${sizingCard ? `<div class="trade-section"><div class="trade-section-head"><div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Auto-sized position</div></div><div class="trade-section-body">${sizingCard}</div></div>` : ''}
   `;
 }
 
-function tfMountSwingStep3() {
+function tfMountSwingStep4() {
   const wireNum = (id, key) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -12031,6 +12287,7 @@ function tfMountSwingStep3() {
     el.addEventListener('blur', () => {
       tfRefreshAll();
       if (typeof renderCalc === 'function') renderCalc();
+      if (typeof renderGate === 'function') renderGate();
     });
   };
   wireNum('tf-premium', 'premium');
@@ -12038,159 +12295,9 @@ function tfMountSwingStep3() {
   wireNum('tf-upx', 'underlyingPrice');
 }
 
-// ----- Swing step 4 — Verify gates (rules visible, liquidity sub-section) -----
-
-function tfSwingStep4() {
-  const gateState = tfEvaluateGates();
-  const passed = Object.values(gateState).filter(Boolean).length;
-  const liq = state.liquidity || {};
-
-  const liqInputs = [
-    { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
-    { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
-    { key: 'optionVol', label: 'Option volume today',   rule: '≥ 100',       step: '1' },
-    { key: 'bid',       label: 'Option Bid ($)',        rule: 'paired',      step: '0.01' },
-    { key: 'ask',       label: 'Option Ask ($)',        rule: 'spread auto', step: '0.01' },
-  ];
-  const isStocks = state.instrument === 'stocks';
-  const liqGrid = liqInputs
-    .filter(f => !isStocks || f.key === 'stockVol' || f.key === 'bid' || f.key === 'ask')
-    .map(f => `
-      <div class="trade-input-row" style="grid-template-columns: 1fr;">
-        <div>
-          <label class="input-label">${f.label} <span style="float:right; color:var(--ink-4); font-weight:400; font-size:10px;">need ${f.rule}</span></label>
-          <input type="number" min="0" step="${f.step}" class="trade-input" data-tf-liq="${f.key}"
-            value="${liq[f.key] ?? ''}" />
-        </div>
-      </div>`).join('');
-
-  const gateMeta = {
-    '01': { name: 'SA Quant Rating ≥ 3.50 (Buy or Strong Buy)', rule: 'Auto-passes when SA Quant field is set to 3.50+. Click ticker on Seeking Alpha → check Quant Rating decimal.' },
-    '02': { name: 'Profitability grade B- or better', rule: 'On Seeking Alpha → ticker → Factor Grades. Click to mark passed once verified. (Manual)' },
-    '03': { name: 'Momentum grade B- or better', rule: 'Same Factor Grades section. Want a stock in an uptrend vs peers. Click to mark passed. (Manual)' },
-    '04': { name: 'Stock + option liquidity', rule: 'Auto-passes when liquidity fields below all meet the rules. Bid/Ask drive spread% automatically.' },
-    '05': { name: 'Earnings ≥ 7 days away', rule: 'Auto-passes when Days to Earnings (set in legacy panel) is 8+. Avoid holding through earnings unless trading the event.' },
-    '06': { name: 'Stop level set before entry', rule: 'Auto-passes when ATR + underlying price are filled in step 3 (volatility-adjusted stop). Otherwise click to set manually.' },
-  };
-
-  const rows = ['01','02','03','04','05','06'].map(k => {
-    const ok = gateState[k];
-    const isManual = k === '02' || k === '03';
-    return `
-      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-gate="${k}">
-        <span class="trade-row-check">${ok ? '✓' : ''}</span>
-        <span class="trade-row-main">
-          <span class="trade-row-name"><small>GATE ${k}</small> ${gateMeta[k].name}</span>
-          <span class="trade-row-help">${gateMeta[k].rule}${isManual ? ` · <a href="https://seekingalpha.com/symbol/${state.ticker || ''}/ratings/factor-grades" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);">Verify on SA →</a>` : ''}</span>
-        </span>
-        <span class="trade-row-pill">${ok ? 'PASS' : (isManual ? 'CLICK TO MARK' : 'FAIL')}</span>
-      </button>`;
-  }).join('');
-
-  return `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality gates</div>
-        <div class="trade-section-counter ${passed === 6 ? 'complete' : ''}">${passed} of 6 passed</div>
-      </div>
-      <div class="trade-section-body">
-        <div style="display: flex; flex-direction: column; gap: 8px;">${rows}</div>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Liquidity inputs (drives Gate 04)</div>
-        <div class="trade-section-counter ${gateState['04'] ? 'complete' : ''}">${gateState['04'] ? 'pass' : 'fill'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">${liqGrid}</div>
-        ${liq.bid && liq.ask && liq.bid > 0 && liq.ask > 0 ? `<p class="trade-row-help" style="margin-top:8px;">Spread mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · spread${' '} ${(((Number(liq.ask)-Number(liq.bid))/((Number(liq.bid)+Number(liq.ask))/2))*100).toFixed(1)}%</p>` : ''}
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> SA + earnings inputs (set in legacy panel)</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">SA Quant Rating (1.00–5.00)</label>
-              <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
-                placeholder="e.g. 4.12" value="${state.saQuant ?? ''}" />
-              <div class="input-help">Auto-passes Gate 01 when ≥ 3.50.</div>
-            </div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Days to next earnings</label>
-              <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
-                placeholder="e.g. 21" value="${state.daysToEarnings ?? ''}" />
-              <div class="input-help">Auto-passes Gate 05 when ≥ 8.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function tfMountSwingStep4() {
-  document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
-    el.addEventListener('click', () => {
-      const k = el.dataset.tfGate;
-      // Only manual gates are user-toggleable
-      if (k !== '02' && k !== '03') return;
-      state.gateChecks[k] = !state.gateChecks[k];
-      saveState();
-      tfRefreshAll();
-      if (typeof renderGate === 'function') renderGate();
-    });
-  });
-  document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
-    el.addEventListener('input', e => {
-      const k = e.target.dataset.tfLiq;
-      const v = parseFloat(e.target.value);
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
-      state.liquidity[k] = isNaN(v) ? null : v;
-      // Auto-derive spread%
-      if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
-        const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
-        state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
-      }
-      saveState();
-      tfRefreshHeaderOnly();
-    });
-    el.addEventListener('blur', () => {
-      tfRefreshAll();
-      if (typeof renderGate === 'function') renderGate();
-    });
-  });
-  const sa = document.getElementById('tf-sa-quant');
-  if (sa) {
-    sa.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      state.saQuant = isNaN(v) ? null : v;
-      saveState();
-      tfRefreshHeaderOnly();
-    });
-    sa.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
-  }
-  const der = document.getElementById('tf-days-er');
-  if (der) {
-    der.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      state.daysToEarnings = isNaN(v) ? null : v;
-      saveState();
-      tfRefreshHeaderOnly();
-    });
-    der.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
-  }
-}
-
 // ----- Swing step 5 — Execute -----
+// Goal: review at-a-glance, place the order in TOS, then log. Compact gate
+// summary up top so the user sees what's still red without going back.
 
 function tfSwingStep5() {
   const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
@@ -12198,6 +12305,25 @@ function tfSwingStep5() {
   const preMortem = state.tradeFlow.preMortem || (tpl ? tpl.preMortem : '');
   const st = tfComputeStatus();
   const ready = st.tone === 'ready';
+  const gates = tfEvaluateGates();
+  const passed = Object.values(gates).filter(Boolean).length;
+
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const premium = state.premium;
+  const stopPrice = (premium > 0) ? (premium * (1 - (settings.stopPct || 50)/100)).toFixed(2) : '—';
+  const targetPrice = (premium > 0) ? (premium * (1 + (settings.targetPct || 50)/100)).toFixed(2) : '—';
+
+  const gateRow = (k, name) => {
+    const ok = gates[k];
+    return `
+      <div class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-readonly="1" style="cursor:default;">
+        <span class="trade-row-check">${ok ? '✓' : ''}</span>
+        <span class="trade-row-main">
+          <span class="trade-row-name"><small>GATE ${k}</small> ${name}</span>
+        </span>
+        <span class="trade-row-pill">${ok ? 'PASS' : 'FAIL'}</span>
+      </div>`;
+  };
 
   const templateBtns = tpl ? `
     <div class="trade-templates">
@@ -12209,13 +12335,36 @@ function tfSwingStep5() {
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Order checklist (TOS)</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Final gate check</div>
+          <div class="trade-section-subtitle">Read-only summary. Anything red, go back to fix.</div>
+        </div>
+        <div class="trade-section-counter ${passed === 6 ? 'complete' : ''}">${passed} of 6 passed</div>
+      </div>
+      <div class="trade-section-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          ${gateRow('01', 'SA Quant ≥ 3.50')}
+          ${gateRow('02', 'Profitability grade')}
+          ${gateRow('03', 'Momentum grade')}
+          ${gateRow('04', 'Liquidity')}
+          ${gateRow('05', 'Earnings ≥ 7d')}
+          ${gateRow('06', 'Stop level set')}
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Place the order in TOS</div>
+          <div class="trade-section-subtitle">Use the OCO bracket so target and stop fire automatically.</div>
+        </div>
       </div>
       <div class="trade-section-body">
         <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
-          <li>Open option chain in TOS (Trade tab → ticker → Option Chain).</li>
-          <li>Right-click the contract you want → Buy → With OCO Bracket.</li>
-          <li>Set entry limit, profit target +${(state.settings && state.settings.targetPct) || 50}%, stop at ${(state.settings && state.settings.stopPct) || 50}% of premium.</li>
+          <li>Open option chain in TOS (Trade tab → ${state.ticker || 'ticker'} → Option Chain).</li>
+          <li>Right-click the contract → Buy → With OCO Bracket.</li>
+          <li>Entry limit ≈ $${premium ? premium.toFixed(2) : '—'} · target +${settings.targetPct || 50}% ($${targetPrice}) · stop ${settings.stopPct || 50}% ($${stopPrice}).</li>
           <li>Submit in TOS, then click GO below to log the thesis.</li>
         </ol>
       </div>
@@ -12223,7 +12372,10 @@ function tfSwingStep5() {
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Thesis &amp; pre-mortem</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Thesis &amp; pre-mortem</div>
+          <div class="trade-section-subtitle">Saved to the trade log. One sentence each is enough.</div>
+        </div>
       </div>
       <div class="trade-section-body">
         ${templateBtns}
@@ -12246,11 +12398,11 @@ function tfSwingStep5() {
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Status</div>
+        <div class="trade-section-title"><span class="trade-section-title-icon">D.</span> Final check</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-output">
-          <div class="trade-output-title">Final check</div>
+          <div class="trade-output-title">Status</div>
           <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
           <div class="trade-output-rationale">${st.reason}</div>
         </div>
@@ -12299,6 +12451,8 @@ function tfMountSwingStep5() {
 }
 
 // ----- Intraday steps -----
+// 4 steps: 1 Setup → 2 Plan → 3 Verify → 4 Execute. Each step has all the
+// inputs it needs co-located with the gate(s) those inputs drive.
 
 function tfIntradayStep1() {
   const it = state.intraday || {};
@@ -12313,17 +12467,23 @@ function tfIntradayStep1() {
   const vrLong   = it.vwapRel === 'above';
   const vrShort  = it.vwapRel === 'below';
   const vrAt     = it.vwapRel === 'at';
+
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
+          <div class="trade-section-subtitle">What are you trading and which way? Direction must match the VWAP relation below.</div>
+        </div>
+        <div class="trade-section-counter ${it.ticker && it.direction ? 'complete' : ''}">${it.ticker && it.direction ? 'set' : 'fill 2'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
               <label class="input-label">Ticker</label>
-              <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY" value="${(it.ticker || '').toString()}" autocomplete="off" />
+              <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY"
+                value="${(it.ticker || '').toString()}" autocomplete="off" style="text-transform: uppercase;" />
             </div>
           </div>
           <div>
@@ -12339,7 +12499,24 @@ function tfIntradayStep1() {
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> VWAP relation</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Setup pattern</div>
+          <div class="trade-section-subtitle">One of 6 approved intraday patterns.</div>
+        </div>
+        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-setup-grid">${cards}</div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> VWAP relation</div>
+          <div class="trade-section-subtitle">Long needs Above/At VWAP. Short needs Below/At VWAP. Mismatches block GO.</div>
+        </div>
+        <div class="trade-section-counter ${it.vwapRel ? 'complete' : ''}">${it.vwapRel ? 'set' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
@@ -12347,17 +12524,6 @@ function tfIntradayStep1() {
           <button type="button" class="trade-direction-btn ${vrAt ? 'selected' : ''}" data-tf-i-vwap="at">At VWAP</button>
           <button type="button" class="trade-direction-btn ${vrShort ? 'short selected' : ''}" data-tf-i-vwap="below" ${dirLong ? 'disabled' : ''}>Below VWAP</button>
         </div>
-        <p class="trade-row-help" style="margin-top:8px;">Long requires Above or At VWAP. Short requires Below or At VWAP. Mismatches block GO.</p>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Setup</div>
-        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-setup-grid">${cards}</div>
       </div>
     </div>
   `;
@@ -12401,16 +12567,21 @@ function tfIntradayStep2() {
   const it = state.intraday || {};
   const sb = tfSpreadBracket(it.spreadPct);
   const filled = (v) => v !== null && v !== undefined && v !== '';
-  const setN = [filled(it.entry), filled(it.stop), filled(it.target), filled(it.spreadPct)].filter(Boolean).length;
+  const lvlN = [filled(it.entry), filled(it.stop), filled(it.target)].filter(Boolean).length;
   const r = (it.entry && it.stop && it.target)
     ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
     : null;
   const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
+  const rGood = r !== null && isFinite(r) && r >= 1.5;
+
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Levels</div>
-        <div class="trade-section-counter ${setN >= 3 ? 'complete' : ''}">${setN} of 4</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Entry · stop · target</div>
+          <div class="trade-section-subtitle">All three required. R-multiple updates as you type — aim for ≥ 1.5R.</div>
+        </div>
+        <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
@@ -12426,31 +12597,37 @@ function tfIntradayStep2() {
             <label class="input-label">Target $</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${it.target ?? ''}" placeholder="prior high / VWAP / etc." />
           </div></div>
-          <div class="trade-input-row"><div>
-            <label class="input-label">Spread %</label>
-            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${it.spreadPct ?? ''}" placeholder="e.g. 2.0" />
-            <div class="input-help">Bid-ask as % of mid. Cap is ${(state.settings && state.settings.intradayMaxSpreadPct) || 5}%.</div>
-          </div>
-          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
-          </div>
         </div>
-        <div class="trade-output">
+        <div class="trade-output" style="${rGood ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
           <div class="trade-output-title">R-multiple</div>
           <div class="trade-output-main">${rText}</div>
-          <div class="trade-output-rationale">Distance to target divided by distance to stop. Aim for at least 1.5R on intraday.</div>
+          <div class="trade-output-rationale">Distance to target divided by distance to stop.</div>
         </div>
       </div>
     </div>
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Contracts (optional — auto-sized if empty)</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Spread &amp; sizing</div>
+          <div class="trade-section-subtitle">Spread% drives the liquidity check in step 3. Contracts auto-size if blank.</div>
+        </div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-          <label class="input-label">Contracts</label>
-          <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${it.contracts ?? ''}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk if blank" />
-        </div></div>
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row"><div>
+            <label class="input-label">Spread %</label>
+            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${it.spreadPct ?? ''}" placeholder="e.g. 2.0" />
+            <div class="input-help">Bid-ask as % of mid. Cap ${(state.settings && state.settings.intradayMaxSpreadPct) || 5}%.</div>
+          </div>
+          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Contracts (optional)</label>
+            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${it.contracts ?? ''}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk" />
+            <div class="input-help">Leave blank to auto-size from per-trade risk budget.</div>
+          </div></div>
+        </div>
       </div>
     </div>
   `;
@@ -12517,7 +12694,10 @@ function tfIntradayStep3() {
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality checks</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality checks</div>
+          <div class="trade-section-subtitle">Each check reads from steps 1–2 plus the clock and your loss budget. All five must pass.</div>
+        </div>
         <div class="trade-section-counter ${passed === 5 ? 'complete' : ''}">${passed} of 5 passed</div>
       </div>
       <div class="trade-section-body">
@@ -12541,14 +12721,47 @@ function tfMountIntradayStep3() {
 
 function tfIntradayStep4() {
   const it = state.intraday || {};
+  const st = tfComputeStatus();
+  const ready = st.tone === 'ready';
   return `
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Trigger &amp; exit notes (optional)</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Place the bracket in TOS</div>
+          <div class="trade-section-subtitle">Use OCO so target and stop fire automatically.</div>
+        </div>
       </div>
       <div class="trade-section-body">
-        <textarea class="trade-textarea" id="tf-i-notes" rows="4" placeholder="e.g. 'Reclaimed VWAP on 5m vol surge after holding session low. Wrong if loses VWAP again. Out at prior intraday high.'">${it.notes || ''}</textarea>
-        <p class="trade-row-help" style="margin-top:8px;">Saved to the trade log. Skip if speed matters more than journaling.</p>
+        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
+          <li>Open ${it.ticker || 'ticker'} in TOS.</li>
+          <li>Place a bracket: entry $${it.entry ?? '—'} · target $${it.target ?? '—'} · stop $${it.stop ?? '—'}.</li>
+          <li>Confirm fill, then click GO below to log.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Trigger &amp; exit notes (optional)</div>
+          <div class="trade-section-subtitle">One sentence on the trigger and the invalidation. Saved to the log.</div>
+        </div>
+      </div>
+      <div class="trade-section-body">
+        <textarea class="trade-textarea" id="tf-i-notes" rows="3" placeholder="e.g. 'Reclaimed VWAP on 5m vol surge. Wrong if loses VWAP again. Out at prior intraday high.'">${it.notes || ''}</textarea>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Final check</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-output">
+          <div class="trade-output-title">Status</div>
+          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
+          <div class="trade-output-rationale">${st.reason}</div>
+        </div>
       </div>
     </div>
   `;
@@ -12563,40 +12776,6 @@ function tfMountIntradayStep4() {
     });
   }
 }
-
-function tfIntradayStep5() {
-  const it = state.intraday || {};
-  const st = tfComputeStatus();
-  const ready = st.tone === 'ready';
-  return `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Order checklist (TOS)</div>
-      </div>
-      <div class="trade-section-body">
-        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
-          <li>Place the bracket in TOS: entry $${it.entry ?? '—'} · target $${it.target ?? '—'} · stop $${it.stop ?? '—'}.</li>
-          <li>Confirm fill, then click GO below to log.</li>
-        </ol>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Status</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-output">
-          <div class="trade-output-title">Final check</div>
-          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
-          <div class="trade-output-rationale">${st.reason}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function tfMountIntradayStep5() { /* no inputs to mount */ }
 
 // ============== Orchestrator ==============
 
@@ -12613,18 +12792,28 @@ function renderTrade() {
     document.getElementById('trade-continue-btn')?.addEventListener('click', tfContinue);
     document.getElementById('trade-reset-btn')?.addEventListener('click', tfReset);
   }
+  // Clamp persisted step to the current mode's step count (e.g. intraday is 4, swing is 5).
+  const max = tfStepCount();
+  const cur = Math.max(1, Math.min(max, state.tradeFlow.step || 1));
+  if (state.tradeFlow.step !== cur) {
+    state.tradeFlow.step = cur;
+    saveState();
+  }
   tfRenderHeader();
   tfRenderStepper();
   const body = document.getElementById('trade-body');
   if (body) {
-    body.innerHTML = tfStepBody(state.tradeFlow.step || 1);
-    tfMountStep(state.tradeFlow.step || 1);
+    body.innerHTML = tfStepBody(cur);
+    tfMountStep(cur);
   }
   tfRenderActions();
 }
 
 function tfMountStep(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const max = tfStepCount();
+  if (step > max) step = max;
+  if (step < 1) step = 1;
   if (m === 'swing') {
     if (step === 1) tfMountSwingStep1();
     if (step === 2) tfMountSwingStep2();
@@ -12636,7 +12825,6 @@ function tfMountStep(step) {
     if (step === 2) tfMountIntradayStep2();
     if (step === 3) tfMountIntradayStep3();
     if (step === 4) tfMountIntradayStep4();
-    if (step === 5) tfMountIntradayStep5();
   }
 }
 
