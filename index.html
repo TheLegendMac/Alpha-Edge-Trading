@@ -1629,8 +1629,166 @@ select.input-field {
   vertical-align: 2px;
   background: var(--green);
 }
-.alpha-intel-line.warn::before { background: var(--amber); }
-.alpha-intel-line.bad::before { background: var(--red); }
+.alpha-intel-line.warn::before  { background: var(--amber); }
+.alpha-intel-line.bad::before   { background: var(--red); }
+.alpha-intel-line.danger::before { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.alpha-intel-line.neutral::before { background: var(--ink-4); }
+.alpha-intel-line.info::before  { background: var(--cyan); }
+.alpha-intel-line.good::before  { background: var(--green); }
+
+/* Header row: title + meta */
+.alpha-intel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ai-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Headline diagnostic */
+.ai-headline {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  border-left: 3px solid;
+}
+.ai-headline-good    { color: var(--green-bright);  background: var(--green-bg);  border-left-color: var(--green); }
+.ai-headline-warn    { color: var(--amber-bright);  background: var(--amber-bg);  border-left-color: var(--amber); }
+.ai-headline-bad,
+.ai-headline-danger  { color: var(--red-bright);    background: var(--red-bg);    border-left-color: var(--red); }
+.ai-headline-info    { color: var(--cyan);           background: rgba(6,212,248,0.06); border-left-color: var(--cyan); }
+.ai-headline-neutral { color: var(--ink-2);          background: var(--bg-elev);   border-left-color: var(--ink-4); }
+
+/* Bullet points in intel */
+.alpha-intel-points {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.alpha-intel-points .alpha-intel-line {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  align-items: start;
+  margin: 0;
+}
+.alpha-intel-points .alpha-intel-line::before { display: none; }
+.ai-icon {
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* Section titles inside intel */
+.ai-section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  margin-bottom: 10px;
+}
+
+/* Setup breakdown mini-table */
+.ai-setup-table {
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+.ai-setup-rows { display: grid; gap: 7px; }
+.ai-setup-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.6fr) 42px 1fr 56px 28px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.ai-setup-name {
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-setup-wr {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+.ai-setup-wr span { color: var(--ink-4); }
+.ai-setup-bar-wrap {
+  height: 5px;
+  background: var(--bg-elev);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.ai-setup-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.ai-setup-bar.pos { background: linear-gradient(90deg, rgba(16,185,129,0.5), var(--green)); }
+.ai-setup-bar.neg { background: linear-gradient(90deg, rgba(239,68,68,0.5), var(--red)); }
+.ai-setup-pl {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+.ai-setup-n {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-align: right;
+}
+
+/* Kill-switch section */
+.ai-killswitch {
+  padding-top: 12px;
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  margin-top: 12px;
+}
+.ai-killswitch .ai-section-title { color: var(--red-bright); }
+
+/* Empty state */
+.alpha-intel.ai-empty {
+  display: grid;
+  align-items: center;
+}
+.ai-empty-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 8px 0;
+}
+.ai-empty-icon {
+  font-size: 32px;
+  color: rgba(191, 120, 255, 0.25);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ai-empty-msg {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.ai-empty-msg strong { color: var(--ink-2); }
 .analytics-metrics {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -7266,6 +7424,240 @@ function addTestTrades() {
   toast(`Added ${sampleTrades.length} test trades for cloud sync`);
 }
 
+// ──────────────────────────────────────────────────────────
+//  buildAlphaIntel — returns the alpha-intel HTML block.
+//  Called by renderLogStats; accepts pre-computed aggregates.
+// ──────────────────────────────────────────────────────────
+function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
+  const n = closed.length;
+
+  // ── zero-data state ──────────────────────────────────────
+  if (n === 0) {
+    return `
+      <div class="alpha-intel ai-empty">
+        <div class="alpha-intel-header">
+          <div class="alpha-intel-title">Alpha Intelligence</div>
+        </div>
+        <div class="ai-empty-body">
+          <div class="ai-empty-icon">⌁</div>
+          <div class="ai-empty-msg"><strong>No closed trades yet.</strong> Log your first exit — win or loss — and Alpha Intelligence will surface your edge, behavioral leaks, and pattern breakdowns.</div>
+        </div>
+      </div>`;
+  }
+
+  // ── shared computations ──────────────────────────────────
+  const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
+  const winRate = Math.round(wins.length / n * 100);
+  const avgWin  = wins.length  ? wins.reduce((s, x) => s + x.pl, 0)  / wins.length  : 0;
+  const avgLoss = losses.length ? losses.reduce((s, x) => s + x.pl, 0) / losses.length : 0;
+
+  // Setup-level aggregate
+  const setupMap = {};
+  closed.forEach(t => {
+    const k = t.setup || '—';
+    if (!setupMap[k]) setupMap[k] = { name: k, n: 0, wins: 0, pl: 0, totalR: 0 };
+    const pl = calcPL(t) || 0;
+    setupMap[k].n++;
+    if (pl > 0) setupMap[k].wins++;
+    setupMap[k].pl += pl;
+    setupMap[k].totalR += calcR(t) || 0;
+  });
+  const setups = Object.values(setupMap).sort((a, b) => b.pl - a.pl);
+  const bestSetup  = setups[0] || null;
+  const worstSetup = setups.length > 1 ? setups[setups.length - 1] : null;
+
+  // Exit-reason breakdown
+  const byExit = r => closed.filter(t => t.exit_reason === r);
+  const targetCount = byExit('target').length;
+  const stopCount   = byExit('stop').length;
+  const discCount   = byExit('discretionary').length + byExit('thesis-broke').length;
+  const targetPL    = byExit('target').reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const stopPL      = byExit('stop').reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const discPL      = [...byExit('discretionary'), ...byExit('thesis-broke')]
+                        .reduce((s, t) => s + (calcPL(t) || 0), 0);
+
+  // Process-grade breakdown (only graded trades)
+  const graded = closed.filter(t => t.grade);
+  const gradeMap = graded.reduce((acc, t) => { acc[t.grade] = (acc[t.grade] || 0) + 1; return acc; }, {});
+  const goodGrades = (gradeMap.A || 0) + (gradeMap.B || 0);
+  const badGrades  = (gradeMap.C || 0) + (gradeMap.D || 0) + (gradeMap.F || 0);
+  const gradeScore = graded.length ? Math.round(goodGrades / graded.length * 100) : null;
+
+  // Regime performance
+  const regMap = {};
+  closed.forEach(t => {
+    const r = (t.regime || 'UNKNOWN').toUpperCase().replace(/\s+/g, '-');
+    if (!regMap[r]) regMap[r] = { pl: 0, n: 0 };
+    regMap[r].pl += calcPL(t) || 0;
+    regMap[r].n++;
+  });
+
+  // Power ticker
+  const tickerMap = {};
+  closed.forEach(t => {
+    const k = t.ticker || '—';
+    if (!tickerMap[k]) tickerMap[k] = { pl: 0, n: 0 };
+    tickerMap[k].pl += calcPL(t) || 0;
+    tickerMap[k].n++;
+  });
+  const tickers = Object.entries(tickerMap).sort((a, b) => b[1].pl - a[1].pl);
+  const topTicker  = tickers[0];
+  const worstTicker = tickers.length > 1 ? tickers[tickers.length - 1] : null;
+
+  // Kill-switch thresholds
+  const account = (state.settings && state.settings.account) || 10000;
+  const monthlyPLPct = (totalPL / account * 100);
+  const recentTrades = [...closed].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 20);
+  const recentWinRate = recentTrades.length ? Math.round(recentTrades.filter(t => (calcPL(t) || 0) > 0).length / recentTrades.length * 100) : winRate;
+  const killSwitchActive = monthlyPLPct <= -7 || recentWinRate < 45;
+
+  // ── headline diagnostic ──────────────────────────────────
+  // Pick the single most important insight based on data patterns.
+  let headline = '', headlineTone = 'good';
+
+  if (n < 5) {
+    headline = `${n} closed trade${n === 1 ? '' : 's'} — patterns need at least 10. Keep logging every exit.`;
+    headlineTone = 'info';
+  } else if (killSwitchActive && monthlyPLPct <= -7) {
+    headline = `Account is down ${Math.abs(monthlyPLPct).toFixed(1)}% — kill-switch threshold hit. Review before sizing next trade.`;
+    headlineTone = 'danger';
+  } else if (gradeScore !== null && gradeScore < 60 && graded.length >= 5) {
+    headline = `Process discipline is the priority — only ${gradeScore}% of graded trades scored A or B. Fix execution before adding size.`;
+    headlineTone = 'warn';
+  } else if (avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
+    headline = `Win rate is ${winRate}% but losses are too large. Avg win $${avgWin.toFixed(0)} vs avg loss $${Math.abs(avgLoss).toFixed(0)} — tighten stops or cut faster.`;
+    headlineTone = 'warn';
+  } else if (discCount >= 3 && discPL < 0) {
+    headline = `Discretionary/early exits are the primary leak ($${Math.abs(discPL).toFixed(0)} lost). Stick to the plan — let winners run.`;
+    headlineTone = 'warn';
+  } else if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && bestSetup.pl > 0) {
+    headline = `${bestSetup.name} is your best setup (+$${bestSetup.pl.toFixed(0)}, ${Math.round(bestSetup.wins / bestSetup.n * 100)}% win rate). Prioritise it.`;
+    headlineTone = 'good';
+  } else if (expectancy > 0 && avgR >= 0.5) {
+    headline = `Positive expectancy: +$${expectancy.toFixed(0)}/trade avg, ${avgR.toFixed(2)}R mean. Process is working — stay consistent.`;
+    headlineTone = 'good';
+  } else {
+    headline = `Expectancy is ${expectancy >= 0 ? '+$' : '-$'}${Math.abs(expectancy).toFixed(0)}/trade from ${n} closed. ${expectancy >= 0 ? 'Edge detected — protect it.' : 'Negative edge — review setup selection.'}`;
+    headlineTone = expectancy >= 0 ? 'good' : 'warn';
+  }
+
+  // ── bullet insights ──────────────────────────────────────
+  const bullets = [];
+
+  // Power asset / worst ticker
+  if (topTicker) {
+    bullets.push({
+      tone: topTicker[1].pl >= 0 ? 'good' : 'bad',
+      icon: '🏆',
+      text: `Power ticker: <strong>${topTicker[0]}</strong> +$${topTicker[1].pl.toFixed(0)} over ${topTicker[1].n} trade${topTicker[1].n === 1 ? '' : 's'}${worstTicker && worstTicker[1].pl < 0 ? ` · Leak: <strong>${worstTicker[0]}</strong> -$${Math.abs(worstTicker[1].pl).toFixed(0)}` : ''}.`,
+    });
+  }
+
+  // Exit discipline
+  if (n >= 3) {
+    const targetPct = Math.round(targetCount / n * 100);
+    const stopPct   = Math.round(stopCount / n * 100);
+    const earlyPct  = Math.round(discCount / n * 100);
+    const exitTone  = discPL < -200 ? 'warn' : targetPL > 0 ? 'good' : 'neutral';
+    bullets.push({
+      tone: exitTone,
+      icon: '🚪',
+      text: `Exit mix: ${targetPct}% hit target (+$${targetPL.toFixed(0)}), ${stopPct}% stopped (-$${Math.abs(stopPL).toFixed(0)}), ${earlyPct}% early/disc (${discPL >= 0 ? '+' : '-'}$${Math.abs(discPL).toFixed(0)}).`,
+    });
+  }
+
+  // Win/loss ratio diagnostic
+  if (wins.length && losses.length) {
+    const ratio = (avgWin / Math.abs(avgLoss));
+    const ratioTone = ratio >= 1.5 ? 'good' : ratio >= 1.0 ? 'neutral' : 'warn';
+    bullets.push({
+      tone: ratioTone,
+      icon: '⚖️',
+      text: `Avg win $${avgWin.toFixed(0)} vs avg loss $${Math.abs(avgLoss).toFixed(0)} — ratio ${ratio.toFixed(2)}x. ${ratio >= 1.5 ? 'Excellent reward/risk.' : ratio >= 1.0 ? 'Acceptable, but room to improve target discipline.' : 'Losses bigger than wins — tighten your stop or cut earlier.'}`,
+    });
+  }
+
+  // Process grade insight (only when enough grades logged)
+  if (gradeScore !== null && graded.length >= 5) {
+    const gradeTone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
+    const gradeBreakdown = Object.entries(gradeMap)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([g, c]) => `${g}:${c}`)
+      .join('  ');
+    bullets.push({
+      tone: gradeTone,
+      icon: '📋',
+      text: `Process: ${goodGrades}/${graded.length} trades graded A/B (${gradeScore}%) — ${gradeBreakdown}. ${gradeScore >= 80 ? 'Strong discipline.' : gradeScore >= 60 ? 'Some execution drift — review C-grade trades.' : 'Execution quality is the leak.'}`,
+    });
+  } else if (graded.length < 3 && n >= 5) {
+    bullets.push({
+      tone: 'info',
+      icon: '📋',
+      text: `<strong>${n - graded.length} trades ungraded.</strong> Fill in process grade when closing — it reveals whether edge comes from skill or luck.`,
+    });
+  }
+
+  // Regime performance (only when multiple regimes have data)
+  const regEntries = Object.entries(regMap).filter(([, v]) => v.n >= 2);
+  if (regEntries.length >= 2) {
+    const bestReg  = regEntries.sort((a, b) => b[1].pl - a[1].pl)[0];
+    const worstReg = regEntries.sort((a, b) => a[1].pl - b[1].pl)[0];
+    if (bestReg[0] !== worstReg[0]) {
+      bullets.push({
+        tone: 'info',
+        icon: '🌡️',
+        text: `Best regime: <strong>${bestReg[0]}</strong> +$${bestReg[1].pl.toFixed(0)} (${bestReg[1].n} trades) · Worst: <strong>${worstReg[0]}</strong> $${worstReg[1].pl.toFixed(0)} (${worstReg[1].n} trades).`,
+      });
+    }
+  }
+
+  // Kill switch status
+  const killItems = [];
+  if (monthlyPLPct <= -7)  killItems.push({ text: `Account down ${Math.abs(monthlyPLPct).toFixed(1)}% — stop-trading threshold`, tone: 'danger' });
+  if (recentWinRate < 45 && recentTrades.length >= 10) killItems.push({ text: `Last ${recentTrades.length} trades win rate ${recentWinRate}% < 45%`, tone: 'warn' });
+  const ksHtml = killItems.length ? `
+    <div class="ai-killswitch">
+      <div class="ai-section-title">⚡ Kill-Switch Check</div>
+      ${killItems.map(k => `<div class="alpha-intel-line ${k.tone}"><span>${k.text}</span></div>`).join('')}
+    </div>` : '';
+
+  // ── setup breakdown mini-table (5+ trades) ───────────────
+  const setupTableHtml = setups.length >= 2 && n >= 5 ? `
+    <div class="ai-setup-table">
+      <div class="ai-section-title">Setup breakdown</div>
+      <div class="ai-setup-rows">
+        ${setups.map(s => {
+          const wr = Math.round(s.wins / s.n * 100);
+          const plSign = s.pl >= 0 ? 'pl-positive' : 'pl-negative';
+          const barPct = Math.min(100, Math.max(4, Math.abs(s.pl) / Math.max(...setups.map(x => Math.abs(x.pl)), 1) * 100)).toFixed(0);
+          return `
+            <div class="ai-setup-row">
+              <div class="ai-setup-name">${s.name}</div>
+              <div class="ai-setup-wr">${wr}% <span>W</span></div>
+              <div class="ai-setup-bar-wrap"><div class="ai-setup-bar ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${barPct}%"></div></div>
+              <div class="ai-setup-pl ${plSign}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
+              <div class="ai-setup-n">${s.n}×</div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // ── assemble ─────────────────────────────────────────────
+  return `
+    <div class="alpha-intel">
+      <div class="alpha-intel-header">
+        <div class="alpha-intel-title">Alpha Intelligence</div>
+        <div class="ai-meta">${n} closed trade${n === 1 ? '' : 's'}${graded.length ? ` · ${graded.length} graded` : ''}</div>
+      </div>
+      <div class="ai-headline ai-headline-${headlineTone}">${headline}</div>
+      <div class="alpha-intel-points">
+        ${bullets.map(b => `<div class="alpha-intel-line ${b.tone}"><span class="ai-icon">${b.icon}</span><span>${b.text}</span></div>`).join('')}
+      </div>
+      ${setupTableHtml}
+      ${ksHtml}
+    </div>`;
+}
+
 function renderLogStats() {
   const container = document.getElementById('log-stats');
   const filter = state.logModeFilter || 'all';
@@ -7304,13 +7696,7 @@ function renderLogStats() {
   const maxTag = Math.max(...tagRows.map(r => Math.abs(r.value)), 1);
 
   container.innerHTML = `
-    <div class="alpha-intel">
-      <div class="alpha-intel-title">Alpha Intelligence</div>
-      <div class="alpha-intel-line">Power Asset: ${powerAsset ? `${powerAsset.ticker} is your top earner (${(calcPL(powerAsset) || 0) >= 0 ? '+$' : '-$'}${Math.abs(calcPL(powerAsset) || 0).toFixed(0)}).` : 'Add closed trades to identify your strongest ticker.'}</div>
-      <div class="alpha-intel-line">Expectancy: ${expectancy >= 0 ? '+$' : '-$'}${Math.abs(expectancy).toFixed(0)} per closed trade from ${closed.length} closed trades.</div>
-      <div class="alpha-intel-line ${leak ? 'bad' : ''}">Behavioral Leak: ${leak ? `${leak.ticker} ${leak.exit_reason || 'loss'} produced -$${Math.abs(calcPL(leak) || 0).toFixed(0)}.` : 'No loss leak detected yet.'}</div>
-      <div class="alpha-intel-line">Behavioral Edge: ${bestTag ? `${bestTag.ticker} target-hit discipline added +$${Math.abs(calcPL(bestTag) || 0).toFixed(0)}.` : 'No target-hit edge detected yet.'}</div>
-    </div>
+    ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
 
     <div class="analytics-metrics">
       <div class="stat-card ${totalPL >= 0 ? 'green' : 'red'}">
