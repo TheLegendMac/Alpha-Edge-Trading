@@ -6165,12 +6165,15 @@ async function reconcileOnSignIn() {
     const cloudClone = JSON.parse(JSON.stringify(cloud.state_json));
     const mergedDeleted = mergeDeletedTradeIds(state.deletedTradeIds, cloudClone.deletedTradeIds);
     const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || [], mergedDeleted);
+    const marketContextChanged = shouldAdoptCloudMarketContext(cloudClone, cloud.updated_at, sameDevice);
     if (
       JSON.stringify(mergedTrades) !== JSON.stringify(state.trades || []) ||
-      JSON.stringify(mergedDeleted) !== JSON.stringify(state.deletedTradeIds || {})
+      JSON.stringify(mergedDeleted) !== JSON.stringify(state.deletedTradeIds || {}) ||
+      marketContextChanged
     ) {
       state.deletedTradeIds = mergedDeleted;
       state.trades = mergedTrades;
+      if (marketContextChanged) adoptCloudMarketContext(cloudClone);
       saveStateLocal();
       refreshAllUI();
     }
@@ -6193,6 +6196,8 @@ function refreshAllUI() {
   if (typeof renderLogTable === 'function') renderLogTable();
   if (typeof renderTickerBar === 'function') renderTickerBar();
   if (typeof renderSectors === 'function') renderSectors();
+  if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
+  if (typeof renderContextPanel === 'function') renderContextPanel();
   // Restore form inputs
   if (state.ivr !== null) document.getElementById('ivr-input').value = state.ivr;
   if (state.direction) document.getElementById('direction-input').value = state.direction;
@@ -6327,9 +6332,9 @@ async function manualSupabaseRefresh() {
       clearTimeout(SYNC.pendingPush);
       SYNC.pendingPush = null;
     }
+    await pullAndMergeIfNewer();
     const pushed = await doPush();
     if (!pushed) throw new Error(SYNC.lastError || 'Supabase push failed');
-    await pullAndMergeIfNewer();
     toast(`Supabase refreshed: ${(state.trades || []).length} trades synced`);
   } catch (e) {
     console.warn('[sync refresh] failed:', e);
@@ -6428,6 +6433,7 @@ async function pullAndMergeIfNewer() {
     const mergedTrades = mergeTradesArrays(state.trades || [], cloudClone.trades || [], mergedDeleted);
     const tradesChanged = JSON.stringify(mergedTrades) !== JSON.stringify(state.trades || []) ||
       JSON.stringify(mergedDeleted) !== JSON.stringify(state.deletedTradeIds || {});
+    const marketContextChanged = shouldAdoptCloudMarketContext(cloudClone, cloud.updated_at, sameDevice);
 
     let nonTradeChanged = false;
     if (!sameDevice && cloudTime > localTime + 5000) {
@@ -6442,8 +6448,12 @@ async function pullAndMergeIfNewer() {
       state.trades = mergedTrades;
       state.deletedTradeIds = mergedDeleted;
     }
+    if (marketContextChanged && !nonTradeChanged) {
+      console.info('[sync pull] Adopting newer market context from device', cloud.device_id);
+      adoptCloudMarketContext(cloudClone);
+    }
 
-    if (tradesChanged || nonTradeChanged) {
+    if (tradesChanged || nonTradeChanged || marketContextChanged) {
       saveStateLocal();
       // Push the merged result back so cloud has the union too
       schedulePush();
@@ -6669,6 +6679,7 @@ let state = {
   logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
   logSearch: '',
   homePortfolioView: 'recent', // 'recent' | 'open'
+  marketContextUpdatedAt: null,
 };
 
 function loadState() {
@@ -6681,6 +6692,7 @@ function loadState() {
       // Ensure new fields exist
       if (!state.sectorRatings) state.sectorRatings = {};
       if (!state.sectorRatedAt) state.sectorRatedAt = null;
+      if (!state.marketContextUpdatedAt) state.marketContextUpdatedAt = state.sectorRatedAt || null;
       if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
       // Migrate older state that has spreadPct but no bid/ask
       if (state.liquidity.bid === undefined) state.liquidity.bid = null;
@@ -6709,6 +6721,39 @@ function saveState() {
   saveStateLocal();
   // Schedule a debounced push to cloud (no-op if not signed in / not configured)
   schedulePush();
+}
+
+function touchMarketContext() {
+  state.marketContextUpdatedAt = new Date().toISOString();
+}
+
+function marketContextTime(ctx, fallbackUpdatedAt) {
+  const stamp = ctx?.marketContextUpdatedAt || ctx?.sectorRatedAt || fallbackUpdatedAt;
+  const time = stamp ? new Date(stamp).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function shouldAdoptCloudMarketContext(cloudState, cloudUpdatedAt, sameDevice) {
+  if (!cloudState || sameDevice) return false;
+  const localCtx = {
+    regime: state.regime,
+    sectorRatings: state.sectorRatings || {},
+    sectorRatedAt: state.sectorRatedAt || null,
+  };
+  const cloudCtx = {
+    regime: cloudState.regime,
+    sectorRatings: cloudState.sectorRatings || {},
+    sectorRatedAt: cloudState.sectorRatedAt || null,
+  };
+  if (JSON.stringify(localCtx) === JSON.stringify(cloudCtx)) return false;
+  return marketContextTime(cloudState, cloudUpdatedAt) > marketContextTime(state, 0);
+}
+
+function adoptCloudMarketContext(cloudState) {
+  state.regime = cloudState.regime || state.regime;
+  state.sectorRatings = { ...(cloudState.sectorRatings || {}) };
+  state.sectorRatedAt = cloudState.sectorRatedAt || null;
+  state.marketContextUpdatedAt = cloudState.marketContextUpdatedAt || cloudState.sectorRatedAt || state.marketContextUpdatedAt || null;
 }
 
 // Helper: get account size from settings
@@ -6783,6 +6828,7 @@ function renderContextPanel() {
         else if (num >= 1 && num <= 5) state.sectorRatings[ticker] = raw;
         else return;
         state.sectorRatedAt = new Date().toISOString();
+        touchMarketContext();
         saveState();
         // Update row class live
         const row = e.target.closest('.ctx-sector-row');
@@ -6835,6 +6881,7 @@ const REGIME_DATA = {
 
 function setRegime(r) {
   state.regime = r;
+  touchMarketContext();
   saveState();
   renderHome();
   renderRegime();
@@ -9156,6 +9203,7 @@ function renderSectors() {
         state.sectorRatings[ticker] = raw;
       }
       state.sectorRatedAt = new Date().toISOString();
+      touchMarketContext();
       saveState();
       renderHome();
       // Update only the surrounding card classes + label without full re-render
@@ -9298,6 +9346,7 @@ function clearSectors() {
   if (!confirm('Clear all sector ratings? This cannot be undone.')) return;
   state.sectorRatings = {};
   state.sectorRatedAt = null;
+  touchMarketContext();
   saveState();
   renderHome();
   renderSectors();
@@ -9454,7 +9503,7 @@ function applySnapshotToState(parsed) {
     if (el) el.value = parsed.ticker;
     changed++;
   }
-  if (parsed.regime) { state.regime = parsed.regime; changed++; }
+  if (parsed.regime) { state.regime = parsed.regime; touchMarketContext(); changed++; }
   if (parsed.setup) {
     // Only auto-select the setup CARD if it's one of the 5 swing setups with cards.
     // Bear setups (Breakdown, etc.) get displayed in the snapshot panel only —
@@ -9753,11 +9802,13 @@ function clearAllTradesAndData() {
     sectorNotes: '',
     sectorRatings: {},
     sectorRatedAt: null,
+    marketContextUpdatedAt: deletedAt,
     liquidity: { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null },
     intraday: newIntradayTicket(),
     intradayQuality: { timeOverride: false },
     logModeFilter: 'all',
     logSearch: '',
+    homePortfolioView: 'recent',
   };
 
   ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']
@@ -10454,6 +10505,7 @@ function init() {
     if (!confirm('Clear all sector ratings?')) return;
     state.sectorRatings = {};
     state.sectorRatedAt = null;
+    touchMarketContext();
     saveState();
     renderContextPanel();
     if (typeof renderHome === 'function') renderHome();
