@@ -4570,6 +4570,7 @@ textarea.input-field {
   gap: 0;
   margin-bottom: 16px;
   flex-wrap: nowrap;
+  background: transparent;
 }
 #panel-trade .trade-step {
   flex: 0 1 140px;
@@ -4589,7 +4590,7 @@ textarea.input-field {
   width: 30px; height: 30px;
   border-radius: 50%;
   border: 1.5px solid var(--line-soft);
-  background: var(--bg-elev);
+  background: var(--bg-card);
   color: var(--ink-3);
   display: grid; place-items: center;
   font-family: var(--mono);
@@ -4597,6 +4598,7 @@ textarea.input-field {
   font-weight: 700;
   z-index: 2;
   transition: all .2s;
+  position: relative;
 }
 #panel-trade .trade-step-label {
   font-family: var(--mono);
@@ -5142,8 +5144,18 @@ textarea.input-field {
 #panel-trade .trade-templates {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: var(--bg-elev);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}
+#panel-trade .trade-templates-label {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
 }
 #panel-trade .trade-template-btn {
   background: var(--bg-elev);
@@ -5180,28 +5192,58 @@ textarea.input-field {
   box-shadow: 0 0 0 3px rgba(6,212,248,0.15);
 }
 
-/* mobile stepper collapse */
-@media (max-width: 720px) {
-  #panel-trade .trade-shell { padding: 0 14px 100px; }
-  #panel-trade .trade-header { padding: 14px 14px 12px; margin: 0 -14px; }
+/* mobile — single-thumb friendly */
+@media (max-width: 760px) {
+  #panel-trade .trade-shell { padding: 0 12px 120px; }
+  #panel-trade .trade-header { padding: 12px 12px 10px; margin: 0 -12px; top: 56px; }
+  #panel-trade .trade-header-top { margin-bottom: 10px; }
+  #panel-trade .trade-mode-btn { padding: 7px 14px; font-size: 10px; }
   #panel-trade .trade-stepper { display: none; }
   #panel-trade .trade-stepper-mobile {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--bg-elev);
+    padding: 8px 12px;
+    background: var(--bg-card);
     border: 1px solid var(--line);
     border-radius: var(--r-md);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
   }
   #panel-trade .trade-summary-row { grid-template-columns: 1fr 1fr; }
+  #panel-trade .trade-summary-cell { padding: 10px 12px; min-height: 50px; }
+  #panel-trade .trade-summary-value { font-size: 14px; }
   #panel-trade .trade-summary-status { grid-column: span 2; border-top: 1px solid var(--line); border-right: 0; }
-  #panel-trade .trade-actions { margin: 16px -14px 0; padding: 12px 14px; }
+  #panel-trade .trade-summary-status .trade-summary-value { font-size: 11px; }
+  #panel-trade .trade-body { padding: 16px 0 0; }
+  #panel-trade .trade-section { margin-bottom: 12px; }
+  #panel-trade .trade-section-head { padding: 11px 14px; flex-wrap: wrap; gap: 6px; }
+  #panel-trade .trade-section-title { font-size: 10px; }
+  #panel-trade .trade-section-subtitle { font-size: 11px; }
+  #panel-trade .trade-section-counter { font-size: 9px; padding: 3px 8px; }
+  #panel-trade .trade-section-body { padding: 12px 14px; }
+  #panel-trade .trade-section-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+  #panel-trade .trade-setup-grid { grid-template-columns: 1fr; gap: 8px; }
+  #panel-trade .trade-setup-card { padding: 12px; }
+  #panel-trade .trade-setup-card-name { font-size: 13px; }
+  #panel-trade .trade-setup-card-detail { font-size: 11px; }
+  #panel-trade .trade-row { padding: 10px 12px; gap: 10px; }
+  #panel-trade .trade-row-name { font-size: 12px; }
+  #panel-trade .trade-row-help { font-size: 10px; }
+  #panel-trade .trade-row-pill { font-size: 9px; padding: 3px 7px; }
+  #panel-trade .trade-input { font-size: 13px; padding: 9px 11px; }
+  #panel-trade .trade-input-row { grid-template-columns: 1fr; gap: 6px; }
+  #panel-trade .trade-bracket { align-self: start; margin-bottom: 0; margin-top: 4px; padding: 4px 9px; font-size: 9px; }
+  #panel-trade .trade-direction-btn { padding: 12px; font-size: 12px; }
+  #panel-trade .trade-output { padding: 12px 14px; }
+  #panel-trade .trade-output-main { font-size: 14px; }
+  #panel-trade .trade-output-rationale { font-size: 11px; }
+  #panel-trade .trade-templates { padding: 6px 8px; gap: 6px; }
+  #panel-trade .trade-template-btn { padding: 5px 9px; font-size: 10px; }
+  #panel-trade .trade-actions { margin: 16px -12px 0; padding: 10px 12px; gap: 8px; }
   #panel-trade .trade-action-btn { padding: 11px 16px; font-size: 13px; }
-  #panel-trade .trade-action-reason { font-size: 10px; max-width: 50%; }
 }
-@media (min-width: 721px) {
+@media (min-width: 761px) {
   #panel-trade .trade-stepper-mobile { display: none; }
 }
 
@@ -11565,26 +11607,26 @@ function tfComputeStrategyLabel() {
   return '—';
 }
 
-// IVR bracket for the input badge.
+// IVR bracket for the input badge — single word, color tells the story.
 function tfIvrBracket(ivr) {
-  if (ivr === null || ivr === undefined || ivr === '') return { cls: 'empty', text: '— enter IVR' };
+  if (ivr === null || ivr === undefined || ivr === '') return { cls: 'empty', text: '—' };
   const v = Number(ivr);
   if (isNaN(v)) return { cls: 'empty', text: '—' };
-  if (v < 30) return { cls: 'cheap', text: '→ CHEAP' };
-  if (v < 50) return { cls: 'mid',   text: '→ MODERATE' };
-  if (v < 70) return { cls: 'rich',  text: '→ RICH (½ size)' };
-  return                { cls: 'rich',  text: '→ TOO RICH (skip)' };
+  if (v < 30) return { cls: 'cheap', text: 'CHEAP' };
+  if (v < 50) return { cls: 'mid',   text: 'MID' };
+  if (v < 70) return { cls: 'rich',  text: 'RICH' };
+  return                { cls: 'rich',  text: 'SKIP' };
 }
 
-// Spread bracket for intraday.
+// Spread bracket for intraday — single word.
 function tfSpreadBracket(spread) {
   const max = (state.settings && state.settings.intradayMaxSpreadPct) || 5;
   if (spread === null || spread === undefined || spread === '') return { cls: 'empty', text: '—' };
   const v = Number(spread);
   if (isNaN(v)) return { cls: 'empty', text: '—' };
-  if (v <= max * 0.6) return { cls: 'tight', text: '→ TIGHT' };
-  if (v <= max)       return { cls: 'mid',   text: '→ OK' };
-  return                       { cls: 'wide',  text: '→ TOO WIDE' };
+  if (v <= max * 0.6) return { cls: 'tight', text: 'TIGHT' };
+  if (v <= max)       return { cls: 'mid',   text: 'OK' };
+  return                       { cls: 'wide',  text: 'WIDE' };
 }
 
 // ----- Rendering -----
@@ -11702,7 +11744,8 @@ function tfRenderHeader() {
   const st = tfComputeStatus();
   cell.classList.remove('ready', 'progress', 'blocked');
   cell.classList.add(st.tone);
-  statusEl.textContent = st.tone === 'ready' ? `READY — ${st.reason}` : `${st.label} — ${st.reason}`;
+  // Just the reason — color carries the state. Saves header real-estate.
+  statusEl.textContent = st.tone === 'ready' ? 'Ready' : st.reason;
   // Mode toggle highlight
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
     b.classList.toggle('active', b.dataset.tradeMode === m);
@@ -11718,24 +11761,20 @@ function tfRenderActions() {
   const cur = state.tradeFlow.step || 1;
   const max = tfStepCount();
   backBtn.disabled = cur <= 1;
-  const names = tfStepNames();
   const compl = tfStepCompletion();
   const isLast = cur >= max;
   const st = tfComputeStatus();
+  // Status pill in the header conveys the reason — don't repeat it down here.
+  if (reasonEl) reasonEl.textContent = '';
   if (isLast) {
     contBtn.classList.add('go');
-    contLbl.textContent = st.tone === 'ready'
-      ? `GO — Log ${tfComputeStrategyLabel()}`
-      : `Blocked`;
+    contLbl.textContent = 'GO';
     contBtn.disabled = st.tone !== 'ready';
-    reasonEl.textContent = st.tone !== 'ready' ? st.reason : '';
   } else {
     contBtn.classList.remove('go');
-    contLbl.textContent = `Continue: ${names[cur]}`;
-    // Allow continue only if current step has its prerequisites
+    contLbl.textContent = 'Continue';
     const stepOk = compl.slice(0, cur).every(Boolean);
     contBtn.disabled = !stepOk;
-    reasonEl.textContent = !stepOk ? `Finish step ${cur}: ${names[cur - 1]}` : '';
   }
 }
 
@@ -12312,8 +12351,14 @@ function tfMountSwingStep4() {
 
 function tfSwingStep5() {
   const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
-  const thesis = state.tradeFlow.thesis || (tpl ? tpl.thesis : '');
-  const preMortem = state.tradeFlow.preMortem || (tpl ? tpl.preMortem : '');
+  // Auto-commit the template into state on first arrival when fields are empty.
+  // Without this, GO logs an empty thesis even though the template is visible.
+  if (tpl) {
+    if (!state.tradeFlow.thesis)    { state.tradeFlow.thesis = tpl.thesis;       saveState(); }
+    if (!state.tradeFlow.preMortem) { state.tradeFlow.preMortem = tpl.preMortem; saveState(); }
+  }
+  const thesis = state.tradeFlow.thesis || '';
+  const preMortem = state.tradeFlow.preMortem || '';
   const st = tfComputeStatus();
   const ready = st.tone === 'ready';
   const gates = tfEvaluateGates();
@@ -12336,12 +12381,16 @@ function tfSwingStep5() {
       </div>`;
   };
 
+  // Templates row — always visible. When no setup, buttons are disabled with help.
   const templateBtns = tpl ? `
     <div class="trade-templates">
-      <button type="button" class="trade-template-btn" data-tf-tpl-thesis="default">Default thesis for ${state.selectedSetup}</button>
-      <button type="button" class="trade-template-btn" data-tf-tpl-pre="default">Default pre-mortem</button>
-      <button type="button" class="trade-template-btn" data-tf-tpl-clear="1">Clear</button>
-    </div>` : '<p class="trade-row-help">Pick a setup in step 1 to enable templated thesis text.</p>';
+      <span class="trade-templates-label">Templates for ${state.selectedSetup}:</span>
+      <button type="button" class="trade-template-btn" data-tf-tpl="reset">Reset to template</button>
+      <button type="button" class="trade-template-btn" data-tf-tpl="clear">Clear both</button>
+    </div>` : `
+    <div class="trade-templates">
+      <span class="trade-templates-label" style="color: var(--ink-4);">Pick a setup in step 1 to enable templates.</span>
+    </div>`;
 
   return `
     <div class="trade-section">
@@ -12428,35 +12477,22 @@ function tfMountSwingStep5() {
   if (t) t.addEventListener('input', e => { state.tradeFlow.thesis = e.target.value; saveState(); });
   if (p) p.addEventListener('input', e => { state.tradeFlow.preMortem = e.target.value; saveState(); });
 
-  document.querySelectorAll('#panel-trade [data-tf-tpl-thesis]').forEach(b => {
+  document.querySelectorAll('#panel-trade [data-tf-tpl]').forEach(b => {
     b.addEventListener('click', () => {
+      const action = b.dataset.tfTpl;
       const tpl = TRADE_SETUP_TEMPLATES[state.selectedSetup];
-      if (!tpl) return;
-      state.tradeFlow.thesis = tpl.thesis;
+      if (action === 'reset' && tpl) {
+        state.tradeFlow.thesis = tpl.thesis;
+        state.tradeFlow.preMortem = tpl.preMortem;
+      } else if (action === 'clear') {
+        state.tradeFlow.thesis = '';
+        state.tradeFlow.preMortem = '';
+      }
       saveState();
-      const t = document.getElementById('tf-thesis');
-      if (t) t.value = tpl.thesis;
-    });
-  });
-  document.querySelectorAll('#panel-trade [data-tf-tpl-pre]').forEach(b => {
-    b.addEventListener('click', () => {
-      const tpl = TRADE_SETUP_TEMPLATES[state.selectedSetup];
-      if (!tpl) return;
-      state.tradeFlow.preMortem = tpl.preMortem;
-      saveState();
-      const p = document.getElementById('tf-premortem');
-      if (p) p.value = tpl.preMortem;
-    });
-  });
-  document.querySelectorAll('#panel-trade [data-tf-tpl-clear]').forEach(b => {
-    b.addEventListener('click', () => {
-      state.tradeFlow.thesis = '';
-      state.tradeFlow.preMortem = '';
-      saveState();
-      const t = document.getElementById('tf-thesis');
-      const p = document.getElementById('tf-premortem');
-      if (t) t.value = '';
-      if (p) p.value = '';
+      const ti = document.getElementById('tf-thesis');
+      const pi = document.getElementById('tf-premortem');
+      if (ti) ti.value = state.tradeFlow.thesis;
+      if (pi) pi.value = state.tradeFlow.preMortem;
     });
   });
 }
@@ -12893,36 +12929,131 @@ function tfContinue() {
     tfGoToStep(cur + 1);
     return;
   }
-  // Last step → GO. Open the existing trade modal pre-filled.
+  // Last step → GO. Direct log with confirm — no modal.
   const m = state.tradeFlow.mode;
-  if (m === 'swing') {
-    if (state.tradeFlow.thesis || state.tradeFlow.preMortem) {
-      // Push our buffered thesis text into the modal fields when it opens.
-      window.__tfPendingThesis = state.tradeFlow.thesis || '';
-      window.__tfPendingPreMortem = state.tradeFlow.preMortem || '';
-    }
-    if (typeof openTradeModal === 'function') {
-      openTradeModal();
-      // Apply pending thesis/premortem into modal fields after open.
-      setTimeout(() => {
-        const t = document.getElementById('t-thesis');
-        const p = document.getElementById('t-premortem');
-        if (t && window.__tfPendingThesis) t.value = window.__tfPendingThesis;
-        if (p && window.__tfPendingPreMortem) p.value = window.__tfPendingPreMortem;
-        window.__tfPendingThesis = null;
-        window.__tfPendingPreMortem = null;
-      }, 50);
-    } else {
-      alert('Trade logging is unavailable. Use the legacy panel temporarily.');
+  if (m === 'swing') tfLogSwingDirect();
+  else               tfLogIntradayDirect();
+}
+
+// Build a swing trade record from current flow state and log it. Confirms
+// first so the user can spot a wrong number before it lands in the journal.
+function tfLogSwingDirect() {
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const isOptions = state.instrument !== 'stocks';
+  const premium = Number(state.premium);
+  const atr = Number(state.atr);
+  const upx = Number(state.underlyingPrice);
+
+  // Sizing: regime risk%, halved for Edge Reversal. Same math as the legacy
+  // calc — we replicate it inline to avoid a dependency on the modal.
+  let riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskDollars = settings.account * riskPct;
+  const stopFraction = (settings.stopPct || 50) / 100;
+  let contracts = 1;
+  let stopUnderlying = null;
+  if (isOptions) {
+    const maxLossPerContract = premium * stopFraction * 100;
+    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+    if (atr > 0 && upx > 0) {
+      const dist = atr * 1.5;
+      stopUnderlying = +(state.direction === 'short' ? upx + dist : upx - dist).toFixed(2);
     }
   } else {
-    // Intraday: existing flow has its own GO button + modal. Reuse if exposed.
-    if (typeof logIntradayTrade === 'function') {
-      logIntradayTrade();
-    } else {
-      alert('Intraday logging is unavailable. Use the legacy panel temporarily.');
-    }
+    const maxLossPerShare = premium * stopFraction;
+    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
   }
+
+  const ticker = (state.ticker || '').toUpperCase();
+  const directionLabel = state.direction === 'short' ? 'Short' : 'Long';
+  const regimeText = (typeof REGIME_DATA !== 'undefined' && REGIME_DATA[state.regime])
+    ? REGIME_DATA[state.regime].text
+    : (state.regime || 'risk-on').toUpperCase();
+
+  // Confirm with a short summary so wrong inputs surface before logging.
+  const summary =
+    `Log this trade?\n\n` +
+    `${ticker} · ${state.selectedSetup} · ${directionLabel}\n` +
+    `${isOptions ? premium.toFixed(2) + ' premium × ' + contracts + ' contract' + (contracts > 1 ? 's' : '') : '$' + premium.toFixed(2) + ' × ' + contracts + ' shares'}\n` +
+    `Regime ${regimeText} · risk $${Math.round(riskDollars)}\n` +
+    (stopUnderlying ? `Underlying stop $${stopUnderlying}\n` : '') +
+    `\nThesis: ${state.tradeFlow.thesis || '(empty)'}`;
+  if (!confirm(summary)) return;
+
+  if (!ticker || !state.selectedSetup || !premium || premium <= 0) {
+    if (typeof toast === 'function') toast('Missing required field — go back and check the inputs.', true);
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const trade = {
+    id: (typeof genTradeId === 'function') ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+    mode: 'swing',
+    instrument: isOptions ? 'options' : 'stocks',
+    date: new Date().toISOString().split('T')[0],
+    ticker,
+    setup: state.selectedSetup,
+    direction: directionLabel,
+    entry: premium,
+    contracts,
+    ivr: (state.ivr === null || state.ivr === undefined) ? null : Number(state.ivr),
+    regime: regimeText,
+    thesis: state.tradeFlow.thesis || '',
+    premortem: state.tradeFlow.preMortem || '',
+    stop: stopUnderlying,
+    riskDollars,
+    status: 'open',
+    exit: null, exit_date: null, grade: null, followed_plan: null,
+    emotion: null, exit_reason: null, lesson: null,
+    created_at: nowIso, updated_at: nowIso,
+  };
+
+  if (!Array.isArray(state.trades)) state.trades = [];
+  state.trades.push(trade);
+  saveState();
+  // Trades are too important to wait the 1.5s debounce — push right now.
+  if (typeof doPush === 'function') {
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+
+  // Reset the flow and bounce the user to Home so they see the new trade.
+  if (typeof resetFlowSilent === 'function') resetFlowSilent();
+  state.tradeFlow.step = 1;
+  state.tradeFlow.thesis = '';
+  state.tradeFlow.preMortem = '';
+  saveState();
+  if (typeof toast === 'function') toast(`Logged ${ticker} ${state.selectedSetup || ''}`);
+  if (typeof renderHome === 'function') renderHome();
+  if (typeof renderLogStats === 'function') renderLogStats();
+  if (typeof renderLogTable === 'function') renderLogTable();
+  if (typeof setTab === 'function') setTab('home');
+}
+
+// Wrap the existing intraday logger with a confirm prompt, then reset the
+// flow's step pointer afterward.
+function tfLogIntradayDirect() {
+  const it = state.intraday || {};
+  const ticker = (it.ticker || '').toUpperCase();
+  if (!ticker || !it.setup || !it.entry || !it.stop || !it.target) {
+    if (typeof toast === 'function') toast('Missing required field — go back and check.', true);
+    return;
+  }
+  const summary =
+    `Log this intraday trade?\n\n` +
+    `${ticker} · ${it.setup} · ${(it.direction || '').toUpperCase()}\n` +
+    `Entry $${it.entry} · stop $${it.stop} · target $${it.target}\n` +
+    `Spread ${it.spreadPct ?? '—'}% · contracts ${it.contracts || 'auto'}`;
+  if (!confirm(summary)) return;
+  if (typeof logIntradayTrade !== 'function') {
+    alert('Intraday logging is unavailable.');
+    return;
+  }
+  logIntradayTrade();
+  state.tradeFlow.step = 1;
+  saveState();
+  if (typeof setTab === 'function') setTab('home');
 }
 
 // ---------- Tabs ----------
