@@ -8652,15 +8652,6 @@ function renderHome() {
   };
 
   setText('home-regime-value', regimeText);
-  const topText = top3.length
-    ? top3.slice(0, 3).map(s => s.ticker).join(', ')
-    : '—';
-  const avoidText = avoid.length
-    ? avoid.slice(0, 3).map(s => s.ticker).join(', ')
-    : '—';
-  setText('home-sector-score', ratings.length
-    ? `<span class="home-sector-context-line top"><strong>Top 3</strong><span>${topText}</span></span>`
-    : '<span class="home-sector-context-line top"><strong>Sectors</strong><span>Rate in Sunday Prep</span></span>');
   setText('home-intel-text', scoreText);
 
   // Render structured Alpha Intelligence
@@ -8680,45 +8671,6 @@ function renderHome() {
     deepLabel.textContent = sectorStaleNow ? 'Stale data' : (closed.length ? `${closed.length} closed` : 'Live read');
   }
 
-  // Mark Market Context card as stale when sector grades are >7 days old
-  const sectorButtonHost = document.getElementById('home-sector-score');
-  const marketCard = sectorButtonHost ? sectorButtonHost.closest('.home-card') : null;
-  if (marketCard) {
-    const wasStale = marketCard.classList.contains('stale');
-    const shouldBeStale = !!sectorStaleNow;
-    marketCard.classList.toggle('stale', shouldBeStale);
-    let banner = marketCard.querySelector('.home-stale-banner');
-    if (shouldBeStale) {
-      const days = daysSinceSectorRating();
-      const msg = `<span class="home-stale-banner-icon">⚠</span> Sector grades ${days} days old · re-rate before sizing`;
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.className = 'home-stale-banner';
-        banner.innerHTML = `${msg}<button type="button" data-action="rerate">Re-rate</button>`;
-        marketCard.appendChild(banner);
-        banner.querySelector('button').addEventListener('click', e => {
-          e.stopPropagation();
-          if (typeof setTab === 'function') setTab('sunday');
-        });
-      } else {
-        banner.firstChild && (banner.firstChild.previousSibling); // no-op
-        // Update message but preserve the button
-        const btn = banner.querySelector('button');
-        banner.innerHTML = msg;
-        const newBtn = document.createElement('button');
-        newBtn.type = 'button';
-        newBtn.dataset.action = 'rerate';
-        newBtn.textContent = 'Re-rate';
-        banner.appendChild(newBtn);
-        newBtn.addEventListener('click', e => {
-          e.stopPropagation();
-          if (typeof setTab === 'function') setTab('sunday');
-        });
-      }
-    } else if (banner) {
-      banner.remove();
-    }
-  }
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-win-rate', `${winRate}%`);
@@ -8734,19 +8686,6 @@ function renderHome() {
   document.querySelectorAll('.home-regime-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.regime === state.regime);
   });
-  const sectorButton = document.getElementById('home-sector-score');
-  if (sectorButton) {
-    sectorButton.className = 'home-score-value sectors editable';
-    if (!ratings.length) sectorButton.style.background = 'var(--bg-elev)';
-    else sectorButton.style.background = '';
-    const topTip = top3.length
-      ? top3.slice(0, 3).map(s => `${s.name} (${s.ticker}) ${Number(s.rating).toFixed(2)}`).join(', ')
-      : 'None rated strong';
-    const avoidTip = avoid.length
-      ? avoid.slice(0, 3).map(s => `${s.name} (${s.ticker}) ${Number(s.rating).toFixed(2)}`).join(', ')
-      : 'None rated weak';
-    sectorButton.title = `Top 3: ${topTip}\nAvoid 3: ${avoidTip}\nClick to edit sector ratings`;
-  }
   const progress = document.getElementById('home-progress-fill');
   if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
 
@@ -10604,7 +10543,6 @@ function init() {
   });
   document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('home-sector-score')?.addEventListener('click', () => setTab('sunday'));
   document.getElementById('home-regime-value')?.addEventListener('click', () => {
     document.getElementById('home-regime-picker')?.classList.toggle('show');
   });
