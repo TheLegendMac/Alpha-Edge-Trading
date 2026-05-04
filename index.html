@@ -4506,12 +4506,10 @@ textarea.input-field {
   position: sticky;
   top: 60px; /* sit under cmdbar */
   z-index: 30;
+  /* Solid dark — no backdrop-filter, no white gradient. The blurred backdrop
+     was rendering the body's cyan/magenta radial gradients as a lighter haze
+     behind the stepper, which read as "white". */
   background: var(--bg);
-  background-image:
-    linear-gradient(180deg, rgba(255,255,255,0.012), transparent 60%),
-    radial-gradient(ellipse 600px 200px at 50% 0, rgba(6,212,248,0.04), transparent 70%);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
   margin: 0 -24px;
   padding: 18px 24px 14px;
   border-bottom: 1px solid var(--line);
@@ -5097,9 +5095,7 @@ textarea.input-field {
 #panel-trade .trade-actions {
   position: sticky;
   bottom: 0;
-  background: rgba(8, 9, 13, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg);
   margin: 24px -24px 0;
   padding: 14px 24px;
   display: flex;
@@ -11879,10 +11875,12 @@ function tfMountSwingStep1() {
     b.addEventListener('click', () => {
       state.direction = b.dataset.tfDir;
       saveState();
-      tfRefreshAll();
+      // Mirror to the legacy panel's hidden input. Do NOT call renderStrategy
+      // here — it reads from ivr-input and would overwrite state.ivr with null
+      // if the user already set IVR via the new flow.
       const di = document.getElementById('direction-input');
       if (di) di.value = state.direction;
-      if (typeof renderStrategy === 'function') renderStrategy();
+      tfRefreshAll();
     });
   });
   const t = document.getElementById('tf-ticker');
@@ -11894,6 +11892,7 @@ function tfMountSwingStep1() {
       const lt = document.getElementById('ticker-input');
       if (lt) lt.value = state.ticker;
     });
+    t.addEventListener('blur', tfDeferRefresh);
   }
 }
 
@@ -11978,15 +11977,22 @@ function tfSwingStep2() {
 }
 
 function tfMountSwingStep2() {
+  // Helper: keep the legacy panel's twin input in sync so old code paths that
+  // read from the DOM (renderGate, renderCalc, etc.) don't see an empty field.
+  const syncLegacy = (legacyId, value) => {
+    const li = document.getElementById(legacyId);
+    if (li) li.value = (value === null || value === undefined) ? '' : value;
+  };
   const sa = document.getElementById('tf-sa-quant');
   if (sa) {
     sa.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       state.saQuant = isNaN(v) ? null : v;
       saveState();
+      syncLegacy('sa-quant-input', e.target.value);
       tfRefreshHeaderOnly();
     });
-    sa.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+    sa.addEventListener('blur', tfDeferRefresh);
   }
   const der = document.getElementById('tf-days-er');
   if (der) {
@@ -11994,9 +12000,10 @@ function tfMountSwingStep2() {
       const v = parseFloat(e.target.value);
       state.daysToEarnings = isNaN(v) ? null : v;
       saveState();
+      syncLegacy('days-to-earnings-input', e.target.value);
       tfRefreshHeaderOnly();
     });
-    der.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderGate === 'function') renderGate(); });
+    der.addEventListener('blur', tfDeferRefresh);
   }
   document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
     el.addEventListener('click', () => {
@@ -12004,8 +12011,7 @@ function tfMountSwingStep2() {
       if (k !== '02' && k !== '03') return; // only manual gates are toggleable
       state.gateChecks[k] = !state.gateChecks[k];
       saveState();
-      tfRefreshAll();
-      if (typeof renderGate === 'function') renderGate();
+      tfRefreshAll(); // a click is a discrete action — full rebuild is fine
     });
   });
 }
@@ -12117,6 +12123,7 @@ function tfMountSwingStep3() {
       state.ivr = isNaN(v) ? null : v;
       saveState();
       tfRefreshHeaderOnly();
+      // Update only the IV bracket badge in place — keeps focus on the input.
       const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
       if (wrap) {
         const badge = wrap.querySelector('.trade-bracket');
@@ -12129,10 +12136,7 @@ function tfMountSwingStep3() {
       const li = document.getElementById('ivr-input');
       if (li) li.value = state.ivr === null ? '' : state.ivr;
     });
-    ivrEl.addEventListener('blur', () => {
-      tfRefreshAll(); // re-render to show derived structure card
-      if (typeof renderStrategy === 'function') renderStrategy();
-    });
+    ivrEl.addEventListener('blur', tfDeferRefresh);
   }
   document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
     el.addEventListener('input', e => {
@@ -12147,10 +12151,7 @@ function tfMountSwingStep3() {
       saveState();
       tfRefreshHeaderOnly();
     });
-    el.addEventListener('blur', () => {
-      tfRefreshAll();
-      if (typeof renderGate === 'function') renderGate();
-    });
+    el.addEventListener('blur', tfDeferRefresh);
   });
 }
 
@@ -12275,24 +12276,29 @@ function tfSwingStep4() {
 }
 
 function tfMountSwingStep4() {
-  const wireNum = (id, key) => {
+  // Map of new-flow input id → state key + legacy panel input id. We mirror
+  // the value into the legacy DOM input so any old code reading from there
+  // sees the right number (renderCalc would otherwise read "" and overwrite
+  // state with null — that's what made the field appear to "clear").
+  const wireNum = (id, key, legacyId) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       state[key] = isNaN(v) ? null : v;
       saveState();
+      const li = legacyId ? document.getElementById(legacyId) : null;
+      if (li) li.value = e.target.value;
       tfRefreshHeaderOnly();
     });
-    el.addEventListener('blur', () => {
-      tfRefreshAll();
-      if (typeof renderCalc === 'function') renderCalc();
-      if (typeof renderGate === 'function') renderGate();
-    });
+    // No legacy renderCalc/renderGate calls — those read from the legacy DOM
+    // and clobbered state. The deferred refresh updates the sizing card and
+    // Gate 06 readout while preserving focus so Tab still works.
+    el.addEventListener('blur', tfDeferRefresh);
   };
-  wireNum('tf-premium', 'premium');
-  wireNum('tf-atr', 'atr');
-  wireNum('tf-upx', 'underlyingPrice');
+  wireNum('tf-premium', 'premium', 'premium-input');
+  wireNum('tf-atr', 'atr', 'atr-input');
+  wireNum('tf-upx', 'underlyingPrice', 'underlying-price-input');
 }
 
 // ----- Swing step 5 — Execute -----
@@ -12531,17 +12537,19 @@ function tfIntradayStep1() {
 
 function tfMountIntradayStep1() {
   const t = document.getElementById('tf-i-ticker');
-  if (t) t.addEventListener('input', e => {
-    state.intraday.ticker = (e.target.value || '').toUpperCase();
-    saveState();
-    tfRefreshHeaderOnly();
-  });
+  if (t) {
+    t.addEventListener('input', e => {
+      state.intraday.ticker = (e.target.value || '').toUpperCase();
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+    t.addEventListener('blur', tfDeferRefresh);
+  }
   document.querySelectorAll('#panel-trade [data-tf-i-dir]').forEach(b => {
     b.addEventListener('click', () => {
       state.intraday.direction = b.dataset.tfIDir;
       saveState();
       tfRefreshAll();
-      if (typeof renderIntraday === 'function') renderIntraday();
     });
   });
   document.querySelectorAll('#panel-trade [data-tf-i-vwap]').forEach(b => {
@@ -12550,7 +12558,6 @@ function tfMountIntradayStep1() {
       state.intraday.vwapRel = b.dataset.tfIVwap;
       saveState();
       tfRefreshAll();
-      if (typeof renderIntraday === 'function') renderIntraday();
     });
   });
   document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
@@ -12558,7 +12565,6 @@ function tfMountIntradayStep1() {
       state.intraday.setup = b.dataset.tfISetup;
       saveState();
       tfRefreshAll();
-      if (typeof renderIntraday === 'function') renderIntraday();
     });
   });
 }
@@ -12655,7 +12661,7 @@ function tfMountIntradayStep2() {
         }
       }
     });
-    el.addEventListener('blur', () => { tfRefreshAll(); if (typeof renderIntraday === 'function') renderIntraday(); });
+    el.addEventListener('blur', tfDeferRefresh);
   };
   wire('tf-i-entry', 'entry');
   wire('tf-i-stop', 'stop');
@@ -12714,7 +12720,6 @@ function tfMountIntradayStep3() {
       state.intradayQuality.timeOverride = !state.intradayQuality.timeOverride;
       saveState();
       tfRefreshAll();
-      if (typeof renderIntraday === 'function') renderIntraday();
     });
   });
 }
@@ -12837,6 +12842,38 @@ function tfRefreshHeaderOnly() {
 function tfRefreshAll() {
   // Re-renders step body too. Use only when input focus isn't an issue.
   renderTrade();
+}
+
+// A body re-render replaces the input the user is typing in (and any sibling
+// they were about to Tab into). To make tab navigation work and preserve
+// caret position we (a) defer the refresh until after the focus event the
+// user just triggered has settled, and (b) restore focus by ID afterward.
+function tfRefreshAllPreservingFocus() {
+  const ae = document.activeElement;
+  const focusId = ae && ae.id ? ae.id : null;
+  let start = null, end = null;
+  try {
+    if (focusId && ae.selectionStart !== undefined && ae.selectionStart !== null) {
+      start = ae.selectionStart;
+      end   = ae.selectionEnd;
+    }
+  } catch (_) { /* number inputs throw on selectionStart in some browsers */ }
+  tfRefreshAll();
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) {
+      try { el.focus(); } catch (_) {}
+      if (start !== null && end !== null && el.setSelectionRange) {
+        try { el.setSelectionRange(start, end); } catch (_) {}
+      }
+    }
+  }
+}
+
+function tfDeferRefresh() {
+  // setTimeout(0) lets the in-flight focus event (e.g. Tab → next field)
+  // finish before we blow away the DOM.
+  setTimeout(tfRefreshAllPreservingFocus, 0);
 }
 
 function tfContinue() {
