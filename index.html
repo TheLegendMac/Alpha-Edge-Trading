@@ -315,6 +315,235 @@ input, select, textarea { font-family: inherit; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ============ HOME DASHBOARD ============ */
+.home-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.home-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.home-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  min-height: 118px;
+  position: relative;
+  overflow: hidden;
+}
+.home-card.green {
+  background: rgba(4, 28, 22, 0.78);
+  border-color: rgba(63, 185, 80, 0.42);
+}
+.home-card-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+.home-card-kicker {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.home-market-scores {
+  display: flex;
+  gap: 28px;
+  align-items: flex-end;
+}
+.home-score-label {
+  font-family: var(--mono);
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.home-score-value {
+  font-family: var(--display);
+  font-size: 26px;
+  color: var(--green-bright);
+  font-weight: 900;
+  line-height: 1;
+}
+.home-intel-text {
+  color: #7ee787;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.home-session-value {
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--ink);
+  margin: 48px 0 34px;
+}
+.home-session-value small {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.home-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.home-mini-label {
+  font-family: var(--mono);
+  color: var(--ink-4);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.home-mini-value {
+  font-family: var(--mono);
+  font-weight: 800;
+  color: var(--green-bright);
+  margin-top: 4px;
+}
+.home-trades-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+.home-bolt {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 185, 80, 0.12);
+  color: var(--green-bright);
+  font-size: 24px;
+}
+.home-trades-number {
+  font-family: var(--display);
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+}
+.home-buffer {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.home-progress {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  overflow: hidden;
+  margin-top: 12px;
+}
+.home-progress span {
+  display: block;
+  height: 100%;
+  width: 72%;
+  background: #2f6df6;
+  border-radius: inherit;
+}
+.home-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.home-day {
+  aspect-ratio: 1.1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(10, 16, 28, 0.56);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 12px;
+  position: relative;
+}
+.home-day.good { background: rgba(63, 185, 80, 0.11); color: var(--green-bright); }
+.home-day.bad { background: rgba(248, 81, 73, 0.11); color: var(--red-bright); }
+.home-day.active { outline: 1px solid #2f6df6; background: rgba(47, 109, 246, 0.18); color: var(--ink); }
+.home-day.good::after,
+.home-day.bad::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 8px;
+  background: currentColor;
+}
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.home-new-analysis {
+  min-height: 42px;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.home-portfolio-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 4px 10px;
+}
+.home-portfolio-head .input-field {
+  width: 150px;
+  height: 26px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.home-empty {
+  min-height: 150px;
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--r-lg);
+  background: rgba(13, 17, 23, 0.65);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--ink-4);
+  font-size: 13px;
+}
+.home-empty strong {
+  display: block;
+  color: var(--cyan);
+  margin-top: 8px;
+  font-size: 12px;
+}
+@media (max-width: 980px) {
+  .home-grid,
+  .home-row,
+  .home-actions { grid-template-columns: 1fr; }
+}
+
 /* ============ TRADE FLOW STEPS — top-to-bottom workflow ============ */
 .flow-header {
   margin-bottom: 28px;
@@ -2634,7 +2863,8 @@ textarea.input-field {
       <span>Alpha Edge Trading</span>
     </div>
     <nav class="tabs">
-      <button class="tab active" data-tab="decision">Swing</button>
+      <button class="tab active" data-tab="home">Home</button>
+      <button class="tab" data-tab="decision">Swing</button>
       <button class="tab" data-tab="intraday">Intraday</button>
       <button class="tab" data-tab="sunday">Sunday Prep</button>
       <button class="tab" data-tab="log">Trade Log</button>
@@ -2645,7 +2875,7 @@ textarea.input-field {
         <span id="sync-label">Local</span>
       </div>
       <button class="btn-secondary" id="btn-sync-refresh" title="Force push local state to Supabase, then pull cloud changes" style="padding: 6px 10px; font-size: 12px;">Refresh Sync</button>
-      <button class="btn-primary" id="btn-new-trade" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">+ New Trade</button>
+      <button class="btn-primary" id="btn-new-trade" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">+ New Analysis</button>
       <button class="nav-icon-btn" id="btn-reference" title="Reference & cheat sheets">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -2665,7 +2895,8 @@ textarea.input-field {
 
 <!-- ============ MOBILE TABS ============ -->
 <div class="mobile-tabs">
-  <button class="tab active" data-tab="decision">Swing</button>
+  <button class="tab active" data-tab="home">Home</button>
+  <button class="tab" data-tab="decision">Swing</button>
   <button class="tab" data-tab="intraday">Intraday</button>
   <button class="tab" data-tab="sunday">Sunday</button>
   <button class="tab" data-tab="log">Log</button>
@@ -2697,8 +2928,87 @@ textarea.input-field {
 <!-- ============ MAIN ============ -->
 <main class="main">
 
+  <!-- ===== HOME DASHBOARD ===== -->
+  <section class="tab-panel active" id="panel-home">
+    <div class="home-shell">
+      <div class="home-grid">
+        <div class="home-card">
+          <div class="home-card-title">Market Context</div>
+          <div class="home-card-kicker">Live</div>
+          <div class="home-market-scores">
+            <div>
+              <div class="home-score-label">Macro</div>
+              <div class="home-score-value" id="home-macro-score">96</div>
+            </div>
+            <div>
+              <div class="home-score-label">Sector</div>
+              <div class="home-score-value" id="home-sector-score">100</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-card green">
+          <div class="home-card-title" style="color:#7ee787;">Alpha Intelligence</div>
+          <div class="home-card-kicker" id="home-deep-label">Deep Analyze</div>
+          <div class="home-intel-text" id="home-intel-text">Strong macro tailwinds. Conditions support trend following.</div>
+        </div>
+      </div>
+
+      <div class="home-row">
+        <div class="home-card">
+          <div class="home-card-title">Session Performance</div>
+          <div class="home-session-value" id="home-session-pl">+$0.00 <small>(0.0R)</small></div>
+          <div class="home-mini-stats">
+            <div><div class="home-mini-label">Realized</div><div class="home-mini-value" id="home-realized">$0</div></div>
+            <div><div class="home-mini-label">Unrealized</div><div class="home-mini-value">$0</div></div>
+            <div><div class="home-mini-label">Win Rate</div><div class="home-mini-value" id="home-win-rate">0%</div></div>
+          </div>
+        </div>
+
+        <div class="home-card">
+          <div class="home-card-title">Trades Left</div>
+          <div class="home-card-kicker" id="home-zone">Green Zone</div>
+          <div class="home-trades-left">
+            <div class="home-bolt">↯</div>
+            <div><span class="home-trades-number" id="home-trades-left">0</span> <span style="color:var(--ink-3); font-family:var(--mono); font-size:12px;">TRADES</span></div>
+          </div>
+          <div class="home-buffer">
+            <div><div class="home-mini-label">Total Buffer</div><div class="home-mini-value" id="home-buffer">$0</div></div>
+            <div style="text-align:right;"><div class="home-mini-label">Next Trade Risk</div><div class="home-mini-value" id="home-next-risk">$0</div></div>
+            <div class="home-progress"><span id="home-progress-fill"></span></div>
+          </div>
+        </div>
+
+        <div class="home-card">
+          <div class="home-card-title" id="home-calendar-title">Session Calendar</div>
+          <div class="home-calendar" id="home-calendar"></div>
+        </div>
+      </div>
+
+      <div class="home-actions">
+        <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
+        <button class="btn-secondary" id="btn-home-stats">Stats</button>
+        <button class="btn-danger" id="btn-home-end">End</button>
+        <button class="btn-secondary" id="btn-home-open-log">Log</button>
+      </div>
+
+      <div class="home-portfolio-head">
+        <div class="home-card-title" style="margin:0;">Portfolio View</div>
+        <input class="input-field" placeholder="Filter ticker, tag" />
+        <div style="margin-left:auto; font-family:var(--mono); color:var(--ink-3); font-size:11px;">Open Positions</div>
+      </div>
+      <div class="home-empty" id="home-portfolio-empty">
+        <div>
+          <div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div>
+          <em>Your active session is empty.</em>
+          <strong>Launch Alpha Wizard</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== NEW TRADE — STEP-BY-STEP FLOW ===== -->
-  <section class="tab-panel active" id="panel-decision">
+  <section class="tab-panel" id="panel-decision">
 
     <div class="flow-header">
       <div>
@@ -3960,15 +4270,15 @@ STRENGTH: 3/3</pre>
   </div>
 </div>
 
-<!-- ============ MODE PICKER MODAL — single entry point for "+ New Trade" ============ -->
+<!-- ============ MODE PICKER MODAL — single entry point for "+ New Analysis" ============ -->
 <div class="modal-backdrop" id="modal-mode-picker">
   <div class="modal" style="max-width: 520px;">
     <div class="modal-header">
-      <h3 class="modal-title">New trade — pick the mode</h3>
+      <h3 class="modal-title">New analysis — pick the mode</h3>
       <button class="modal-close" data-close-mode-picker>×</button>
     </div>
     <div class="modal-body">
-      <p style="color: var(--ink-2); margin: 0 0 16px;">Different rules, different sizing, different speed. Pick the mode that matches the trade you're about to take. The cockpit routes you to the matching flow.</p>
+      <p style="color: var(--ink-2); margin: 0 0 16px;">Different rules, different sizing, different speed. Pick the mode that matches the setup you're analyzing. Alpha Edge routes you to the matching flow.</p>
       <div class="mode-picker-grid">
         <button class="mode-picker-card" data-mode="decision">
           <div class="mode-picker-tag">SLOW · DELIBERATE</div>
@@ -4281,6 +4591,7 @@ async function reconcileOnSignIn() {
 
 // Refresh entire UI after state replacement
 function refreshAllUI() {
+  if (typeof renderHome === 'function') renderHome();
   if (typeof renderTabs === 'function') renderTabs(state.activeMode || 'swing');
   if (typeof renderSetupGrid === 'function') renderSetupGrid();
   if (typeof renderStrategy === 'function') renderStrategy();
@@ -4742,7 +5053,7 @@ function gradeToStatus(r) { return ratingToStatus(r); }
 let state = {
   settings: { ...DEFAULT_SETTINGS },
   regime: 'risk-on',
-  activeMode: 'swing',     // current top-level mode: 'swing' | 'intraday' | 'sunday' | 'log'
+  activeMode: 'home',     // current top-level mode: 'home' | 'decision' | 'intraday' | 'sunday' | 'log'
   trades: [],
   deletedTradeIds: {},
   // Swing flow
@@ -4789,7 +5100,7 @@ function loadState() {
       if (!state.instrument) state.instrument = 'options';
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
-      if (!state.activeMode) state.activeMode = 'swing';
+      if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
     }
   } catch (e) { console.warn('Load failed:', e); }
@@ -4855,6 +5166,8 @@ function setRegime(r) {
 
 function renderRegime() {
   const data = REGIME_DATA[state.regime];
+  const banner = document.getElementById('regime-banner');
+  if (banner) banner.style.display = state.activeMode === 'home' ? 'none' : '';
   const display = document.getElementById('regime-state');
   display.className = 'regime-state ' + state.regime;
   document.getElementById('regime-text').textContent = data.text;
@@ -4876,7 +5189,6 @@ function renderRegime() {
     rulesEl.innerHTML = data.rulesTemplate.replace('{pct}', pct);
   }
 
-  const banner = document.getElementById('regime-banner');
   banner.className = 'regime-banner ' + data.bannerClass;
 
   document.querySelectorAll('.regime-btn').forEach(b => {
@@ -6043,6 +6355,7 @@ function addTestTrades() {
     if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     doPush();
   }
+  renderHome();
   renderLogStats();
   renderLogTable();
   renderPretradeCheck();
@@ -6149,6 +6462,7 @@ function renderLogStats() {
 // Universal sidebar refresher - call from anywhere a trade lifecycle event happens
 function renderUniversalSidebar() {
   // Stable function name other modules can call without coupling.
+  renderHome();
   renderLogStats();
 }
 
@@ -6223,6 +6537,88 @@ function formatDate(d) {
   if (!d) return '—';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function renderHome() {
+  const today = todayISO();
+  const closed = (state.trades || []).filter(t => t.status !== 'open');
+  const todayClosed = closed.filter(t => (t.exit_date || t.date) === today);
+  const todayPL = todayClosed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const todayR = todayClosed.reduce((s, t) => s + (calcR(t) || 0), 0);
+  const wins = closed.filter(t => (calcPL(t) || 0) > 0);
+  const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
+  const openTrades = (state.trades || []).filter(t => t.status === 'open');
+  const tradesLeft = Math.max(0, (state.settings.maxPositions || 0) - openTrades.length);
+  const nextRisk = state.activeMode === 'intraday'
+    ? state.settings.intradayRiskPerTrade
+    : Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
+  const totalBuffer = Math.max(0, Math.round((state.settings.account || 10000) * (state.settings.maxRiskPct || 10) / 100));
+  const ratings = Object.values(state.sectorRatings || {}).map(Number).filter(v => Number.isFinite(v));
+  const sectorScore = ratings.length
+    ? Math.round(ratings.reduce((s, v) => s + v, 0) / ratings.length / 5 * 100)
+    : 100;
+  const macroScore = state.regime === 'risk-on' ? 96 : state.regime === 'neutral' ? 68 : 34;
+  const scoreText = state.regime === 'risk-on'
+    ? `Strong macro tailwinds (Score ${macroScore}). Conditions support trend following. Aggressive sizing permitted on A+ setups.`
+    : state.regime === 'neutral'
+      ? `Mixed tape (Score ${macroScore}). Keep sizing controlled and require clean confirmation before entry.`
+      : `Defensive tape (Score ${macroScore}). Prioritize capital protection and only take the cleanest short-side ideas.`;
+
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = text;
+  };
+
+  setText('home-macro-score', macroScore);
+  setText('home-sector-score', sectorScore);
+  setText('home-intel-text', scoreText);
+  setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
+  setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
+  setText('home-win-rate', `${winRate}%`);
+  setText('home-trades-left', tradesLeft);
+  setText('home-buffer', `$${totalBuffer}`);
+  setText('home-next-risk', `$${nextRisk}`);
+  setText('home-zone', tradesLeft > 1 ? 'Green Zone' : tradesLeft === 1 ? 'Caution' : 'Locked');
+
+  const progress = document.getElementById('home-progress-fill');
+  if (progress) progress.style.width = `${Math.max(8, Math.min(100, tradesLeft / Math.max(1, state.settings.maxPositions) * 100))}%`;
+
+  const calendar = document.getElementById('home-calendar');
+  const title = document.getElementById('home-calendar-title');
+  if (calendar) {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - 6);
+    const end = new Date(now);
+    end.setDate(now.getDate() + 7);
+    if (title) {
+      title.textContent = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    }
+    calendar.innerHTML = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const iso = d.toISOString().split('T')[0];
+      const dayTrades = closed.filter(t => (t.exit_date || t.date) === iso);
+      const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
+      const cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
+      return `<div class="home-day ${cls}">${d.getDate()}</div>`;
+    }).join('');
+  }
+
+  const empty = document.getElementById('home-portfolio-empty');
+  if (empty) {
+    if (openTrades.length === 0) {
+      empty.innerHTML = `<div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div>`;
+    } else {
+      empty.innerHTML = openTrades.map(t => `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:min(680px, 92vw); padding:10px 0; border-bottom:1px solid var(--line); text-align:left;">
+          <strong style="color:var(--ink); margin:0;">${t.ticker}</strong>
+          <span>${t.setup || 'Open trade'}</span>
+          <span class="status open" style="font-family:var(--mono); color:var(--cyan);">OPEN</span>
+        </div>
+      `).join('');
+    }
+  }
 }
 
 // ---------- Trade modal ----------
@@ -6415,6 +6811,7 @@ function deleteTrade() {
     doPush();
   }
   closeTradeModal();
+  renderHome();
   renderLogStats();
   renderLogTable();
   renderPretradeCheck();
@@ -7072,6 +7469,7 @@ function saveSettings() {
 
   // Re-render everything that depends on settings
   renderBrandTag();
+  renderHome();
   renderRegime();
   renderPretradeCheck();
   renderCalc();
@@ -7673,6 +8071,7 @@ function logIntradayTrade() {
   document.getElementById('i-vwap-rel').value = '';
   document.querySelectorAll('#i-setup-grid .setup-card').forEach(c => c.classList.remove('selected'));
   renderIntraday();
+  renderHome();
   renderLogStats();
   renderUniversalSidebar();
   toast('Intraday trade logged');
@@ -7687,6 +8086,7 @@ function setTab(name) {
   // Refresh regime banner so its rules text matches the active mode
   renderRegime();
   // Refresh dynamic content when navigating
+  if (name === 'home') renderHome();
   if (name === 'sunday') renderSectors();
   if (name === 'decision') renderSectorStatusMini();
   if (name === 'reference') renderReference();
@@ -7711,6 +8111,7 @@ function init() {
 
   // Render initial state
   renderBrandTag();
+  renderHome();
   renderRegime();
   renderPretradeCheck();
   renderSetupGrid();
@@ -7789,6 +8190,15 @@ function init() {
       document.getElementById('modal-mode-picker').classList.add('show');
     });
   }
+  document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
+    document.getElementById('modal-mode-picker').classList.add('show');
+  });
+  document.getElementById('home-portfolio-empty')?.addEventListener('click', () => {
+    document.getElementById('modal-mode-picker').classList.add('show');
+  });
+  document.getElementById('btn-home-stats')?.addEventListener('click', () => setTab('log'));
+  document.getElementById('btn-home-open-log')?.addEventListener('click', () => setTab('log'));
+  document.getElementById('btn-home-end')?.addEventListener('click', () => toast('Session ended locally'));
   document.getElementById('btn-sync-refresh')?.addEventListener('click', manualSupabaseRefresh);
   const mpModal = document.getElementById('modal-mode-picker');
   if (mpModal) {
@@ -7907,7 +8317,7 @@ function init() {
   }
 
   // Restore last-active mode
-  if (state.activeMode && ['decision','intraday','sunday','log','reference'].includes(state.activeMode)) {
+  if (state.activeMode && ['home','decision','intraday','sunday','log','reference'].includes(state.activeMode)) {
     setTab(state.activeMode);
   }
 
