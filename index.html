@@ -201,17 +201,31 @@ input, select, textarea { font-family: inherit; }
   justify-self: end;
 }
 
-/* Regime cluster inside cmdbar */
-.cmdbar-regime {
+/* Market context trigger inside cmdbar */
+.cmdbar-regime,
+.cmdbar-context-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px 4px 10px;
+  padding: 7px 10px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--r-md);
-  cursor: default;
+  color: var(--ink-3);
   transition: border-color 0.2s;
+}
+.cmdbar-context-btn {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cmdbar-context-btn:hover {
+  color: var(--ink);
+  border-color: var(--cyan-dim);
+  background: rgba(6, 212, 248, 0.06);
 }
 .cmdbar-regime-label {
   font-family: var(--mono);
@@ -226,9 +240,15 @@ input, select, textarea { font-family: inherit; }
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 10px var(--green), 0 0 4px var(--green);
+  flex-shrink: 0;
 }
 #regime-state.neutral .cmdbar-regime-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
 #regime-state.risk-off .cmdbar-regime-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.cmdbar-context-regime {
+  color: var(--ink-4);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
 
 .regime-toggle {
   display: flex;
@@ -3832,9 +3852,9 @@ textarea.input-field {
   top: 68px;
   right: 20px;
   z-index: 201;
-  width: 360px;
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
+  width: min(560px, calc(100vw - 32px));
+  max-height: none;
+  overflow: visible;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.028), transparent 25%),
     rgba(15, 18, 28, 0.96);
@@ -3852,7 +3872,7 @@ textarea.input-field {
   to   { opacity: 1; transform: translateY(0)   scale(1); }
 }
 .ctx-panel-inner { padding: 4px 0 8px; }
-.ctx-section { padding: 16px 18px 14px; }
+.ctx-section { padding: 13px 16px 12px; }
 .ctx-section-label {
   font-family: var(--mono);
   font-size: 10px;
@@ -3950,15 +3970,15 @@ textarea.input-field {
 /* Sector grid inside context panel */
 .ctx-sector-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .ctx-sector-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.05);
   border-radius: var(--r-sm);
@@ -3985,7 +4005,7 @@ textarea.input-field {
   white-space: nowrap;
 }
 .ctx-sector-input {
-  width: 50px;
+  width: 46px;
   flex-shrink: 0;
   background: var(--bg-elev);
   border: 1px solid rgba(255,255,255,0.08);
@@ -4003,7 +4023,7 @@ textarea.input-field {
 .ctx-sector-row.weak   .ctx-sector-input { border-color: rgba(239,68,68,0.35); }
 
 .ctx-sector-summary {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-3);
   line-height: 1.5;
   padding: 8px 10px;
@@ -4030,6 +4050,20 @@ textarea.input-field {
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+@media (max-width: 640px) {
+  .ctx-panel {
+    top: 86px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+  .ctx-section { padding: 11px 12px 10px; }
+  .ctx-regime-row,
+  .ctx-sector-grid { gap: 5px; }
+  .ctx-sector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ctx-sector-name { display: none; }
 }
 .ctx-close:hover { background: #1ce0ff; }
 
@@ -4146,8 +4180,10 @@ textarea.input-field {
     padding: 6px 0 0;
   }
   .cmdbar-actions { gap: 6px; }
-  .cmdbar-regime { padding: 4px 6px; }
+  .cmdbar-regime,
+  .cmdbar-context-btn { padding: 6px 8px; }
   .cmdbar-regime-label { display: none; }
+  .cmdbar-context-regime { display: none; }
   .cmdbar-sync { display: none; }
   .brand-name { display: none; }
   .tab { padding: 6px 10px; font-size: 12px; }
@@ -4229,18 +4265,14 @@ textarea.input-field {
       <button class="tab" data-tab="reference" role="tab">Reference</button>
     </nav>
 
-    <!-- Regime + actions -->
+    <!-- Market context + actions -->
     <div class="cmdbar-actions">
-      <div class="cmdbar-regime" id="regime-state" title="Click a regime to set the trading mode">
+      <button class="cmdbar-context-btn" id="regime-state" type="button" title="Open Market Context">
         <span class="cmdbar-regime-dot regime-dot"></span>
-        <span class="cmdbar-regime-label">Regime</span>
+        <span>Market Context</span>
+        <span class="cmdbar-context-regime" id="cmdbar-context-regime">RISK-ON</span>
         <span id="regime-text" hidden>RISK-ON</span>
-        <div class="regime-toggle" role="group" aria-label="Market regime">
-          <button class="regime-btn on active" data-regime="risk-on" title="Risk-On — full size, long-biased">On</button>
-          <button class="regime-btn neut" data-regime="neutral" title="Neutral — half size, both directions">Neut</button>
-          <button class="regime-btn off" data-regime="risk-off" title="Risk-Off — reduced size, longs blocked">Off</button>
-        </div>
-      </div>
+      </button>
       <!-- Hidden rules text — preserved for any external readers / tooltip source -->
       <span id="regime-rules" hidden></span>
 
@@ -5642,7 +5674,7 @@ STRENGTH: 3/3</pre>
         <div class="settings-section" style="border-top: 1px solid rgba(239,68,68,0.25); padding-top: 20px;">
           <div class="settings-section-title" style="color: var(--red-bright);">⚠ Danger zone</div>
           <div class="settings-section-desc">Permanently delete all trades, sector ratings, and session data. Settings are preserved. This cannot be undone.</div>
-          <button class="btn-danger" id="btn-clear-all-data" style="letter-spacing:0.04em;">Clear all trades &amp; session data</button>
+          <button class="btn-danger" id="btn-clear-all-data" style="letter-spacing:0.04em;">Clear all trades &amp; data</button>
         </div>
       </div>
     </div>
@@ -6675,9 +6707,11 @@ function renderRegime() {
   // Cmdbar (formerly the regime banner) is always visible — only the rules strip toggles
   const banner = document.getElementById('regime-banner');
   const display = document.getElementById('regime-state');
-  if (display) display.className = 'cmdbar-regime ' + state.regime;
+  if (display) display.className = 'cmdbar-context-btn ' + state.regime;
   const text = document.getElementById('regime-text');
   if (text) text.textContent = data.text;
+  const contextRegime = document.getElementById('cmdbar-context-regime');
+  if (contextRegime) contextRegime.textContent = data.text;
 
   // Mode-aware rules text:
   // - Swing (or anywhere except intraday): show regime-driven sizing %
@@ -8217,27 +8251,6 @@ function renderLogStats() {
       sub: 'per closed trade',
     },
     {
-      label: 'Avg Win / Avg Loss', tone: avgLoss !== 0 && avgWin / Math.abs(avgLoss) >= 1 ? 'pos' : (avgLoss !== 0 ? 'amber' : 'neutral'),
-      value: avgLoss !== 0 ? (avgWin / Math.abs(avgLoss)).toFixed(2) + 'x' : '—',
-      sub: avgWin ? `$${avgWin.toFixed(0)} / $${Math.abs(avgLoss).toFixed(0)}` : '',
-    },
-    {
-      label: 'Best Trade', tone: 'pos',
-      value: biggestWin > 0 ? '+$' + biggestWin.toFixed(0) : '—',
-      sub: biggestLoss < 0 ? `worst: -$${Math.abs(biggestLoss).toFixed(0)}` : '',
-    },
-    {
-      label: 'Current Streak', tone: streakType === 'win' ? 'pos' : streakType === 'loss' ? 'neg' : 'neutral',
-      value: streak > 0 ? `${streak}` : '—',
-      extra: streakBadge,
-      sub: '',
-    },
-    {
-      label: 'Avg Hold (swing)', tone: 'neutral',
-      value: avgHold !== null ? avgHold.toFixed(1) + 'd' : '—',
-      sub: avgHold !== null ? `${swingClosed.length} swing trades` : 'no swing exits',
-    },
-    {
       label: 'Open Exposure', tone: openRisk > 0 ? 'amber' : 'neutral',
       value: open.length > 0 ? '$' + openRisk.toFixed(0) : '$0',
       sub: open.length > 0 ? `${open.length} position${open.length === 1 ? '' : 's'}` : 'no open positions',
@@ -8372,14 +8385,6 @@ function renderLogStats() {
         <div class="stats-panel">
           <div class="stats-panel-title">Setup Performance</div>
           ${setupHtml}
-        </div>
-        <div class="stats-panel">
-          <div class="stats-panel-title">By Regime</div>
-          ${regimeHtml}
-        </div>
-        <div class="stats-panel">
-          <div class="stats-panel-title">Process Quality</div>
-          ${gradeHtml}
         </div>
       </div>
     </div>
@@ -9783,6 +9788,88 @@ function resetSettingsToDefaults() {
   toast('Defaults loaded — click Save to apply');
 }
 
+function clearAllTradesAndData() {
+  const tradeCount = (state.trades || []).length;
+  const ok = confirm(
+    `Clear all trades and cockpit data?\n\n` +
+    `This deletes ${tradeCount} trade${tradeCount === 1 ? '' : 's'}, sector ratings, Sunday/session progress, and current analysis inputs. Settings are preserved.\n\n` +
+    `This cannot be undone.`
+  );
+  if (!ok) return;
+
+  const deletedAt = new Date().toISOString();
+  const deletedTradeIds = { ...(state.deletedTradeIds || {}) };
+  (state.trades || []).forEach(t => {
+    if (t && t.id) deletedTradeIds[t.id] = deletedAt;
+  });
+
+  const settings = { ...state.settings };
+  state = {
+    settings,
+    regime: 'risk-on',
+    activeMode: 'home',
+    trades: [],
+    deletedTradeIds,
+    selectedSetup: null,
+    instrument: 'options',
+    ivr: null,
+    direction: 'long',
+    premium: null,
+    atr: null,
+    underlyingPrice: null,
+    ticker: null,
+    saQuant: null,
+    daysToEarnings: null,
+    gateChecks: {},
+    pretradeChecks: { vix: true, news: true },
+    sundayChecks: {},
+    sectorNotes: '',
+    sectorRatings: {},
+    sectorRatedAt: null,
+    liquidity: { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null },
+    intraday: newIntradayTicket(),
+    intradayQuality: { timeOverride: false },
+    logModeFilter: 'all',
+  };
+
+  ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  ['i-ticker','i-entry','i-stop','i-target','i-contracts','i-spread','i-vwap-rel','i-notes']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  const directionInput = document.getElementById('direction-input');
+  if (directionInput) directionInput.value = 'long';
+  const logFilter = document.getElementById('log-mode-filter');
+  if (logFilter) logFilter.value = 'all';
+
+  saveState();
+  closeSettings();
+  closeContextPanel();
+  setTab('home');
+  renderBrandTag();
+  renderHome();
+  renderRegime();
+  renderPretradeCheck();
+  renderSetupGrid();
+  renderStrategy();
+  renderCalc();
+  renderGate();
+  renderLogStats();
+  renderLogTable();
+  renderSectors();
+  renderSectorStatusMini();
+  restoreIntradayInputs();
+  renderIntradaySetupGrid();
+  renderIntraday();
+  recomputeStepStates();
+  toast('All trades and cockpit data cleared');
+}
+
 function renderBrandTag() {
   const tag = document.querySelector('.brand-tag');
   if (!tag) return;
@@ -10631,6 +10718,7 @@ function init() {
   });
   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
   document.getElementById('btn-reset-settings').addEventListener('click', resetSettingsToDefaults);
+  document.getElementById('btn-clear-all-data')?.addEventListener('click', clearAllTradesAndData);
 
   // Sunday checklists
   document.querySelectorAll('.checklist-item').forEach(el => {
