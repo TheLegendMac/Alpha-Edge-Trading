@@ -5116,46 +5116,43 @@ textarea.input-field {
 #panel-trade .trade-action-chevron { font-size: 18px; line-height: 1; }
 
 /* templates dropdown for thesis */
-/* ---- Home quick-repeat button ---- */
-.home-quick-repeat {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 1px;
-  padding: 8px 14px;
-  border-radius: var(--r-md);
+/* ---- intraday single-screen group dividers ---- */
+#panel-trade .trade-step-group {
+  position: relative;
+  scroll-margin-top: 180px; /* sits clear of the sticky header */
+  padding-top: 4px;
+}
+#panel-trade .trade-step-group + .trade-step-group { margin-top: 8px; }
+#panel-trade .trade-step-group-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin: 6px 0 10px;
+}
+#panel-trade .trade-step-group-eyebrow span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--bg-elev);
-  color: var(--ink-2);
-  cursor: pointer;
-  transition: all .15s;
-  text-align: left;
-  line-height: 1.1;
-}
-.home-quick-repeat:hover {
-  border-color: var(--cyan-dim);
-  color: var(--ink);
-  background: rgba(6,212,248,0.04);
-}
-.home-quick-repeat-eyebrow {
-  font-family: var(--mono);
-  font-size: 9px;
+  color: var(--cyan);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--ink-4);
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
-.home-quick-repeat-label {
-  font-family: var(--display);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.005em;
+#panel-trade .trade-step-group.tf-flash {
+  animation: tfGroupFlash 0.7s ease-out;
 }
-@media (max-width: 720px) {
-  .home-quick-repeat { padding: 7px 11px; }
-  .home-quick-repeat-label { font-size: 12px; }
+@keyframes tfGroupFlash {
+  from { background: rgba(6, 212, 248, 0.10); border-radius: var(--r-md); }
+  to   { background: transparent; }
 }
 
 /* ---- ticker memory (Recent pills + history snapshot) ---- */
@@ -5505,10 +5502,6 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
-        <button class="btn-secondary home-quick-repeat" id="btn-home-quick-repeat" type="button" hidden title="Pre-fill from your most recent intraday trade">
-          <span class="home-quick-repeat-eyebrow">Quick repeat</span>
-          <span class="home-quick-repeat-label" id="btn-home-quick-repeat-label">Intraday</span>
-        </button>
         <button class="btn-secondary home-icon-action" id="btn-home-log" title="Open stats and trade log" aria-label="Open stats and trade log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 19V5"/>
@@ -8860,16 +8853,6 @@ function renderHome() {
           : "Today's read");
   }
 
-  // Quick-repeat button — visible only when newTradeFlow is on AND there's
-  // an intraday trade recent enough to be plausibly relevant.
-  const qrBtn = document.getElementById('btn-home-quick-repeat');
-  const qrLbl = document.getElementById('btn-home-quick-repeat-label');
-  if (qrBtn && qrLbl) {
-    const recent = (typeof tfMostRecentIntraday === 'function') ? tfMostRecentIntraday() : null;
-    const enabled = !!(state.settings && state.settings.newTradeFlow) && !!recent;
-    qrBtn.hidden = !enabled;
-    if (enabled) qrLbl.textContent = `${recent.ticker || 'Intraday'} · ${recent.setup || 'last setup'}`;
-  }
 
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
@@ -10789,49 +10772,6 @@ function tfTickerHistory(symbol) {
 }
 
 // Top tickers by trade count — used for the "Recent" pills row.
-// Most-recent intraday trade — drives the Home quick-repeat button. Returns
-// null if there's nothing to repeat from in the last 7 days.
-function tfMostRecentIntraday() {
-  const sevenAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const intra = (state.trades || [])
-    .filter(t => t.mode === 'intraday')
-    .filter(t => {
-      const d = t.exit_date || t.date;
-      return d && new Date(d).getTime() >= sevenAgo;
-    })
-    .sort((a, b) => (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || ''));
-  return intra[0] || null;
-}
-
-// One-tap re-entry: pre-fill state.intraday from the recent trade and drop
-// the user on Step 2 (Plan). User edits levels for the new entry, runs.
-function tfQuickRepeatIntraday() {
-  const last = tfMostRecentIntraday();
-  if (!last) {
-    if (typeof toast === 'function') toast('No recent intraday trade to repeat.', true);
-    return;
-  }
-  // Carry pattern + sizing context, blank the levels so the user enters fresh
-  // entry/stop/target rather than re-using the previous trade's prices.
-  state.intraday = {
-    ticker:    last.ticker || '',
-    direction: (last.direction || 'long').toLowerCase(),
-    setup:     last.setup || '',
-    vwapRel:   last.vwapRel || '',
-    entry: null, stop: null, target: null,
-    contracts: null, spreadPct: null,
-    notes: '',
-  };
-  state.intradayQuality = { timeOverride: false };
-  state.tradeFlow = state.tradeFlow || { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
-  state.tradeFlow.mode = 'intraday';
-  state.tradeFlow.step = 2; // jump straight to Plan (levels)
-  state.tradeFlow.intradayDraft = {};
-  saveState();
-  if (typeof setTab === 'function') setTab('trade');
-  if (typeof toast === 'function') toast(`Repeating ${last.ticker || ''} ${last.setup || ''} — set fresh entry/stop/target.`);
-}
-
 function tfTopTickers(limit = 8) {
   const counts = {};
   (state.trades || []).forEach(t => {
@@ -11023,12 +10963,21 @@ function tfSpreadBracket(spread) {
 
 // ----- Rendering -----
 
-// Both flows now follow the same 5-step skeleton:
-//   1 Setup → 2 Plan → 3 Size → 4 Verify → 5 Execute
-// Universal labels keep the mental model identical when toggling modes.
+// Both flows share the same 5-step skeleton, but only Swing actually
+// paginates. Intraday renders all 5 sections on one screen so the user
+// can Tab through every input without losing speed.
+//   Swing:    Pattern → Quality   → Sizing → Checklist → Log
+//   Intraday: Pattern → Levels    → Sizing → Checklist → Log
+// Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() { return 5; }
 function tfStepNames() {
-  return ['Setup', 'Plan', 'Size', 'Verify', 'Execute'];
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  return m === 'swing'
+    ? ['Pattern', 'Quality', 'Sizing', 'Checklist', 'Log']
+    : ['Pattern', 'Levels',  'Sizing', 'Checklist', 'Log'];
+}
+function tfIsSingleScreen() {
+  return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
 }
 
 // Determine which steps are "complete" — drives the stepper checkmarks.
@@ -11101,6 +11050,16 @@ function tfRenderStepper() {
   const stepper = document.getElementById('trade-stepper');
   const mob     = document.getElementById('trade-stepper-mobile');
   if (!stepper) return;
+  // Single-screen mode: hide both stepper variants. Header still shows mode
+  // toggle + summary row. Status pill remains the navigation cue.
+  if (tfIsSingleScreen()) {
+    stepper.innerHTML = '';
+    stepper.style.display = 'none';
+    if (mob) mob.style.display = 'none';
+    return;
+  }
+  stepper.style.display = '';
+  if (mob) mob.style.display = '';
   const names = tfStepNames();
   const compl = tfStepCompletion();
   const cur = state.tradeFlow.step || 1;
@@ -11166,12 +11125,25 @@ function tfRenderActions() {
   if (!backBtn || !contBtn) return;
   const cur = state.tradeFlow.step || 1;
   const max = tfStepCount();
-  backBtn.disabled = cur <= 1;
   const compl = tfStepCompletion();
-  const isLast = cur >= max;
   const st = tfComputeStatus();
-  // Status pill in the header conveys the reason — don't repeat it down here.
   if (reasonEl) reasonEl.textContent = '';
+
+  // Single-screen (intraday): just GO. Back leaves the panel.
+  if (tfIsSingleScreen()) {
+    backBtn.disabled = false;
+    backBtn.textContent = '← Home';
+    contBtn.classList.add('go');
+    contLbl.textContent = 'GO';
+    contBtn.disabled = st.tone !== 'ready';
+    return;
+  }
+
+  // Swing — paginated. Step 1's Back goes Home; later steps go back a step.
+  backBtn.disabled = false;
+  backBtn.textContent = cur <= 1 ? '← Home' : 'Back';
+
+  const isLast = cur >= max;
   if (isLast) {
     contBtn.classList.add('go');
     contLbl.textContent = 'GO';
@@ -11185,6 +11157,24 @@ function tfRenderActions() {
 }
 
 function tfGoToStep(n) {
+  // Single-screen mode — every "step" is already in the DOM, so jumping
+  // means scrolling to the matching group anchor and dropping focus into
+  // its first interactive control. Status-pill clicks and gate-row jumps
+  // both feed through here.
+  if (tfIsSingleScreen()) {
+    const target = document.getElementById(`tf-i-group-${n}`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Brief highlight to confirm where we landed.
+      target.classList.remove('tf-flash');
+      // Reflow so re-adding the class re-triggers the animation.
+      void target.offsetWidth;
+      target.classList.add('tf-flash');
+      const focusable = target.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+      if (focusable) { try { focusable.focus({ preventScroll: true }); } catch(_) {} }
+    }
+    return;
+  }
   const max = tfStepCount();
   state.tradeFlow.step = Math.max(1, Math.min(max, n));
   saveState();
@@ -11227,7 +11217,6 @@ function tfReset() {
 
 function tfStepBody(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  // Both modes run 1..5 with parallel labels (Setup → Plan → Size → Verify → Execute).
   if (step > 5) step = 5;
   if (step < 1) step = 1;
   if (m === 'swing') {
@@ -11236,14 +11225,21 @@ function tfStepBody(step) {
     if (step === 3) return tfSwingStep3();
     if (step === 4) return tfSwingStep4();
     if (step === 5) return tfSwingStep5();
-  } else {
-    if (step === 1) return tfIntradayStep1();
-    if (step === 2) return tfIntradayStep2();
-    if (step === 3) return tfIntradayStep3();
-    if (step === 4) return tfIntradayStep4();
-    if (step === 5) return tfIntradayStep5();
+    return '';
   }
-  return '';
+  // Intraday — single screen. Render every section, separated by a small
+  // group divider so the user has visual anchors to scroll between.
+  const names = tfStepNames();
+  const wrap = (idx, html) => `
+    <div class="trade-step-group" id="tf-i-group-${idx + 1}">
+      <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
+      ${html}
+    </div>`;
+  return wrap(0, tfIntradayStep1())
+       + wrap(1, tfIntradayStep2())
+       + wrap(2, tfIntradayStep3())
+       + wrap(3, tfIntradayStep4())
+       + wrap(4, tfIntradayStep5());
 }
 
 // ----- Swing step 1 — Setup: ticker + direction + pattern -----
@@ -12251,7 +12247,16 @@ function renderTrade() {
   // Bind global handlers once
   if (!panel.dataset.tfBound) {
     panel.dataset.tfBound = '1';
-    document.getElementById('trade-back-btn')?.addEventListener('click', () => tfGoToStep((state.tradeFlow.step || 1) - 1));
+    document.getElementById('trade-back-btn')?.addEventListener('click', () => {
+      // Single-screen mode and step-1 Back both leave the panel (go Home).
+      // Mid-flow Back walks one step back.
+      const cur = state.tradeFlow.step || 1;
+      if (tfIsSingleScreen() || cur <= 1) {
+        if (typeof setTab === 'function') setTab('home');
+        return;
+      }
+      tfGoToStep(cur - 1);
+    });
     document.getElementById('trade-continue-btn')?.addEventListener('click', tfContinue);
     document.getElementById('trade-reset-btn')?.addEventListener('click', tfReset);
     // Click the status pill to jump to the failing step.
@@ -12283,22 +12288,23 @@ function renderTrade() {
 
 function tfMountStep(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const max = tfStepCount();
-  if (step > max) step = max;
-  if (step < 1) step = 1;
   if (m === 'swing') {
+    const max = tfStepCount();
+    if (step > max) step = max;
+    if (step < 1) step = 1;
     if (step === 1) tfMountSwingStep1();
     if (step === 2) tfMountSwingStep2();
     if (step === 3) tfMountSwingStep3();
     if (step === 4) tfMountSwingStep4();
     if (step === 5) tfMountSwingStep5();
-  } else {
-    if (step === 1) tfMountIntradayStep1();
-    if (step === 2) tfMountIntradayStep2();
-    if (step === 3) tfMountIntradayStep3();
-    if (step === 4) tfMountIntradayStep4();
-    if (step === 5) tfMountIntradayStep5();
+    return;
   }
+  // Intraday single-screen — every section is in the DOM, mount all of them.
+  tfMountIntradayStep1();
+  tfMountIntradayStep2();
+  tfMountIntradayStep3();
+  tfMountIntradayStep4();
+  tfMountIntradayStep5();
 }
 
 function tfRefreshHeaderOnly() {
@@ -12745,9 +12751,6 @@ function init() {
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
-  document.getElementById('btn-home-quick-repeat')?.addEventListener('click', () => {
-    if (typeof tfQuickRepeatIntraday === 'function') tfQuickRepeatIntraday();
-  });
 
   // Alpha Intel glossary panel — close on backdrop click / × / Esc.
   document.getElementById('ai-glossary-close')?.addEventListener('click', closeAIGlossary);
