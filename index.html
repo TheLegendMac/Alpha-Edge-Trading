@@ -4130,7 +4130,7 @@ textarea.input-field {
 /* summary row */
 #panel-trade .trade-summary-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(210px, 0.9fr);
   gap: 0;
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -4198,6 +4198,79 @@ textarea.input-field {
   border-bottom-color: var(--cyan);
   color: var(--cyan);
   box-shadow: 0 1px 0 0 var(--cyan);
+}
+#panel-trade .summary-strategy-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#panel-trade .summary-strategy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+#panel-trade .summary-structure-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 3px;
+}
+#panel-trade .summary-structure-pill {
+  background: transparent;
+  border: 0;
+  padding: 6px 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#panel-trade .summary-structure-pill:hover { color: var(--ink); }
+#panel-trade .summary-structure-pill.active {
+  background: var(--cyan);
+  color: var(--bg);
+  box-shadow: 0 0 10px rgba(6,212,248,0.35);
+}
+#panel-trade .summary-direction-toggle {
+  display: grid;
+  grid-template-columns: 36px 36px;
+  gap: 4px;
+}
+#panel-trade .summary-dir-btn {
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.035);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#panel-trade .summary-dir-btn:hover { color: var(--ink); }
+#panel-trade .summary-dir-btn.long.selected {
+  color: var(--green-bright);
+  border-color: rgba(16,185,129,0.6);
+  background: rgba(16,185,129,0.15);
+  box-shadow: 0 0 10px rgba(16,185,129,0.3);
+}
+#panel-trade .summary-dir-btn.short.selected {
+  color: var(--red-bright);
+  border-color: rgba(239,68,68,0.6);
+  background: rgba(239,68,68,0.15);
+  box-shadow: 0 0 10px rgba(239,68,68,0.3);
 }
 #panel-trade .trade-summary-status .trade-summary-value {
   font-family: var(--mono);
@@ -5006,6 +5079,9 @@ textarea.input-field {
   #panel-trade .trade-summary-value { font-size: 14px; }
   #panel-trade .trade-summary-status { grid-column: auto; border-top: 1px solid var(--line); border-right: 0; }
   #panel-trade .summary-ticker-input { font-size: 22px; }
+  #panel-trade .summary-strategy-row { grid-template-columns: 1fr; gap: 6px; }
+  #panel-trade .summary-direction-toggle { grid-template-columns: 1fr 1fr; }
+  #panel-trade .summary-dir-btn { height: 36px; }
   #panel-trade .trade-summary-status .trade-summary-value { font-size: 11px; }
   #panel-trade .trade-body { padding: 16px 0 0; }
   #panel-trade .trade-section { margin-bottom: 12px; }
@@ -5673,6 +5749,9 @@ STRENGTH: 3/3</pre>
         <div class="trade-summary-row">
           <div class="trade-summary-cell">
             <div class="trade-summary-value" id="trade-summary-ticker"></div>
+          </div>
+          <div class="trade-summary-cell">
+            <div class="trade-summary-value" id="trade-summary-strategy"></div>
           </div>
           <div class="trade-summary-cell trade-summary-status" id="trade-summary-status-cell">
             <div class="trade-summary-label">Status</div>
@@ -11103,8 +11182,9 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
 
 function tfEnsureSummaryControls(mode) {
   const tickerEl = document.getElementById('trade-summary-ticker');
-  if (!tickerEl) return;
-  if (tickerEl.dataset.summaryMode === mode) return;
+  const stratEl = document.getElementById('trade-summary-strategy');
+  if (!tickerEl || !stratEl) return;
+  if (tickerEl.dataset.summaryMode === mode && stratEl.dataset.summaryMode === mode) return;
 
   tickerEl.dataset.summaryMode = mode;
   tickerEl.innerHTML = `
@@ -11113,26 +11193,67 @@ function tfEnsureSummaryControls(mode) {
       <input type="text" maxlength="20" class="summary-ticker-input" id="tf-summary-ticker-input" placeholder="—" autocomplete="off" autocapitalize="characters" spellcheck="false" />
     </div>`;
 
+  stratEl.dataset.summaryMode = mode;
+  stratEl.innerHTML = `
+    <div class="summary-strategy-wrap">
+      <span class="trade-summary-label" style="margin:0;">Strategy</span>
+      <div class="summary-strategy-row">
+        <div class="summary-structure-pills" role="tablist" aria-label="Structure">
+          <button type="button" class="summary-structure-pill" data-tf-structure="stocks" role="tab">Stock</button>
+          <button type="button" class="summary-structure-pill" data-tf-structure="options" role="tab">Option</button>
+          <button type="button" class="summary-structure-pill" data-tf-structure="spread" role="tab">Spread</button>
+        </div>
+        <div class="summary-direction-toggle" role="group" aria-label="Direction">
+          <button type="button" class="summary-dir-btn long" data-tf-summary-dir="long" title="Long / call" aria-label="Long">▲</button>
+          <button type="button" class="summary-dir-btn short" data-tf-summary-dir="short" title="Short / put" aria-label="Short">▼</button>
+        </div>
+      </div>
+    </div>`;
+
   tfBindSummaryControls();
 }
 
 function tfBindSummaryControls() {
   const tickerInput = document.getElementById('tf-summary-ticker-input');
-  if (!tickerInput) return;
-  tickerInput.addEventListener('input', e => {
-    const sym = (e.target.value || '').toUpperCase();
-    e.target.value = sym;
-    const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-    if (m === 'intraday') {
-      if (!state.intraday) state.intraday = newIntradayTicket();
-      state.intraday.ticker = sym;
-    } else {
-      state.ticker = sym;
-    }
-    saveState();
-    tfRenderStepper();
-    tfRenderActions();
-    tfUpdateSummaryStatus();
+  if (tickerInput) {
+    tickerInput.addEventListener('input', e => {
+      const sym = (e.target.value || '').toUpperCase();
+      e.target.value = sym;
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') {
+        if (!state.intraday) state.intraday = newIntradayTicket();
+        state.intraday.ticker = sym;
+      } else {
+        state.ticker = sym;
+      }
+      saveState();
+      tfRenderStepper();
+      tfRenderActions();
+      tfUpdateSummaryStatus();
+    });
+  }
+
+  document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
+    b.addEventListener('click', () => {
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') tfSetIntradayStructure(b.dataset.tfStructure);
+      else tfSetSwingStructure(b.dataset.tfStructure);
+    });
+  });
+
+  document.querySelectorAll('#trade-summary-strategy [data-tf-summary-dir]').forEach(b => {
+    b.addEventListener('click', () => {
+      const dir = b.dataset.tfSummaryDir;
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') {
+        if (!state.intraday) state.intraday = newIntradayTicket();
+        state.intraday.direction = dir;
+      } else {
+        state.direction = dir;
+      }
+      saveState();
+      tfRefreshAll();
+    });
   });
 }
 
@@ -11531,12 +11652,24 @@ function tfRenderStepper() {
 
 function tfRenderHeader() {
   const tickerEl = document.getElementById('trade-summary-ticker');
-  if (!tickerEl) return;
+  const stratEl  = document.getElementById('trade-summary-strategy');
+  if (!tickerEl || !stratEl) return;
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   tfEnsureSummaryControls(m);
+
   const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
   const tickerInput = document.getElementById('tf-summary-ticker-input');
   if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
+
+  const struct = tfStructureValue(m);
+  document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tfStructure === struct);
+  });
+  const dir = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
+  document.querySelectorAll('#trade-summary-strategy [data-tf-summary-dir]').forEach(b => {
+    b.classList.toggle('selected', b.dataset.tfSummaryDir === dir);
+  });
+
   tfUpdateSummaryStatus();
   // Mode toggle highlight
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
