@@ -1911,6 +1911,132 @@ select.input-field {
   text-align: right;
 }
 
+/* ============ CLT (Mean Convergence) card ============ */
+.clt-card { position: relative; }
+.clt-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 18px;
+  margin-top: 8px;
+}
+@media (max-width: 760px) { .clt-row { grid-template-columns: 1fr; } }
+.clt-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.clt-stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+.clt-stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.clt-stat-value {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.clt-stat-value.pos { color: var(--green-bright); }
+.clt-stat-value.neg { color: var(--red-bright); }
+.clt-stat-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 2px;
+}
+.clt-ci-bar-wrap {
+  position: relative;
+  height: 36px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.clt-ci-zero {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: var(--ink-4);
+  opacity: 0.5;
+}
+.clt-ci-band {
+  position: absolute;
+  top: 8px; bottom: 8px;
+  background: linear-gradient(90deg, rgba(6,212,248,0.18), rgba(6,212,248,0.4));
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+}
+.clt-ci-mean {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  width: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+.clt-ci-labels {
+  display: flex; justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+}
+.clt-converge-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.clt-converge-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 60px;
+  gap: 10px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.clt-converge-row.now {
+  color: var(--cyan);
+  font-weight: 700;
+}
+.clt-converge-row .clt-conv-bar-wrap {
+  height: 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.clt-converge-row .clt-conv-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(6,212,248,0.3), var(--cyan));
+}
+.clt-explainer {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(6,212,248,0.05);
+  border-left: 3px solid var(--cyan-dim);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.clt-card-empty {
+  font-size: 12px;
+  color: var(--ink-4);
+  font-style: italic;
+  padding: 14px 0;
+}
+
 /* Streak badge */
 .streak-badge {
   display: inline-flex;
@@ -2729,6 +2855,413 @@ select.input-field {
 .grade-btn.selected span { color: rgba(0,0,0,0.55); }
 .grade-btn.selected[data-grade="broken"] span { color: rgba(255,255,255,0.72); }
 
+/* ============ POSITION EDITOR MODAL — simplified Execution Manager + Journal ============ */
+.modal.modal-position { max-width: 880px; padding: 0; }
+.pos-modal-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 22px 26px 18px;
+  gap: 16px;
+}
+.pos-modal-head-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pos-modal-head-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pos-modal-ticker {
+  font-family: var(--display);
+  font-size: 28px; font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.pos-side-badge {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.14em;
+  padding: 5px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.pos-side-badge.long  { background: var(--green-bg); color: var(--green-bright); border: 1px solid var(--green-dim, rgba(34,197,94,0.35)); }
+.pos-side-badge.short { background: var(--red-bg);   color: var(--red-bright);   border: 1px solid var(--red-dim); }
+.pos-modal-sub {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.pos-modal-sub .sub-dot { color: var(--ink-4); margin: 0 6px; }
+.pos-modal-head-right {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.pos-pnl-block { text-align: right; }
+.pos-pnl-label {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+.pos-pnl-value {
+  font-family: var(--display);
+  font-size: 26px; font-weight: 800;
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+.pos-pnl-value.pos { color: var(--green-bright); }
+.pos-pnl-value.neg { color: var(--red-bright); }
+.pos-pnl-value.zero { color: var(--ink-2); }
+
+.pos-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.pos-tab {
+  background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 16px 18px;
+  color: var(--ink-3);
+  font-family: var(--display);
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+}
+.pos-tab svg { width: 16px; height: 16px; }
+.pos-tab:hover { color: var(--ink-2); background: rgba(255,255,255,0.02); }
+.pos-tab.active { color: var(--cyan); }
+.pos-tab[data-pos-tab="journal"].active { color: #b46cff; }
+.pos-tab.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2px; background: var(--cyan);
+}
+.pos-tab[data-pos-tab="journal"].active::after { background: #b46cff; box-shadow: 0 0 12px rgba(180,108,255,0.6); }
+.pos-pane { display: none; padding: 22px 26px; animation: fadeIn 0.18s ease; }
+.pos-pane.active { display: block; }
+
+.pos-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 760px) { .pos-grid-2 { grid-template-columns: 1fr; } }
+
+.pos-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 18px 18px;
+}
+.pos-card-title {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pos-card-title svg { width: 14px; height: 14px; color: var(--cyan); }
+
+.pos-stat-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; }
+.pos-stat-block { display: flex; flex-direction: column; gap: 4px; }
+.pos-stat-block.right { text-align: right; align-items: flex-end; }
+.pos-stat-value {
+  font-family: var(--display);
+  font-size: 30px; font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.pos-stat-value.pos { color: var(--green-bright); }
+.pos-stat-value.neg { color: var(--red-bright); }
+.pos-stat-value.zero { color: var(--ink); }
+.pos-stat-sub {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+
+.pos-mark-input-wrap { margin-top: 16px; }
+.pos-mark-label {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+.pos-mark-input {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 22px; font-weight: 700;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.pos-mark-input:focus { border-color: var(--cyan); }
+
+.pos-quick-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pos-quick-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  font-family: var(--display);
+  font-size: 14px; font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-quick-btn:hover { background: rgba(6,212,248,0.08); color: var(--cyan); border-color: var(--cyan-dim); }
+
+.pos-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pos-num-input {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 16px; font-weight: 700;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.pos-num-input:focus { border-color: var(--cyan); }
+.pos-num-input::placeholder { color: var(--ink-4); font-weight: 500; }
+
+.pos-execute-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #2a4dff 0%, #4060ff 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 20px;
+  font-family: var(--display);
+  font-size: 13px; font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-execute-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(64,96,255,0.35); }
+.pos-execute-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.pos-exec-log {
+  margin-top: 22px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 18px;
+}
+.pos-exec-log-title {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pos-exec-log-title svg { width: 14px; height: 14px; color: var(--ink-3); }
+.pos-exec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.pos-exec-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.pos-exec-table th.right, .pos-exec-table td.right { text-align: right; }
+.pos-exec-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--ink-2);
+}
+.pos-exec-table tr:last-child td { border-bottom: none; }
+.pos-exec-table .pl-pos { color: var(--green-bright); font-weight: 700; }
+.pos-exec-table .pl-neg { color: var(--red-bright); font-weight: 700; }
+.pos-exec-type-pill {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.pos-exec-del-btn {
+  background: none; border: none;
+  color: var(--ink-4);
+  cursor: pointer; padding: 4px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+.pos-exec-del-btn:hover { color: var(--red-bright); background: rgba(239,68,68,0.1); }
+.pos-exec-del-btn svg { width: 14px; height: 14px; display: block; }
+.pos-exec-empty {
+  font-size: 12px;
+  color: var(--ink-4);
+  font-style: italic;
+  text-align: center;
+  padding: 14px 0;
+}
+
+/* Outcome tag chips */
+.pos-tag-group {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 18px;
+}
+.pos-tag {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-tag:hover { color: var(--ink); border-color: var(--line-soft); }
+.pos-tag.active {
+  background: rgba(245,158,11,0.12);
+  border-color: var(--amber-bright, #f59e0b);
+  color: var(--amber-bright, #f59e0b);
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.4);
+}
+.pos-tag.active[data-tone="pos"] {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green-bright);
+  box-shadow: 0 0 0 1px var(--green-dim, rgba(34,197,94,0.4));
+}
+.pos-tag.active[data-tone="neg"] {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red-bright);
+  box-shadow: 0 0 0 1px var(--red-dim);
+}
+
+.pos-section-label {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.pos-notes-actions {
+  display: inline-flex; gap: 8px; margin-left: auto;
+}
+.pos-notes-head { display: flex; align-items: center; margin-bottom: 10px; }
+.pos-notes-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pos-notes-btn:hover { color: var(--ink); border-color: var(--line-soft); }
+.pos-notes-btn.refine { background: rgba(64,96,255,0.12); border-color: rgba(64,96,255,0.5); color: #8aa0ff; }
+.pos-notes-btn svg { width: 12px; height: 12px; }
+.pos-notes-area {
+  width: 100%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  color: var(--ink);
+  font-family: var(--sans, inherit);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 110px;
+  transition: border-color 0.15s;
+}
+.pos-notes-area:focus { border-color: #b46cff; }
+
+.pos-playbook-drop {
+  border: 1.5px dashed var(--line-soft);
+  border-radius: var(--r-md);
+  background: rgba(0,0,0,0.2);
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--ink-4);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 220px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+.pos-playbook-drop:hover { border-color: var(--cyan-dim); color: var(--ink-3); background: rgba(6,212,248,0.04); }
+.pos-playbook-drop svg { width: 36px; height: 36px; color: var(--ink-4); opacity: 0.6; }
+.pos-playbook-drop.has-image { padding: 0; min-height: 0; border-style: solid; }
+.pos-playbook-drop.has-image img { width: 100%; max-height: 320px; object-fit: contain; border-radius: var(--r-md); display: block; }
+
+.pos-paste-btn {
+  background: none; border: none;
+  color: #b46cff;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pos-paste-btn:hover { color: #c785ff; }
+.pos-paste-btn svg { width: 14px; height: 14px; }
+
+.pos-modal-footer {
+  padding: 16px 26px 22px;
+  display: flex; justify-content: flex-end; gap: 10px;
+  border-top: 1px solid var(--line);
+}
+.btn-save-update {
+  background: linear-gradient(135deg, #2a4dff 0%, #4060ff 100%);
+  color: #fff;
+  border: none;
+  padding: 12px 22px;
+  font-family: var(--display);
+  font-size: 13px; font-weight: 800;
+  letter-spacing: 0.06em;
+  border-radius: var(--r-md);
+  display: inline-flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-save-update:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(64,96,255,0.35); }
+.btn-save-update svg { width: 14px; height: 14px; }
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3049,6 +3582,67 @@ textarea.input-field {
   color: var(--ink-3);
   font-style: italic;
   line-height: 1.4;
+}
+
+/* ============ TICKER AUTOCOMPLETE ============ */
+.ticker-ac-wrap { position: relative; }
+.ticker-ac-list {
+  display: none;
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 240px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  padding: 4px;
+}
+.ticker-ac-list.show { display: block; }
+.ticker-ac-section {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  padding: 8px 10px 4px;
+}
+.ticker-ac-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ticker-ac-item:hover, .ticker-ac-item.active {
+  background: rgba(6,212,248,0.08);
+}
+.ticker-ac-symbol {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.ticker-ac-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  display: flex; gap: 8px;
+}
+.ticker-ac-meta .pl-pos { color: var(--green-bright); }
+.ticker-ac-meta .pl-neg { color: var(--red-bright); }
+.ticker-ac-empty {
+  padding: 14px 10px;
+  color: var(--ink-4);
+  font-size: 12px;
+  font-style: italic;
 }
 
 /* ============ SNAPSHOT PANEL (smart paste + parsed display) ============ */
@@ -4113,6 +4707,74 @@ textarea.input-field {
   font-size: 11px; color: var(--ink-3);
 }
 .instrument-btn.active .instrument-btn-detail { color: var(--ink-2); }
+
+/* Prominent in-flow instrument toggle (sits at top of swing/intraday flow) */
+.flow-instrument-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+.flow-instrument-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.flow-instrument-pills {
+  display: inline-flex;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.flow-instrument-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: transparent;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink-3);
+  transition: all 0.15s;
+  text-align: left;
+  min-width: 130px;
+}
+.flow-instrument-pill:hover { color: var(--ink-2); }
+.flow-instrument-pill.active {
+  background: var(--cyan);
+  color: var(--bg);
+  box-shadow: 0 4px 12px rgba(6,212,248,0.25);
+}
+.flow-instrument-pill-name {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+.flow-instrument-pill-detail {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-top: 1px;
+}
+.flow-instrument-pill.active .flow-instrument-pill-detail { opacity: 0.9; }
+@media (max-width: 640px) {
+  .flow-instrument-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .flow-instrument-pills { width: 100%; }
+  .flow-instrument-pill { flex: 1; min-width: 0; align-items: center; padding: 8px 10px; }
+}
 
 /* ============ CONTEXT PANEL — regime + sector two-in-one ============ */
 .ctx-backdrop {
@@ -5666,6 +6328,21 @@ textarea.input-field {
 
     <!-- ============ TICKER INPUT BAR ============ -->
     <div class="ticker-bar" id="ticker-bar">
+      <!-- Prominent instrument switch — drives Step 2 (IVR optional for stocks),
+           Step 3 (shares vs contracts), and Gate 04 liquidity checks. -->
+      <div class="flow-instrument-row" id="flow-instrument-row" role="tablist" aria-label="Trading instrument">
+        <span class="flow-instrument-label">Trading</span>
+        <div class="flow-instrument-pills">
+          <button type="button" class="flow-instrument-pill active" data-instrument="options" role="tab" aria-selected="true">
+            <span class="flow-instrument-pill-name">Options</span>
+            <span class="flow-instrument-pill-detail">Calls / puts / spreads</span>
+          </button>
+          <button type="button" class="flow-instrument-pill" data-instrument="stocks" role="tab" aria-selected="false">
+            <span class="flow-instrument-pill-name">Stocks</span>
+            <span class="flow-instrument-pill-detail">Shares of the underlying</span>
+          </button>
+        </div>
+      </div>
       <div class="ticker-bar-row">
         <div class="ticker-bar-input-group">
           <label class="ticker-bar-label" for="ticker-input">Ticker</label>
@@ -5970,6 +6647,19 @@ textarea.input-field {
 
     <!-- Same ticker/context bar as Swing, just intraday-flavored -->
     <div class="ticker-bar">
+      <div class="flow-instrument-row" id="i-flow-instrument-row" role="tablist" aria-label="Trading instrument">
+        <span class="flow-instrument-label">Trading</span>
+        <div class="flow-instrument-pills">
+          <button type="button" class="flow-instrument-pill active" data-instrument="options" role="tab" aria-selected="true">
+            <span class="flow-instrument-pill-name">Options</span>
+            <span class="flow-instrument-pill-detail">Calls / puts</span>
+          </button>
+          <button type="button" class="flow-instrument-pill" data-instrument="stocks" role="tab" aria-selected="false">
+            <span class="flow-instrument-pill-name">Stocks</span>
+            <span class="flow-instrument-pill-detail">Shares</span>
+          </button>
+        </div>
+      </div>
       <div class="ticker-bar-inner">
         <div class="ticker-bar-input-group">
           <label class="ticker-bar-label">Ticker</label>
@@ -6661,6 +7351,21 @@ STRENGTH: 3/3</pre>
 
         <!-- ============ ENTRY PANE ============ -->
         <div class="modal-pane active" data-trade-pane="entry">
+          <!-- Stock vs Option toggle — drives unit labels and how Entry / Contracts are interpreted -->
+          <div class="flow-instrument-row" id="t-instrument-row" role="tablist" aria-label="Trading instrument" style="margin-bottom: 14px;">
+            <span class="flow-instrument-label">Trading</span>
+            <div class="flow-instrument-pills">
+              <button type="button" class="flow-instrument-pill active" data-t-instrument="options" role="tab" aria-selected="true">
+                <span class="flow-instrument-pill-name">Options</span>
+                <span class="flow-instrument-pill-detail">Calls / puts</span>
+              </button>
+              <button type="button" class="flow-instrument-pill" data-t-instrument="stocks" role="tab" aria-selected="false">
+                <span class="flow-instrument-pill-name">Stocks</span>
+                <span class="flow-instrument-pill-detail">Shares</span>
+              </button>
+            </div>
+            <input type="hidden" id="t-instrument" value="options" />
+          </div>
           <div class="form-grid">
             <div class="input-group">
               <label class="input-label">Mode</label>
@@ -6693,14 +7398,14 @@ STRENGTH: 3/3</pre>
               </select>
             </div>
             <div class="input-group">
-              <label class="input-label">Entry Premium</label>
+              <label class="input-label" id="t-entry-label">Entry Premium</label>
               <input type="number" step="0.01" class="input-field" id="t-entry" required />
             </div>
             <div class="input-group">
-              <label class="input-label">Contracts</label>
+              <label class="input-label" id="t-contracts-label">Contracts</label>
               <input type="number" class="input-field" id="t-contracts" required />
             </div>
-            <div class="input-group">
+            <div class="input-group" id="t-ivr-group">
               <label class="input-label">IVR @ Entry</label>
               <input type="number" min="0" max="100" class="input-field" id="t-ivr" />
             </div>
@@ -6828,6 +7533,159 @@ STRENGTH: 3/3</pre>
       <div style="flex: 1;"></div>
       <button class="btn-ghost" data-close>Cancel</button>
       <button class="btn-primary" id="btn-save-trade">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ POSITION EDITOR MODAL — simplified Execution Manager + Journal ============ -->
+<div class="modal-backdrop" id="modal-position">
+  <div class="modal modal-position">
+    <!-- Header: ticker + side badge + entry/qty + Total PnL + close -->
+    <div class="pos-modal-header">
+      <div class="pos-modal-head-left">
+        <div class="pos-modal-head-row">
+          <div class="pos-modal-ticker" id="pos-ticker">—</div>
+          <div class="pos-side-badge long" id="pos-side-badge">LONG</div>
+        </div>
+        <div class="pos-modal-sub">
+          <span>Entry: <strong id="pos-entry">$0.00</strong></span>
+          <span class="sub-dot">•</span>
+          <span><strong id="pos-qty-total">0</strong> <span id="pos-qty-unit">Contracts</span></span>
+        </div>
+      </div>
+      <div class="pos-modal-head-right">
+        <div class="pos-pnl-block">
+          <div class="pos-pnl-label">Total PnL</div>
+          <div class="pos-pnl-value zero" id="pos-total-pnl">$0.00</div>
+        </div>
+        <button class="modal-close" data-close-position aria-label="Close">×</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="pos-tabs" id="pos-tabs">
+      <button type="button" class="pos-tab active" data-pos-tab="exec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+        </svg>
+        Execution Manager
+      </button>
+      <button type="button" class="pos-tab" data-pos-tab="journal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        Journal &amp; Playbook
+      </button>
+    </div>
+
+    <!-- ===== EXECUTION MANAGER PANE ===== -->
+    <div class="pos-pane active" data-pos-pane="exec">
+      <div class="pos-grid-2">
+        <div class="pos-card">
+          <div class="pos-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l3-3 4 4 5-5"/></svg>
+            Position Status
+          </div>
+          <div class="pos-stat-row">
+            <div class="pos-stat-block">
+              <div class="pos-stat-value" id="pos-open-qty">0</div>
+              <div class="pos-stat-sub">Contracts Open</div>
+            </div>
+            <div class="pos-stat-block right">
+              <div class="pos-stat-value zero" id="pos-unrealized">$0.00</div>
+              <div class="pos-stat-sub">Unrealized PNL</div>
+            </div>
+          </div>
+          <div class="pos-mark-input-wrap">
+            <label class="pos-mark-label" for="pos-mark">Mark Price ($)</label>
+            <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="0.00" />
+          </div>
+        </div>
+
+        <div class="pos-card">
+          <div class="pos-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Quick Scale
+          </div>
+          <div class="pos-quick-row">
+            <button type="button" class="pos-quick-btn" data-scale="0.25">25%</button>
+            <button type="button" class="pos-quick-btn" data-scale="0.50">50%</button>
+            <button type="button" class="pos-quick-btn" data-scale="1.00">MAX</button>
+          </div>
+          <div class="pos-input-row">
+            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Qty" />
+            <input type="number" id="pos-exit-price" class="pos-num-input" min="0" step="0.01" placeholder="Price" />
+          </div>
+          <button type="button" class="pos-execute-btn" id="pos-execute-btn">Execute Exit</button>
+        </div>
+      </div>
+
+      <div class="pos-exec-log">
+        <div class="pos-exec-log-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Execution Log
+        </div>
+        <div id="pos-exec-log-body"></div>
+      </div>
+    </div>
+
+    <!-- ===== JOURNAL & PLAYBOOK PANE ===== -->
+    <div class="pos-pane" data-pos-pane="journal">
+      <div class="pos-grid-2">
+        <div>
+          <div class="pos-section-label">Outcome Tags</div>
+          <div class="pos-tag-group" id="pos-tag-group">
+            <button type="button" class="pos-tag" data-tag="target_hit"     data-tone="pos">Target Hit</button>
+            <button type="button" class="pos-tag" data-tag="stop_loss"      data-tone="neg">Stop Loss</button>
+            <button type="button" class="pos-tag" data-tag="breakeven"      data-tone="neutral">Breakeven</button>
+            <button type="button" class="pos-tag" data-tag="manual_close"   data-tone="neutral">Manual Close</button>
+            <button type="button" class="pos-tag" data-tag="premature_exit">Premature Exit</button>
+            <button type="button" class="pos-tag" data-tag="fomo_entry">FOMO Entry</button>
+          </div>
+
+          <div class="pos-notes-head">
+            <div class="pos-section-label" style="margin-bottom:0;">Analysis Notes</div>
+            <div class="pos-notes-actions">
+              <button type="button" class="pos-notes-btn" id="pos-dictate-btn" title="Voice-to-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                Dictate
+              </button>
+              <button type="button" class="pos-notes-btn refine" id="pos-refine-btn" title="Clean up notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l1.5 4.5L11 9l-4.5 1.5L5 15l-1.5-4.5L-1 9l4.5-1.5L5 3z" transform="translate(3 0)"/><path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/></svg>
+                Refine
+              </button>
+            </div>
+          </div>
+          <textarea id="pos-notes" class="pos-notes-area" placeholder="What happened? Plan vs execution, lesson learned…"></textarea>
+        </div>
+
+        <div>
+          <div class="pos-notes-head">
+            <div class="pos-section-label" style="margin-bottom:0;">Visual Playbook</div>
+            <div class="pos-notes-actions">
+              <button type="button" class="pos-paste-btn" id="pos-paste-img-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                Paste Image
+              </button>
+            </div>
+          </div>
+          <div class="pos-playbook-drop" id="pos-playbook-drop" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <div>Paste (Ctrl+V) Screenshot</div>
+          </div>
+          <input type="file" id="pos-playbook-file" accept="image/*" style="display:none" />
+        </div>
+      </div>
+    </div>
+
+    <div class="pos-modal-footer">
+      <button class="btn-danger" id="pos-delete-btn" type="button">Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn-ghost" data-close-position type="button">Cancel</button>
+      <button class="btn-save-update" id="pos-save-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save &amp; Update
+      </button>
     </div>
   </div>
 </div>
@@ -7962,6 +8820,9 @@ let state = {
   activeMode: 'home',     // current top-level mode: 'home' | 'decision' | 'intraday' | 'sunday' | 'log'
   trades: [],
   deletedTradeIds: {},
+  backtestReports: [],
+  // Recently-used tickers for autocomplete (kept separate from trades so it survives deletes)
+  recentTickers: [],
   // Swing flow
   selectedSetup: null,
   instrument: 'options',  // 'options' | 'stocks' — drives Step 3 calc + Gate 04 fields
@@ -8018,6 +8879,8 @@ function loadState() {
       if (!state.homePortfolioView) state.homePortfolioView = 'recent';
       if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
+      if (!Array.isArray(state.backtestReports)) state.backtestReports = [];
+      if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
       // Migrate tradeFlow (preview)
       if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
       if (!state.tradeFlow.mode) state.tradeFlow.mode = 'swing';
@@ -9118,10 +9981,16 @@ function renderSetupGrid() {
 }
 
 function renderInstrumentToggle() {
-  const buttons = document.querySelectorAll('.instrument-btn');
-  buttons.forEach(btn => {
+  // Card-style buttons inside Step 1
+  document.querySelectorAll('.instrument-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.instrument === state.instrument);
     btn.setAttribute('aria-selected', btn.dataset.instrument === state.instrument ? 'true' : 'false');
+  });
+  // Prominent pill toggles in the swing/intraday flow ticker bars
+  document.querySelectorAll('.flow-instrument-pill').forEach(btn => {
+    const isActive = btn.dataset.instrument === state.instrument;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   const hint = document.getElementById('instrument-hint');
   if (hint) {
@@ -9734,6 +10603,12 @@ function renderLogStats() {
   const clearSetupHtml = setupFilter
     ? `<button class="stats-filter-clear" type="button" onclick="clearLogSetupFilter()">Clear setup</button>`
     : '';
+  // ── CLT (Mean Convergence) panel ───────────────────────────
+  const cltHtml = buildCltCard(closedWithPL, help);
+
+  // ── TOS Backtest import panel ──────────────────────────────
+  const backtestHtml = buildBacktestCard(help);
+
   container.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
@@ -9746,6 +10621,8 @@ function renderLogStats() {
         <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
       </div>
 
+      ${cltHtml}
+
       <div class="home-row stats-card-row">
         <div class="home-card">
           <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
@@ -9756,8 +10633,142 @@ function renderLogStats() {
           ${exitHtml}
         </div>
       </div>
+
+      ${backtestHtml}
     </div>
   `;
+}
+
+// ── Central Limit Theorem (Mean Convergence) card ─────────────
+// Visualizes how the sample mean (avg R) converges on the true edge as N grows,
+// and gives a 95% CI for the true mean using SE = sd / sqrt(n).
+function buildCltCard(closedWithPL, help) {
+  const n = closedWithPL.length;
+  const empty = n < 2;
+  const head = `
+    <div class="home-card-title" style="margin: 0 0 6px;">Central Limit Theorem · Mean Convergence${help(
+      'As your sample size grows, the average outcome converges on your true edge. ' +
+      'The 95% confidence interval narrows by roughly 1/√N — doubling trades shrinks the band by ~30%.'
+    )}</div>
+    <div style="font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-bottom: 10px;">How tight is your edge estimate? Wider band = noisier sample.</div>`;
+
+  if (empty) {
+    return `<div class="home-card clt-card">
+      ${head}
+      <div class="clt-card-empty">Need at least 2 closed trades to estimate the mean and confidence band.</div>
+    </div>`;
+  }
+
+  const rs = closedWithPL.map(x => x.r || 0);
+  const mean = rs.reduce((s, x) => s + x, 0) / n;
+  // Sample standard deviation (n-1 denominator)
+  const variance = n > 1 ? rs.reduce((s, x) => s + (x - mean) * (x - mean), 0) / (n - 1) : 0;
+  const sd = Math.sqrt(variance);
+  const se = sd / Math.sqrt(n);
+  const ciHalf = 1.96 * se;
+  const ciLow = mean - ciHalf;
+  const ciHigh = mean + ciHalf;
+
+  // CI bar visualization: scale around max(|ciLow|,|ciHigh|, 1.0R)
+  const span = Math.max(Math.abs(ciLow), Math.abs(ciHigh), 1.0);
+  const xMin = -span * 1.1;
+  const xMax =  span * 1.1;
+  const toPct = v => ((v - xMin) / (xMax - xMin)) * 100;
+  const zeroPct = toPct(0);
+  const lowPct = toPct(ciLow);
+  const highPct = toPct(ciHigh);
+  const meanPct = toPct(mean);
+  const containsZero = ciLow <= 0 && ciHigh >= 0;
+  const verdict = containsZero
+    ? `<span style="color:var(--amber-bright);">Edge not yet significant</span> — sample is too small to rule out zero.`
+    : (mean > 0
+      ? `<span style="color:var(--green-bright);">Edge is statistically positive</span> at 95% confidence.`
+      : `<span style="color:var(--red-bright);">Edge is statistically negative</span> at 95% confidence.`);
+
+  // Convergence projection: at 30, 60, 100, 250 trades — show how SE shrinks (assuming current sd holds)
+  const targets = [30, 60, 100, 250];
+  const seAt = k => sd / Math.sqrt(k);
+  const halfAt = k => 1.96 * seAt(k);
+  const widest = halfAt(Math.min(...targets, n));
+  const convRows = targets.map(k => {
+    const half = halfAt(k);
+    const width = (half / widest) * 100;
+    const isNow = k <= n && (targets.indexOf(k) === 0 || targets[targets.indexOf(k) - 1] < n);
+    return `<div class="clt-converge-row ${k <= n ? 'now' : ''}">
+      <div>n=${k}</div>
+      <div class="clt-conv-bar-wrap"><div class="clt-conv-bar-fill" style="width:${Math.max(4, width).toFixed(0)}%"></div></div>
+      <div style="text-align:right;">±${half.toFixed(2)}R</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="home-card clt-card">
+    ${head}
+    <div class="clt-row">
+      <div>
+        <div class="clt-stat-grid">
+          <div class="clt-stat">
+            <div class="clt-stat-label">Sample Mean (R)</div>
+            <div class="clt-stat-value ${mean > 0 ? 'pos' : mean < 0 ? 'neg' : ''}">${mean >= 0 ? '+' : ''}${mean.toFixed(2)}R</div>
+            <div class="clt-stat-sub">${n} closed trades</div>
+          </div>
+          <div class="clt-stat">
+            <div class="clt-stat-label">Std Error</div>
+            <div class="clt-stat-value">±${se.toFixed(2)}R</div>
+            <div class="clt-stat-sub">SD ${sd.toFixed(2)}R / √${n}</div>
+          </div>
+          <div class="clt-stat" style="grid-column: 1 / -1;">
+            <div class="clt-stat-label">95% Confidence Interval for True Mean</div>
+            <div class="clt-stat-value">${ciLow >= 0 ? '+' : ''}${ciLow.toFixed(2)}R &nbsp;to&nbsp; ${ciHigh >= 0 ? '+' : ''}${ciHigh.toFixed(2)}R</div>
+            <div class="clt-ci-bar-wrap">
+              <div class="clt-ci-zero" style="left:${zeroPct.toFixed(2)}%"></div>
+              <div class="clt-ci-band" style="left:${lowPct.toFixed(2)}%; width:${(highPct - lowPct).toFixed(2)}%;"></div>
+              <div class="clt-ci-mean" style="left:${meanPct.toFixed(2)}%"></div>
+            </div>
+            <div class="clt-ci-labels"><span>${xMin.toFixed(2)}R</span><span>0</span><span>+${xMax.toFixed(2)}R</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="clt-stat-label">Projected band width as N grows</div>
+        <div class="clt-converge-list">${convRows}</div>
+        <div class="clt-explainer">${verdict}<br/><br/>
+          <strong>Why this matters:</strong> The CLT says the mean of any sample tends toward the true population mean as N grows, with error shrinking ∝ 1/√N. A wide band means a few more trades could change your verdict — keep sample size in mind before scaling size or killing a setup.
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TOS backtest report import card ───────────────────────────
+function buildBacktestCard(help) {
+  const reports = (state.backtestReports || []);
+  const list = reports.length ? reports.map((r, i) => {
+    const tone = (r.netProfit || 0) >= 0 ? 'pos' : 'neg';
+    const np = r.netProfit;
+    const npStr = np == null ? '—' : `${np >= 0 ? '+' : '-'}$${Math.abs(np).toFixed(0)}`;
+    return `<div class="bar-row" style="border-bottom:1px solid var(--line); padding-bottom:8px;">
+      <div class="bar-row-label" style="flex:1;">
+        <strong>${r.name || 'Backtest ' + (i + 1)}</strong>
+        <span class="bar-row-sub">${r.symbol || '—'} · ${r.trades || 0} trades · ${r.winRate != null ? r.winRate.toFixed(0) + '%W' : '—'} · ${r.imported_at ? new Date(r.imported_at).toLocaleDateString() : ''}</span>
+      </div>
+      <div class="bar-value ${tone === 'pos' ? 'pl-positive' : 'pl-negative'}" style="min-width:80px;">${npStr}</div>
+      <button class="pos-exec-del-btn" onclick="deleteBacktestReport('${r.id}')" title="Remove" style="margin-left:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`;
+  }).join('') : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Import a TOS Strategy Report (.csv or pasted text) to compare your live trades against the historical backtest.</div>`;
+
+  return `<div class="home-card">
+    <div class="stats-snapshot-head">
+      <div class="home-card-title" style="margin: 0;">Backtest Reports (TOS Import)${help('Import a ThinkorSwim strategy backtest report. Stored locally so you can compare live results to the historical study.')}</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-secondary" id="btn-import-backtest-file" type="button" style="font-size:11px;">Import file</button>
+        <button class="btn-secondary" id="btn-import-backtest-paste" type="button" style="font-size:11px;">Paste text</button>
+        <input type="file" id="backtest-file-input" accept=".csv,.txt,.tsv" style="display:none" />
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:6px;">${list}</div>
+  </div>`;
 }
 
 // Universal sidebar refresher - call from anywhere a trade lifecycle event happens
@@ -10200,6 +11211,25 @@ function populateTradeModalSetups(mode) {
   if (list.includes(current)) sel.value = current;
 }
 
+// Stock vs Option toggle inside the Log Trade modal — updates labels and IVR visibility.
+function setTradeInstrument(inst) {
+  if (inst !== 'options' && inst !== 'stocks') return;
+  const hidden = document.getElementById('t-instrument');
+  if (hidden) hidden.value = inst;
+  document.querySelectorAll('#t-instrument-row .flow-instrument-pill').forEach(b => {
+    const a = b.dataset.tInstrument === inst;
+    b.classList.toggle('active', a);
+    b.setAttribute('aria-selected', a ? 'true' : 'false');
+  });
+  const isStocks = inst === 'stocks';
+  const entryLabel = document.getElementById('t-entry-label');
+  const ctrLabel = document.getElementById('t-contracts-label');
+  const ivrGroup = document.getElementById('t-ivr-group');
+  if (entryLabel) entryLabel.textContent = isStocks ? 'Entry Price (per share)' : 'Entry Premium';
+  if (ctrLabel)   ctrLabel.textContent   = isStocks ? 'Shares' : 'Contracts';
+  if (ivrGroup)   ivrGroup.style.display = isStocks ? 'none' : '';
+}
+
 function openTradeModal(trade) {
   const modal = document.getElementById('modal-add');
   const title = document.getElementById('modal-title');
@@ -10241,6 +11271,7 @@ function openTradeModal(trade) {
     document.getElementById('t-emotion').value = trade.emotion || '';
     document.getElementById('t-exit-reason').value = trade.exit_reason || '';
     document.getElementById('t-lesson').value = trade.lesson || '';
+    setTradeInstrument(trade.instrument || 'options');
     // Default tab: closed trades open on Review; open trades on Entry
     setTradeModalTab(trade.status === 'open' ? 'entry' : 'review');
   } else {
@@ -10253,6 +11284,7 @@ function openTradeModal(trade) {
     const defaultMode = state.activeMode === 'intraday' ? 'intraday' : 'swing';
     document.getElementById('t-mode').value = defaultMode;
     populateTradeModalSetups(defaultMode);
+    setTradeInstrument(state.instrument || 'options');
 
     // Pre-fill from current flow state — saves the user from re-entering everything
     if (state.selectedSetup) document.getElementById('t-setup').value = state.selectedSetup;
@@ -10408,8 +11440,10 @@ function saveTrade() {
   const riskDollars = mode === 'intraday'
     ? state.settings.intradayRiskPerTrade
     : (state.settings.account || 10000) * getRiskPctForRegime(state.regime || 'risk-on');
-  // Preserve instrument across edits; default new trades to the active analysis-flow instrument.
-  const instrument = existingTrade?.instrument || (mode === 'intraday' ? 'options' : (state.instrument || 'options'));
+  // Trade modal exposes its own instrument toggle. Falls back to the existing trade,
+  // then to the active flow instrument, then to options.
+  const modalInstrument = (document.getElementById('t-instrument')?.value || '').trim();
+  const instrument = modalInstrument || existingTrade?.instrument || (state.instrument || 'options');
   const trade = {
     id,
     mode,
@@ -10524,17 +11558,447 @@ function resetFlowSilent() {
 
 window.editTrade = function(id) {
   const t = state.trades.find(t => t.id === id);
-  if (t) openTradeModal(t);
+  if (t) openPositionEditor(t);
 };
 
-// Same as editTrade but defaults to the Review pane — used by the Home portfolio rows
-// where the action label says "Review" so the modal should land on review/close, not entry.
 window.reviewTrade = function(id) {
   const t = state.trades.find(t => t.id === id);
   if (!t) return;
-  openTradeModal(t);
-  setTradeModalTab('review');
+  openPositionEditor(t, 'journal');
 };
+
+// ---------- Position Editor (simplified Execution Manager + Journal) ----------
+// State that lives only while the editor is open.
+const POS = {
+  id: null,
+  trade: null,
+  mark: null,
+  executions: [],
+  tags: [],
+  notes: '',
+  playbookImage: null,
+};
+
+function _posMultiplier(t) { return t.instrument === 'stocks' ? 1 : 100; }
+
+// LONG = profit when exit > entry; SHORT = profit when exit < entry.
+function _posSign(t) {
+  return (String(t.direction || 'Long').toLowerCase() === 'short') ? -1 : 1;
+}
+
+function _posSideLabel(t) {
+  const dir = (String(t.direction || 'Long').toLowerCase() === 'short') ? 'SHORT' : 'LONG';
+  if (t.instrument === 'stocks') return `${dir} STOCK`;
+  // Use direction to label call/put when missing
+  return `${dir} ${dir === 'LONG' ? 'CALL' : 'PUT'}`;
+}
+
+function _posQtyUnit(t) {
+  return t.instrument === 'stocks' ? 'Shares' : 'Contracts';
+}
+
+function _posRealizedPL(t, executions) {
+  const mult = _posMultiplier(t);
+  const sign = _posSign(t);
+  return executions.reduce((s, e) => s + sign * (Number(e.price) - Number(t.entry)) * mult * Number(e.qty || 0), 0);
+}
+
+function _posOpenQty(t, executions) {
+  const total = Number(t.contracts) || 0;
+  const closed = executions.reduce((s, e) => s + (Number(e.qty) || 0), 0);
+  return Math.max(0, total - closed);
+}
+
+function _posUnrealizedPL(t, executions, mark) {
+  if (mark === null || isNaN(mark)) return 0;
+  const open = _posOpenQty(t, executions);
+  if (!open) return 0;
+  const mult = _posMultiplier(t);
+  const sign = _posSign(t);
+  return sign * (Number(mark) - Number(t.entry)) * mult * open;
+}
+
+function _fmtMoney(n) {
+  const v = Number(n) || 0;
+  const sign = v >= 0 ? '+' : '-';
+  return `${sign}$${Math.abs(v).toFixed(2)}`;
+}
+function _fmtMoneyPlain(n) {
+  const v = Number(n) || 0;
+  return `$${v.toFixed(2)}`;
+}
+function _toneClass(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
+
+function openPositionEditor(trade, tab = 'exec') {
+  POS.id = trade.id;
+  POS.trade = trade;
+  // Hydrate executions from trade — back-compat: synth a single execution from t.exit if present
+  if (Array.isArray(trade.executions) && trade.executions.length) {
+    POS.executions = trade.executions.map(e => ({ ...e }));
+  } else if (trade.status !== 'open' && trade.exit) {
+    POS.executions = [{
+      id: 'e_' + Math.random().toString(36).slice(2, 8),
+      time: trade.exit_date ? new Date(trade.exit_date).toISOString() : new Date().toISOString(),
+      type: trade.exit_reason === 'target' ? 'target_hit' :
+            trade.exit_reason === 'stop' ? 'stop_loss' : 'manual_close',
+      qty: Number(trade.contracts) || 0,
+      price: Number(trade.exit) || 0,
+    }];
+  } else {
+    POS.executions = [];
+  }
+  POS.mark = trade.mark != null ? Number(trade.mark) : (trade.exit ? Number(trade.exit) : null);
+  POS.tags = Array.isArray(trade.outcome_tags) ? [...trade.outcome_tags] : _backfillTagsFromTrade(trade);
+  POS.notes = trade.lesson || trade.notes || '';
+  POS.playbookImage = trade.playbook_image || null;
+
+  // Header
+  document.getElementById('pos-ticker').textContent = (trade.ticker || '—').toUpperCase();
+  const sideEl = document.getElementById('pos-side-badge');
+  sideEl.textContent = _posSideLabel(trade);
+  sideEl.classList.toggle('long', _posSign(trade) === 1);
+  sideEl.classList.toggle('short', _posSign(trade) === -1);
+  document.getElementById('pos-entry').textContent = _fmtMoneyPlain(trade.entry);
+  document.getElementById('pos-qty-total').textContent = trade.contracts || 0;
+  document.getElementById('pos-qty-unit').textContent = _posQtyUnit(trade);
+
+  // Mark input
+  const markInput = document.getElementById('pos-mark');
+  markInput.value = POS.mark != null ? POS.mark : '';
+
+  // Notes + tags + playbook image
+  document.getElementById('pos-notes').value = POS.notes;
+  document.querySelectorAll('#pos-tag-group .pos-tag').forEach(b => {
+    b.classList.toggle('active', POS.tags.includes(b.dataset.tag));
+  });
+  _renderPlaybookImage();
+  setPositionTab(tab);
+  renderPositionEditor();
+
+  document.getElementById('modal-position').classList.add('show');
+}
+
+function closePositionEditor() {
+  document.getElementById('modal-position').classList.remove('show');
+  POS.id = null;
+  POS.trade = null;
+}
+
+function setPositionTab(tab) {
+  document.querySelectorAll('#pos-tabs .pos-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.posTab === tab);
+  });
+  document.querySelectorAll('#modal-position [data-pos-pane]').forEach(p => {
+    p.classList.toggle('active', p.dataset.posPane === tab);
+  });
+}
+
+function renderPositionEditor() {
+  if (!POS.trade) return;
+  const t = POS.trade;
+  const mark = POS.mark;
+  const open = _posOpenQty(t, POS.executions);
+  const realized = _posRealizedPL(t, POS.executions);
+  const unrealized = _posUnrealizedPL(t, POS.executions, mark);
+  const total = realized + unrealized;
+
+  // Header total
+  const totalEl = document.getElementById('pos-total-pnl');
+  totalEl.textContent = _fmtMoney(total);
+  totalEl.classList.remove('pos','neg','zero');
+  totalEl.classList.add(_toneClass(total));
+
+  // Position status
+  document.getElementById('pos-open-qty').textContent = open;
+  const unrealEl = document.getElementById('pos-unrealized');
+  unrealEl.textContent = _fmtMoney(unrealized);
+  unrealEl.classList.remove('pos','neg','zero');
+  unrealEl.classList.add(_toneClass(unrealized));
+
+  // Quick scale buttons (mark % off open qty)
+  document.querySelectorAll('.pos-quick-btn').forEach(b => {
+    b.disabled = open <= 0;
+    b.style.opacity = open <= 0 ? 0.5 : 1;
+  });
+  document.getElementById('pos-execute-btn').disabled = open <= 0;
+
+  // Render execution log
+  _renderExecLog();
+}
+
+function _renderExecLog() {
+  const t = POS.trade;
+  if (!t) return;
+  const wrap = document.getElementById('pos-exec-log-body');
+  if (!POS.executions.length) {
+    wrap.innerHTML = `<div class="pos-exec-empty">No exits yet. Use Quick Scale to log a partial or full exit.</div>`;
+    return;
+  }
+  const sign = _posSign(t);
+  const mult = _posMultiplier(t);
+  const rows = POS.executions.map(e => {
+    const pl = sign * (Number(e.price) - Number(t.entry)) * mult * Number(e.qty || 0);
+    const time = e.time ? new Date(e.time) : new Date();
+    const timeStr = time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    const typeLabel = TAG_LABELS[e.type] || 'Manual Close';
+    return `<tr>
+      <td>${timeStr}</td>
+      <td><span class="pos-exec-type-pill">${typeLabel}</span></td>
+      <td><strong>${e.qty}</strong></td>
+      <td>${_fmtMoneyPlain(e.price)}</td>
+      <td class="right ${pl >= 0 ? 'pl-pos' : 'pl-neg'}">${_fmtMoney(pl)}</td>
+      <td class="right"><button class="pos-exec-del-btn" data-exec-id="${e.id}" aria-label="Remove exit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="pos-exec-table">
+    <thead><tr><th>Time</th><th>Type</th><th>Qty</th><th>Price</th><th class="right">PnL</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function _renderPlaybookImage() {
+  const drop = document.getElementById('pos-playbook-drop');
+  if (POS.playbookImage) {
+    drop.classList.add('has-image');
+    drop.innerHTML = `<img src="${POS.playbookImage}" alt="Playbook screenshot" />`;
+  } else {
+    drop.classList.remove('has-image');
+    drop.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <div>Paste (Ctrl+V) Screenshot</div>`;
+  }
+}
+
+const TAG_LABELS = {
+  target_hit: 'Target Hit',
+  stop_loss: 'Stop Loss',
+  breakeven: 'Breakeven',
+  manual_close: 'Manual Close',
+  premature_exit: 'Premature Exit',
+  fomo_entry: 'FOMO Entry',
+};
+
+// Build outcome tags from existing trade fields when migrating older data.
+function _backfillTagsFromTrade(t) {
+  const tags = [];
+  if (t.exit_reason === 'target') tags.push('target_hit');
+  if (t.exit_reason === 'stop') tags.push('stop_loss');
+  if (t.exit_reason === 'discretionary') tags.push('manual_close');
+  if (t.emotion === 'fomo') tags.push('fomo_entry');
+  if (t.grade === 'broken' && t.exit_reason !== 'stop') tags.push('premature_exit');
+  return tags;
+}
+
+function _activeExecType() {
+  // Map active outcome tags to execution-row type. Falls back to manual close.
+  const priority = ['target_hit','stop_loss','breakeven','premature_exit','manual_close'];
+  for (const p of priority) if (POS.tags.includes(p)) return p;
+  return 'manual_close';
+}
+
+function _execScale(pct) {
+  const open = _posOpenQty(POS.trade, POS.executions);
+  const qty = Math.max(0, Math.floor(open * pct));
+  document.getElementById('pos-exit-qty').value = qty || '';
+  // Default the price to the mark if the price input is empty
+  const priceEl = document.getElementById('pos-exit-price');
+  if (!priceEl.value && POS.mark != null) priceEl.value = POS.mark;
+}
+
+function _execExit() {
+  const t = POS.trade;
+  if (!t) return;
+  const qty = parseInt(document.getElementById('pos-exit-qty').value, 10);
+  const price = parseFloat(document.getElementById('pos-exit-price').value);
+  const open = _posOpenQty(t, POS.executions);
+  if (!qty || qty <= 0) { toast('Enter exit qty', true); return; }
+  if (qty > open) { toast(`Only ${open} ${_posQtyUnit(t).toLowerCase()} open`, true); return; }
+  if (!price || price <= 0) { toast('Enter exit price', true); return; }
+  POS.executions.push({
+    id: 'e_' + Math.random().toString(36).slice(2, 8),
+    time: new Date().toISOString(),
+    type: _activeExecType(),
+    qty,
+    price,
+  });
+  document.getElementById('pos-exit-qty').value = '';
+  document.getElementById('pos-exit-price').value = '';
+  renderPositionEditor();
+}
+
+function _delExec(id) {
+  POS.executions = POS.executions.filter(e => e.id !== id);
+  renderPositionEditor();
+}
+
+function _toggleTag(tag) {
+  const idx = POS.tags.indexOf(tag);
+  if (idx >= 0) POS.tags.splice(idx, 1); else POS.tags.push(tag);
+  document.querySelectorAll('#pos-tag-group .pos-tag').forEach(b => {
+    b.classList.toggle('active', POS.tags.includes(b.dataset.tag));
+  });
+}
+
+function _savePositionEditor() {
+  const t = POS.trade;
+  if (!t) return;
+  const tradeIdx = state.trades.findIndex(x => x.id === t.id);
+  if (tradeIdx < 0) { toast('Trade not found', true); return; }
+
+  // Persist editor data back onto the trade.
+  const updated = { ...state.trades[tradeIdx] };
+  updated.executions = POS.executions.slice();
+  updated.outcome_tags = POS.tags.slice();
+  updated.notes = document.getElementById('pos-notes').value;
+  updated.lesson = updated.notes || updated.lesson || null;
+  updated.mark = POS.mark;
+  updated.playbook_image = POS.playbookImage || null;
+
+  // Compute close state from executions.
+  const open = _posOpenQty(updated, updated.executions);
+  if (open === 0 && updated.executions.length) {
+    const totalQty = updated.executions.reduce((s, e) => s + Number(e.qty), 0);
+    const wAvgExit = updated.executions.reduce((s, e) => s + Number(e.price) * Number(e.qty), 0) / totalQty;
+    updated.exit = Number(wAvgExit.toFixed(4));
+    const realized = _posRealizedPL(updated, updated.executions);
+    updated.status = realized >= 0 ? 'win' : 'loss';
+    updated.exit_date = updated.exit_date || (updated.executions[updated.executions.length - 1].time || '').split('T')[0] || new Date().toISOString().split('T')[0];
+  } else {
+    updated.status = 'open';
+    updated.exit = null;
+  }
+  // Map first relevant tag back into existing exit_reason field for back-compat with stats.
+  if (POS.tags.includes('target_hit')) updated.exit_reason = 'target';
+  else if (POS.tags.includes('stop_loss')) updated.exit_reason = 'stop';
+  else if (POS.tags.includes('manual_close') || POS.tags.includes('breakeven')) updated.exit_reason = 'discretionary';
+  else if (POS.tags.includes('premature_exit')) updated.exit_reason = 'thesis-broke';
+  if (POS.tags.includes('fomo_entry')) updated.emotion = 'fomo';
+  if (POS.tags.includes('premature_exit')) updated.grade = 'broken';
+  updated.updated_at = new Date().toISOString();
+
+  state.trades[tradeIdx] = updated;
+  saveState();
+  if (typeof doPush === 'function') {
+    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+  closePositionEditor();
+  renderHome();
+  renderLogStats();
+  renderLogTable();
+  recomputeStepStates();
+  toast('Trade updated');
+}
+
+function _deletePositionEditor() {
+  const t = POS.trade;
+  if (!t) return;
+  if (!confirm(`Delete this trade?\n\n${t.ticker} ${t.setup || ''} ${t.date || ''}\n\nThis cannot be undone.`)) return;
+  if (!state.deletedTradeIds) state.deletedTradeIds = {};
+  state.deletedTradeIds[t.id] = new Date().toISOString();
+  state.trades = state.trades.filter(x => x.id !== t.id);
+  saveState();
+  if (typeof doPush === 'function') {
+    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+  closePositionEditor();
+  renderHome();
+  renderLogStats();
+  renderLogTable();
+  recomputeStepStates();
+  toast('Trade deleted');
+}
+
+function _wirePositionEditor() {
+  const modal = document.getElementById('modal-position');
+  if (!modal) return;
+  // Backdrop close
+  modal.addEventListener('click', e => { if (e.target === e.currentTarget) closePositionEditor(); });
+  document.querySelectorAll('[data-close-position]').forEach(b => b.addEventListener('click', closePositionEditor));
+  // Tabs
+  document.querySelectorAll('#pos-tabs .pos-tab').forEach(b => b.addEventListener('click', () => setPositionTab(b.dataset.posTab)));
+  // Mark price input
+  document.getElementById('pos-mark').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    POS.mark = isNaN(v) ? null : v;
+    renderPositionEditor();
+  });
+  // Quick scale
+  document.querySelectorAll('.pos-quick-btn').forEach(b => b.addEventListener('click', () => _execScale(parseFloat(b.dataset.scale))));
+  // Execute exit
+  document.getElementById('pos-execute-btn').addEventListener('click', _execExit);
+  // Exec log delete (event delegation)
+  document.getElementById('pos-exec-log-body').addEventListener('click', e => {
+    const btn = e.target.closest('.pos-exec-del-btn');
+    if (btn) _delExec(btn.dataset.execId);
+  });
+  // Tag chips
+  document.querySelectorAll('#pos-tag-group .pos-tag').forEach(b => b.addEventListener('click', () => _toggleTag(b.dataset.tag)));
+  // Save / delete
+  document.getElementById('pos-save-btn').addEventListener('click', _savePositionEditor);
+  document.getElementById('pos-delete-btn').addEventListener('click', _deletePositionEditor);
+  // Refine — light cleanup pass: trim, collapse newlines, sentence-case first letter
+  document.getElementById('pos-refine-btn').addEventListener('click', () => {
+    const ta = document.getElementById('pos-notes');
+    let v = (ta.value || '').replace(/\s+/g, ' ').trim();
+    if (v) v = v[0].toUpperCase() + v.slice(1);
+    if (v && !/[.!?]$/.test(v)) v += '.';
+    ta.value = v;
+    toast('Notes cleaned up');
+  });
+  // Dictate — Web Speech API if available
+  const dictateBtn = document.getElementById('pos-dictate-btn');
+  let recognition = null;
+  let recognizing = false;
+  dictateBtn.addEventListener('click', () => {
+    const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Rec) { toast('Voice input not supported in this browser', true); return; }
+    if (recognizing && recognition) { recognition.stop(); return; }
+    recognition = new Rec();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => { recognizing = true; dictateBtn.style.color = 'var(--red-bright)'; };
+    recognition.onend = () => { recognizing = false; dictateBtn.style.color = ''; };
+    recognition.onerror = () => { recognizing = false; dictateBtn.style.color = ''; };
+    recognition.onresult = e => {
+      const txt = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      const ta = document.getElementById('pos-notes');
+      ta.value = (ta.value ? ta.value + ' ' : '') + txt;
+    };
+    recognition.start();
+  });
+  // Image paste — only when modal is open and journal pane visible
+  document.addEventListener('paste', e => {
+    if (!modal.classList.contains('show')) return;
+    if (!document.querySelector('[data-pos-pane="journal"].active')) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.type && it.type.startsWith('image/')) {
+        const file = it.getAsFile();
+        const reader = new FileReader();
+        reader.onload = ev => { POS.playbookImage = ev.target.result; _renderPlaybookImage(); };
+        reader.readAsDataURL(file);
+        e.preventDefault();
+        return;
+      }
+    }
+  });
+  // Click on drop area to open file picker
+  const drop = document.getElementById('pos-playbook-drop');
+  const fileInput = document.getElementById('pos-playbook-file');
+  drop.addEventListener('click', () => fileInput.click());
+  document.getElementById('pos-paste-img-btn').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+  fileInput.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => { POS.playbookImage = ev.target.result; _renderPlaybookImage(); };
+    reader.readAsDataURL(f);
+    e.target.value = '';
+  });
+}
 
 // ---------- Sunday checklist ----------
 function renderSunday() {
@@ -11439,6 +12903,128 @@ function importJSON(file) {
     }
   };
   reader.readAsText(file);
+}
+
+// ---------- TOS Backtest Report Import ----------
+// TOS exports backtest reports as tab-delimited text or CSV. The "Strategy Report" tab
+// includes summary stats (Net Profit, Win %, Number of Trades, etc.) plus trade rows.
+// We extract the summary metrics — leave row-level data for a future enhancement.
+function parseTOSBacktest(rawText, filename) {
+  const text = (rawText || '').replace(/\r/g, '');
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const result = {
+    id: 'bt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name: filename ? filename.replace(/\.(csv|tsv|txt)$/i, '') : null,
+    symbol: null,
+    netProfit: null,
+    winRate: null,
+    trades: null,
+    profitFactor: null,
+    maxDrawdown: null,
+    avgTrade: null,
+    raw: text.length > 200000 ? text.slice(0, 200000) : text,
+    imported_at: new Date().toISOString(),
+  };
+
+  // Try to find a header line that hints at TOS format
+  // TOS strategy reports often start with "ThinkOrSwim Strategy Report" or contain "Symbol"
+  const splitFor = (line) => {
+    if (line.includes('\t')) return line.split('\t');
+    if (line.includes(',')) return line.split(',');
+    return line.split(/\s{2,}/);
+  };
+
+  // Strip quotes/percent/dollar/commas → number
+  const num = v => {
+    if (v == null) return null;
+    let s = String(v).trim().replace(/^["']|["']$/g, '');
+    s = s.replace(/[$,()%\s]/g, m => m === '(' ? '-' : '');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  };
+
+  const findVal = (label) => {
+    const re = new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    for (const line of lines) {
+      if (re.test(line)) {
+        const parts = splitFor(line);
+        // Take last numeric-looking token
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const n = num(parts[i]);
+          if (n !== null) return n;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Common TOS Strategy Report labels
+  result.netProfit    = findVal('Net Profit') ?? findVal('Total Net Profit') ?? findVal('Total Net P/L');
+  result.trades       = findVal('Total Number of Trades') ?? findVal('Number of Trades') ?? findVal('Total Trades') ?? findVal('# of Trades');
+  result.winRate      = findVal('Percent Profitable') ?? findVal('Win Rate') ?? findVal('Profitable %') ?? findVal('% Profitable');
+  result.profitFactor = findVal('Profit Factor');
+  result.maxDrawdown  = findVal('Max Drawdown') ?? findVal('Max. Drawdown');
+  result.avgTrade     = findVal('Avg Trade') ?? findVal('Avg. Trade') ?? findVal('Average Trade');
+
+  // Symbol — look for "Symbol" label or filename clue
+  const symLine = lines.find(l => /^symbol\b/i.test(l));
+  if (symLine) {
+    const parts = splitFor(symLine);
+    const m = parts.find(p => /^[A-Z.]{1,6}$/.test(p.trim()));
+    if (m) result.symbol = m.trim();
+  }
+  if (!result.symbol && filename) {
+    const m = filename.match(/([A-Z]{1,5})/);
+    if (m) result.symbol = m[1];
+  }
+
+  // If we didn't find ANY core metric, treat as failure so caller can warn.
+  if (result.netProfit === null && result.trades === null && result.winRate === null) {
+    return { ok: false, reason: 'Could not detect TOS Strategy Report fields. Make sure the file/text contains rows like "Net Profit", "Total Number of Trades", and "Percent Profitable".' };
+  }
+  return { ok: true, report: result };
+}
+
+function addBacktestReport(report) {
+  if (!state.backtestReports) state.backtestReports = [];
+  state.backtestReports.unshift(report);
+  saveState();
+  if (typeof doPush === 'function') {
+    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+  renderLogStats();
+  toast('Backtest imported');
+}
+
+window.deleteBacktestReport = function(id) {
+  if (!state.backtestReports) return;
+  if (!confirm('Remove this backtest report?')) return;
+  state.backtestReports = state.backtestReports.filter(r => r.id !== id);
+  saveState();
+  renderLogStats();
+  toast('Backtest removed');
+};
+
+function importBacktestFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const parsed = parseTOSBacktest(e.target.result, file.name);
+    if (!parsed.ok) { toast(parsed.reason || 'Could not parse backtest', true); return; }
+    addBacktestReport(parsed.report);
+  };
+  reader.readAsText(file);
+}
+
+function importBacktestFromPaste() {
+  const txt = prompt('Paste your TOS Strategy Report below (tab-delimited or CSV):');
+  if (!txt || !txt.trim()) return;
+  const parsed = parseTOSBacktest(txt, null);
+  if (!parsed.ok) { toast(parsed.reason || 'Could not parse backtest', true); return; }
+  // Ask for an optional name
+  const name = prompt('Give this backtest a name (e.g., "21-EMA Pullback / SPY 2024"):', 'Backtest ' + new Date().toLocaleDateString());
+  if (name) parsed.report.name = name.trim();
+  addBacktestReport(parsed.report);
 }
 
 // ---------- Intraday Mode (5-step flow, mirrors Swing visual structure) ----------
@@ -13629,6 +15215,117 @@ function setTab(name) {
   if (name === 'trade') renderTrade();
 }
 
+// ---------- Ticker Autocomplete (history of traded tickers) ----------
+function _buildTickerHistory() {
+  // Aggregate from trades + recent
+  const map = new Map();
+  (state.trades || []).forEach(t => {
+    const sym = (t.ticker || '').toUpperCase();
+    if (!sym) return;
+    const e = map.get(sym) || { sym, count: 0, lastDate: 0, totalPL: 0 };
+    e.count += 1;
+    const d = t.exit_date || t.date || t.updated_at;
+    const ts = d ? new Date(d).getTime() : 0;
+    if (ts > e.lastDate) e.lastDate = ts;
+    const pl = (typeof calcPL === 'function') ? calcPL(t) : null;
+    if (pl != null) e.totalPL += pl;
+    map.set(sym, e);
+  });
+  (state.recentTickers || []).forEach(sym => {
+    if (!map.has(sym)) map.set(sym, { sym, count: 0, lastDate: Date.now(), totalPL: 0 });
+  });
+  return Array.from(map.values()).sort((a, b) => {
+    // Most-traded first, then most-recent
+    if (b.count !== a.count) return b.count - a.count;
+    return b.lastDate - a.lastDate;
+  });
+}
+
+function rememberTicker(sym) {
+  const s = (sym || '').toUpperCase().trim();
+  if (!s || s.length > 6) return;
+  if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
+  // Move-to-front, dedupe, cap at 30
+  state.recentTickers = [s, ...state.recentTickers.filter(x => x !== s)].slice(0, 30);
+  saveState();
+}
+
+// Wire an input to show ticker autocomplete suggestions. The input must be
+// inside (or wrapped in) a positioned container — we add `.ticker-ac-wrap` if missing.
+function attachTickerAutocomplete(input, opts = {}) {
+  if (!input || input.dataset.acAttached === '1') return;
+  input.dataset.acAttached = '1';
+  // Wrap input so absolute-positioned dropdown anchors to it
+  let wrap = input.parentElement;
+  if (!wrap || !wrap.classList.contains('ticker-ac-wrap')) {
+    wrap = document.createElement('div');
+    wrap.className = 'ticker-ac-wrap';
+    input.parentElement.insertBefore(wrap, input);
+    wrap.appendChild(input);
+  }
+  const list = document.createElement('div');
+  list.className = 'ticker-ac-list';
+  wrap.appendChild(list);
+
+  let activeIdx = -1;
+  let items = [];
+
+  function show() { list.classList.add('show'); }
+  function hide() { list.classList.remove('show'); activeIdx = -1; }
+
+  function renderList(query) {
+    const q = (query || '').toUpperCase().trim();
+    const all = _buildTickerHistory();
+    items = q
+      ? all.filter(e => e.sym.startsWith(q)).slice(0, 8)
+      : all.slice(0, 8);
+    if (!items.length) {
+      list.innerHTML = `<div class="ticker-ac-empty">No prior trades${q ? ' for "' + q + '"' : ''} yet.</div>`;
+      return;
+    }
+    const heading = q ? 'Matches' : 'Recent tickers';
+    list.innerHTML = `<div class="ticker-ac-section">${heading}</div>` + items.map((e, i) => {
+      const plClass = e.totalPL > 0 ? 'pl-pos' : e.totalPL < 0 ? 'pl-neg' : '';
+      const plStr = e.count ? `<span class="${plClass}">${e.totalPL >= 0 ? '+' : '-'}$${Math.abs(e.totalPL).toFixed(0)}</span>` : '';
+      return `<div class="ticker-ac-item ${i === activeIdx ? 'active' : ''}" data-idx="${i}">
+        <span class="ticker-ac-symbol">${e.sym}</span>
+        <span class="ticker-ac-meta">
+          ${e.count ? `<span>${e.count} trade${e.count === 1 ? '' : 's'}</span>` : '<span>recent</span>'}
+          ${plStr}
+        </span>
+      </div>`;
+    }).join('');
+  }
+
+  function pick(sym) {
+    input.value = sym;
+    rememberTicker(sym);
+    hide();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof opts.onPick === 'function') opts.onPick(sym);
+  }
+
+  input.addEventListener('focus', () => { renderList(input.value); show(); });
+  input.addEventListener('input', () => { renderList(input.value); show(); });
+  input.addEventListener('keydown', e => {
+    if (!list.classList.contains('show') || !items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); renderList(input.value); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); renderList(input.value); }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); pick(items[activeIdx].sym); }
+    else if (e.key === 'Escape') hide();
+  });
+  input.addEventListener('blur', () => {
+    // Delay to let click on item land before hiding
+    setTimeout(hide, 150);
+    rememberTicker(input.value);
+  });
+  list.addEventListener('mousedown', e => {
+    const it = e.target.closest('.ticker-ac-item');
+    if (it) { e.preventDefault(); pick(items[parseInt(it.dataset.idx, 10)].sym); }
+  });
+}
+
 // ---------- Init ----------
 function init() {
   loadState();
@@ -13707,8 +15404,8 @@ function init() {
     el.addEventListener('click', () => selectSetup(el.dataset.setup));
   });
 
-  // Instrument toggle (Options vs Stocks)
-  document.querySelectorAll('.instrument-btn').forEach(btn => {
+  // Instrument toggle (Options vs Stocks) — both legacy cards and the new prominent pills
+  document.querySelectorAll('.instrument-btn, .flow-instrument-pill').forEach(btn => {
     btn.addEventListener('click', () => selectInstrument(btn.dataset.instrument));
   });
 
@@ -13730,6 +15427,12 @@ function init() {
     renderGate();
     recomputeStepStates();
   });
+  // Ticker autocomplete: swing flow ticker input + intraday + edit modal
+  attachTickerAutocomplete(document.getElementById('ticker-input'), {
+    onPick: sym => { state.ticker = sym; saveState(); renderGate(); recomputeStepStates(); }
+  });
+  attachTickerAutocomplete(document.getElementById('i-ticker'));
+  attachTickerAutocomplete(document.getElementById('t-ticker'));
   document.getElementById('sa-quant-input').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
     state.saQuant = isNaN(v) ? null : v;
@@ -13832,6 +15535,21 @@ function init() {
     e.target.value = '';
   });
 
+  // TOS backtest import — buttons are inside re-rendered stats card, so use delegation.
+  document.getElementById('panel-log')?.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-import-backtest-file')) {
+      document.getElementById('backtest-file-input')?.click();
+    } else if (e.target.closest('#btn-import-backtest-paste')) {
+      importBacktestFromPaste();
+    }
+  });
+  document.getElementById('panel-log')?.addEventListener('change', (e) => {
+    if (e.target.id === 'backtest-file-input' && e.target.files[0]) {
+      importBacktestFromFile(e.target.files[0]);
+      e.target.value = '';
+    }
+  });
+
   // Log mode filter
   const logFilter = document.getElementById('log-mode-filter');
   if (logFilter) {
@@ -13863,6 +15581,8 @@ function init() {
   document.getElementById('modal-add').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeTradeModal();
   });
+  // Position editor modal (Execution Manager + Journal)
+  if (typeof _wirePositionEditor === 'function') _wirePositionEditor();
   document.getElementById('btn-save-trade').addEventListener('click', saveTrade);
   document.getElementById('btn-delete-trade').addEventListener('click', deleteTrade);
   document.getElementById('t-mode').addEventListener('change', e => {
@@ -13879,6 +15599,10 @@ function init() {
   // Trade grade segmented control
   document.querySelectorAll('.grade-btn').forEach(btn => {
     btn.addEventListener('click', () => setTradeGrade(btn.dataset.grade));
+  });
+  // Modal-internal Stock vs Option toggle
+  document.querySelectorAll('#t-instrument-row .flow-instrument-pill').forEach(btn => {
+    btn.addEventListener('click', () => setTradeInstrument(btn.dataset.tInstrument));
   });
   // Live-refresh the Review summary card whenever Entry inputs change
   ['t-ticker','t-mode','t-date','t-setup','t-direction','t-entry','t-contracts','t-stop','t-ivr','t-regime']
