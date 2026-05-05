@@ -7318,8 +7318,22 @@ const INTRADAY_SETUPS = [
 function newIntradayTicket() {
   return {
     ticker: '', direction: 'long', setup: null,
+    // Levels
     entry: null, stop: null, target: null,
-    contracts: null, spreadPct: null, vwapRel: '', notes: '',
+    // Sizing
+    contracts: null, spreadPct: null,
+    // ThinkScript-aligned context fields
+    orbType:   '30',   // 5 / 15 / 30 — only meaningful when setup.isOrb
+    orHi:      null,   // OR_HI from MAC_Intraday_ORB_Cloud alert
+    orLo:      null,   // OR_LO
+    orRng:     null,   // RNG (= orHi - orLo)
+    confluence: '',    // 'long-bias' | 'short-bias' | 'mixed' | ''
+    breadth:    '',    // 'up' | 'flat' | 'down' | ''
+    vwapValue:  null,  // VWAP price at entry — purely for the log
+    // Legacy field — vwapRel lives on for state migrations until trades are
+    // re-recorded against the new schema. New flow uses confluence instead.
+    vwapRel: '',
+    notes: '',
   };
 }
 
@@ -7431,6 +7445,22 @@ function loadState() {
       if (state.liquidity.bid === undefined) state.liquidity.bid = null;
       if (state.liquidity.ask === undefined) state.liquidity.ask = null;
       if (!state.intraday) state.intraday = newIntradayTicket();
+      // Migrate older intraday drafts to the ThinkScript-aligned schema:
+      // remap legacy setup ids and backfill the new fields with defaults.
+      if (state.intraday) {
+        const it = state.intraday;
+        if (it.setup && typeof TRADE_INTRADAY_LEGACY_MAP !== 'undefined' && TRADE_INTRADAY_LEGACY_MAP[it.setup]) {
+          it.setup = TRADE_INTRADAY_LEGACY_MAP[it.setup];
+        }
+        if (it.orbType    === undefined) it.orbType    = '30';
+        if (it.orHi       === undefined) it.orHi       = null;
+        if (it.orLo       === undefined) it.orLo       = null;
+        if (it.orRng      === undefined) it.orRng      = null;
+        if (it.confluence === undefined) it.confluence = '';
+        if (it.breadth    === undefined) it.breadth    = '';
+        if (it.vwapValue  === undefined) it.vwapValue  = null;
+        if (it.vwapRel    === undefined) it.vwapRel    = '';
+      }
       // Migrate older state without instrument field
       if (!state.instrument) state.instrument = 'options';
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
@@ -10566,13 +10596,18 @@ const TRADE_SWING_SETUPS = [
   { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true },
 ];
 
+// Intraday setups now mirror the user's ThinkScript outputs exactly:
+//   - ORB UP-BREAK / ORB DN-BREAK            ← MAC_Intraday_ORB_Cloud
+//   - ABOVE VWAP UP / BELOW VWAP DN          ← MAC_Intraday_Setup_Column
+//   - VWAP MEAN-RV                            ← Setup_Column amber state
+// Each pattern has a `bias` so the direction toggle can auto-align (long
+// for UP variants, short for DN variants, free for MEAN-RV).
 const TRADE_INTRADAY_SETUPS = [
-  { id: 'orb-break',    num: '01', name: 'ORB Break',          desc: '30-min opening range high/low break with volume.' },
-  { id: 'orb-retest',   num: '02', name: 'ORB Retest',         desc: 'Pullback to opening range break level.' },
-  { id: 'vwap-reclaim', num: '03', name: 'VWAP Reclaim',       desc: 'Long only. Reclaim of VWAP after morning pullback.' },
-  { id: 'vwap-loss',    num: '04', name: 'VWAP Loss',          desc: 'Short only. Loss of VWAP on volume.' },
-  { id: 'momo-edge',    num: '05', name: 'Momentum Edge',      desc: 'Edge Scan signal (5m). Continuation expected.' },
-  { id: 'trend-cont',   num: '06', name: 'Trend Continuation', desc: 'Pullback to EMA in established intraday trend.' },
+  { id: 'orb-up-break',  num: '01', name: 'ORB UP-BREAK',  desc: 'Break above the opening range high.', bias: 'long',  isOrb: true },
+  { id: 'orb-dn-break',  num: '02', name: 'ORB DN-BREAK',  desc: 'Break below the opening range low.',  bias: 'short', isOrb: true },
+  { id: 'above-vwap-up', num: '03', name: 'ABOVE VWAP UP', desc: 'Above VWAP, EMA stack bullish, momentum up.', bias: 'long' },
+  { id: 'below-vwap-dn', num: '04', name: 'BELOW VWAP DN', desc: 'Below VWAP, EMA stack bearish, momentum down.', bias: 'short' },
+  { id: 'vwap-mean-rv',  num: '05', name: 'VWAP MEAN-RV',  desc: 'Within 0.25% of VWAP — fade extremes back to mean.', bias: 'either' },
 ];
 
 const TRADE_SETUP_TEMPLATES = {
@@ -10582,14 +10617,48 @@ const TRADE_SETUP_TEMPLATES = {
   'Breakout Retest':  { thesis: 'Retest of broken resistance now acting as support; expecting continuation higher.', preMortem: 'Loses if support level fails on volume — base is broken.' },
   '9-EMA Reclaim':    { thesis: 'Reclaim of 9-EMA after intraday wick; dip-buyers defended — expecting trend resumption.', preMortem: 'Loses if it closes below 9-EMA again — dip-buyers gave up.' },
   'Edge Reversal':    { thesis: 'Counter-trend reversal at trend exhaustion; HALF size — playing for mean reversion.', preMortem: 'Loses if trend continues against me — counter-trend trades fail more often.' },
-  // intraday
-  'orb-break':    { thesis: 'Break of opening range on volume; expecting day-trend continuation.', preMortem: 'Loses on a fade back inside the range — false break.' },
-  'orb-retest':   { thesis: 'Retest of opening range break level; expecting continuation in the break direction.', preMortem: 'Loses if level fails on volume — fakeout.' },
-  'vwap-reclaim': { thesis: 'Reclaim of VWAP after morning pullback; long-side bias.', preMortem: 'Loses if it gives back VWAP — control flipped to sellers.' },
-  'vwap-loss':    { thesis: 'Loss of VWAP on volume; short-side bias.', preMortem: 'Loses if it reclaims VWAP — buyers stepped in.' },
-  'momo-edge':    { thesis: 'Momentum Edge Scan signal; expecting continuation on 5-min timeframe.', preMortem: 'Loses if signal fails on next bar close — edge gone.' },
-  'trend-cont':   { thesis: 'Pullback to EMA in established intraday trend; expecting trend continuation.', preMortem: 'Loses if EMA fails to hold — trend broken.' },
+  // intraday — aligned with ThinkScript labels
+  'orb-up-break':  { thesis: 'Break above opening range high on volume; expecting day-trend continuation.', preMortem: 'Loses on a fade back inside the range — false break.' },
+  'orb-dn-break':  { thesis: 'Break below opening range low on volume; expecting day-trend continuation lower.', preMortem: 'Loses on a fade back inside the range — false break.' },
+  'above-vwap-up': { thesis: 'Above VWAP with EMA9 > EMA21 and momentum up — long bias confirmed.', preMortem: 'Loses if it gives back VWAP — buyers lose control.' },
+  'below-vwap-dn': { thesis: 'Below VWAP with EMA9 < EMA21 and momentum down — short bias confirmed.', preMortem: 'Loses if it reclaims VWAP — sellers lose control.' },
+  'vwap-mean-rv':  { thesis: 'Price within 0.25% of VWAP — fading the extreme back to the mean.', preMortem: 'Loses if it breaks away from VWAP on volume — trend overrides mean reversion.' },
 };
+
+// Old intraday setup ids (orb-break, orb-retest, vwap-reclaim, vwap-loss,
+// momo-edge, trend-cont). We migrate the *current draft* to the closest
+// new id; historical trade records keep their original setup names so the
+// log doesn't lose meaning.
+const TRADE_INTRADAY_LEGACY_MAP = {
+  'orb-break':    'orb-up-break',   // most common direction; user can swap
+  'orb-retest':   'orb-up-break',
+  'vwap-reclaim': 'above-vwap-up',
+  'vwap-loss':    'below-vwap-dn',
+  'momo-edge':    'above-vwap-up',
+  'trend-cont':   'above-vwap-up',
+};
+
+// Breakout-type chips for ORB patterns — match the input {default "30","15","5"}
+// in MAC_Intraday_ORB_Cloud_v3. Default 30 to match the script's default.
+const TRADE_ORB_TYPES = [
+  { id: '5',  label: '5-min' },
+  { id: '15', label: '15-min' },
+  { id: '30', label: '30-min' },
+];
+
+// Confluence chip values — match the labels in MAC_Intraday_VWAP_Confluence_v2.
+const TRADE_CONFLUENCE_OPTIONS = [
+  { id: 'long-bias',  label: 'LONG BIAS',  bias: 'long' },
+  { id: 'mixed',      label: 'MIXED',      bias: 'either' },
+  { id: 'short-bias', label: 'SHORT BIAS', bias: 'short' },
+];
+
+// Breadth chip values — match MAC_Intraday_Breadth_Label_v2.
+const TRADE_BREADTH_OPTIONS = [
+  { id: 'up',   label: 'BREADTH UP' },
+  { id: 'flat', label: 'BREADTH FLAT' },
+  { id: 'down', label: 'BREADTH DOWN' },
+];
 
 // Compute rolling P/L over last N days — delegates to the canonical
 // computeRollingPL (kept as alias so the trade flow doesn't depend on
