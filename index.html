@@ -5116,6 +5116,111 @@ textarea.input-field {
 #panel-trade .trade-action-chevron { font-size: 18px; line-height: 1; }
 
 /* templates dropdown for thesis */
+/* ---- ThinkScript-aligned chips, bias tags, smart-paste ---- */
+#panel-trade .tf-chip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#panel-trade .tf-chip-row + .tf-chip-row { margin-top: 6px; }
+#panel-trade .tf-chip-row-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+#panel-trade .tf-chip {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+  text-transform: uppercase;
+}
+#panel-trade .tf-chip:hover { border-color: var(--cyan-dim); color: var(--ink); }
+#panel-trade .tf-chip.selected { border-color: var(--cyan); color: var(--ink); background: rgba(6, 212, 248, 0.06); }
+#panel-trade .tf-chip.selected.long  { border-color: var(--green); background: var(--green-bg); color: var(--green-bright); }
+#panel-trade .tf-chip.selected.short { border-color: var(--red);   background: var(--red-bg);   color: var(--red-bright); }
+#panel-trade .tf-chip.selected.neutral { border-color: var(--amber-dim); background: var(--amber-bg); color: var(--amber-bright); }
+
+/* Bias tag inside the setup card num row (LONG / SHORT / EITHER) */
+#panel-trade .tf-bias-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+#panel-trade .tf-bias-tag.long    { background: var(--green-bg); color: var(--green-bright); border: 1px solid var(--green-dim); }
+#panel-trade .tf-bias-tag.short   { background: var(--red-bg);   color: var(--red-bright);   border: 1px solid var(--red-dim); }
+#panel-trade .tf-bias-tag.neutral { background: var(--amber-bg); color: var(--amber-bright); border: 1px solid var(--amber-dim); }
+
+/* Smart-paste icon button + collapsible textarea wrap */
+#panel-trade .tf-paste-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all .15s;
+}
+#panel-trade .tf-paste-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.04); }
+#panel-trade .tf-paste-icon { font-size: 13px; line-height: 1; }
+#panel-trade .tf-paste-wrap {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elev);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}
+#panel-trade .tf-paste-wrap[hidden] { display: none; }
+#panel-trade .tf-paste-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+#panel-trade .tf-paste-actions .btn-primary,
+#panel-trade .tf-paste-actions .btn-ghost {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+#panel-trade .tf-paste-hint {
+  font-size: 11px;
+  color: var(--ink-4);
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 720px) {
+  #panel-trade .tf-chip { padding: 5px 10px; font-size: 10px; }
+  #panel-trade .tf-paste-btn { padding: 5px 8px; font-size: 9px; }
+}
+
 /* ---- intraday single-screen group dividers ---- */
 #panel-trade .trade-step-group {
   position: relative;
@@ -10548,7 +10653,16 @@ function logIntradayTrade() {
     target: t.target,
     contracts: contracts,
     spreadPct: t.spreadPct,
-    vwapRel: t.vwapRel,
+    // Legacy field — kept for older trade rows that may still be pulling it.
+    vwapRel: t.vwapRel || '',
+    // ThinkScript-aligned context (recorded for review, not blocking GO).
+    orbType:    t.orbType || null,
+    orHi:       t.orHi    ?? null,
+    orLo:       t.orLo    ?? null,
+    orRng:      t.orRng   ?? null,
+    confluence: t.confluence || '',
+    breadth:    t.breadth    || '',
+    vwapValue:  t.vwapValue  ?? null,
     notes: t.notes,
     riskDollars: state.settings.intradayRiskPerTrade,
     inWindow: isInIntradayWindow(),
@@ -10731,25 +10845,34 @@ function tfComputeStatus() {
 
   if (m === 'intraday') {
     const it = state.intraday || {};
-    // 1 Setup — ticker / direction / setup / VWAP relation
-    if (!it.ticker)    return { tone: 'progress', reason: 'Add ticker',        step: 1 };
-    if (!it.direction) return { tone: 'progress', reason: 'Pick direction',    step: 1 };
-    if (!it.setup)     return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
-    if (!it.vwapRel)   return { tone: 'progress', reason: 'Set VWAP relation', step: 1 };
-    if (it.vwapRel === 'above' && it.direction === 'short') return { tone: 'blocked', reason: 'Short + Above VWAP — mismatch', step: 1 };
-    if (it.vwapRel === 'below' && it.direction === 'long')  return { tone: 'blocked', reason: 'Long + Below VWAP — mismatch',  step: 1 };
-    // 2 Plan — entry / stop / target
+    const setupDef = (typeof tfFindIntradaySetup === 'function') ? tfFindIntradaySetup(it.setup) : null;
+
+    // 1 Pattern — ticker / setup / direction (+ direction-vs-setup-bias)
+    if (!it.ticker)    return { tone: 'progress', reason: 'Add ticker',     step: 1 };
+    if (!it.setup)     return { tone: 'progress', reason: 'Pick a setup',   step: 1 };
+    if (!it.direction) return { tone: 'progress', reason: 'Pick direction', step: 1 };
+    if (setupDef && setupDef.bias !== 'either' && it.direction !== setupDef.bias) {
+      return { tone: 'blocked', reason: `${setupDef.name} expects ${setupDef.bias.toUpperCase()}`, step: 1 };
+    }
+    // 2 Levels — entry / stop / target
     if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
     if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
     if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    // 3 Size — spread% (drives liquidity check) + optional contracts
+    // 3 Sizing — spread% (drives liquidity check) + optional contracts
     if (it.spreadPct === null || it.spreadPct === undefined || it.spreadPct === '') {
       return { tone: 'progress', reason: 'Add spread %', step: 3 };
     }
     if (Number(it.spreadPct) > s.intradayMaxSpreadPct) {
       return { tone: 'blocked', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
     }
-    // 4 Verify — window + loss budget
+    // 4 Checklist — confluence-vs-direction conflict (only when chip is set), window, loss budget
+    if (it.confluence) {
+      const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
+        ? TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) : null;
+      if (confDef && confDef.bias !== 'either' && it.direction !== confDef.bias) {
+        return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 4 };
+      }
+    }
     const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
     if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
       return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 4 };
@@ -11090,27 +11213,30 @@ function tfStepCompletion() {
     return c;
   }
 
-  // Intraday — same 5-step skeleton, lighter content per step.
+  // Intraday — same 5-section skeleton, single-screen render. The flow is
+  // never "navigated" but completion still drives chip checkmarks above
+  // the GO button and the gate-row jump targets.
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
 
-  // 1 Setup — ticker + direction + setup + VWAP relation.
-  c[0] = !!(it.ticker && it.direction && it.setup && it.vwapRel);
+  // 1 Pattern — ticker + setup + direction. Direction is auto-aligned but
+  // we still want it set, so we count it.
+  c[0] = !!(it.ticker && it.setup && it.direction);
 
-  // 2 Plan — entry / stop / target.
+  // 2 Levels — entry / stop / target.
   c[1] = !!(it.entry && it.stop && it.target);
 
-  // 3 Size — spread% must be entered (and within cap to be 'green' here).
+  // 3 Sizing — spread% must be entered (and within cap to be 'green' here).
   const spreadOk = it.spreadPct !== null && it.spreadPct !== undefined
                 && Number(it.spreadPct) >= 0
                 && Number(it.spreadPct) <= settings.intradayMaxSpreadPct;
   c[2] = !!(spreadOk);
 
-  // 4 Verify — quality checks pass (status not blocked).
+  // 4 Checklist — quality checks pass (status not blocked).
   const st = tfComputeStatus();
   c[3] = c[0] && c[1] && c[2] && st.tone !== 'blocked';
 
-  // 5 Execute — everything ready.
+  // 5 Log — everything ready.
   c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
   return c;
 }
@@ -11914,48 +12040,143 @@ function tfMountSwingStep5() {
   });
 }
 
-// ----- Intraday steps -----
-// 4 steps: 1 Setup → 2 Plan → 3 Verify → 4 Execute. Each step has all the
-// inputs it needs co-located with the gate(s) those inputs drive.
+// ----- Intraday steps (single-screen) -----
+// 5 sections: 1 Pattern → 2 Levels → 3 Sizing → 4 Checklist → 5 Log.
+// All rendered on one page; user Tabs through every input. Layout aligned
+// with the user's ThinkScript outputs so chart labels map 1:1 to fields.
 
+// Lookup helper: returns the intraday setup definition (with bias + isOrb).
+function tfFindIntradaySetup(id) {
+  return TRADE_INTRADAY_SETUPS.find(s => s.id === id) || null;
+}
+
+// Smart paste — parses TOS alert text from the user's MAC_Intraday_*
+// scripts. Each regex matches one of the labels those studies emit.
+function tfParseIntradayPaste(text) {
+  const out = {};
+  const t = (text || '').toUpperCase();
+
+  // Setup pattern (priority order matters: ORB matches first)
+  if      (/ORB\s+UP[\s-]?BREAK/.test(t))   out.setup = 'orb-up-break';
+  else if (/ORB\s+DN[\s-]?BREAK/.test(t))   out.setup = 'orb-dn-break';
+  else if (/ABOVE\s+VWAP\s+UP/.test(t))     out.setup = 'above-vwap-up';
+  else if (/BELOW\s+VWAP\s+DN/.test(t))     out.setup = 'below-vwap-dn';
+  else if (/VWAP\s+MEAN[\s-]?RV/.test(t))   out.setup = 'vwap-mean-rv';
+
+  // Confluence label (MAC_Intraday_VWAP_Confluence_v2)
+  if      (/LONG\s+BIAS/.test(t))           out.confluence = 'long-bias';
+  else if (/SHORT\s+BIAS/.test(t))          out.confluence = 'short-bias';
+  else if (/INTRADAY:\s*MIXED/.test(t))     out.confluence = 'mixed';
+
+  // Breadth label (MAC_Intraday_Breadth_Label_v2)
+  if      (/BREADTH\s+UP/.test(t))          out.breadth = 'up';
+  else if (/BREADTH\s+DOWN/.test(t))        out.breadth = 'down';
+  else if (/BREADTH\s+FLAT/.test(t))        out.breadth = 'flat';
+
+  // ORB cloud alert numbers — case-insensitive match against original text.
+  const mHi  = text && text.match(/OR[_\s]HI\s*[=:]\s*([0-9.]+)/i);
+  const mLo  = text && text.match(/OR[_\s]LO\s*[=:]\s*([0-9.]+)/i);
+  const mRng = text && text.match(/\bRNG\s*[=:]\s*([0-9.]+)/i);
+  if (mHi)  out.orHi  = parseFloat(mHi[1]);
+  if (mLo)  out.orLo  = parseFloat(mLo[1]);
+  if (mRng) out.orRng = parseFloat(mRng[1]);
+
+  // VWAP price value (label: "VWAP: 486.50" or "VWAP=486.50")
+  const mVwap = text && text.match(/\bVWAP\s*[=:]\s*([0-9.]+)/i);
+  if (mVwap) out.vwapValue = parseFloat(mVwap[1]);
+
+  // Ticker — explicit "TICKER=SPY" or "SYM=SPY" key.
+  const mTk = text && text.match(/(?:TICKER|SYMBOL|SYM)\s*[=:]\s*([A-Z]{1,6})/i);
+  if (mTk) out.ticker = mTk[1].toUpperCase();
+
+  return out;
+}
+
+function tfApplyIntradayPaste(parsed) {
+  if (!state.intraday) state.intraday = newIntradayTicket();
+  const it = state.intraday;
+  if (parsed.ticker)     it.ticker = parsed.ticker;
+  if (parsed.setup) {
+    it.setup = parsed.setup;
+    // Auto-align direction with setup's bias (long/short patterns only).
+    const def = tfFindIntradaySetup(parsed.setup);
+    if (def && def.bias === 'long')  it.direction = 'long';
+    if (def && def.bias === 'short') it.direction = 'short';
+  }
+  if (parsed.confluence) it.confluence = parsed.confluence;
+  if (parsed.breadth)    it.breadth = parsed.breadth;
+  if (parsed.orHi  !== undefined) it.orHi  = parsed.orHi;
+  if (parsed.orLo  !== undefined) it.orLo  = parsed.orLo;
+  if (parsed.orRng !== undefined) it.orRng = parsed.orRng;
+  // Derive RNG when only the two endpoints came in.
+  if (parsed.orHi !== undefined && parsed.orLo !== undefined && parsed.orRng === undefined) {
+    it.orRng = +(parsed.orHi - parsed.orLo).toFixed(2);
+  }
+  if (parsed.vwapValue !== undefined) it.vwapValue = parsed.vwapValue;
+  saveState();
+}
+
+// Section 1 — Pattern. Ticker + setup pattern + direction + breakout type
+// (only when the picked pattern is an ORB variant). Smart-paste icon in
+// the top section header expands an inline alert-text textarea.
 function tfIntradayStep1() {
   const it = state.intraday || {};
-  const cards = TRADE_INTRADAY_SETUPS.map(s => `
+  const setupDef = tfFindIntradaySetup(it.setup);
+  const isOrb = !!(setupDef && setupDef.isOrb);
+  const cards = TRADE_INTRADAY_SETUPS.map(s => {
+    const biasTag = s.bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
+                  : s.bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
+                                       : '<span class="tf-bias-tag neutral">EITHER</span>';
+    return `
     <button class="trade-setup-card ${it.setup === s.id ? 'selected' : ''}" type="button" data-tf-i-setup="${s.id}">
-      <span class="trade-setup-card-num">INTRADAY ${s.num}</span>
+      <span class="trade-setup-card-num">${s.num} · ${biasTag}</span>
       <span class="trade-setup-card-name">${s.name}</span>
       <span class="trade-setup-card-detail">${s.desc}</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
+
+  const orbChips = isOrb ? `
+    <div class="tf-chip-row" id="tf-i-orb-chips">
+      <span class="tf-chip-row-label">Range:</span>
+      ${TRADE_ORB_TYPES.map(o => `
+        <button type="button" class="tf-chip ${(it.orbType || '30') === o.id ? 'selected' : ''}" data-tf-i-orb-type="${o.id}">${o.label}</button>
+      `).join('')}
+    </div>` : '';
+
   const dirLong  = it.direction === 'long';
   const dirShort = it.direction === 'short';
-  const vrLong   = it.vwapRel === 'above';
-  const vrShort  = it.vwapRel === 'below';
-  const vrAt     = it.vwapRel === 'at';
+  const dirHint  = setupDef
+    ? (setupDef.bias === 'long'  ? 'Auto-aligned LONG by the setup.'
+     : setupDef.bias === 'short' ? 'Auto-aligned SHORT by the setup.'
+     :                             'MEAN-RV — pick the direction yourself.')
+    : 'Pick a setup above to auto-align direction.';
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
-          <div class="trade-section-subtitle">What are you trading and which way? Direction must match the VWAP relation below.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker</div>
+          <div class="trade-section-subtitle">Symbol you're trading. Smart paste reads TOS alert text and fills the fields below.</div>
         </div>
-        <div class="trade-section-counter ${it.ticker && it.direction ? 'complete' : ''}">${it.ticker && it.direction ? 'set' : 'fill 2'}</div>
+        <button type="button" class="tf-paste-btn" id="tf-i-paste-toggle" title="Paste a TOS alert message">
+          <span class="tf-paste-icon">⎘</span>
+          <span>Paste alert</span>
+        </button>
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Ticker</label>
-              <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY"
-                value="${(it.ticker || '').toString()}" autocomplete="off" style="text-transform: uppercase;" />
-            </div>
+        <div class="tf-paste-wrap" id="tf-i-paste-wrap" hidden>
+          <textarea class="trade-textarea" id="tf-i-paste-input" rows="3" placeholder="Paste TOS alert / chart label text. Example:&#10;ORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45&#10;INTRADAY: LONG BIAS (above VWAP + EMA stack) | VWAP: 486.50 | Diff: 0.12%&#10;BREADTH UP"></textarea>
+          <div class="tf-paste-actions">
+            <button type="button" class="btn-primary" id="tf-i-paste-apply">Apply</button>
+            <button type="button" class="btn-ghost" id="tf-i-paste-clear">Clear</button>
+            <span class="tf-paste-hint" id="tf-i-paste-hint">Reads ORB / VWAP / BREADTH labels and OR_HI / OR_LO / RNG / VWAP values.</span>
           </div>
+        </div>
+        <div class="trade-input-row" style="grid-template-columns: 1fr;">
           <div>
-            <label class="input-label">Direction</label>
-            <div class="trade-direction-toggle">
-              <button type="button" class="trade-direction-btn long ${dirLong ? 'selected' : ''}" data-tf-i-dir="long">▲ LONG</button>
-              <button type="button" class="trade-direction-btn short ${dirShort ? 'selected' : ''}" data-tf-i-dir="short">▼ SHORT</button>
-            </div>
+            <label class="input-label">Ticker</label>
+            <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY"
+              value="${(it.ticker || '').toString()}" autocomplete="off" style="text-transform: uppercase;" />
           </div>
         </div>
         <div id="tf-i-ticker-memory">${tfRenderTickerMemoryHtml(it.ticker)}</div>
@@ -11966,28 +12187,28 @@ function tfIntradayStep1() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Setup pattern</div>
-          <div class="trade-section-subtitle">One of 6 approved intraday patterns.</div>
+          <div class="trade-section-subtitle">Mirrors the labels from your ThinkScript Setup column &amp; ORB cloud.</div>
         </div>
         <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid">${cards}</div>
+        ${orbChips}
       </div>
     </div>
 
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> VWAP relation</div>
-          <div class="trade-section-subtitle">Long needs Above/At VWAP. Short needs Below/At VWAP. Mismatches block GO.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Direction</div>
+          <div class="trade-section-subtitle">${dirHint}</div>
         </div>
-        <div class="trade-section-counter ${it.vwapRel ? 'complete' : ''}">${it.vwapRel ? 'set' : 'pick 1'}</div>
+        <div class="trade-section-counter ${it.direction ? 'complete' : ''}">${it.direction ? it.direction.toUpperCase() : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-          <button type="button" class="trade-direction-btn ${vrLong ? 'long selected' : ''}" data-tf-i-vwap="above" ${dirShort ? 'disabled' : ''}>Above VWAP</button>
-          <button type="button" class="trade-direction-btn ${vrAt ? 'selected' : ''}" data-tf-i-vwap="at">At VWAP</button>
-          <button type="button" class="trade-direction-btn ${vrShort ? 'short selected' : ''}" data-tf-i-vwap="below" ${dirLong ? 'disabled' : ''}>Below VWAP</button>
+        <div class="trade-direction-toggle">
+          <button type="button" class="trade-direction-btn long ${dirLong ? 'selected' : ''}" data-tf-i-dir="long">▲ LONG</button>
+          <button type="button" class="trade-direction-btn short ${dirShort ? 'selected' : ''}" data-tf-i-dir="short">▼ SHORT</button>
         </div>
       </div>
     </div>
@@ -11995,6 +12216,49 @@ function tfIntradayStep1() {
 }
 
 function tfMountIntradayStep1() {
+  // Smart-paste toggle + apply.
+  const pasteToggle = document.getElementById('tf-i-paste-toggle');
+  const pasteWrap   = document.getElementById('tf-i-paste-wrap');
+  if (pasteToggle && pasteWrap) {
+    pasteToggle.addEventListener('click', () => {
+      pasteWrap.hidden = !pasteWrap.hidden;
+      if (!pasteWrap.hidden) {
+        const ta = document.getElementById('tf-i-paste-input');
+        if (ta) { try { ta.focus(); } catch (_) {} }
+      }
+    });
+  }
+  const pasteApply = document.getElementById('tf-i-paste-apply');
+  if (pasteApply) {
+    pasteApply.addEventListener('click', () => {
+      const ta = document.getElementById('tf-i-paste-input');
+      const hint = document.getElementById('tf-i-paste-hint');
+      if (!ta) return;
+      const parsed = tfParseIntradayPaste(ta.value);
+      const keys = Object.keys(parsed);
+      if (!keys.length) {
+        if (hint) { hint.textContent = 'No recognizable values found.'; hint.style.color = 'var(--amber-bright)'; }
+        return;
+      }
+      tfApplyIntradayPaste(parsed);
+      if (hint) {
+        hint.textContent = `Applied ${keys.length} value${keys.length === 1 ? '' : 's'}: ${keys.join(', ')}.`;
+        hint.style.color = 'var(--green-bright)';
+      }
+      tfRefreshAll();
+    });
+  }
+  const pasteClear = document.getElementById('tf-i-paste-clear');
+  if (pasteClear) {
+    pasteClear.addEventListener('click', () => {
+      const ta = document.getElementById('tf-i-paste-input');
+      const hint = document.getElementById('tf-i-paste-hint');
+      if (ta) ta.value = '';
+      if (hint) { hint.textContent = 'Reads ORB / VWAP / BREADTH labels and OR_HI / OR_LO / RNG / VWAP values.'; hint.style.color = ''; }
+    });
+  }
+
+  // Ticker input + history snapshot (per Phase-2 ticker-memory feature).
   const t = document.getElementById('tf-i-ticker');
   if (t) {
     t.addEventListener('input', e => {
@@ -12004,8 +12268,10 @@ function tfMountIntradayStep1() {
       tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
     });
   }
-  // Bind ticker pill clicks rendered initially.
   tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
+
+  // Direction toggle — manual override allowed even if it conflicts with
+  // the setup's bias (status pill will surface the mismatch).
   document.querySelectorAll('#panel-trade [data-tf-i-dir]').forEach(b => {
     b.addEventListener('click', () => {
       state.intraday.direction = b.dataset.tfIDir;
@@ -12013,24 +12279,31 @@ function tfMountIntradayStep1() {
       tfRefreshAll();
     });
   });
-  document.querySelectorAll('#panel-trade [data-tf-i-vwap]').forEach(b => {
+
+  // Setup pattern — auto-align direction with bias on first pick.
+  document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
     b.addEventListener('click', () => {
-      if (b.disabled) return;
-      state.intraday.vwapRel = b.dataset.tfIVwap;
+      const id = b.dataset.tfISetup;
+      state.intraday.setup = id;
+      const def = tfFindIntradaySetup(id);
+      if (def && def.bias === 'long')  state.intraday.direction = 'long';
+      if (def && def.bias === 'short') state.intraday.direction = 'short';
       saveState();
       tfRefreshAll();
     });
   });
-  document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
+
+  // ORB type chips (only present when setup is an ORB variant).
+  document.querySelectorAll('#panel-trade [data-tf-i-orb-type]').forEach(b => {
     b.addEventListener('click', () => {
-      state.intraday.setup = b.dataset.tfISetup;
+      state.intraday.orbType = b.dataset.tfIOrbType;
       saveState();
       tfRefreshAll();
     });
   });
 }
 
-// ----- Intraday step 2 — Plan: levels only -----
+// ----- Intraday step 2 — Levels (entry/stop/target + optional ORB OR levels) -----
 function tfIntradayStep2() {
   const it = state.intraday || {};
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
@@ -12042,6 +12315,41 @@ function tfIntradayStep2() {
     : null;
   const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
   const rGood = r !== null && isFinite(r) && r >= 1.5;
+
+  const setupDef = tfFindIntradaySetup(it.setup);
+  const isOrb = !!(setupDef && setupDef.isOrb);
+  const orFilledN = [filled(it.orHi), filled(it.orLo), filled(it.orRng)].filter(Boolean).length;
+
+  // ORB section is optional ("bypass if not shown" — only present when an
+  // ORB pattern is the picked setup, and even then the user can leave it
+  // empty without blocking GO).
+  const orSection = isOrb ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Opening Range levels</div>
+          <div class="trade-section-subtitle">From your ORB cloud alert: <code>OR_HI=… | OR_LO=… | RNG=…</code>. Optional — skip if you didn't note them.</div>
+        </div>
+        <div class="trade-section-counter">${orFilledN} of 3 (optional)</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">OR_HI $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orHi" value="${inputValue('orHi')}" placeholder="opening range high" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">OR_LO $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="opening range low" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">RNG $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orRng" value="${inputValue('orRng')}" placeholder="auto-derived if blank" />
+            <div class="input-help">Auto-fills as <code>OR_HI − OR_LO</code> if you leave it empty.</div>
+          </div></div>
+        </div>
+      </div>
+    </div>` : '';
 
   return `
     <div class="trade-section">
@@ -12076,6 +12384,7 @@ function tfIntradayStep2() {
         </div>
       </div>
     </div>
+    ${orSection}
   `;
 }
 
@@ -12094,11 +12403,27 @@ function tfMountIntradayStep2() {
       if (key === 'entry' || key === 'stop' || key === 'target') {
         tfUpdateIntradayRMult();
       }
+      // Auto-derive RNG = OR_HI - OR_LO when both sides are filled and the
+      // user hasn't typed anything into the RNG field.
+      if (key === 'orHi' || key === 'orLo') {
+        const hi = Number(state.intraday.orHi);
+        const lo = Number(state.intraday.orLo);
+        const rngTouched = (draft && draft.orRng !== undefined) || (state.intraday.orRng !== null && state.intraday.orRng !== undefined);
+        if (hi > 0 && lo > 0 && hi >= lo && !rngTouched) {
+          state.intraday.orRng = +(hi - lo).toFixed(2);
+          const rngEl = document.getElementById('tf-i-orRng');
+          if (rngEl) rngEl.value = state.intraday.orRng;
+          saveState();
+        }
+      }
     });
   };
   wire('tf-i-entry', 'entry');
   wire('tf-i-stop', 'stop');
   wire('tf-i-target', 'target');
+  wire('tf-i-orHi', 'orHi');
+  wire('tf-i-orLo', 'orLo');
+  wire('tf-i-orRng', 'orRng');
 }
 
 // ----- Intraday step 3 — Size: spread + contracts -----
@@ -12166,7 +12491,10 @@ function tfMountIntradayStep3() {
   wire('tf-i-contracts', 'contracts', true);
 }
 
-// ----- Intraday step 4 — Verify: 5 quality checks -----
+// ----- Intraday step 4 — Checklist: ThinkScript chips + 5 quality checks -----
+// Confluence + breadth chips capture what the user is reading off the chart
+// (MAC_Intraday_VWAP_Confluence + MAC_Intraday_Breadth labels). They flow
+// into the trade log and a couple of checks below.
 function tfIntradayStep4() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
@@ -12174,16 +12502,32 @@ function tfIntradayStep4() {
   const tov   = !!(state.intradayQuality && state.intradayQuality.timeOverride);
   const dayPL = tfComputeIntradayDayPL();
   const lossBudget = settings.intradayMaxDailyLoss + dayPL;
+  const setupDef = tfFindIntradaySetup(it.setup);
+
+  // Direction vs setup bias — explicit conflict (e.g. ORB UP-BREAK + Short).
+  const dirSetupOk = !setupDef || setupDef.bias === 'either' || it.direction === setupDef.bias;
+
+  // Direction vs confluence chip (LONG BIAS / SHORT BIAS / MIXED).
+  const conf = (TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || null);
+  const dirConfOk = !conf || conf.bias === 'either' || it.direction === conf.bias;
 
   const checks = [
-    { key: 'setup',  step: 1, name: 'Setup matches one of the 6 approved patterns',          ok: !!it.setup,                                                                                                            rule: 'Set in step 1.' },
-    { key: 'dir',    step: 1, name: 'Direction matches VWAP relation',                       ok: !((it.vwapRel === 'above' && it.direction === 'short') || (it.vwapRel === 'below' && it.direction === 'long')),       rule: 'Long with Above/At VWAP, Short with Below/At VWAP.' },
-    { key: 'spread', step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`,            ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),                rule: 'Spread % from step 3.' },
-    { key: 'window', step: 4, name: 'Inside an entry window',                                ok: inWin || tov,                                                                                                          rule: '09:35–11:30 or 14:00–15:30 local. Override available for paper trading.' },
-    { key: 'budget', step: 4, name: 'Loss budget remains',                                   ok: lossBudget > 0,                                                                                                        rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
+    { key: 'setup',     step: 1, name: 'Setup picked from approved patterns',          ok: !!it.setup,
+      rule: 'Pick one of ORB UP-BREAK / DN-BREAK / ABOVE VWAP UP / BELOW VWAP DN / VWAP MEAN-RV.' },
+    { key: 'dir-setup', step: 1, name: 'Direction matches setup bias',                 ok: dirSetupOk,
+      rule: setupDef ? `${setupDef.name} expects ${setupDef.bias === 'either' ? 'either direction' : setupDef.bias.toUpperCase()}.` : 'Pick a setup first.' },
+    { key: 'dir-conf',  step: 4, name: 'Direction matches VWAP confluence',            ok: dirConfOk,
+      rule: conf ? `Confluence chip is ${conf.label}.` : 'Pick a confluence chip below to enforce, or leave blank to skip.' },
+    { key: 'spread',    step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`,   ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),
+      rule: 'Spread % from step 3.' },
+    { key: 'window',    step: 4, name: 'Inside an entry window',                       ok: inWin || tov,
+      rule: '09:35–11:30 or 14:00–15:30 local. Override for paper.' },
+    { key: 'budget',    step: 4, name: 'Loss budget remains',                          ok: lossBudget > 0,
+      rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
   ];
   const passed = checks.filter(c => c.ok).length;
-  const allGreen = passed === 5;
+  const total  = checks.length;
+  const allGreen = passed === total;
 
   const rows = checks.map(c => `
     <button type="button" class="trade-row ${c.ok ? 'checked' : 'fail'}" data-tf-jump="${c.step}">
@@ -12199,22 +12543,57 @@ function tfIntradayStep4() {
     ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
          <div class="trade-output-title">All checks pass</div>
          <div class="trade-output-main">Cleared to execute</div>
-         <div class="trade-output-rationale">Continue to step 5 to log.</div>
+         <div class="trade-output-rationale">Hit GO at the bottom to log.</div>
        </div>`
     : `<div class="trade-output">
-         <div class="trade-output-title">${5 - passed} check${5 - passed === 1 ? '' : 's'} still blocking</div>
-         <div class="trade-output-main">${passed} of 5 passed</div>
-         <div class="trade-output-rationale">Click any failing row to jump back and fix it.</div>
+         <div class="trade-output-title">${total - passed} check${total - passed === 1 ? '' : 's'} still blocking</div>
+         <div class="trade-output-main">${passed} of ${total} passed</div>
+         <div class="trade-output-rationale">Click any failing row to jump to the field that fixes it.</div>
        </div>`;
+
+  // Context chips — confluence + breadth. Both clear-able by clicking the
+  // selected chip again (toggle off).
+  const confChips = TRADE_CONFLUENCE_OPTIONS.map(c => `
+    <button type="button" class="tf-chip ${it.confluence === c.id ? 'selected ' + (c.bias || 'neutral') : ''}" data-tf-i-conf="${c.id}">${c.label}</button>
+  `).join('');
+  const breadthChips = TRADE_BREADTH_OPTIONS.map(b => `
+    <button type="button" class="tf-chip ${it.breadth === b.id ? 'selected ' + (b.id === 'up' ? 'long' : b.id === 'down' ? 'short' : 'neutral') : ''}" data-tf-i-breadth="${b.id}">${b.label}</button>
+  `).join('');
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality checks</div>
-          <div class="trade-section-subtitle">Reads from steps 1–3 plus the clock and your loss budget.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Context chips</div>
+          <div class="trade-section-subtitle">Tap the chart labels you're seeing right now (MAC_Intraday_VWAP_Confluence + MAC_Intraday_Breadth). Optional — clear by tapping the selected chip again.</div>
         </div>
-        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of 5 passed</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="tf-chip-row">
+          <span class="tf-chip-row-label">Confluence:</span>
+          ${confChips}
+        </div>
+        <div class="tf-chip-row" style="margin-top:8px;">
+          <span class="tf-chip-row-label">Breadth:</span>
+          ${breadthChips}
+        </div>
+        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
+          <div>
+            <label class="input-label">VWAP value (optional)</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="e.g. 486.50" />
+            <div class="input-help">Recorded with the trade for review. Nothing blocks GO if blank.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Quality checks</div>
+          <div class="trade-section-subtitle">Reads from sections 1–3 plus the chips above, the clock, and your loss budget.</div>
+        </div>
+        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of ${total} passed</div>
       </div>
       <div class="trade-section-body">
         ${banner}
@@ -12225,8 +12604,7 @@ function tfIntradayStep4() {
 }
 
 function tfMountIntradayStep4() {
-  // Time-window override toggle — stop the click from bubbling to the row's
-  // jump-to-fix handler.
+  // Time-window override toggle.
   document.querySelectorAll('#panel-trade [data-tf-i-tov]').forEach(b => {
     b.addEventListener('click', e => {
       e.stopPropagation();
@@ -12243,6 +12621,33 @@ function tfMountIntradayStep4() {
       if (target) tfGoToStep(target);
     });
   });
+  // Confluence chip — toggle on/off.
+  document.querySelectorAll('#panel-trade [data-tf-i-conf]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.tfIConf;
+      state.intraday.confluence = (state.intraday.confluence === id) ? '' : id;
+      saveState();
+      tfRefreshAll();
+    });
+  });
+  // Breadth chip — toggle on/off.
+  document.querySelectorAll('#panel-trade [data-tf-i-breadth]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.tfIBreadth;
+      state.intraday.breadth = (state.intraday.breadth === id) ? '' : id;
+      saveState();
+      tfRefreshAll();
+    });
+  });
+  // VWAP value input — informational, no header refresh needed.
+  const v = document.getElementById('tf-i-vwapValue');
+  if (v) {
+    v.addEventListener('input', e => {
+      const n = parseFloat(e.target.value);
+      state.intraday.vwapValue = isNaN(n) ? null : n;
+      saveState();
+    });
+  }
 }
 
 // ----- Intraday step 5 — Execute: TOS bracket + notes + GO -----
@@ -12589,9 +12994,22 @@ function tfLogIntradayDirect() {
     if (typeof toast === 'function') toast('Missing required field — go back and check.', true);
     return;
   }
-  const setupLabel = ((TRADE_INTRADAY_SETUPS.find(s => s.id === it.setup) || {}).name) || it.setup;
+  const setupDef   = TRADE_INTRADAY_SETUPS.find(s => s.id === it.setup) || null;
+  const setupLabel = setupDef ? setupDef.name : it.setup;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
   const dir = (it.direction || '').toUpperCase();
+  const orRow = (setupDef && setupDef.isOrb && (it.orHi || it.orLo || it.orRng))
+    ? `<div class="row"><span class="k">OR (${esc(it.orbType || '30')}-min)</span><span>HI ${esc(it.orHi || '—')} · LO ${esc(it.orLo || '—')} · RNG ${esc(it.orRng || '—')}</span></div>`
+    : '';
+  const confluenceLabel = ((TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || {}).label) || '';
+  const breadthLabel    = ((TRADE_BREADTH_OPTIONS.find(b => b.id === it.breadth) || {}).label) || '';
+  const ctxRow = (confluenceLabel || breadthLabel || it.vwapValue)
+    ? `<div class="row"><span class="k">Context</span><span>${[
+        confluenceLabel,
+        breadthLabel,
+        it.vwapValue ? `VWAP ${esc(it.vwapValue)}` : ''
+      ].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>`
+    : '';
   const bodyHtml = `
     <p style="margin: 0 0 6px;">This intraday trade will be added to the log as <strong>open</strong>.</p>
     <div class="tf-confirm-summary">
@@ -12603,6 +13021,8 @@ function tfLogIntradayDirect() {
       <div class="row"><span class="k">Target</span><span>$${esc(it.target)}</span></div>
       <div class="row"><span class="k">Spread</span><span>${it.spreadPct != null ? esc(it.spreadPct) + '%' : '—'}</span></div>
       <div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>
+      ${orRow}
+      ${ctxRow}
     </div>
   `;
   tfShowConfirm({
