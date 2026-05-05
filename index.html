@@ -4638,6 +4638,12 @@ textarea.input-field {
   gap: 6px;
 }
 #panel-trade .tf-chip-row + .tf-chip-row { margin-top: 6px; }
+#panel-trade .tf-chip-row .trade-direction-btn {
+  padding: 6px 12px;
+  min-height: 30px;
+  font-size: 11px;
+  font-family: var(--mono);
+}
 #panel-trade .tf-chip-row-label {
   font-family: var(--mono);
   font-size: 10px;
@@ -10348,7 +10354,7 @@ function tfComputeStatus() {
     if (Number(it.spreadPct) > s.intradayMaxSpreadPct) {
       return { tone: 'blocked', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
     }
-    // 4 Checklist — confluence-vs-direction conflict (only when chip is set), window, loss budget
+    // 4 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
       const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
         ? TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) : null;
@@ -10364,7 +10370,7 @@ function tfComputeStatus() {
     const lossBudget = s.intradayMaxDailyLoss + dayPL;
     if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 4 };
 
-    return { tone: 'ready', reason: 'Ready to log', step: 5 };
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   return { tone: 'progress', reason: 'Pick a setup', step: 1 };
@@ -10638,18 +10644,19 @@ function tfSpreadBracket(spread) {
 
 // ----- Rendering -----
 
-// Both flows share the same 5-step skeleton, but only Swing actually
-// paginates. Intraday renders all 5 sections on one screen so the user
-// can Tab through every input without losing speed.
+// Swing paginates through five steps. Intraday is a four-section single
+// screen so the user can Tab through every input without losing speed.
 //   Swing:    Pattern → Quality   → Sizing → Checklist → Log
-//   Intraday: Pattern → Levels    → Sizing → Checklist → Log
+//   Intraday: Pattern → Levels    → Sizing → Context
 // Labels are mode-aware because step 2's topic differs between flows.
-function tfStepCount() { return 5; }
+function tfStepCount() {
+  return tfIsSingleScreen() ? 4 : 5;
+}
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   return m === 'swing'
     ? ['Pattern', 'Quality', 'Sizing', 'Checklist', 'Log']
-    : ['Pattern', 'Levels',  'Sizing', 'Checklist', 'Log'];
+    : ['Pattern', 'Levels',  'Sizing', 'Context'];
 }
 function tfIsSingleScreen() {
   return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
@@ -10660,7 +10667,9 @@ function tfIsSingleScreen() {
 // status pill is still the source of truth for "OK to fire".
 function tfStepCompletion() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const c = [false, false, false, false, false];
+  const c = m === 'swing'
+    ? [false, false, false, false, false]
+    : [false, false, false, false];
 
   if (m === 'swing') {
     const isOptions = state.instrument !== 'stocks';
@@ -10696,9 +10705,8 @@ function tfStepCompletion() {
     return c;
   }
 
-  // Intraday — same 5-section skeleton, single-screen render. The flow is
-  // never "navigated" but completion still drives chip checkmarks above
-  // the GO button and the gate-row jump targets.
+  // Intraday — single-screen render. Completion still drives the header
+  // status and guardrail jump targets.
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
 
@@ -10715,12 +10723,9 @@ function tfStepCompletion() {
                 && Number(it.spreadPct) <= settings.intradayMaxSpreadPct;
   c[2] = !!(spreadOk);
 
-  // 4 Checklist — quality checks pass (status not blocked).
+  // 4 Context — guardrails pass (status not blocked).
   const st = tfComputeStatus();
   c[3] = c[0] && c[1] && c[2] && st.tone !== 'blocked';
-
-  // 5 Log — everything ready.
-  c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
   return c;
 }
 
@@ -10916,8 +10921,7 @@ function tfStepBody(step) {
   return wrap(0, tfIntradayStep1())
        + wrap(1, tfIntradayStep2())
        + wrap(2, tfIntradayStep3())
-       + wrap(3, tfIntradayStep4())
-       + wrap(4, tfIntradayStep5());
+       + wrap(3, tfIntradayStep4());
 }
 
 // ----- Swing step 1 — Setup: ticker + direction + pattern -----
@@ -11629,10 +11633,10 @@ function tfIntradayStep1() {
   const dirLong  = it.direction === 'long';
   const dirShort = it.direction === 'short';
   const dirHint  = setupDef
-    ? (setupDef.bias === 'long'  ? 'Auto-aligned LONG by the setup.'
-     : setupDef.bias === 'short' ? 'Auto-aligned SHORT by the setup.'
-     :                             'MEAN-RV — pick the direction yourself.')
-    : 'Pick a setup above to auto-align direction.';
+    ? (setupDef.bias === 'long'  ? 'Auto-aligned LONG by setup.'
+     : setupDef.bias === 'short' ? 'Auto-aligned SHORT by setup.'
+     :                             'MEAN-RV: choose direction.')
+    : 'Auto-aligns after setup pick.';
 
   return `
     <div class="trade-section">
@@ -11669,29 +11673,19 @@ function tfIntradayStep1() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Setup pattern</div>
-          <div class="trade-section-subtitle">Mirrors the labels from your ThinkScript Setup column &amp; ORB cloud.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Setup &amp; direction</div>
+          <div class="trade-section-subtitle">Mirrors your ThinkScript labels. Direction auto-aligns, with manual override when needed.</div>
         </div>
-        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
+        <div class="trade-section-counter ${it.setup && it.direction ? 'complete' : ''}">${it.setup && it.direction ? it.direction.toUpperCase() : 'pick setup'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid">${cards}</div>
         ${orbChips}
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Direction</div>
-          <div class="trade-section-subtitle">${dirHint}</div>
-        </div>
-        <div class="trade-section-counter ${it.direction ? 'complete' : ''}">${it.direction ? it.direction.toUpperCase() : 'pick 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-direction-toggle">
+        <div class="tf-chip-row" style="margin-top:12px;">
+          <span class="tf-chip-row-label">Direction:</span>
           <button type="button" class="trade-direction-btn long ${dirLong ? 'selected' : ''}" data-tf-i-dir="long">▲ LONG</button>
           <button type="button" class="trade-direction-btn short ${dirShort ? 'selected' : ''}" data-tf-i-dir="short">▼ SHORT</button>
+          <span class="input-help" style="margin:0;">${dirHint}</span>
         </div>
       </div>
     </div>
@@ -11974,10 +11968,10 @@ function tfMountIntradayStep3() {
   wire('tf-i-contracts', 'contracts', true);
 }
 
-// ----- Intraday step 4 — Checklist: ThinkScript chips + 5 quality checks -----
+// ----- Intraday step 4 — Context: optional ThinkScript chips + guardrails -----
 // Confluence + breadth chips capture what the user is reading off the chart
 // (MAC_Intraday_VWAP_Confluence + MAC_Intraday_Breadth labels). They flow
-// into the trade log and a couple of checks below.
+// into the trade log; only an explicit confluence conflict blocks GO.
 function tfIntradayStep4() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
@@ -11995,18 +11989,16 @@ function tfIntradayStep4() {
   const dirConfOk = !conf || conf.bias === 'either' || it.direction === conf.bias;
 
   const checks = [
-    { key: 'setup',     step: 1, name: 'Setup picked from approved patterns',          ok: !!it.setup,
-      rule: 'Pick one of ORB UP-BREAK / DN-BREAK / ABOVE VWAP UP / BELOW VWAP DN / VWAP MEAN-RV.' },
-    { key: 'dir-setup', step: 1, name: 'Direction matches setup bias',                 ok: dirSetupOk,
+    { key: 'dir-setup', step: 1, name: 'Setup bias', ok: dirSetupOk,
       rule: setupDef ? `${setupDef.name} expects ${setupDef.bias === 'either' ? 'either direction' : setupDef.bias.toUpperCase()}.` : 'Pick a setup first.' },
-    { key: 'dir-conf',  step: 4, name: 'Direction matches VWAP confluence',            ok: dirConfOk,
-      rule: conf ? `Confluence chip is ${conf.label}.` : 'Pick a confluence chip below to enforce, or leave blank to skip.' },
-    { key: 'spread',    step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`,   ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),
-      rule: 'Spread % from step 3.' },
-    { key: 'window',    step: 4, name: 'Inside an entry window',                       ok: inWin || tov,
+    { key: 'dir-conf',  step: 4, name: 'VWAP confluence', ok: dirConfOk,
+      rule: conf ? `Confluence chip is ${conf.label}.` : 'Optional — leave blank when you do not need it.' },
+    { key: 'spread',    step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`, ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),
+      rule: 'Uses the spread % from sizing.' },
+    { key: 'window',    step: 4, name: 'Entry window', ok: inWin || tov,
       rule: '09:35–11:30 or 14:00–15:30 local. Override for paper.' },
-    { key: 'budget',    step: 4, name: 'Loss budget remains',                          ok: lossBudget > 0,
-      rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
+    { key: 'budget',    step: 4, name: 'Daily loss budget', ok: lossBudget > 0,
+      rule: `Today: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
   ];
   const passed = checks.filter(c => c.ok).length;
   const total  = checks.length;
@@ -12024,14 +12016,14 @@ function tfIntradayStep4() {
 
   const banner = allGreen
     ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
-         <div class="trade-output-title">All checks pass</div>
-         <div class="trade-output-main">Cleared to execute</div>
-         <div class="trade-output-rationale">Hit GO at the bottom to log.</div>
+         <div class="trade-output-title">Cleared</div>
+         <div class="trade-output-main">Ready to log</div>
+         <div class="trade-output-rationale">Place the bracket in TOS, then use GO.</div>
        </div>`
     : `<div class="trade-output">
-         <div class="trade-output-title">${total - passed} check${total - passed === 1 ? '' : 's'} still blocking</div>
+         <div class="trade-output-title">${total - passed} guardrail${total - passed === 1 ? '' : 's'} blocking</div>
          <div class="trade-output-main">${passed} of ${total} passed</div>
-         <div class="trade-output-rationale">Click any failing row to jump to the field that fixes it.</div>
+         <div class="trade-output-rationale">Click a failing row to jump to the field that fixes it.</div>
        </div>`;
 
   // Context chips — confluence + breadth. Both clear-able by clicking the
@@ -12047,8 +12039,8 @@ function tfIntradayStep4() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Context chips</div>
-          <div class="trade-section-subtitle">Tap the chart labels you're seeing right now (MAC_Intraday_VWAP_Confluence + MAC_Intraday_Breadth). Optional — clear by tapping the selected chip again.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Context notes</div>
+          <div class="trade-section-subtitle">Optional chart context. Only conflicting confluence blocks GO.</div>
         </div>
       </div>
       <div class="trade-section-body">
@@ -12064,7 +12056,12 @@ function tfIntradayStep4() {
           <div>
             <label class="input-label">VWAP value (optional)</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="e.g. 486.50" />
-            <div class="input-help">Recorded with the trade for review. Nothing blocks GO if blank.</div>
+          </div>
+        </div>
+        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
+          <div>
+            <label class="input-label">Trigger / invalidation notes (optional)</label>
+            <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="e.g. Reclaimed VWAP on 5m volume. Wrong if loses VWAP again.">${it.notes || ''}</textarea>
           </div>
         </div>
       </div>
@@ -12073,8 +12070,8 @@ function tfIntradayStep4() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Quality checks</div>
-          <div class="trade-section-subtitle">Reads from sections 1–3 plus the chips above, the clock, and your loss budget.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Guardrails</div>
+          <div class="trade-section-subtitle">Fast pass/fail check from setup bias, spread, time window, and loss budget.</div>
         </div>
         <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of ${total} passed</div>
       </div>
@@ -12131,58 +12128,6 @@ function tfMountIntradayStep4() {
       saveState();
     });
   }
-}
-
-// ----- Intraday step 5 — Execute: TOS bracket + notes + GO -----
-function tfIntradayStep5() {
-  const it = state.intraday || {};
-  const st = tfComputeStatus();
-  const ready = st.tone === 'ready';
-  return `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Place the bracket in TOS</div>
-          <div class="trade-section-subtitle">Use OCO so target and stop fire automatically.</div>
-        </div>
-      </div>
-      <div class="trade-section-body">
-        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
-          <li>Open ${it.ticker || 'ticker'} in TOS.</li>
-          <li>Place a bracket: entry $${it.entry ?? '—'} · target $${it.target ?? '—'} · stop $${it.stop ?? '—'}.</li>
-          <li>Confirm fill, then click GO below to log.</li>
-        </ol>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Trigger &amp; exit notes (optional)</div>
-          <div class="trade-section-subtitle">One sentence on the trigger and the invalidation. Saved to the log.</div>
-        </div>
-      </div>
-      <div class="trade-section-body">
-        <textarea class="trade-textarea" id="tf-i-notes" rows="3" placeholder="e.g. 'Reclaimed VWAP on 5m vol surge. Wrong if loses VWAP again. Out at prior intraday high.'">${it.notes || ''}</textarea>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Final check</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-output" style="${ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
-          <div class="trade-output-title">Status</div>
-          <div class="trade-output-main">${ready ? 'Ready to log' : st.reason}</div>
-          <div class="trade-output-rationale">${ready ? 'Hit GO below — confirm dialog will summarize, then log.' : 'Status pill at the top jumps you to the failing step.'}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function tfMountIntradayStep5() {
   const t = document.getElementById('tf-i-notes');
   if (t) {
     t.addEventListener('input', e => {
@@ -12261,7 +12206,6 @@ function tfMountStep(step) {
   tfMountIntradayStep2();
   tfMountIntradayStep3();
   tfMountIntradayStep4();
-  tfMountIntradayStep5();
 }
 
 function tfRefreshHeaderOnly() {
@@ -12276,6 +12220,10 @@ function tfRefreshAll() {
 }
 
 function tfContinue() {
+  if (tfIsSingleScreen()) {
+    tfLogIntradayDirect();
+    return;
+  }
   const cur = state.tradeFlow.step || 1;
   const max = tfStepCount();
   if (cur < max) {
