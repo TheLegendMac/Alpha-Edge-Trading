@@ -3585,15 +3585,12 @@ textarea.input-field {
 }
 
 /* ============ TICKER AUTOCOMPLETE ============ */
-.ticker-ac-wrap { position: relative; }
 .ticker-ac-list {
   display: none;
-  position: absolute;
-  z-index: 60;
-  top: calc(100% + 4px);
-  left: 0;
-  width: 100%;
+  position: fixed;
+  z-index: 9999;
   min-width: 240px;
+  max-width: 360px;
   max-height: 280px;
   overflow-y: auto;
   background: var(--bg-card);
@@ -7325,33 +7322,27 @@ STRENGTH: 3/3</pre>
     <div class="modal-header">
       <div>
         <div class="modal-title" id="modal-title">Log Trade</div>
-        <div class="modal-subtitle" id="modal-subtitle">Open: log entry data. Close: switch to Review.</div>
+        <div class="modal-subtitle" id="modal-subtitle">Capture the entry plan. Close, scale, and grade the trade in the Position Editor after.</div>
       </div>
       <button class="modal-close" data-close>×</button>
-    </div>
-
-    <!-- Tab strip — Entry vs Review -->
-    <div class="modal-tabs" id="trade-modal-tabs">
-      <button type="button" class="modal-tab active" data-trade-tab="entry">
-        <span class="modal-tab-num">01</span>
-        <span class="modal-tab-label">Entry</span>
-        <span class="modal-tab-detail">Setup, size, plan</span>
-      </button>
-      <button type="button" class="modal-tab" data-trade-tab="review">
-        <span class="modal-tab-num">02</span>
-        <span class="modal-tab-label">Review &amp; close</span>
-        <span class="modal-tab-detail">Exit, grade, lesson</span>
-      </button>
     </div>
 
     <div class="modal-body">
       <form id="trade-form">
         <input type="hidden" id="t-id" />
+        <!-- Entry-only modal — closed/win/loss is set via the Position Editor's executions log. -->
         <input type="hidden" id="t-status" value="open" />
+        <!-- Vestigial hidden fields kept so legacy code paths don't crash. Position Editor owns these now. -->
+        <input type="hidden" id="t-exit" />
+        <input type="hidden" id="t-grade" value="" />
+        <input type="hidden" id="t-followed-plan" value="" />
+        <input type="hidden" id="t-emotion" value="" />
+        <input type="hidden" id="t-exit-reason" value="" />
+        <input type="hidden" id="t-lesson" value="" />
 
-        <!-- ============ ENTRY PANE ============ -->
+        <!-- ============ ENTRY ============ -->
         <div class="modal-pane active" data-trade-pane="entry">
-          <!-- Stock vs Option toggle — drives unit labels and how Entry / Contracts are interpreted -->
+          <!-- Stock vs Option toggle — drives unit labels and how Entry / Qty are interpreted -->
           <div class="flow-instrument-row" id="t-instrument-row" role="tablist" aria-label="Trading instrument" style="margin-bottom: 14px;">
             <span class="flow-instrument-label">Trading</span>
             <div class="flow-instrument-pills">
@@ -7391,11 +7382,13 @@ STRENGTH: 3/3</pre>
               </select>
             </div>
             <div class="input-group">
-              <label class="input-label">Direction</label>
-              <select class="input-field" id="t-direction" required>
-                <option>Long</option>
-                <option>Short</option>
+              <label class="input-label">Bias</label>
+              <select class="input-field" id="t-bias" required>
+                <option value="bullish">Bullish (up move)</option>
+                <option value="bearish">Bearish (down move)</option>
               </select>
+              <!-- Mirrors bias into the legacy direction field for back-compat with stats -->
+              <input type="hidden" id="t-direction" value="Long" />
             </div>
             <div class="input-group">
               <label class="input-label" id="t-entry-label">Entry Premium</label>
@@ -7432,97 +7425,7 @@ STRENGTH: 3/3</pre>
             </div>
           </div>
           <div class="modal-pane-hint">
-            All required fields above. Click <strong>Review &amp; close</strong> only when the position is closed in your broker.
-          </div>
-        </div>
-
-        <!-- ============ REVIEW PANE ============ -->
-        <div class="modal-pane" data-trade-pane="review">
-          <!-- Read-only entry summary -->
-          <div class="trade-summary" id="trade-summary">
-            <div class="trade-summary-empty">Fill the Entry tab first.</div>
-          </div>
-
-          <!-- Outcome segmented (drives status) -->
-          <div class="outcome-toggle-wrap">
-            <label class="input-label">Outcome</label>
-            <div class="outcome-toggle" role="tablist">
-              <button type="button" class="outcome-btn open active" data-outcome="open">
-                <span class="outcome-dot"></span>Still open
-              </button>
-              <button type="button" class="outcome-btn win" data-outcome="win">
-                <span class="outcome-dot"></span>Closed — Win
-              </button>
-              <button type="button" class="outcome-btn loss" data-outcome="loss">
-                <span class="outcome-dot"></span>Closed — Loss
-              </button>
-            </div>
-          </div>
-
-          <!-- Review fields — only shown when outcome != open -->
-          <div class="review-fields" id="review-fields">
-            <div class="form-grid">
-              <div class="input-group">
-                <label class="input-label">Exit Premium</label>
-                <input type="number" step="0.01" class="input-field" id="t-exit" placeholder="0.00" />
-              </div>
-              <div class="input-group">
-                <label class="input-label">Exit reason</label>
-                <select class="input-field" id="t-exit-reason">
-                  <option value="">—</option>
-                  <option value="target">Hit profit target</option>
-                  <option value="stop">Hit stop loss</option>
-                  <option value="time">Time-based exit</option>
-                  <option value="thesis-broke">Thesis broke (early exit)</option>
-                  <option value="discretionary">Discretionary (gut call)</option>
-                </select>
-              </div>
-              <div class="input-group">
-                <label class="input-label">Followed the plan?</label>
-                <select class="input-field" id="t-followed-plan">
-                  <option value="">—</option>
-                  <option value="yes">Yes — followed setup, sizing, exit rules</option>
-                  <option value="partial">Partial — strayed from one rule</option>
-                  <option value="no">No — broke multiple rules</option>
-                </select>
-              </div>
-              <div class="input-group">
-                <label class="input-label">Emotion at exit</label>
-                <select class="input-field" id="t-emotion">
-                  <option value="">—</option>
-                  <option value="calm">Calm — ran the rules</option>
-                  <option value="anxious">Anxious — questioned the trade</option>
-                  <option value="fomo">FOMO — chased or held too long</option>
-                  <option value="panic">Panic — bailed at worst time</option>
-                </select>
-              </div>
-              <div class="input-group full">
-                <label class="input-label">Trade Grade</label>
-                <div class="grade-toggle" role="tablist">
-                  <button type="button" class="grade-btn" data-grade="clean">Good<span>plan followed</span></button>
-                  <button type="button" class="grade-btn" data-grade="mixed">Okay<span>minor drift</span></button>
-                  <button type="button" class="grade-btn" data-grade="broken">Bad<span>rule break</span></button>
-                </div>
-                <input type="hidden" id="t-grade" value="" />
-              </div>
-              <div class="input-group full">
-                <label class="input-label">One-line lesson</label>
-                <textarea class="input-field" id="t-lesson" rows="2"
-                          placeholder="What would you do differently? e.g. 'Should have exited at +25% when momentum stalled instead of holding for +50%'"></textarea>
-              </div>
-            </div>
-            <div class="modal-pane-hint">
-              Grade the execution, not the P/L: Good = followed the plan, Okay = minor drift, Bad = broke a rule.
-            </div>
-          </div>
-
-          <!-- Open-state nudge — shown only when outcome == open -->
-          <div class="review-open-nudge" id="review-open-nudge">
-            <div class="review-open-nudge-icon">⏱</div>
-            <div>
-              <strong>Trade is still open.</strong>
-              <span>Pick <em>Closed — Win</em> or <em>Closed — Loss</em> above when the position is fully exited in your broker.</span>
-            </div>
+            Saves as an open position. After exit, click the trade in your log to open the Position Editor — that's where you log fills, tag the outcome, and journal the lesson.
           </div>
         </div>
       </form>
@@ -10105,8 +10008,12 @@ function calcPL(t) {
   if (t.status === 'open' || !t.exit) return null;
   // Options use a 100x contract multiplier; stocks/shares are 1:1.
   const multiplier = t.instrument === 'stocks' ? 1 : 100;
-  const dollarPL = (t.exit - t.entry) * multiplier * (t.contracts || t.shares || 0);
-  return dollarPL;
+  // Sign flip only for short stock — long puts are still long positions in the option.
+  const bias = (typeof tradeBias === 'function') ? tradeBias(t)
+    : (String(t.direction || 'Long').toLowerCase() === 'short' ? 'bearish' : 'bullish');
+  const sign = (t.instrument === 'stocks' && bias === 'bearish') ? -1 : 1;
+  const qty = (typeof tradeQty === 'function') ? tradeQty(t) : (t.qty ?? t.contracts ?? t.shares ?? 0);
+  return sign * (t.exit - t.entry) * multiplier * qty;
 }
 
 // R-multiple: P/L expressed in units of risk dollars. 2R = 2x risk dollars profit.
@@ -10745,13 +10652,16 @@ function buildBacktestCard(help) {
   const list = reports.length ? reports.map((r, i) => {
     const tone = (r.netProfit || 0) >= 0 ? 'pos' : 'neg';
     const np = r.netProfit;
-    const npStr = np == null ? '—' : `${np >= 0 ? '+' : '-'}$${Math.abs(np).toFixed(0)}`;
-    return `<div class="bar-row" style="border-bottom:1px solid var(--line); padding-bottom:8px;">
+    const npStr = np == null ? '—' : `${np >= 0 ? '+' : '-'}$${Math.abs(np).toFixed(2)}`;
+    const periodStr = r.period ? ` · ${r.period}` : '';
+    const pfStr = r.profitFactor != null ? ` · PF ${r.profitFactor}` : '';
+    const avgStr = r.avgTrade != null ? ` · avg ${r.avgTrade >= 0 ? '+' : '-'}$${Math.abs(r.avgTrade).toFixed(2)}` : '';
+    return `<div class="bar-row" style="border-bottom:1px solid var(--line); padding-bottom:8px; align-items:center;">
       <div class="bar-row-label" style="flex:1;">
         <strong>${r.name || 'Backtest ' + (i + 1)}</strong>
-        <span class="bar-row-sub">${r.symbol || '—'} · ${r.trades || 0} trades · ${r.winRate != null ? r.winRate.toFixed(0) + '%W' : '—'} · ${r.imported_at ? new Date(r.imported_at).toLocaleDateString() : ''}</span>
+        <span class="bar-row-sub">${r.symbol || '—'} · ${r.trades || 0} trades · ${r.winRate != null ? r.winRate.toFixed(0) + '%W' : '—'}${pfStr}${avgStr}${periodStr}</span>
       </div>
-      <div class="bar-value ${tone === 'pos' ? 'pl-positive' : 'pl-negative'}" style="min-width:80px;">${npStr}</div>
+      <div class="bar-value ${tone === 'pos' ? 'pl-positive' : 'pl-negative'}" style="min-width:90px;">${npStr}</div>
       <button class="pos-exec-del-btn" onclick="deleteBacktestReport('${r.id}')" title="Remove" style="margin-left:8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       </button>
@@ -11266,17 +11176,11 @@ function openTradeModal(trade) {
     document.getElementById('t-stop').value = trade.stop || '';
     document.getElementById('t-status').value = trade.status || 'open';
     document.getElementById('t-exit').value = trade.exit || '';
-    document.getElementById('t-grade').value = trade.grade || '';
-    document.getElementById('t-followed-plan').value = trade.followed_plan || '';
-    document.getElementById('t-emotion').value = trade.emotion || '';
-    document.getElementById('t-exit-reason').value = trade.exit_reason || '';
-    document.getElementById('t-lesson').value = trade.lesson || '';
+    setTradeBias(_directionToBias(trade.bias || trade.direction));
     setTradeInstrument(trade.instrument || 'options');
-    // Default tab: closed trades open on Review; open trades on Entry
-    setTradeModalTab(trade.status === 'open' ? 'entry' : 'review');
   } else {
     title.textContent = 'Log Trade';
-    subtitle.textContent = 'Capture entry now. Review and grade the trade after exit.';
+    subtitle.textContent = 'Capture the entry plan. Closing, scaling, and grading happen in the Position Editor.';
     deleteBtn.style.display = 'none';
     document.getElementById('t-date').value = new Date().toISOString().split('T')[0];
 
@@ -11285,20 +11189,20 @@ function openTradeModal(trade) {
     document.getElementById('t-mode').value = defaultMode;
     populateTradeModalSetups(defaultMode);
     setTradeInstrument(state.instrument || 'options');
+    setTradeBias(state.direction === 'short' ? 'bearish' : 'bullish');
 
     // Pre-fill from current flow state — saves the user from re-entering everything
     if (state.selectedSetup) document.getElementById('t-setup').value = state.selectedSetup;
-    if (state.direction) document.getElementById('t-direction').value = state.direction === 'long' ? 'Long' : 'Short';
     if (state.premium) document.getElementById('t-entry').value = state.premium;
     if (state.ivr !== null) document.getElementById('t-ivr').value = state.ivr;
     if (state.ticker) document.getElementById('t-ticker').value = state.ticker;
     document.getElementById('t-regime').value = REGIME_DATA[state.regime].text;
 
-    // Pre-fill stop from ATR + underlying price if both available (direction-aware)
+    // Pre-fill stop from ATR + underlying price if both available (bias-aware)
     if (state.atr && state.atr > 0 && state.underlyingPrice && state.underlyingPrice > 0) {
       const distance = state.atr * 1.5;
-      const isLongDir = state.direction !== 'short';
-      const volStop = (isLongDir ? state.underlyingPrice - distance : state.underlyingPrice + distance).toFixed(2);
+      const isBullish = state.direction !== 'short';
+      const volStop = (isBullish ? state.underlyingPrice - distance : state.underlyingPrice + distance).toFixed(2);
       document.getElementById('t-stop').value = volStop;
     }
 
@@ -11315,10 +11219,7 @@ function openTradeModal(trade) {
         document.getElementById('t-contracts').value = contracts;
       }
     }
-    setTradeModalTab('entry');
   }
-  refreshOutcomeUI();
-  refreshGradeUI();
   modal.classList.add('show');
 }
 
@@ -11326,116 +11227,38 @@ function closeTradeModal() {
   document.getElementById('modal-add').classList.remove('show');
 }
 
-// Tab switching — Entry vs Review pane.
-function setTradeModalTab(tab) {
-  document.querySelectorAll('#trade-modal-tabs .modal-tab').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tradeTab === tab);
-  });
-  document.querySelectorAll('#trade-form [data-trade-pane]').forEach(p => {
-    p.classList.toggle('active', p.dataset.tradePane === tab);
-  });
-  if (tab === 'review') renderTradeSummary();
-  // Save button label tracks which pane you're on for clarity
-  const saveBtn = document.getElementById('btn-save-trade');
-  if (saveBtn) {
-    const status = document.getElementById('t-status').value;
-    if (tab === 'entry') saveBtn.textContent = 'Save entry';
-    else saveBtn.textContent = status === 'open' ? 'Save' : (status === 'win' ? 'Log win' : 'Log loss');
-  }
+// Bias (Bullish/Bearish) lives in #t-bias and is mirrored to the legacy #t-direction
+// Long/Short field for back-compat with calcPL and stats.
+function _directionToBias(d) {
+  if (!d) return 'bullish';
+  const s = String(d).toLowerCase();
+  if (s === 'bearish' || s === 'short') return 'bearish';
+  return 'bullish';
+}
+function _biasToDirection(b) { return b === 'bearish' ? 'Short' : 'Long'; }
+function setTradeBias(bias) {
+  const sel = document.getElementById('t-bias');
+  const hidden = document.getElementById('t-direction');
+  if (sel) sel.value = bias;
+  if (hidden) hidden.value = _biasToDirection(bias);
 }
 
-// Read-only summary of the entry data — top of Review pane
-function renderTradeSummary() {
-  const wrap = document.getElementById('trade-summary');
-  if (!wrap) return;
-  const ticker = (document.getElementById('t-ticker').value || '').toUpperCase();
-  const mode = document.getElementById('t-mode').value || 'swing';
-  const date = document.getElementById('t-date').value || '';
-  const setup = document.getElementById('t-setup').value || '';
-  const direction = document.getElementById('t-direction').value || '';
-  const entry = parseFloat(document.getElementById('t-entry').value);
-  const contracts = parseInt(document.getElementById('t-contracts').value);
-  const stop = document.getElementById('t-stop').value;
-  const ivr = document.getElementById('t-ivr').value;
-  const regime = document.getElementById('t-regime').value;
-
-  if (!ticker || !setup || !entry) {
-    wrap.innerHTML = `<div class="trade-summary-empty">Fill the Entry tab first — ticker, setup, and entry price are required.</div>`;
-    return;
-  }
-  const dateStr = date ? new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—';
-  const sizeUnit = mode === 'intraday' || (entry < 50 && contracts < 100) ? 'ctr' : 'sh';
-  wrap.innerHTML = `
-    <div class="trade-summary-head">
-      <div class="trade-summary-ticker">${ticker}<span class="trade-summary-mode">${mode}</span></div>
-      <div class="trade-summary-date">${dateStr}</div>
-    </div>
-    <div class="trade-summary-rows">
-      <div class="trade-summary-row"><span class="trade-summary-row-label">Setup</span><span class="trade-summary-row-value">${setup}</span></div>
-      <div class="trade-summary-row"><span class="trade-summary-row-label">Direction</span><span class="trade-summary-row-value">${direction}</span></div>
-      <div class="trade-summary-row"><span class="trade-summary-row-label">Entry</span><span class="trade-summary-row-value">$${entry.toFixed(2)}</span></div>
-      <div class="trade-summary-row"><span class="trade-summary-row-label">Size</span><span class="trade-summary-row-value">${contracts || 0} ${sizeUnit}</span></div>
-      ${stop ? `<div class="trade-summary-row"><span class="trade-summary-row-label">Stop</span><span class="trade-summary-row-value">$${parseFloat(stop).toFixed(2)}</span></div>` : ''}
-      ${ivr ? `<div class="trade-summary-row"><span class="trade-summary-row-label">IVR</span><span class="trade-summary-row-value">${ivr}</span></div>` : ''}
-      <div class="trade-summary-row"><span class="trade-summary-row-label">Regime</span><span class="trade-summary-row-value">${regime || '—'}</span></div>
-    </div>
-  `;
-}
-
-// Outcome segmented control — drives the t-status hidden input and reveals/hides review fields
-function setTradeOutcome(outcome) {
-  if (!['open', 'win', 'loss'].includes(outcome)) return;
-  document.getElementById('t-status').value = outcome;
-  refreshOutcomeUI();
-  // Update Save button label to match
-  const saveBtn = document.getElementById('btn-save-trade');
-  if (saveBtn) {
-    saveBtn.textContent = outcome === 'open' ? 'Save' : (outcome === 'win' ? 'Log win' : 'Log loss');
-  }
-}
-
-function refreshOutcomeUI() {
-  const status = document.getElementById('t-status').value || 'open';
-  document.querySelectorAll('.outcome-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.outcome === status);
-  });
-  const fields = document.getElementById('review-fields');
-  const nudge = document.getElementById('review-open-nudge');
-  if (fields && nudge) {
-    if (status === 'open') {
-      fields.classList.remove('show');
-      nudge.classList.remove('hide');
-    } else {
-      fields.classList.add('show');
-      nudge.classList.add('hide');
-    }
-  }
-}
-
-// Trade grade segmented control
-function setTradeGrade(grade) {
-  document.getElementById('t-grade').value = grade || '';
-  refreshGradeUI();
-}
-
-function refreshGradeUI() {
-  const grade = normalizeProcessQuality(document.getElementById('t-grade').value || '');
-  document.querySelectorAll('.grade-btn').forEach(btn => {
-    btn.classList.toggle('selected', btn.dataset.grade === grade);
-  });
-}
-
-// Backwards-compatible no-op (some external callers exist)
-function toggleStatusFields() {
-  refreshOutcomeUI();
-}
+// Stubs for legacy callers — Review tab is gone, so these are no-ops.
+function setTradeModalTab() {}
+function renderTradeSummary() {}
+function setTradeOutcome() {}
+function refreshOutcomeUI() {}
+function setTradeGrade() {}
+function refreshGradeUI() {}
+function toggleStatusFields() {}
 
 function saveTrade() {
   const id = document.getElementById('t-id').value || genTradeId();
-  const status = document.getElementById('t-status').value;
   const mode = document.getElementById('t-mode').value || 'swing';
   const existingTrade = state.trades.find(t => t.id === id);
   const nowIso = new Date().toISOString();
+  // Entry-only modal — Position Editor owns close/scale/grade. Preserve closed state on edit.
+  const status = existingTrade?.status || 'open';
   // Risk dollars: swing uses regime %, intraday uses fixed $
   const riskDollars = mode === 'intraday'
     ? state.settings.intradayRiskPerTrade
@@ -11444,16 +11267,22 @@ function saveTrade() {
   // then to the active flow instrument, then to options.
   const modalInstrument = (document.getElementById('t-instrument')?.value || '').trim();
   const instrument = modalInstrument || existingTrade?.instrument || (state.instrument || 'options');
+  const bias = document.getElementById('t-bias')?.value || 'bullish';
+  const direction = _biasToDirection(bias);
+  const qty = parseInt(document.getElementById('t-contracts').value) || 0;
   const trade = {
+    ...(existingTrade || {}),
     id,
     mode,
     instrument,
     date: document.getElementById('t-date').value,
     ticker: document.getElementById('t-ticker').value.toUpperCase(),
     setup: document.getElementById('t-setup').value,
-    direction: document.getElementById('t-direction').value,
+    bias,
+    direction, // legacy mirror
     entry: parseFloat(document.getElementById('t-entry').value) || 0,
-    contracts: parseInt(document.getElementById('t-contracts').value) || 0,
+    qty,
+    contracts: qty, // legacy mirror
     ivr: parseFloat(document.getElementById('t-ivr').value) || null,
     regime: document.getElementById('t-regime').value,
     thesis: document.getElementById('t-thesis').value,
@@ -11461,18 +11290,11 @@ function saveTrade() {
     stop: parseFloat(document.getElementById('t-stop').value) || null,
     riskDollars,
     status,
-    exit: status !== 'open' ? parseFloat(document.getElementById('t-exit').value) || null : null,
-    exit_date: status !== 'open' ? new Date().toISOString().split('T')[0] : null,
-    grade: status !== 'open' ? document.getElementById('t-grade').value || null : null,
-    followed_plan: status !== 'open' ? document.getElementById('t-followed-plan').value || null : null,
-    emotion: status !== 'open' ? document.getElementById('t-emotion').value || null : null,
-    exit_reason: status !== 'open' ? document.getElementById('t-exit-reason').value || null : null,
-    lesson: status !== 'open' ? document.getElementById('t-lesson').value || null : null,
     created_at: existingTrade?.created_at || nowIso,
     updated_at: nowIso,
   };
 
-  if (!trade.date || !trade.ticker || !trade.setup || !trade.entry || !trade.contracts) {
+  if (!trade.date || !trade.ticker || !trade.setup || !trade.entry || !trade.qty) {
     toast('Fill in all required fields', true);
     return;
   }
@@ -11581,20 +11403,36 @@ const POS = {
 
 function _posMultiplier(t) { return t.instrument === 'stocks' ? 1 : 100; }
 
-// LONG = profit when exit > entry; SHORT = profit when exit < entry.
+// Bias drives the LABEL (Long Call vs Long Put). The PnL math sign only flips
+// for short stock — long puts are still long positions in the option (you bought
+// it; sell-to-close higher = profit).
+function tradeBias(t) {
+  if (t.bias) return t.bias;
+  return (String(t.direction || 'Long').toLowerCase() === 'short') ? 'bearish' : 'bullish';
+}
+
 function _posSign(t) {
-  return (String(t.direction || 'Long').toLowerCase() === 'short') ? -1 : 1;
+  // Only short stock requires sign flip — long calls and long puts both use +1.
+  if (t.instrument === 'stocks' && tradeBias(t) === 'bearish') return -1;
+  return 1;
 }
 
 function _posSideLabel(t) {
-  const dir = (String(t.direction || 'Long').toLowerCase() === 'short') ? 'SHORT' : 'LONG';
-  if (t.instrument === 'stocks') return `${dir} STOCK`;
-  // Use direction to label call/put when missing
-  return `${dir} ${dir === 'LONG' ? 'CALL' : 'PUT'}`;
+  const bias = tradeBias(t);
+  if (t.instrument === 'stocks') return bias === 'bearish' ? 'SHORT STOCK' : 'LONG STOCK';
+  return bias === 'bearish' ? 'LONG PUT' : 'LONG CALL';
 }
 
 function _posQtyUnit(t) {
   return t.instrument === 'stocks' ? 'Shares' : 'Contracts';
+}
+
+// Single source of truth for trade size — handles legacy `contracts` and `shares`.
+function tradeQty(t) {
+  if (t.qty != null) return Number(t.qty) || 0;
+  if (t.contracts != null) return Number(t.contracts) || 0;
+  if (t.shares != null) return Number(t.shares) || 0;
+  return 0;
 }
 
 function _posRealizedPL(t, executions) {
@@ -11604,7 +11442,7 @@ function _posRealizedPL(t, executions) {
 }
 
 function _posOpenQty(t, executions) {
-  const total = Number(t.contracts) || 0;
+  const total = tradeQty(t);
   const closed = executions.reduce((s, e) => s + (Number(e.qty) || 0), 0);
   return Math.max(0, total - closed);
 }
@@ -11641,7 +11479,7 @@ function openPositionEditor(trade, tab = 'exec') {
       time: trade.exit_date ? new Date(trade.exit_date).toISOString() : new Date().toISOString(),
       type: trade.exit_reason === 'target' ? 'target_hit' :
             trade.exit_reason === 'stop' ? 'stop_loss' : 'manual_close',
-      qty: Number(trade.contracts) || 0,
+      qty: tradeQty(trade),
       price: Number(trade.exit) || 0,
     }];
   } else {
@@ -11656,10 +11494,12 @@ function openPositionEditor(trade, tab = 'exec') {
   document.getElementById('pos-ticker').textContent = (trade.ticker || '—').toUpperCase();
   const sideEl = document.getElementById('pos-side-badge');
   sideEl.textContent = _posSideLabel(trade);
-  sideEl.classList.toggle('long', _posSign(trade) === 1);
-  sideEl.classList.toggle('short', _posSign(trade) === -1);
+  // Visual tone matches bias: bullish → green badge, bearish → red badge.
+  const isBearish = tradeBias(trade) === 'bearish';
+  sideEl.classList.toggle('long', !isBearish);
+  sideEl.classList.toggle('short', isBearish);
   document.getElementById('pos-entry').textContent = _fmtMoneyPlain(trade.entry);
-  document.getElementById('pos-qty-total').textContent = trade.contracts || 0;
+  document.getElementById('pos-qty-total').textContent = tradeQty(trade);
   document.getElementById('pos-qty-unit').textContent = _posQtyUnit(trade);
 
   // Mark input
@@ -12906,12 +12746,14 @@ function importJSON(file) {
 }
 
 // ---------- TOS Backtest Report Import ----------
-// TOS exports backtest reports as tab-delimited text or CSV. The "Strategy Report" tab
-// includes summary stats (Net Profit, Win %, Number of Trades, etc.) plus trade rows.
-// We extract the summary metrics — leave row-level data for a future enhancement.
+// TOS exports two main formats:
+//   A) "Strategy Report" tab as semicolon-delimited CSV with header row, trade rows,
+//      then summary lines: "Total P/L: $X;", "Total order(s): N;", "Max trade P/L: $X;"
+//   B) Older summary export with key/value lines like "Net Profit: $X" or "Percent Profitable: 55%"
+// Parser handles both — extracts trade-level rows when present so we can compute win rate.
 function parseTOSBacktest(rawText, filename) {
   const text = (rawText || '').replace(/\r/g, '');
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = text.split('\n').map(l => l.replace(/^﻿/, '').trim()).filter(Boolean);
   const result = {
     id: 'bt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     name: filename ? filename.replace(/\.(csv|tsv|txt)$/i, '') : null,
@@ -12922,65 +12764,138 @@ function parseTOSBacktest(rawText, filename) {
     profitFactor: null,
     maxDrawdown: null,
     avgTrade: null,
+    period: null,
+    strategy: null,
     raw: text.length > 200000 ? text.slice(0, 200000) : text,
     imported_at: new Date().toISOString(),
   };
 
-  // Try to find a header line that hints at TOS format
-  // TOS strategy reports often start with "ThinkOrSwim Strategy Report" or contain "Symbol"
+  // Detect delimiter for a single line
   const splitFor = (line) => {
     if (line.includes('\t')) return line.split('\t');
-    if (line.includes(',')) return line.split(',');
+    if (line.includes(';'))  return line.split(';');
+    if (line.includes(','))  return line.split(',');
     return line.split(/\s{2,}/);
   };
 
-  // Strip quotes/percent/dollar/commas → number
+  // Strip quotes/dollar/commas/percent → number. Parens denote negative.
   const num = v => {
     if (v == null) return null;
     let s = String(v).trim().replace(/^["']|["']$/g, '');
-    s = s.replace(/[$,()%\s]/g, m => m === '(' ? '-' : '');
+    if (!s) return null;
+    let negative = false;
+    if (/^\(.*\)$/.test(s)) { negative = true; s = s.slice(1, -1); }
+    s = s.replace(/[$,%\s]/g, '');
     const n = parseFloat(s);
-    return isNaN(n) ? null : n;
+    if (isNaN(n)) return null;
+    return negative ? -Math.abs(n) : n;
   };
 
-  const findVal = (label) => {
-    const re = new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
-    for (const line of lines) {
-      if (re.test(line)) {
-        const parts = splitFor(line);
-        // Take last numeric-looking token
-        for (let i = parts.length - 1; i >= 0; i--) {
-          const n = num(parts[i]);
-          if (n !== null) return n;
+  // Find a labelled value: "Label: 123" or "Label;...;123"
+  const findVal = (...labels) => {
+    for (const label of labels) {
+      const re = new RegExp('^\\s*' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:;]?', 'i');
+      for (const line of lines) {
+        if (re.test(line)) {
+          // After the label, take the trailing numeric token.
+          const after = line.replace(re, '').replace(/[;:,]\s*$/, '');
+          const parts = splitFor(after);
+          for (let i = parts.length - 1; i >= 0; i--) {
+            const n = num(parts[i]);
+            if (n !== null) return n;
+          }
+          // If no parts, try the raw remainder
+          const n2 = num(after);
+          if (n2 !== null) return n2;
         }
       }
     }
     return null;
   };
 
-  // Common TOS Strategy Report labels
-  result.netProfit    = findVal('Net Profit') ?? findVal('Total Net Profit') ?? findVal('Total Net P/L');
-  result.trades       = findVal('Total Number of Trades') ?? findVal('Number of Trades') ?? findVal('Total Trades') ?? findVal('# of Trades');
-  result.winRate      = findVal('Percent Profitable') ?? findVal('Win Rate') ?? findVal('Profitable %') ?? findVal('% Profitable');
-  result.profitFactor = findVal('Profit Factor');
-  result.maxDrawdown  = findVal('Max Drawdown') ?? findVal('Max. Drawdown');
-  result.avgTrade     = findVal('Avg Trade') ?? findVal('Avg. Trade') ?? findVal('Average Trade');
-
-  // Symbol — look for "Symbol" label or filename clue
-  const symLine = lines.find(l => /^symbol\b/i.test(l));
+  // ---- Header metadata ----
+  const symLine = lines.find(l => /^symbol\s*[:;]/i.test(l));
   if (symLine) {
-    const parts = splitFor(symLine);
-    const m = parts.find(p => /^[A-Z.]{1,6}$/.test(p.trim()));
-    if (m) result.symbol = m.trim();
+    const after = symLine.replace(/^symbol\s*[:;]\s*/i, '').replace(/[;,]+$/, '').trim();
+    const m = after.match(/[A-Z.]{1,6}/);
+    if (m) result.symbol = m[0];
   }
-  if (!result.symbol && filename) {
-    const m = filename.match(/([A-Z]{1,5})/);
-    if (m) result.symbol = m[1];
+  const workTime = lines.find(l => /^work\s*time\s*[:;]/i.test(l));
+  if (workTime) result.period = workTime.replace(/^work\s*time\s*[:;]\s*/i, '').replace(/;+$/, '').trim();
+
+  // ---- Trade-row table (Format A) ----
+  // Find a header row containing "Trade P/L" — subsequent rows until blank are data.
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/trade\s*p\/?l/i.test(lines[i]) && /side|strategy/i.test(lines[i])) { headerIdx = i; break; }
+  }
+  let tradeCount = 0;
+  let wins = 0;
+  let losses = 0;
+  let grossWin = 0;
+  let grossLoss = 0;
+  let netFromRows = 0;
+  let strategySeen = null;
+  if (headerIdx >= 0) {
+    const headerParts = splitFor(lines[headerIdx]).map(s => s.trim().toLowerCase());
+    const colTradePL  = headerParts.findIndex(c => /^trade\s*p\/?l/.test(c));
+    const colSide     = headerParts.findIndex(c => /^side$/.test(c));
+    const colStrategy = headerParts.findIndex(c => /^strategy$/.test(c));
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const ln = lines[i];
+      // Stop at the summary section (blank already filtered, so look for non-numeric leading)
+      if (/^total\s+p\/?l/i.test(ln) || /^max\s+trade\s+p\/?l/i.test(ln) || /^total\s+order/i.test(ln)) break;
+      const parts = splitFor(ln);
+      if (!parts.length) continue;
+      // Trade row starts with a numeric Id
+      if (!/^\d+$/.test(parts[0].trim())) continue;
+      const side = colSide >= 0 ? (parts[colSide] || '').trim().toLowerCase() : '';
+      // Only count exits as trades — entries pair to exits to form one trade
+      if (side && !/(close|cover)/.test(side)) continue;
+      const pl = colTradePL >= 0 ? num(parts[colTradePL]) : null;
+      if (pl === null) continue;
+      tradeCount++;
+      netFromRows += pl;
+      if (pl > 0) { wins++; grossWin += pl; }
+      else if (pl < 0) { losses++; grossLoss += Math.abs(pl); }
+      if (colStrategy >= 0 && !strategySeen) {
+        const stratRaw = (parts[colStrategy] || '').trim();
+        const m = stratRaw.match(/^([A-Z][A-Za-z0-9_]+)/);
+        if (m) strategySeen = m[1];
+      }
+    }
   }
 
-  // If we didn't find ANY core metric, treat as failure so caller can warn.
+  // ---- Summary lines (Format A footer + Format B) ----
+  result.netProfit    = findVal('Total P/L', 'Net Profit', 'Total Net Profit', 'Total Net P/L');
+  result.trades       = findVal('Total Number of Trades', 'Number of Trades', 'Total Trades', '# of Trades');
+  result.winRate      = findVal('Percent Profitable', 'Win Rate', 'Profitable %', '% Profitable');
+  result.profitFactor = findVal('Profit Factor');
+  result.maxDrawdown  = findVal('Max Drawdown', 'Max. Drawdown');
+  result.avgTrade     = findVal('Avg Trade', 'Avg. Trade', 'Average Trade', 'Max trade P/L');
+
+  // Fill from row-derived stats when summary line is missing
+  if (result.netProfit === null && tradeCount > 0) result.netProfit = Number(netFromRows.toFixed(2));
+  if (result.trades === null && tradeCount > 0) result.trades = tradeCount;
+  if (result.winRate === null && tradeCount > 0) result.winRate = (wins / tradeCount) * 100;
+  if (result.profitFactor === null && grossLoss > 0) result.profitFactor = Number((grossWin / grossLoss).toFixed(2));
+  if (result.avgTrade === null && tradeCount > 0) result.avgTrade = Number((netFromRows / tradeCount).toFixed(2));
+
+  if (strategySeen) result.strategy = strategySeen;
+
+  if (!result.symbol && filename) {
+    const m = filename.match(/[A-Z]{1,5}/);
+    if (m) result.symbol = m[0];
+  }
+
+  // Auto-name from strategy + symbol if no explicit name
+  if (result.name && /^StrategyReports?_/i.test(result.name) && result.symbol) {
+    result.name = (result.strategy || 'Strategy') + ' · ' + result.symbol;
+  }
+
+  // Failure: nothing found at all
   if (result.netProfit === null && result.trades === null && result.winRate === null) {
-    return { ok: false, reason: 'Could not detect TOS Strategy Report fields. Make sure the file/text contains rows like "Net Profit", "Total Number of Trades", and "Percent Profitable".' };
+    return { ok: false, reason: 'Could not detect TOS Strategy Report fields. Looked for "Total P/L", "Total order(s)", "Net Profit", "Percent Profitable", and trade rows with "Trade P/L". Got ' + lines.length + ' lines.' };
   }
   return { ok: true, report: result };
 }
@@ -15250,27 +15165,27 @@ function rememberTicker(sym) {
   saveState();
 }
 
-// Wire an input to show ticker autocomplete suggestions. The input must be
-// inside (or wrapped in) a positioned container — we add `.ticker-ac-wrap` if missing.
+// Wire an input to show ticker autocomplete suggestions. Dropdown is rendered as a
+// fixed-position element appended to <body>, anchored to the input via getBoundingClientRect.
+// This avoids fighting the input's parent layout (flex columns, modals, etc.).
 function attachTickerAutocomplete(input, opts = {}) {
   if (!input || input.dataset.acAttached === '1') return;
   input.dataset.acAttached = '1';
-  // Wrap input so absolute-positioned dropdown anchors to it
-  let wrap = input.parentElement;
-  if (!wrap || !wrap.classList.contains('ticker-ac-wrap')) {
-    wrap = document.createElement('div');
-    wrap.className = 'ticker-ac-wrap';
-    input.parentElement.insertBefore(wrap, input);
-    wrap.appendChild(input);
-  }
+
   const list = document.createElement('div');
   list.className = 'ticker-ac-list';
-  wrap.appendChild(list);
+  document.body.appendChild(list);
 
   let activeIdx = -1;
   let items = [];
 
-  function show() { list.classList.add('show'); }
+  function position() {
+    const r = input.getBoundingClientRect();
+    list.style.left = r.left + 'px';
+    list.style.top = (r.bottom + 4) + 'px';
+    list.style.minWidth = Math.max(240, r.width) + 'px';
+  }
+  function show() { position(); list.classList.add('show'); }
   function hide() { list.classList.remove('show'); activeIdx = -1; }
 
   function renderList(query) {
@@ -15306,7 +15221,13 @@ function attachTickerAutocomplete(input, opts = {}) {
     if (typeof opts.onPick === 'function') opts.onPick(sym);
   }
 
+  // Reposition while shown — covers scroll inside modals, window resize, etc.
+  const repos = () => { if (list.classList.contains('show')) position(); };
+  window.addEventListener('scroll', repos, true);
+  window.addEventListener('resize', repos);
+
   input.addEventListener('focus', () => { renderList(input.value); show(); });
+  input.addEventListener('click', () => { renderList(input.value); show(); });
   input.addEventListener('input', () => { renderList(input.value); show(); });
   input.addEventListener('keydown', e => {
     if (!list.classList.contains('show') || !items.length) return;
@@ -15316,7 +15237,6 @@ function attachTickerAutocomplete(input, opts = {}) {
     else if (e.key === 'Escape') hide();
   });
   input.addEventListener('blur', () => {
-    // Delay to let click on item land before hiding
     setTimeout(hide, 150);
     rememberTicker(input.value);
   });
@@ -15588,30 +15508,12 @@ function init() {
   document.getElementById('t-mode').addEventListener('change', e => {
     populateTradeModalSetups(e.target.value);
   });
-  // Modal tab strip — Entry / Review
-  document.querySelectorAll('#trade-modal-tabs .modal-tab').forEach(btn => {
-    btn.addEventListener('click', () => setTradeModalTab(btn.dataset.tradeTab));
-  });
-  // Outcome segmented control inside Review pane
-  document.querySelectorAll('.outcome-btn').forEach(btn => {
-    btn.addEventListener('click', () => setTradeOutcome(btn.dataset.outcome));
-  });
-  // Trade grade segmented control
-  document.querySelectorAll('.grade-btn').forEach(btn => {
-    btn.addEventListener('click', () => setTradeGrade(btn.dataset.grade));
-  });
   // Modal-internal Stock vs Option toggle
   document.querySelectorAll('#t-instrument-row .flow-instrument-pill').forEach(btn => {
     btn.addEventListener('click', () => setTradeInstrument(btn.dataset.tInstrument));
   });
-  // Live-refresh the Review summary card whenever Entry inputs change
-  ['t-ticker','t-mode','t-date','t-setup','t-direction','t-entry','t-contracts','t-stop','t-ivr','t-regime']
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('input', () => {
-        if (document.querySelector('[data-trade-pane="review"].active')) renderTradeSummary();
-      });
-    });
+  // Bias select mirrors into the legacy direction hidden input
+  document.getElementById('t-bias')?.addEventListener('change', e => setTradeBias(e.target.value));
 
   // Settings modal
   document.getElementById('btn-settings').addEventListener('click', openSettings);
