@@ -4130,7 +4130,7 @@ textarea.input-field {
 /* summary row */
 #panel-trade .trade-summary-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.1fr) minmax(280px, 1.35fr) minmax(210px, 0.9fr);
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
   gap: 0;
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -4162,101 +4162,42 @@ textarea.input-field {
   color: var(--ink);
   letter-spacing: -0.01em;
 }
-#panel-trade .summary-control-stack {
+#panel-trade .summary-ticker-wrap {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  position: relative;
 }
-#panel-trade .summary-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-#panel-trade .summary-input,
-#panel-trade .summary-select {
+#panel-trade .summary-ticker-input {
   width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.035);
-  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 4px 0 6px;
+  margin: 0;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 8px 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
   outline: none;
+  text-transform: uppercase;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  caret-color: var(--cyan);
 }
-#panel-trade .summary-input:focus,
-#panel-trade .summary-select:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 2px rgba(6,212,248,0.12);
-}
-#panel-trade .summary-input::placeholder {
+#panel-trade .summary-ticker-input::placeholder {
   color: var(--ink-4);
   font-weight: 700;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
 }
-#panel-trade .summary-strategy-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(96px, 0.75fr) auto;
-  gap: 8px;
-  align-items: center;
+#panel-trade .summary-ticker-input:hover {
+  border-bottom-color: var(--ink-4);
 }
-#panel-trade .summary-direction-toggle {
-  display: grid;
-  grid-template-columns: 34px 34px;
-  gap: 6px;
-}
-#panel-trade .summary-dir-btn,
-#panel-trade .summary-paste-btn {
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.035);
-  color: var(--ink-3);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
-}
-#panel-trade .summary-paste-btn {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-#panel-trade .summary-dir-btn.long.selected {
-  color: var(--green-bright);
-  border-color: rgba(16,185,129,0.5);
-  background: rgba(16,185,129,0.12);
-}
-#panel-trade .summary-dir-btn.short.selected {
-  color: var(--red-bright);
-  border-color: rgba(239,68,68,0.5);
-  background: rgba(239,68,68,0.12);
-}
-#panel-trade .summary-paste-wrap {
-  display: none;
-  margin-top: 8px;
-}
-#panel-trade .summary-paste-wrap.open { display: block; }
-#panel-trade .summary-paste-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-#panel-trade .summary-paste-hint {
-  color: var(--ink-4);
-  font-family: var(--mono);
-  font-size: 10px;
-}
-#panel-trade .summary-ticker-memory {
-  max-height: 96px;
-  overflow: auto;
+#panel-trade .summary-ticker-input:focus {
+  border-bottom-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 1px 0 0 var(--cyan);
 }
 #panel-trade .trade-summary-status .trade-summary-value {
   font-family: var(--mono);
@@ -5064,8 +5005,7 @@ textarea.input-field {
   #panel-trade .trade-summary-cell { padding: 10px 12px; min-height: 50px; }
   #panel-trade .trade-summary-value { font-size: 14px; }
   #panel-trade .trade-summary-status { grid-column: auto; border-top: 1px solid var(--line); border-right: 0; }
-  #panel-trade .summary-strategy-grid { grid-template-columns: 1fr; }
-  #panel-trade .summary-direction-toggle { grid-template-columns: 1fr 1fr; }
+  #panel-trade .summary-ticker-input { font-size: 22px; }
   #panel-trade .trade-summary-status .trade-summary-value { font-size: 11px; }
   #panel-trade .trade-body { padding: 16px 0 0; }
   #panel-trade .trade-section { margin-bottom: 12px; }
@@ -5733,9 +5673,6 @@ STRENGTH: 3/3</pre>
         <div class="trade-summary-row">
           <div class="trade-summary-cell">
             <div class="trade-summary-value" id="trade-summary-ticker"></div>
-          </div>
-          <div class="trade-summary-cell">
-            <div class="trade-summary-value" id="trade-summary-strategy"></div>
           </div>
           <div class="trade-summary-cell trade-summary-status" id="trade-summary-status-cell">
             <div class="trade-summary-label">Status</div>
@@ -11150,16 +11087,6 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
         state.intraday.ticker = sym;
         const input = document.getElementById('tf-i-ticker');
         if (input) input.value = sym;
-      } else if (containerId === 'tf-summary-ticker-memory') {
-        const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-        if (m === 'intraday') {
-          if (!state.intraday) state.intraday = newIntradayTicket();
-          state.intraday.ticker = sym;
-        } else {
-          state.ticker = sym;
-        }
-        const input = document.getElementById('tf-summary-ticker-input');
-        if (input) input.value = sym;
       } else {
         state.ticker = sym;
         const input = document.getElementById('tf-ticker');
@@ -11174,65 +11101,16 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
   });
 }
 
-function tfSummarySetupOptions(mode) {
-  if (mode === 'intraday') {
-    return `<option value="">Setup...</option>` + TRADE_INTRADAY_SETUPS.map(s =>
-      `<option value="${s.id}">${s.name}</option>`
-    ).join('');
-  }
-  return `<option value="">Setup...</option>` + TRADE_SWING_SETUPS.map(s =>
-    `<option value="${s.id}">${s.num} ${s.id}</option>`
-  ).join('');
-}
-
-function tfSummaryStructureOptions() {
-  return TRADE_STRUCTURES.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
-}
-
 function tfEnsureSummaryControls(mode) {
   const tickerEl = document.getElementById('trade-summary-ticker');
-  const stratEl = document.getElementById('trade-summary-strategy');
-  if (!tickerEl || !stratEl) return;
-  if (tickerEl.dataset.summaryMode === mode && stratEl.dataset.summaryMode === mode) return;
-
-  const pastePlaceholder = mode === 'intraday'
-    ? 'Paste TOS alert text. Example:\\nORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45\\nINTRADAY: LONG BIAS | VWAP: 486.50\\nBREADTH UP BID=2.10 ASK=2.20 QTY=2'
-    : 'Paste swing alert text. Example:\\nNVDA IVR=42 ATR=2.1 PX=185.50\\nRSMK=+rising RVOL=1.8 STACK=BULLISH SETUP=BASE_BO\\nSA: QUANT=4.2 EARNINGS=18d BID=2.10 ASK=2.20';
+  if (!tickerEl) return;
+  if (tickerEl.dataset.summaryMode === mode) return;
 
   tickerEl.dataset.summaryMode = mode;
   tickerEl.innerHTML = `
-    <div class="summary-control-stack">
-      <div class="summary-label-row">
-        <span class="trade-summary-label" style="margin:0;">Ticker</span>
-        <button type="button" class="summary-paste-btn" id="tf-summary-paste-toggle">Paste alert</button>
-      </div>
-      <input type="text" maxlength="10" class="summary-input" id="tf-summary-ticker-input" placeholder="Type ticker" autocomplete="off" autocapitalize="characters" />
-      <div class="summary-ticker-memory" id="tf-summary-ticker-memory"></div>
-      <div class="summary-paste-wrap" id="tf-summary-paste-wrap">
-        <textarea class="trade-textarea" id="tf-summary-paste-input" rows="4" placeholder="${pastePlaceholder.replace(/\\n/g, '&#10;').replace(/"/g, '&quot;')}"></textarea>
-        <div class="summary-paste-actions">
-          <button type="button" class="btn-primary" id="tf-summary-paste-apply">Apply</button>
-          <button type="button" class="btn-ghost" id="tf-summary-paste-clear">Clear</button>
-          <span class="summary-paste-hint" id="tf-summary-paste-hint">${mode === 'intraday' ? 'Reads TOS intraday alert fields.' : 'Reads swing alert, SA, IVR, liquidity, and gate fields.'}</span>
-        </div>
-      </div>
-    </div>`;
-
-  stratEl.dataset.summaryMode = mode;
-  stratEl.innerHTML = `
-    <div class="summary-control-stack">
-      <div class="summary-label-row">
-        <span class="trade-summary-label" style="margin:0;">Strategy</span>
-        <span class="summary-paste-hint" id="tf-summary-strategy-label"></span>
-      </div>
-      <div class="summary-strategy-grid">
-        <select class="summary-select" id="tf-summary-setup-select">${tfSummarySetupOptions(mode)}</select>
-        <select class="summary-select" id="tf-summary-structure-select">${tfSummaryStructureOptions()}</select>
-        <div class="summary-direction-toggle">
-          <button type="button" class="summary-dir-btn long" id="tf-summary-dir-long" title="Long / call">▲</button>
-          <button type="button" class="summary-dir-btn short" id="tf-summary-dir-short" title="Short / put">▼</button>
-        </div>
-      </div>
+    <div class="summary-ticker-wrap">
+      <span class="trade-summary-label" style="margin:0;">Ticker</span>
+      <input type="text" maxlength="20" class="summary-ticker-input" id="tf-summary-ticker-input" placeholder="—" autocomplete="off" autocapitalize="characters" spellcheck="false" />
     </div>`;
 
   tfBindSummaryControls();
@@ -11240,102 +11118,21 @@ function tfEnsureSummaryControls(mode) {
 
 function tfBindSummaryControls() {
   const tickerInput = document.getElementById('tf-summary-ticker-input');
-  if (tickerInput) {
-    tickerInput.addEventListener('input', e => {
-      const sym = (e.target.value || '').toUpperCase();
-      e.target.value = sym;
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') {
-        if (!state.intraday) state.intraday = newIntradayTicket();
-        state.intraday.ticker = sym;
-      } else {
-        state.ticker = sym;
-      }
-      saveState();
-      tfUpdateTickerMemory('tf-summary-ticker-memory', sym);
-      tfRenderStepper();
-      tfRenderActions();
-      tfUpdateSummaryStatus();
-    });
-  }
-
-  const setupSelect = document.getElementById('tf-summary-setup-select');
-  if (setupSelect) {
-    setupSelect.addEventListener('change', e => {
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') {
-        if (!state.intraday) state.intraday = newIntradayTicket();
-        const id = e.target.value || null;
-        state.intraday.setup = id;
-        const def = id ? tfFindIntradaySetup(id) : null;
-        if (def && def.bias === 'long') state.intraday.direction = 'long';
-        if (def && def.bias === 'short') state.intraday.direction = 'short';
-        tfAutoFillIntradayStockFromOR();
-      } else {
-        state.selectedSetup = e.target.value || null;
-      }
-      saveState();
-      tfRefreshAll();
-    });
-  }
-
-  const structureSelect = document.getElementById('tf-summary-structure-select');
-  if (structureSelect) {
-    structureSelect.addEventListener('change', e => {
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') tfSetIntradayStructure(e.target.value);
-      else tfSetSwingStructure(e.target.value);
-    });
-  }
-
-  const setDir = dir => {
+  if (!tickerInput) return;
+  tickerInput.addEventListener('input', e => {
+    const sym = (e.target.value || '').toUpperCase();
+    e.target.value = sym;
     const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
     if (m === 'intraday') {
       if (!state.intraday) state.intraday = newIntradayTicket();
-      state.intraday.direction = dir;
+      state.intraday.ticker = sym;
     } else {
-      state.direction = dir;
+      state.ticker = sym;
     }
     saveState();
-    tfRefreshAll();
-  };
-  document.getElementById('tf-summary-dir-long')?.addEventListener('click', () => setDir('long'));
-  document.getElementById('tf-summary-dir-short')?.addEventListener('click', () => setDir('short'));
-
-  const pasteToggle = document.getElementById('tf-summary-paste-toggle');
-  const pasteWrap = document.getElementById('tf-summary-paste-wrap');
-  if (pasteToggle && pasteWrap) {
-    pasteToggle.addEventListener('click', () => {
-      pasteWrap.classList.toggle('open');
-      if (pasteWrap.classList.contains('open')) {
-        try { document.getElementById('tf-summary-paste-input')?.focus(); } catch (_) {}
-      }
-    });
-  }
-  document.getElementById('tf-summary-paste-clear')?.addEventListener('click', () => {
-    const ta = document.getElementById('tf-summary-paste-input');
-    const hint = document.getElementById('tf-summary-paste-hint');
-    if (ta) ta.value = '';
-    if (hint) { hint.textContent = 'Cleared.'; hint.style.color = ''; }
-  });
-  document.getElementById('tf-summary-paste-apply')?.addEventListener('click', () => {
-    const ta = document.getElementById('tf-summary-paste-input');
-    const hint = document.getElementById('tf-summary-paste-hint');
-    if (!ta) return;
-    const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-    const parsed = m === 'intraday' ? tfParseIntradayPaste(ta.value) : tfParseSwingPaste(ta.value);
-    const keys = Object.keys(parsed || {});
-    if (!keys.length) {
-      if (hint) { hint.textContent = 'No recognizable values found.'; hint.style.color = 'var(--amber-bright)'; }
-      return;
-    }
-    if (m === 'intraday') tfApplyIntradayPaste(parsed);
-    else tfApplySwingPaste(parsed);
-    if (hint) {
-      hint.textContent = `Applied ${keys.length} value${keys.length === 1 ? '' : 's'}.`;
-      hint.style.color = 'var(--green-bright)';
-    }
-    tfRefreshAll();
+    tfRenderStepper();
+    tfRenderActions();
+    tfUpdateSummaryStatus();
   });
 }
 
@@ -11734,24 +11531,12 @@ function tfRenderStepper() {
 
 function tfRenderHeader() {
   const tickerEl = document.getElementById('trade-summary-ticker');
-  const stratEl  = document.getElementById('trade-summary-strategy');
-  if (!tickerEl || !stratEl) return;
+  if (!tickerEl) return;
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   tfEnsureSummaryControls(m);
   const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
   const tickerInput = document.getElementById('tf-summary-ticker-input');
   if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
-  tfUpdateTickerMemory('tf-summary-ticker-memory', ticker);
-
-  const setupSelect = document.getElementById('tf-summary-setup-select');
-  if (setupSelect) setupSelect.value = m === 'intraday' ? ((state.intraday && state.intraday.setup) || '') : (state.selectedSetup || '');
-  const structureSelect = document.getElementById('tf-summary-structure-select');
-  if (structureSelect) structureSelect.value = tfStructureValue(m);
-  const dir = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
-  document.getElementById('tf-summary-dir-long')?.classList.toggle('selected', dir === 'long');
-  document.getElementById('tf-summary-dir-short')?.classList.toggle('selected', dir === 'short');
-  const label = document.getElementById('tf-summary-strategy-label');
-  if (label) label.textContent = tfComputeStrategyLabel();
   tfUpdateSummaryStatus();
   // Mode toggle highlight
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
