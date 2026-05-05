@@ -6236,336 +6236,6 @@ textarea.input-field {
     </div>
   </section>
 
-  <!-- ===== NEW TRADE — STEP-BY-STEP FLOW ===== -->
-  <section class="tab-panel" id="panel-decision">
-
-    <div class="flow-header">
-      <div>
-        <div class="flow-title">New Trade Decision</div>
-        <div class="flow-subtitle">Five steps from alert to order. Each step unlocks the next when you complete it. If anything turns red, stop — don't force the trade.</div>
-      </div>
-      <div class="flow-progress">
-        Progress<br/>
-        <strong id="flow-progress-text">0 / 5</strong>
-      </div>
-    </div>
-
-    <!-- ============ SECTOR STATUS REMINDER ============ -->
-    <div class="sector-status-mini" id="sector-status-mini">
-      <div class="sector-status-mini-header">
-        <span class="sector-status-mini-title">Your sector ratings</span>
-        <span class="sector-status-mini-rated"></span>
-      </div>
-      <div class="sector-status-mini-list"></div>
-    </div>
-
-    <!-- ============ SMART PASTE + TOS SNAPSHOT ============ -->
-    <div class="snapshot-launch-row">
-      <button class="btn-secondary snapshot-toggle-btn" id="snapshot-toggle-btn" type="button" title="Open Smart Paste" aria-label="Open Smart Paste">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/>
-          <path d="M14 2v6h6"/>
-          <path d="M9 13h6"/>
-          <path d="M9 17h3"/>
-        </svg>
-      </button>
-    </div>
-    <div class="snapshot-wrap collapsed" id="snapshot-wrap">
-      <div class="snapshot-grid">
-        <div class="snapshot-paste-col">
-          <div class="snapshot-section-title">Smart paste</div>
-          <textarea id="snapshot-paste" class="snapshot-paste-area"
-            placeholder="Paste from TOS chart labels OR seekingalpha.com OR free-form key=value pairs.&#10;&#10;Examples that all work:&#10;NVDA IVR=42 ATR=2.34 PX=185.50 RSMK=+ RVOL=1.8 SETUP=BASE_BO REGIME=RISK-ON&#10;SA: Quant=4.2 Prof=A Mom=B+ EPS=B Earnings=18d&#10;LIQ: vol=35M oi=2500 ovol=800 spr=2.1&#10;&#10;Or paste TOS labels directly:&#10;REGIME: RISK-ON | Full Size 1.5-2%&#10;FIRE: BASE BO&#10;IVR: 42&#10;STRENGTH: 3/3"
-            rows="5"></textarea>
-          <div class="snapshot-paste-actions">
-            <button class="btn-secondary" id="snapshot-parse-btn">Parse &amp; fill</button>
-            <button class="btn-ghost" id="snapshot-clear-btn">Clear</button>
-            <span class="snapshot-paste-hint" id="snapshot-paste-hint">Tip: parser is case-insensitive and accepts most KEY=VALUE pairs.</span>
-          </div>
-        </div>
-        <div class="snapshot-display-col">
-          <div class="snapshot-section-title">TOS snapshot</div>
-          <div class="snapshot-grid-2col">
-            <div class="snap-row" id="snap-regime"><span class="snap-key">Regime</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-setup"><span class="snap-key">Setup</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-ivr"><span class="snap-key">IVR</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-atr"><span class="snap-key">ATR%</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-rsmk"><span class="snap-key">RSMK</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-rvol"><span class="snap-key">RVOL</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-stack"><span class="snap-key">Stack</span><span class="snap-val none">—</span></div>
-            <div class="snap-row" id="snap-strength"><span class="snap-key">Strength</span><span class="snap-val none">—</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ TICKER INPUT BAR ============ -->
-    <div class="ticker-bar" id="ticker-bar">
-      <!-- Prominent instrument switch — drives Step 2 (IVR optional for stocks),
-           Step 3 (shares vs contracts), and Gate 04 liquidity checks. -->
-      <div class="flow-instrument-row" id="flow-instrument-row" role="tablist" aria-label="Trading instrument">
-        <span class="flow-instrument-label">Trading</span>
-        <div class="flow-instrument-pills">
-          <button type="button" class="flow-instrument-pill active" data-instrument="options" role="tab" aria-selected="true">
-            <span class="flow-instrument-pill-name">Options</span>
-            <span class="flow-instrument-pill-detail">Calls / puts / spreads</span>
-          </button>
-          <button type="button" class="flow-instrument-pill" data-instrument="stocks" role="tab" aria-selected="false">
-            <span class="flow-instrument-pill-name">Stocks</span>
-            <span class="flow-instrument-pill-detail">Shares of the underlying</span>
-          </button>
-        </div>
-      </div>
-      <div class="ticker-bar-row">
-        <div class="ticker-bar-input-group">
-          <label class="ticker-bar-label" for="ticker-input">Ticker</label>
-          <input type="text" id="ticker-input" class="ticker-bar-input"
-                 placeholder="AAPL" maxlength="6" autocomplete="off" />
-        </div>
-        <div class="ticker-bar-input-group ticker-bar-meta">
-          <label class="ticker-bar-label" for="sa-quant-input">SA Quant</label>
-          <input type="number" id="sa-quant-input" class="ticker-bar-input ticker-bar-input-narrow"
-                 placeholder="4.32" min="1" max="5" step="0.01" inputmode="decimal" />
-        </div>
-        <div class="ticker-bar-input-group ticker-bar-meta">
-          <label class="ticker-bar-label" for="days-to-earnings-input">Days to ER</label>
-          <input type="number" id="days-to-earnings-input" class="ticker-bar-input ticker-bar-input-narrow"
-                 placeholder="32" min="0" step="1" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="ticker-bar-hint" id="ticker-bar-hint">
-        Fill these to auto-pass more gates. Ticker carries into your trade log entry, so you don't retype it.
-      </div>
-    </div>
-
-    <div class="steps-container" id="steps-container">
-
-      <!-- ============ STEP 1: SETUP ============ -->
-      <div class="step-card" id="step-1">
-        <div class="step-header">
-          <div class="step-number">
-            <span class="step-number-label">1</span>
-          </div>
-          <div class="step-title-area">
-            <div class="step-title">Identify the setup</div>
-            <div class="step-subtitle">Which of the 5 approved patterns is the chart showing? If none fit, don't trade.</div>
-          </div>
-          <div class="step-status red" id="step-1-status">
-            <span class="light"></span>
-            <span id="step-1-status-text">Pick one</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <!-- Instrument toggle: Options vs Stocks -->
-          <div class="instrument-toggle-wrap" style="margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
-            <div class="input-label" style="margin-bottom: 8px;">What are you trading?</div>
-            <div class="instrument-toggle" role="tablist">
-              <button type="button" class="instrument-btn active" data-instrument="options" role="tab" aria-selected="true">
-                <span class="instrument-btn-title">Options</span>
-                <span class="instrument-btn-detail">Calls / puts / spreads</span>
-              </button>
-              <button type="button" class="instrument-btn" data-instrument="stocks" role="tab" aria-selected="false">
-                <span class="instrument-btn-title">Stocks</span>
-                <span class="instrument-btn-detail">Shares of the underlying</span>
-              </button>
-            </div>
-            <div style="margin-top: 8px; font-size: 11px; color: var(--ink-3); line-height: 1.5;">
-              <span id="instrument-hint">Options selected — Step 3 will calculate contracts. IV Rank required in Step 2. Gate 04 checks option liquidity.</span>
-            </div>
-          </div>
-
-          <div class="setup-grid" id="setup-grid">
-            <div class="setup-card" data-setup="21-EMA Pullback">
-              <div class="setup-card-name">21-EMA Pullback</div>
-              <div class="setup-card-desc">Stock in clear uptrend pulls back to its 21-day moving average, then prints a green/up bar — your entry signal that the pullback is over</div>
-              <div class="setup-card-tag">SETUP 01</div>
-            </div>
-            <div class="setup-card" data-setup="Base Breakout">
-              <div class="setup-card-name">Base Breakout</div>
-              <div class="setup-card-desc">Stock has been trading flat in a tight range for 15+ days, then breaks above the range on at least 1.5× the average daily volume</div>
-              <div class="setup-card-tag">SETUP 02</div>
-            </div>
-            <div class="setup-card" data-setup="Breakout Retest">
-              <div class="setup-card-name">Breakout Retest</div>
-              <div class="setup-card-desc">Stock breaks out, then pulls back to test the breakout level (now acting as support), then bounces — confirming the breakout was real</div>
-              <div class="setup-card-tag">SETUP 03</div>
-            </div>
-            <div class="setup-card" data-setup="9-EMA Reclaim">
-              <div class="setup-card-name">9-EMA Reclaim</div>
-              <div class="setup-card-desc">Intraday wick below the 9-day moving average that closes back above by end of day — the dip-buyers showed up</div>
-              <div class="setup-card-tag">SETUP 04</div>
-            </div>
-            <div class="setup-card" data-setup="Edge Reversal">
-              <div class="setup-card-name">Edge Reversal</div>
-              <div class="setup-card-desc">Counter-trend trade: an extended trend shows exhaustion (gap-up after long rally, etc.). Use HALF size — these are lower-probability than the other 4 setups</div>
-              <div class="setup-card-tag">SETUP 05 · ½ size</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ============ STEP 2: STRATEGY (IV Rank → Structure) ============ -->
-      <div class="step-card locked" id="step-2">
-        <div class="step-header">
-          <div class="step-number">
-            <span class="step-number-label">2</span>
-          </div>
-          <div class="step-title-area">
-            <div class="step-title">Pick the structure</div>
-            <div class="step-subtitle">IV Rank tells you whether to buy options outright or use spreads. Read IV Rank from the TOS Trade tab → click your ticker → Volatility section.</div>
-          </div>
-          <div class="step-status" id="step-2-status">
-            <span class="light"></span>
-            <span id="step-2-status-text">Locked</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="strategy-display">
-            <div>
-              <div class="input-group">
-                <label class="input-label">IV Rank from TOS (0–100)</label>
-                <input type="number" id="ivr-input" class="input-field"
-                       min="0" max="100" placeholder="e.g. 24 (cheap) or 65 (expensive)" />
-              </div>
-              <div class="input-group" style="margin-top: 14px;">
-                <label class="input-label">Trade Direction</label>
-                <select id="direction-input" class="input-field">
-                  <option value="long">Long (call / call spread)</option>
-                  <option value="short">Short (put / put spread)</option>
-                </select>
-              </div>
-            </div>
-            <div id="strategy-output">
-              <div class="strategy-output empty">
-                Enter IV Rank above<br/>to compute strategy
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 3: SIZE (Position calculator — sizing only) ============ -->
-      <div class="step-card locked" id="step-3">
-        <div class="step-header">
-          <div class="step-number">
-            <span class="step-number-label">3</span>
-          </div>
-          <div class="step-title-area">
-            <div class="step-title">Size the position</div>
-            <div class="step-subtitle">Three inputs. Cockpit returns contracts, stop, and target. Liquidity checks live in Step 4.</div>
-          </div>
-          <div class="step-status" id="step-3-status">
-            <span class="light"></span>
-            <span id="step-3-status-text">Locked</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="calc-display">
-            <div>
-              <div class="input-group">
-                <label class="input-label">Option premium per contract ($) <span style="color: var(--red); font-weight: 700;">*</span></label>
-                <input type="number" id="premium-input" class="input-field"
-                       min="0" step="0.01" placeholder="e.g. 2.00 — the price shown in TOS option chain" />
-              </div>
-              <div class="input-group" style="margin-top: 14px;">
-                <label class="input-label">
-                  Underlying ATR(14)
-                  <span style="color: var(--ink-4); font-weight: 400; font-size: 11px; margin-left: 6px;">in TOS: ATR study, period 14</span>
-                </label>
-                <input type="number" id="atr-input" class="input-field"
-                       min="0" step="0.01" placeholder="e.g. 3.45 high-vol, or 1.20 low-vol" />
-              </div>
-              <div class="input-group" style="margin-top: 14px;">
-                <label class="input-label">Underlying current price</label>
-                <input type="number" id="underlying-price-input" class="input-field"
-                       min="0" step="0.01" placeholder="e.g. 185.50" />
-              </div>
-              <div style="margin-top: 14px; font-size: 11px; color: var(--ink-4); line-height: 1.5;">
-                <strong style="color: var(--ink-3);">*</strong> Premium is the only required input. ATR + price unlock the volatility-adjusted stop level shown in the result panel and auto-pass the stop gate in Step 4.
-              </div>
-            </div>
-            <div id="calc-result">
-              <div class="calc-result empty">
-                Enter premium to compute<br/>contract count and risk
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 4: VERIFY (6-gate checklist) ============ -->
-      <div class="step-card locked" id="step-4">
-        <div class="step-header">
-          <div class="step-number">
-            <span class="step-number-label">4</span>
-          </div>
-          <div class="step-title-area">
-            <div class="step-title">Verify the gates</div>
-            <div class="step-subtitle">Six safety checks. Each must pass before the trade unlocks. Click any gate to see what it requires.</div>
-          </div>
-          <div class="step-status" id="step-4-status">
-            <span class="light"></span>
-            <span id="step-4-status-text">Locked</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="gate-progress">
-            <span class="gate-progress-label"><strong id="gate-progress-label">0</strong> of 6 gates passed</span>
-            <div class="gate-progress-bar"><div class="gate-progress-fill" id="gate-fill"></div></div>
-          </div>
-          <div class="gate-grid" id="gate-list"><!-- generated by JS --></div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 5: EXECUTE ============ -->
-      <div class="step-card locked" id="step-5">
-        <div class="step-header">
-          <div class="step-number">
-            <span class="step-number-label">5</span>
-          </div>
-          <div class="step-title-area">
-            <div class="step-title">Execute &amp; log</div>
-            <div class="step-subtitle">Place the order in Thinkorswim, then click GO here to log it.</div>
-          </div>
-          <div class="step-status" id="step-5-status">
-            <span class="light"></span>
-            <span id="step-5-status-text">Locked</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="execute-row">
-            <button class="btn-go" id="btn-go" disabled>
-              <span class="light"></span>
-              <span id="btn-go-text">Finish the steps above to enable trade</span>
-            </button>
-            <button class="btn-secondary" id="btn-reset-flow">Reset</button>
-          </div>
-          <div class="execute-checklist">
-            <div class="execute-checklist-title">When GO is green, do this in TOS:</div>
-            <div class="execute-step">
-              <span class="execute-step-num">01</span>
-              <span>Open the option chain in TOS: <strong>Trade tab → type your ticker → Option Chain section</strong></span>
-            </div>
-            <div class="execute-step">
-              <span class="execute-step-num">02</span>
-              <span>Right-click your chosen contract → <strong>Buy → With OCO Bracket</strong>. This places one entry order paired with a profit-target and stop-loss that auto-cancel each other.</span>
-            </div>
-            <div class="execute-step">
-              <span class="execute-step-num">03</span>
-              <span>Set <strong>entry limit price</strong> (your max pay), <strong>profit target</strong> (premium +50%), and <strong>stop trigger</strong> (when underlying stock closes below your invalidation level)</span>
-            </div>
-            <div class="execute-step">
-              <span class="execute-step-num">04</span>
-              <span>Submit in TOS. Then click <strong>GO</strong> here in the cockpit to log your thesis and pre-mortem</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
   <!-- ===== TRADE LOG ===== -->
   <section class="tab-panel" id="panel-log">
     <div class="log-stats" id="log-stats"></div>
@@ -6605,233 +6275,6 @@ textarea.input-field {
     </div>
   </section>
 
-  <!-- ===== INTRADAY (5-step flow, mirrors Swing visual structure) ===== -->
-  <section class="tab-panel" id="panel-intraday">
-
-    <!-- Intraday day-stats strip (was inline in old banner; now its own row) -->
-    <div class="aside-card" id="i-day-status-card" style="margin-bottom: 18px;">
-      <div class="pretrade-checks" id="i-day-status">
-        <div class="pretrade-check ok" id="i-day-trades"><span class="pretrade-check-label">Today's intraday trades</span><span class="pretrade-check-value" id="i-day-trade-count">0</span></div>
-        <div class="pretrade-check ok" id="i-day-pl"><span class="pretrade-check-label">Daily P/L</span><span class="pretrade-check-value" id="i-day-pl-value">$0</span></div>
-        <div class="pretrade-check ok" id="i-day-budget"><span class="pretrade-check-label">Loss budget left</span><span class="pretrade-check-value" id="i-day-budget-value">$200</span></div>
-        <div class="pretrade-check ok" id="i-day-window"><span class="pretrade-check-label">Window</span><span class="pretrade-check-value" id="i-day-window-value">—</span></div>
-      </div>
-    </div>
-
-    <!-- Same ticker/context bar as Swing, just intraday-flavored -->
-    <div class="ticker-bar">
-      <div class="flow-instrument-row" id="i-flow-instrument-row" role="tablist" aria-label="Trading instrument">
-        <span class="flow-instrument-label">Trading</span>
-        <div class="flow-instrument-pills">
-          <button type="button" class="flow-instrument-pill active" data-instrument="options" role="tab" aria-selected="true">
-            <span class="flow-instrument-pill-name">Options</span>
-            <span class="flow-instrument-pill-detail">Calls / puts</span>
-          </button>
-          <button type="button" class="flow-instrument-pill" data-instrument="stocks" role="tab" aria-selected="false">
-            <span class="flow-instrument-pill-name">Stocks</span>
-            <span class="flow-instrument-pill-detail">Shares</span>
-          </button>
-        </div>
-      </div>
-      <div class="ticker-bar-inner">
-        <div class="ticker-bar-input-group">
-          <label class="ticker-bar-label">Ticker</label>
-          <input type="text" id="i-ticker" class="ticker-bar-input" placeholder="SPY, NVDA…" maxlength="10" autocomplete="off" />
-        </div>
-        <div class="ticker-bar-input-group" style="flex: 0 0 240px;">
-          <label class="ticker-bar-label">Direction</label>
-          <div class="dir-toggle" id="i-direction" style="display:flex;">
-            <button data-dir="long" type="button" class="dir-btn active long">LONG</button>
-            <button data-dir="short" type="button" class="dir-btn short">SHORT</button>
-          </div>
-        </div>
-        <div class="ticker-bar-input-group" style="flex: 0 0 220px;">
-          <label class="ticker-bar-label">VWAP relation</label>
-          <select id="i-vwap-rel" class="ticker-bar-input">
-            <option value="">—</option>
-            <option value="above">Above VWAP</option>
-            <option value="below">Below VWAP</option>
-            <option value="at">At VWAP (mean-rev)</option>
-          </select>
-        </div>
-      </div>
-      <div class="ticker-bar-hint">
-        Required fields are bold-labeled inside each step. Defensible = every required field has a purpose. No padding.
-      </div>
-    </div>
-
-    <div class="steps-container" id="i-steps-container">
-
-      <!-- ============ STEP 1: SETUP ============ -->
-      <div class="step-card" id="i-step-1">
-        <div class="step-header">
-          <div class="step-number"><span class="step-number-label">1</span></div>
-          <div class="step-title-area">
-            <div class="step-title">Identify the intraday setup</div>
-            <div class="step-subtitle">Which of the 6 approved intraday patterns? If none fit, don't trade.</div>
-          </div>
-          <div class="step-status red" id="i-step-1-status">
-            <span class="light"></span>
-            <span id="i-step-1-status-text">Pick one</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="setup-grid" id="i-setup-grid">
-            <div class="setup-card" data-setup="ORB Break">
-              <div class="setup-card-name">ORB Break</div>
-              <div class="setup-card-desc">Price breaks the high (long) or low (short) of the 30-min opening range with volume confirmation. Best in 09:35–10:30 window.</div>
-              <div class="setup-card-tag">INTRADAY 01</div>
-            </div>
-            <div class="setup-card" data-setup="ORB Retest">
-              <div class="setup-card-name">ORB Retest</div>
-              <div class="setup-card-desc">After ORB break, price returns to the broken level, finds support / resistance, and rejects. Higher-probability re-entry.</div>
-              <div class="setup-card-tag">INTRADAY 02</div>
-            </div>
-            <div class="setup-card" data-setup="VWAP Reclaim">
-              <div class="setup-card-name">VWAP Reclaim</div>
-              <div class="setup-card-desc">Was below VWAP for 30+ min, reclaims it on rising volume with 9 EMA above 21 EMA. Direction must = long.</div>
-              <div class="setup-card-tag">INTRADAY 03</div>
-            </div>
-            <div class="setup-card" data-setup="VWAP Loss">
-              <div class="setup-card-name">VWAP Loss</div>
-              <div class="setup-card-desc">Mirror of Reclaim. Was above VWAP, loses it on volume. Direction must = short.</div>
-              <div class="setup-card-tag">INTRADAY 04</div>
-            </div>
-            <div class="setup-card" data-setup="Momentum Edge">
-              <div class="setup-card-name">Momentum Edge</div>
-              <div class="setup-card-desc">From MAC_Intraday_Edge_Scan. Fresh momentum burst after oversold cluster, or recent EMA crossover. Confirm by VWAP relation.</div>
-              <div class="setup-card-tag">INTRADAY 05</div>
-            </div>
-            <div class="setup-card" data-setup="Trend Continuation">
-              <div class="setup-card-name">Trend Continuation</div>
-              <div class="setup-card-desc">3rd or 4th pullback to 9 / 21 EMA in an established trend. Reversal candle at the line. Lower priority than 1-5.</div>
-              <div class="setup-card-tag">INTRADAY 06 · low pri</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 2: ENTRY / STOP / TARGET ============ -->
-      <div class="step-card locked" id="i-step-2">
-        <div class="step-header">
-          <div class="step-number"><span class="step-number-label">2</span></div>
-          <div class="step-title-area">
-            <div class="step-title">Define the trade</div>
-            <div class="step-subtitle">Entry, stop, target. Each has a purpose: entry locks the price, stop defines where you're wrong, target defines payoff.</div>
-          </div>
-          <div class="step-status red" id="i-step-2-status">
-            <span class="light"></span>
-            <span id="i-step-2-status-text">Fill 3 fields</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="settings-row" style="grid-template-columns: 1fr 1fr 1fr;">
-            <div class="input-group">
-              <label class="input-label"><strong>Entry $</strong> <span style="color:var(--ink-3); font-weight:400;">required</span></label>
-              <input type="number" id="i-entry" class="input-field" step="0.01" min="0" placeholder="0.00" />
-            </div>
-            <div class="input-group">
-              <label class="input-label"><strong>Stop $</strong> <span style="color:var(--ink-3); font-weight:400;">required</span></label>
-              <input type="number" id="i-stop" class="input-field" step="0.01" min="0" placeholder="0.00" />
-            </div>
-            <div class="input-group">
-              <label class="input-label"><strong>Target $</strong> <span style="color:var(--ink-3); font-weight:400;">required</span></label>
-              <input type="number" id="i-target" class="input-field" step="0.01" min="0" placeholder="0.00" />
-            </div>
-          </div>
-          <div class="settings-row" style="margin-top: 14px; grid-template-columns: 1fr 1fr;">
-            <div class="input-group">
-              <label class="input-label"><strong>Spread %</strong> <span style="color:var(--ink-3); font-weight:400;">required — bid-ask % of mid</span></label>
-              <input type="number" id="i-spread" class="input-field" step="0.1" min="0" placeholder="2.5" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Contracts <span style="color:var(--ink-3); font-weight:400;">optional — auto-sized if blank</span></label>
-              <input type="number" id="i-contracts" class="input-field" min="0" step="1" placeholder="auto" />
-            </div>
-          </div>
-
-          <!-- Live calc result: same look as Swing's calc card -->
-          <div class="calc-result-wrap" style="margin-top: 16px;">
-            <div id="i-calc-result"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 3: QUALITY CHECKS (mirror of Swing's gates) ============ -->
-      <div class="step-card locked" id="i-step-3">
-        <div class="step-header">
-          <div class="step-number"><span class="step-number-label">3</span></div>
-          <div class="step-title-area">
-            <div class="step-title">Pass all quality checks</div>
-            <div class="step-subtitle">5 required checks. Same UI as Swing's 8 gates — green = pass, red = stop. No checks override your judgment.</div>
-          </div>
-          <div class="step-status red" id="i-step-3-status">
-            <span class="light"></span>
-            <span id="i-step-3-status-text">5 to pass</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="gate-list" id="i-gate-list"></div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 4: NOTES ============ -->
-      <div class="step-card locked" id="i-step-4">
-        <div class="step-header">
-          <div class="step-number"><span class="step-number-label">4</span></div>
-          <div class="step-title-area">
-            <div class="step-title">Note the trigger and the exit</div>
-            <div class="step-subtitle">One line: why now, where you're wrong, where you take profit. Optional but recommended — fills auto into your trade log.</div>
-          </div>
-          <div class="step-status amber" id="i-step-4-status">
-            <span class="light"></span>
-            <span id="i-step-4-status-text">Optional</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="input-group">
-            <label class="input-label">Notes</label>
-            <textarea id="i-notes" class="input-field" rows="2" placeholder="e.g. 'Reclaimed VWAP on 5m vol surge after holding session low. Wrong if loses VWAP again. Out at prior intraday high.'"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ STEP 5: GO ============ -->
-      <div class="step-card locked" id="i-step-5">
-        <div class="step-header">
-          <div class="step-number"><span class="step-number-label">5</span></div>
-          <div class="step-title-area">
-            <div class="step-title">Place the order, log the trade</div>
-            <div class="step-subtitle">Click GO when steps 1–3 are green and the order is in TOS with a bracket. The button stays disabled otherwise.</div>
-          </div>
-          <div class="step-status red" id="i-step-5-status">
-            <span class="light"></span>
-            <span id="i-step-5-status-text">Not ready</span>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="execute-row">
-            <button class="btn-go" id="btn-i-go" disabled>
-              <span class="light"></span>
-              <span id="btn-i-go-text">Finish the steps above to enable trade</span>
-            </button>
-          </div>
-          <div class="execute-checklist">
-            <div class="execute-checklist-title">When GO is green, do this in TOS:</div>
-            <div class="execute-step">
-              <span class="execute-step-num">01</span>
-              <span>Place your bracket order in TOS at the cockpit's recommended entry, target, and stop levels</span>
-            </div>
-            <div class="execute-step">
-              <span class="execute-step-num">02</span>
-              <span>Once the order is live in TOS, click <strong>GO</strong> here to log the trade</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
   <!-- ===== SUNDAY PREP ===== -->
   <section class="tab-panel" id="panel-sunday">
     <div class="sunday-grid">
@@ -8189,10 +7632,6 @@ async function reconcileOnSignIn() {
 function refreshAllUI() {
   if (typeof renderHome === 'function') renderHome();
   if (typeof renderTabs === 'function') renderTabs(state.activeMode || 'swing');
-  if (typeof renderSetupGrid === 'function') renderSetupGrid();
-  if (typeof renderStrategy === 'function') renderStrategy();
-  if (typeof renderCalc === 'function') renderCalc();
-  if (typeof renderGate === 'function') renderGate();
   if (typeof renderTrade === 'function') renderTrade();
   if (typeof renderRegime === 'function') renderRegime();
   if (typeof renderPortfolioStatus === 'function') renderPortfolioStatus();
@@ -8202,15 +7641,6 @@ function refreshAllUI() {
   if (typeof renderSectors === 'function') renderSectors();
   if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
   if (typeof renderContextPanel === 'function') renderContextPanel();
-  // Restore form inputs
-  if (state.ivr !== null) document.getElementById('ivr-input').value = state.ivr;
-  if (state.direction) document.getElementById('direction-input').value = state.direction;
-  if (state.premium !== null) document.getElementById('premium-input').value = state.premium;
-  if (state.atr) document.getElementById('atr-input').value = state.atr;
-  if (state.underlyingPrice) document.getElementById('underlying-price-input').value = state.underlyingPrice;
-  if (state.ticker) document.getElementById('ticker-input').value = state.ticker;
-  if (state.saQuant !== null && state.saQuant !== undefined) document.getElementById('sa-quant-input').value = state.saQuant;
-  if (state.daysToEarnings !== null && state.daysToEarnings !== undefined) document.getElementById('days-to-earnings-input').value = state.daysToEarnings;
 }
 
 // Auth modal handlers
@@ -8907,8 +8337,7 @@ function setRegime(r) {
   renderHome();
   renderRegime();
   renderPretradeCheck();
-  renderCalc();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   if (typeof renderSnapshotDisplay === 'function') renderSnapshotDisplay();
 }
 
@@ -9066,7 +8495,7 @@ function togglePretradeCheck(key) {
   state.pretradeChecks[key] = !state.pretradeChecks[key];
   saveState();
   renderPretradeCheck();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
 // ---------- IV Rank Strategy ----------
@@ -9845,19 +9274,14 @@ function selectInstrument(inst) {
   state.instrument = inst;
   saveState();
   renderInstrumentToggle();
-  renderStrategy();
-  renderCalc();
-  renderGate();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
 function selectSetup(setup) {
   state.selectedSetup = setup;
   saveState();
   renderSetupGrid();
-  renderGate();
-  renderCalc(); // size may change for Edge Reversal
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   if (typeof renderSnapshotDisplay === 'function') renderSnapshotDisplay();
 }
 
@@ -10069,7 +9493,7 @@ function addTestTrades() {
   renderLogStats();
   renderLogTable();
   renderPretradeCheck();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   toast(`Generated ${sampleTrades.length} random test trades`);
 }
 
@@ -11262,7 +10686,6 @@ function saveTrade() {
   renderLogStats();
   renderLogTable();
   renderPretradeCheck();  // recompute auto-detected checks
-  recomputeStepStates();
 }
 
 function deleteTrade() {
@@ -11285,7 +10708,6 @@ function deleteTrade() {
   renderLogStats();
   renderLogTable();
   renderPretradeCheck();
-  recomputeStepStates();
   toast('Trade deleted');
 }
 
@@ -11301,18 +10723,7 @@ function resetFlowSilent() {
   state.gateChecks = {};
   state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
   saveState();
-  document.getElementById('ivr-input').value = '';
-  document.getElementById('premium-input').value = '';
-  document.getElementById('atr-input').value = '';
-  document.getElementById('underlying-price-input').value = '';
-  document.getElementById('ticker-input').value = '';
-  document.getElementById('sa-quant-input').value = '';
-  document.getElementById('days-to-earnings-input').value = '';
-  // Liquidity inputs live in Gate 04 — renderGate() below re-renders them from cleared state.liquidity.
-  renderSetupGrid();
-  renderStrategy();
-  renderCalc();
-  renderGate();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
 window.editTrade = function(id) {
@@ -11663,7 +11074,7 @@ function _savePositionEditor() {
   renderHome();
   renderLogStats();
   renderLogTable();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   toast('Trade updated');
 }
 
@@ -11683,7 +11094,7 @@ function _deletePositionEditor() {
   renderHome();
   renderLogStats();
   renderLogTable();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   toast('Trade deleted');
 }
 
@@ -12406,10 +11817,9 @@ function saveSettings() {
   renderHome();
   renderRegime();
   renderPretradeCheck();
-  renderCalc();
   renderLogStats();
   renderReference();
-  recomputeStepStates();
+  if (typeof renderTrade === 'function') renderTrade();
   toast('Settings saved');
 }
 
@@ -12491,18 +11901,10 @@ function clearAllTradesAndData() {
   renderHome();
   renderRegime();
   renderPretradeCheck();
-  renderSetupGrid();
-  renderStrategy();
-  renderCalc();
-  renderGate();
   renderLogStats();
   renderLogTable();
   renderSectors();
-  renderSectorStatusMini();
-  restoreIntradayInputs();
-  renderIntradaySetupGrid();
-  renderIntraday();
-  recomputeStepStates();
+  if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
   toast('All trades and cockpit data cleared');
 }
 
@@ -13276,12 +12678,13 @@ function logIntradayTrade() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  document.getElementById('i-vwap-rel').value = '';
+  const vwapEl = document.getElementById('i-vwap-rel');
+  if (vwapEl) vwapEl.value = '';
   document.querySelectorAll('#i-setup-grid .setup-card').forEach(c => c.classList.remove('selected'));
-  renderIntraday();
+  if (document.getElementById('panel-intraday') && typeof renderIntraday === 'function') renderIntraday();
   renderHome();
   renderLogStats();
-  renderUniversalSidebar();
+  if (typeof renderUniversalSidebar === 'function') renderUniversalSidebar();
   toast('Intraday trade logged');
 }
 
@@ -13772,12 +13175,6 @@ function tfReset() {
   state.tradeFlow.intradayDraft = {};
   saveState();
   renderTrade();
-  // Also refresh legacy panels so things stay in sync
-  if (typeof renderSetupGrid === 'function') renderSetupGrid();
-  if (typeof renderStrategy === 'function') renderStrategy();
-  if (typeof renderCalc === 'function') renderCalc();
-  if (typeof renderGate === 'function') renderGate();
-  if (typeof renderIntraday === 'function') renderIntraday();
 }
 
 // ============== Step body renderers ==============
@@ -13877,11 +13274,6 @@ function tfMountSwingStep1() {
     b.addEventListener('click', () => {
       state.direction = b.dataset.tfDir;
       saveState();
-      // Mirror to the legacy panel's hidden input. Do NOT call renderStrategy
-      // here — it reads from ivr-input and would overwrite state.ivr with null
-      // if the user already set IVR via the new flow.
-      const di = document.getElementById('direction-input');
-      if (di) di.value = state.direction;
       tfRefreshAll();
     });
   });
@@ -13891,8 +13283,6 @@ function tfMountSwingStep1() {
       state.ticker = (e.target.value || '').toUpperCase();
       saveState();
       tfRefreshHeaderOnly();
-      const lt = document.getElementById('ticker-input');
-      if (lt) lt.value = state.ticker;
     });
     // No body rebuild on blur — it tore down the next input mid-Tab.
   }
@@ -13979,19 +13369,12 @@ function tfSwingStep2() {
 }
 
 function tfMountSwingStep2() {
-  // Helper: keep the legacy panel's twin input in sync so old code paths that
-  // read from the DOM (renderGate, renderCalc, etc.) don't see an empty field.
-  const syncLegacy = (legacyId, value) => {
-    const li = document.getElementById(legacyId);
-    if (li) li.value = (value === null || value === undefined) ? '' : value;
-  };
   const sa = document.getElementById('tf-sa-quant');
   if (sa) {
     sa.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       state.saQuant = isNaN(v) ? null : v;
       saveState();
-      syncLegacy('sa-quant-input', e.target.value);
       tfRefreshHeaderOnly();
     });
     // No body rebuild on blur — Tab keeps caret in the next field.
@@ -14002,7 +13385,6 @@ function tfMountSwingStep2() {
       const v = parseFloat(e.target.value);
       state.daysToEarnings = isNaN(v) ? null : v;
       saveState();
-      syncLegacy('days-to-earnings-input', e.target.value);
       tfRefreshHeaderOnly();
     });
     // No body rebuild on blur — Tab keeps caret in the next field.
@@ -14127,8 +13509,6 @@ function tfMountSwingStep3() {
         }
       }
       tfUpdateSwingStrategyPreview();
-      const li = document.getElementById('ivr-input');
-      if (li) li.value = state.ivr === null ? '' : state.ivr;
     });
   }
   document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
@@ -14234,22 +13614,20 @@ function tfMountSwingStep4() {
   // Surgical updates only — no body rebuild on blur. The sizing card and
   // Gate 06 row update in place via tfUpdateSwingSizing() so Tab still
   // moves cleanly between premium → ATR → underlying.
-  const wireNum = (id, key, legacyId) => {
+  const wireNum = (id, key) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       state[key] = isNaN(v) ? null : v;
       saveState();
-      const li = legacyId ? document.getElementById(legacyId) : null;
-      if (li) li.value = e.target.value;
       tfRefreshHeaderOnly();
       tfUpdateSwingSizing();
     });
   };
-  wireNum('tf-premium', 'premium', 'premium-input');
-  wireNum('tf-atr', 'atr', 'atr-input');
-  wireNum('tf-upx', 'underlyingPrice', 'underlying-price-input');
+  wireNum('tf-premium', 'premium');
+  wireNum('tf-atr', 'atr');
+  wireNum('tf-upx', 'underlyingPrice');
 }
 
 // ----- Swing step 5 — Execute -----
@@ -15182,31 +14560,15 @@ function attachTickerAutocomplete(input, opts = {}) {
 function init() {
   loadState();
 
-  // Restore inputs from state
-  if (state.ivr !== null) document.getElementById('ivr-input').value = state.ivr;
-  if (state.direction) document.getElementById('direction-input').value = state.direction;
-  if (state.premium !== null) document.getElementById('premium-input').value = state.premium;
-  if (state.atr) document.getElementById('atr-input').value = state.atr;
-  if (state.underlyingPrice) document.getElementById('underlying-price-input').value = state.underlyingPrice;
-  // Liquidity inputs render inline inside Gate 04 (Step 4) — restored from state.liquidity by renderGate.
-  if (state.ticker) document.getElementById('ticker-input').value = state.ticker;
-  if (state.saQuant !== null && state.saQuant !== undefined) document.getElementById('sa-quant-input').value = state.saQuant;
-  if (state.daysToEarnings !== null && state.daysToEarnings !== undefined) document.getElementById('days-to-earnings-input').value = state.daysToEarnings;
-
   // Render initial state
   renderHome();
   renderRegime();
   renderPretradeCheck();
-  renderSetupGrid();
-  renderStrategy();
-  renderCalc();
-  renderGate();
   renderLogStats();
   renderLogTable();
   renderSunday();
   renderReference();
-  renderSectorStatusMini();
-  recomputeStepStates();
+  if (typeof renderSectorStatusMini === 'function') renderSectorStatusMini();
 
   document.getElementById('home-portfolio-toggle')?.addEventListener('click', toggleHomePortfolioView);
 
@@ -15251,54 +14613,12 @@ function init() {
     el.addEventListener('click', () => togglePretradeCheck(el.dataset.check));
   });
 
-  // Setup picker
-  document.querySelectorAll('.setup-card').forEach(el => {
-    el.addEventListener('click', () => selectSetup(el.dataset.setup));
-  });
-
-  // Instrument toggle (Options vs Stocks) — both legacy cards and the new prominent pills
+  // Instrument toggle (Options vs Stocks)
   document.querySelectorAll('.instrument-btn, .flow-instrument-pill').forEach(btn => {
     btn.addEventListener('click', () => selectInstrument(btn.dataset.instrument));
   });
-
-  // IV input
-  document.getElementById('ivr-input').addEventListener('input', renderStrategy);
-  document.getElementById('direction-input').addEventListener('change', renderStrategy);
-
-  // Calc input
-  document.getElementById('premium-input').addEventListener('input', renderCalc);
-  document.getElementById('atr-input').addEventListener('input', renderCalc);
-  document.getElementById('underlying-price-input').addEventListener('input', renderCalc);
-  // Liquidity input listeners are wired inside renderGate (inputs are rendered there).
-
-  // Ticker bar inputs
-  document.getElementById('ticker-input').addEventListener('input', e => {
-    state.ticker = e.target.value.toUpperCase().trim() || null;
-    if (e.target.value !== state.ticker) e.target.value = state.ticker || '';
-    saveState();
-    renderGate();
-    recomputeStepStates();
-  });
-  // Ticker autocomplete: swing flow ticker input + intraday + edit modal
-  attachTickerAutocomplete(document.getElementById('ticker-input'), {
-    onPick: sym => { state.ticker = sym; saveState(); renderGate(); recomputeStepStates(); }
-  });
-  attachTickerAutocomplete(document.getElementById('i-ticker'));
+  // Ticker autocomplete for the edit modal. New Trade flow fields are rendered dynamically.
   attachTickerAutocomplete(document.getElementById('t-ticker'));
-  document.getElementById('sa-quant-input').addEventListener('input', e => {
-    const v = parseFloat(e.target.value);
-    state.saQuant = isNaN(v) ? null : v;
-    saveState();
-    renderGate();
-    recomputeStepStates();
-  });
-  document.getElementById('days-to-earnings-input').addEventListener('input', e => {
-    const v = parseInt(e.target.value);
-    state.daysToEarnings = isNaN(v) ? null : v;
-    saveState();
-    renderGate();
-    recomputeStepStates();
-  });
 
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
     setTab('trade');
@@ -15325,41 +14645,11 @@ function init() {
       document.getElementById('home-regime-picker')?.classList.remove('show');
     });
   });
-  // Reset and GO buttons
-  document.getElementById('btn-reset-flow').addEventListener('click', () => {
-    if (confirm('Reset the entire flow?')) {
-      resetFlowSilent();
-      toast('Flow reset');
-      recomputeStepStates();
-    }
-  });
-  document.getElementById('btn-go').addEventListener('click', () => {
-    if (!document.getElementById('btn-go').disabled) {
-      openTradeModal();
-    }
-  });
-
   // Add trade button
   document.getElementById('btn-add-trade')?.addEventListener('click', () => openTradeModal());
   document.getElementById('btn-add-test-trades')?.addEventListener('click', addTestTrades);
   document.getElementById('btn-export')?.addEventListener('click', exportCSV);
 
-  // Snapshot paste
-  const snapParseBtn = document.getElementById('snapshot-parse-btn');
-  const snapClearBtn = document.getElementById('snapshot-clear-btn');
-  const snapToggleBtn = document.getElementById('snapshot-toggle-btn');
-  const snapWrap = document.getElementById('snapshot-wrap');
-  if (snapToggleBtn && snapWrap) {
-    snapToggleBtn.addEventListener('click', () => {
-      snapWrap.classList.toggle('collapsed');
-      snapToggleBtn.title = snapWrap.classList.contains('collapsed') ? 'Open Smart Paste' : 'Close Smart Paste';
-      if (!snapWrap.classList.contains('collapsed')) document.getElementById('snapshot-paste')?.focus();
-    });
-  }
-  if (snapParseBtn) snapParseBtn.addEventListener('click', handleSnapshotPaste);
-  if (snapClearBtn) snapClearBtn.addEventListener('click', clearSnapshot);
-  // Render snapshot display on first load (shows current state values)
-  renderSnapshotDisplay();
   document.getElementById('btn-export-json')?.addEventListener('click', exportJSON);
   document.getElementById('btn-import-json')?.addEventListener('click', () => document.getElementById('import-json-file')?.click());
   document.getElementById('import-json-file')?.addEventListener('change', (e) => {
@@ -15402,11 +14692,6 @@ function init() {
       renderLogTable();
     });
   }
-
-  // Intraday wiring
-  bindIntraday();
-  restoreIntradayInputs();
-  renderIntradaySetupGrid();
 
   // Trade modal
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeTradeModal));
