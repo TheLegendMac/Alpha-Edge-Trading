@@ -5116,6 +5116,140 @@ textarea.input-field {
 #panel-trade .trade-action-chevron { font-size: 18px; line-height: 1; }
 
 /* templates dropdown for thesis */
+/* ---- Home quick-repeat button ---- */
+.home-quick-repeat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+  line-height: 1.1;
+}
+.home-quick-repeat:hover {
+  border-color: var(--cyan-dim);
+  color: var(--ink);
+  background: rgba(6,212,248,0.04);
+}
+.home-quick-repeat-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+.home-quick-repeat-label {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+@media (max-width: 720px) {
+  .home-quick-repeat { padding: 7px 11px; }
+  .home-quick-repeat-label { font-size: 12px; }
+}
+
+/* ---- ticker memory (Recent pills + history snapshot) ---- */
+#panel-trade .tf-ticker-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+#panel-trade .tf-ticker-pills-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+#panel-trade .tf-ticker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+}
+#panel-trade .tf-ticker-pill:hover {
+  border-color: var(--cyan-dim);
+  color: var(--ink);
+  background: rgba(6,212,248,0.05);
+}
+#panel-trade .tf-ticker-pill.active {
+  border-color: var(--green);
+  color: var(--green-bright);
+  background: var(--green-bg);
+}
+#panel-trade .tf-ticker-pill-n {
+  font-size: 9px;
+  color: var(--ink-4);
+  font-weight: 600;
+  background: rgba(255,255,255,0.04);
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 2px;
+}
+#panel-trade .tf-ticker-pill.active .tf-ticker-pill-n {
+  color: var(--green-bright);
+  background: rgba(126, 231, 135, 0.1);
+}
+
+#panel-trade .tf-ticker-snap {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--r-md);
+}
+#panel-trade .tf-ticker-snap.pos { border-left-color: var(--green); }
+#panel-trade .tf-ticker-snap.neg { border-left-color: var(--red); }
+#panel-trade .tf-ticker-snap-head {
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+#panel-trade .tf-ticker-snap-head strong {
+  font-family: var(--display);
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+#panel-trade .tf-ticker-snap-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  padding: 3px 0;
+  border-top: 1px dashed var(--line);
+}
+#panel-trade .tf-ticker-snap-row:first-child { border-top: 0; }
+#panel-trade .tf-ticker-snap-row .k { color: var(--ink-4); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+#panel-trade .tf-ticker-snap-row .v { color: var(--ink-2); }
+
 #panel-trade .trade-templates {
   display: flex;
   flex-wrap: wrap;
@@ -5371,6 +5505,10 @@ textarea.input-field {
 
       <div class="home-actions">
         <button class="btn-primary home-new-analysis" id="btn-home-new-analysis">+ New Analysis</button>
+        <button class="btn-secondary home-quick-repeat" id="btn-home-quick-repeat" type="button" hidden title="Pre-fill from your most recent intraday trade">
+          <span class="home-quick-repeat-eyebrow">Quick repeat</span>
+          <span class="home-quick-repeat-label" id="btn-home-quick-repeat-label">Intraday</span>
+        </button>
         <button class="btn-secondary home-icon-action" id="btn-home-log" title="Open stats and trade log" aria-label="Open stats and trade log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 19V5"/>
@@ -8722,6 +8860,17 @@ function renderHome() {
           : "Today's read");
   }
 
+  // Quick-repeat button — visible only when newTradeFlow is on AND there's
+  // an intraday trade recent enough to be plausibly relevant.
+  const qrBtn = document.getElementById('btn-home-quick-repeat');
+  const qrLbl = document.getElementById('btn-home-quick-repeat-label');
+  if (qrBtn && qrLbl) {
+    const recent = (typeof tfMostRecentIntraday === 'function') ? tfMostRecentIntraday() : null;
+    const enabled = !!(state.settings && state.settings.newTradeFlow) && !!recent;
+    qrBtn.hidden = !enabled;
+    if (enabled) qrLbl.textContent = `${recent.ticker || 'Intraday'} · ${recent.setup || 'last setup'}`;
+  }
+
   setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-win-rate', `${winRate}%`);
@@ -10497,63 +10646,67 @@ function tfComputeStatus() {
   }
 
   if (m === 'swing') {
-    // Step 1 — Setup
-    if (!state.ticker) return { tone: 'progress', reason: 'Add ticker', step: 1 };
-    if (!state.direction) return { tone: 'progress', reason: 'Pick direction', step: 1 };
-    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup', step: 1 };
-    // Step 2 — Eligibility (gates 01, 02, 03, 05)
+    // 1 Setup — ticker / direction / setup
+    if (!state.ticker)        return { tone: 'progress', reason: 'Add ticker',        step: 1 };
+    if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 1 };
+    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
+    // 2 Plan — eligibility inputs + IV Rank
     if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 2 };
     if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 2 };
     const g = tfEvaluateGates();
-    if (!g['01']) return { tone: 'blocked', reason: 'SA Quant < 3.50 — skip', step: 2 };
-    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade', step: 2 };
-    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade', step: 2 };
-    if (!g['05']) return { tone: 'blocked', reason: 'Earnings within 7 days', step: 2 };
-    // Step 3 — Structure + liquidity
+    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 2 };
+    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 2 };
+    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 2 };
+    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 2 };
     const isOptions = state.instrument !== 'stocks';
-    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 3 };
-    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 3 };
+    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
+    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
+    // 3 Size — liquidity + premium / ATR / underlying
     if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 3 };
-    // Step 4 — Sizing
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 4 };
+      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 3 };
     }
     if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
-      return { tone: 'progress', reason: 'Add ATR(14)', step: 4 };
+      return { tone: 'progress', reason: 'Add ATR(14)', step: 3 };
     }
     if (isOptions && (state.underlyingPrice === null || state.underlyingPrice === undefined || state.underlyingPrice <= 0)) {
-      return { tone: 'progress', reason: 'Add underlying price', step: 4 };
+      return { tone: 'progress', reason: 'Add underlying price', step: 3 };
     }
-    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 4 };
+    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 3 };
+    // 4 Verify — every gate must be green; if we got here, all are green.
     return { tone: 'ready', reason: 'Ready to log', step: 5 };
   }
 
   if (m === 'intraday') {
     const it = state.intraday || {};
-    // Step 1 — Setup (ticker / direction / pattern / VWAP)
-    if (!it.ticker) return { tone: 'progress', reason: 'Add ticker', step: 1 };
-    if (!it.direction) return { tone: 'progress', reason: 'Pick direction', step: 1 };
-    if (!it.setup) return { tone: 'progress', reason: 'Pick a setup', step: 1 };
-    if (!it.vwapRel) return { tone: 'progress', reason: 'Set VWAP relation', step: 1 };
+    // 1 Setup — ticker / direction / setup / VWAP relation
+    if (!it.ticker)    return { tone: 'progress', reason: 'Add ticker',        step: 1 };
+    if (!it.direction) return { tone: 'progress', reason: 'Pick direction',    step: 1 };
+    if (!it.setup)     return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
+    if (!it.vwapRel)   return { tone: 'progress', reason: 'Set VWAP relation', step: 1 };
     if (it.vwapRel === 'above' && it.direction === 'short') return { tone: 'blocked', reason: 'Short + Above VWAP — mismatch', step: 1 };
-    if (it.vwapRel === 'below' && it.direction === 'long')  return { tone: 'blocked', reason: 'Long + Below VWAP — mismatch', step: 1 };
-    // Step 2 — Plan (levels + spread + contracts)
-    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $', step: 2 };
-    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $', step: 2 };
+    if (it.vwapRel === 'below' && it.direction === 'long')  return { tone: 'blocked', reason: 'Long + Below VWAP — mismatch',  step: 1 };
+    // 2 Plan — entry / stop / target
+    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
+    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
     if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    if (it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > s.intradayMaxSpreadPct) {
-      return { tone: 'blocked', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%`, step: 2 };
+    // 3 Size — spread% (drives liquidity check) + optional contracts
+    if (it.spreadPct === null || it.spreadPct === undefined || it.spreadPct === '') {
+      return { tone: 'progress', reason: 'Add spread %', step: 3 };
     }
-    // Step 3 — Verify (window + budget)
+    if (Number(it.spreadPct) > s.intradayMaxSpreadPct) {
+      return { tone: 'blocked', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
+    }
+    // 4 Verify — window + loss budget
     const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
     if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
-      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 3 };
+      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 4 };
     }
     const dayPL = tfComputeIntradayDayPL();
     const lossBudget = s.intradayMaxDailyLoss + dayPL;
-    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 3 };
+    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 4 };
 
-    return { tone: 'ready', reason: 'Ready to log', step: 4 };
+    return { tone: 'ready', reason: 'Ready to log', step: 5 };
   }
 
   return { tone: 'progress', reason: 'Pick a setup', step: 1 };
@@ -10601,6 +10754,160 @@ function tfIvrBracket(ivr) {
 // Strategy output card markup — used live by step 3 to surgically update
 // the recommendation as IVR/direction changes. Defined once here so the
 // step renderer and the live updater stay in sync.
+// ----- Ticker history & autocomplete -----
+// Read state.trades to surface "you've traded this name before — here's
+// what worked." Anchored on the symbol the user is typing.
+function tfTickerHistory(symbol) {
+  if (!symbol) return null;
+  const sym = String(symbol).toUpperCase();
+  const trades = (state.trades || []).filter(t => (t.ticker || '').toUpperCase() === sym);
+  if (!trades.length) return null;
+  const closed = trades.filter(t => t.status === 'closed');
+  const wins   = closed.filter(t => (calcPL(t) || 0) > 0).length;
+  const losses = closed.filter(t => (calcPL(t) || 0) < 0).length;
+  const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const avgR    = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
+  // Per-setup aggregate so we can surface the strongest pattern for this name.
+  const setupMap = {};
+  closed.forEach(t => {
+    const k = t.setup || '—';
+    if (!setupMap[k]) setupMap[k] = { name: k, n: 0, pl: 0 };
+    setupMap[k].n++;
+    setupMap[k].pl += (calcPL(t) || 0);
+  });
+  const bestSetup = Object.values(setupMap).sort((a, b) => b.pl - a.pl)[0] || null;
+  // Last trade (closed first, then any).
+  const sorted = [...trades].sort((a, b) =>
+    (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || ''));
+  const lastTrade = sorted[0];
+  return {
+    sym, count: trades.length, closedCount: closed.length, wins, losses,
+    winRate: closed.length ? Math.round(wins / closed.length * 100) : null,
+    totalPL, avgR, bestSetup, lastTrade,
+    openCount: trades.filter(t => t.status === 'open').length,
+  };
+}
+
+// Top tickers by trade count — used for the "Recent" pills row.
+// Most-recent intraday trade — drives the Home quick-repeat button. Returns
+// null if there's nothing to repeat from in the last 7 days.
+function tfMostRecentIntraday() {
+  const sevenAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const intra = (state.trades || [])
+    .filter(t => t.mode === 'intraday')
+    .filter(t => {
+      const d = t.exit_date || t.date;
+      return d && new Date(d).getTime() >= sevenAgo;
+    })
+    .sort((a, b) => (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || ''));
+  return intra[0] || null;
+}
+
+// One-tap re-entry: pre-fill state.intraday from the recent trade and drop
+// the user on Step 2 (Plan). User edits levels for the new entry, runs.
+function tfQuickRepeatIntraday() {
+  const last = tfMostRecentIntraday();
+  if (!last) {
+    if (typeof toast === 'function') toast('No recent intraday trade to repeat.', true);
+    return;
+  }
+  // Carry pattern + sizing context, blank the levels so the user enters fresh
+  // entry/stop/target rather than re-using the previous trade's prices.
+  state.intraday = {
+    ticker:    last.ticker || '',
+    direction: (last.direction || 'long').toLowerCase(),
+    setup:     last.setup || '',
+    vwapRel:   last.vwapRel || '',
+    entry: null, stop: null, target: null,
+    contracts: null, spreadPct: null,
+    notes: '',
+  };
+  state.intradayQuality = { timeOverride: false };
+  state.tradeFlow = state.tradeFlow || { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+  state.tradeFlow.mode = 'intraday';
+  state.tradeFlow.step = 2; // jump straight to Plan (levels)
+  state.tradeFlow.intradayDraft = {};
+  saveState();
+  if (typeof setTab === 'function') setTab('trade');
+  if (typeof toast === 'function') toast(`Repeating ${last.ticker || ''} ${last.setup || ''} — set fresh entry/stop/target.`);
+}
+
+function tfTopTickers(limit = 8) {
+  const counts = {};
+  (state.trades || []).forEach(t => {
+    const sym = (t.ticker || '').toUpperCase();
+    if (!sym) return;
+    counts[sym] = (counts[sym] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([sym, n]) => ({ sym, n }));
+}
+
+// Match recent tickers against the user's prefix. Empty prefix returns the
+// top traded list. Used by both swing and intraday step 1 pills.
+function tfTickerSuggestions(prefix, limit = 8) {
+  const all = tfTopTickers(50);
+  const p = (prefix || '').toUpperCase().trim();
+  if (!p) return all.slice(0, limit);
+  return all.filter(t => t.sym.startsWith(p)).slice(0, limit);
+}
+
+// HTML for the ticker memory block (Recent pills + history snapshot).
+// Container id = tf-ticker-memory (swing) or tf-i-ticker-memory (intraday).
+function tfRenderTickerMemoryHtml(currentTicker) {
+  const matches = tfTickerSuggestions(currentTicker, 8);
+  const hist = currentTicker ? tfTickerHistory(currentTicker) : null;
+  const fmtMoney = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const snapClass = hist ? (hist.totalPL >= 0 ? 'pos' : 'neg') : '';
+
+  const pills = matches.length ? `
+    <div class="tf-ticker-pills">
+      <span class="tf-ticker-pills-label">${(currentTicker || '').trim() ? 'Match' : 'Recent'}:</span>
+      ${matches.map(t => `<button type="button" class="tf-ticker-pill ${currentTicker === t.sym ? 'active' : ''}" data-tf-ticker-pick="${t.sym}">${t.sym}<span class="tf-ticker-pill-n">${t.n}</span></button>`).join('')}
+    </div>` : '';
+
+  const snap = hist ? `
+    <div class="tf-ticker-snap ${snapClass}">
+      <div class="tf-ticker-snap-head">
+        <strong>${hist.sym}</strong> · ${hist.count} prior trade${hist.count === 1 ? '' : 's'}${hist.openCount ? ` · ${hist.openCount} open` : ''}${hist.winRate !== null ? ` · ${hist.winRate}% wins` : ''}${hist.closedCount ? ` · <span class="${hist.totalPL >= 0 ? 'pl-positive' : 'pl-negative'}">${fmtMoney(hist.totalPL)}</span>` : ''}
+      </div>
+      <div class="tf-ticker-snap-body">
+        ${hist.bestSetup ? `<div class="tf-ticker-snap-row"><span class="k">Best setup</span><span class="v">${hist.bestSetup.name} (${fmtMoney(hist.bestSetup.pl)} · ${hist.bestSetup.n} trade${hist.bestSetup.n === 1 ? '' : 's'})</span></div>` : ''}
+        ${hist.closedCount ? `<div class="tf-ticker-snap-row"><span class="k">Avg R</span><span class="v">${hist.avgR >= 0 ? '+' : ''}${hist.avgR.toFixed(2)}R</span></div>` : ''}
+        ${hist.lastTrade ? `<div class="tf-ticker-snap-row"><span class="k">Last</span><span class="v">${hist.lastTrade.setup || '—'} · ${hist.lastTrade.direction || '—'} · ${hist.lastTrade.exit_date || hist.lastTrade.date || '—'}${hist.lastTrade.status === 'open' ? ' (open)' : ''}</span></div>` : ''}
+      </div>
+    </div>` : '';
+
+  return pills + snap;
+}
+
+// Surgical updater — replaces only the memory div, preserves input focus.
+function tfUpdateTickerMemory(containerId, currentTicker) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = tfRenderTickerMemoryHtml(currentTicker);
+  // Re-bind pill clicks against the *appropriate* state path.
+  el.querySelectorAll('[data-tf-ticker-pick]').forEach(b => {
+    b.addEventListener('click', () => {
+      const sym = b.dataset.tfTickerPick;
+      // Detect which mode by the container id; updates the right state field.
+      if (containerId === 'tf-i-ticker-memory') {
+        state.intraday.ticker = sym;
+        const input = document.getElementById('tf-i-ticker');
+        if (input) input.value = sym;
+      } else {
+        state.ticker = sym;
+        const input = document.getElementById('tf-ticker');
+        if (input) input.value = sym;
+        const li = document.getElementById('ticker-input');
+        if (li) li.value = sym;
+      }
+      saveState();
+      tfRefreshHeaderOnly();
+      tfUpdateTickerMemory(containerId, sym);
+    });
+  });
+}
+
 function tfRenderStrategyOutHtml(sObj) {
   if (!sObj) return '';
   return `
@@ -10920,10 +11227,8 @@ function tfReset() {
 
 function tfStepBody(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  // Defensive clamp: a stale state.tradeFlow.step (e.g. user was on step 5
-  // intraday before we trimmed to 4) is bumped down to a real step.
-  const max = tfStepCount();
-  if (step > max) step = max;
+  // Both modes run 1..5 with parallel labels (Setup → Plan → Size → Verify → Execute).
+  if (step > 5) step = 5;
   if (step < 1) step = 1;
   if (m === 'swing') {
     if (step === 1) return tfSwingStep1();
@@ -10936,6 +11241,7 @@ function tfStepBody(step) {
     if (step === 2) return tfIntradayStep2();
     if (step === 3) return tfIntradayStep3();
     if (step === 4) return tfIntradayStep4();
+    if (step === 5) return tfIntradayStep5();
   }
   return '';
 }
@@ -10971,7 +11277,7 @@ function tfSwingStep1() {
               <label class="input-label">Ticker</label>
               <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="e.g. AAPL"
                 value="${ticker.toString()}" autocomplete="off" style="text-transform: uppercase;" />
-              <div class="input-help">Used downstream for SA factor-grade links and order checklist.</div>
+              <div class="input-help">Pick from your recent traders below or type new.</div>
             </div>
           </div>
           <div>
@@ -10982,6 +11288,7 @@ function tfSwingStep1() {
             </div>
           </div>
         </div>
+        <div id="tf-ticker-memory">${tfRenderTickerMemoryHtml(ticker)}</div>
       </div>
     </div>
 
@@ -11021,14 +11328,13 @@ function tfMountSwingStep1() {
       state.ticker = (e.target.value || '').toUpperCase();
       saveState();
       tfRefreshHeaderOnly();
+      // Surgical update — keeps focus + caret on the input as the user types.
+      tfUpdateTickerMemory('tf-ticker-memory', state.ticker);
     });
-    // No body rebuild on blur — it tore down the next input mid-Tab.
   }
+  // Wire ticker pill clicks rendered initially (before any input event fires).
+  tfUpdateTickerMemory('tf-ticker-memory', state.ticker);
 }
-
-// ----- Swing step 2 — Eligibility: SA Quant, Factor Grades, Earnings -----
-// Goal: fail fast. Before doing IV/liquidity/sizing math, verify the stock is
-// even worth trading. Gates 01/02/03/05 all live here with their own inputs.
 
 // ----- Swing step 2 — Plan: eligibility (SA quant, factor grades, earnings)
 //        AND structural read (IV Rank → contract spec).
@@ -11202,54 +11508,18 @@ function tfMountSwingStep2() {
   });
 }
 
-// ----- Swing step 3 — Structure: IV Rank, derived contract spec, liquidity -----
-// Goal: decide what to buy. IV → strategy/delta/DTE/width → liquidity check
-// (Gate 04). Stocks mode skips IV and just does the volume check.
+// ----- Swing step 3 — Size: liquidity + premium / ATR / underlying -----
+// Goal: prove the contract is tradable, then math out position size + stop.
 
 function tfSwingStep3() {
   const isOptions = state.instrument !== 'stocks';
-  const ivr = state.ivr;
-  const dir = state.direction;
-  const bracket = tfIvrBracket(ivr);
-  const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
-    ? getStrategyForIVR(Number(ivr), dir) : null;
-
   const liq = state.liquidity || {};
   const gates = tfEvaluateGates();
-
-  const stratOut = `<div id="tf-strategy-preview">${sObj ? tfRenderStrategyOutHtml(sObj) : ''}</div>`;
-
-  const ivrSection = isOptions ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> IV Rank → contract spec</div>
-          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
-        </div>
-        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-input-row">
-          <div>
-            <label class="input-label">IV Rank (0–100)</label>
-            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
-              placeholder="e.g. 24"
-              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
-            <div class="input-help">Cheap below 30 · Moderate 30–50 · Rich 50+ · Skip if 70+</div>
-          </div>
-          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
-        </div>
-        ${stratOut}
-      </div>
-    </div>` : `
-    <div class="trade-section muted">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">i</span> Stocks mode — IV doesn't apply</div>
-          <div class="trade-section-subtitle">Set in Settings. Sizing math runs off share price in step 4.</div>
-        </div>
-      </div>
-    </div>`;
+  const premium = state.premium;
+  const atr     = state.atr;
+  const upx     = state.underlyingPrice;
+  const reqLabel = isOptions ? 'Premium per contract ($)' : 'Share price ($)';
+  const reqHelp  = isOptions ? 'Mid of bid/ask from the TOS option chain.' : 'Current share price for sizing math.';
 
   // Liquidity row inputs — fields differ between options and stocks.
   const liqInputs = [
@@ -11273,78 +11543,7 @@ function tfSwingStep3() {
     ? `<p class="trade-row-help" style="margin-top:8px;">Mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · spread ${(((Number(liq.ask)-Number(liq.bid))/((Number(liq.bid)+Number(liq.ask))/2))*100).toFixed(1)}%</p>`
     : '';
 
-  return `
-    ${ivrSection}
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Liquidity ${isOptions ? '(stock + option)' : '(stock)'}</div>
-          <div class="trade-section-subtitle">Drives Gate 04. Without enough volume you can't get a clean fill or exit.</div>
-        </div>
-        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill ' + liqInputs.length}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">${liqGrid}</div>
-        ${spreadLine}
-      </div>
-    </div>
-  `;
-}
-
-function tfMountSwingStep3() {
-  const ivrEl = document.getElementById('tf-ivr');
-  if (ivrEl) {
-    ivrEl.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      state.ivr = isNaN(v) ? null : v;
-      saveState();
-      tfRefreshHeaderOnly();
-      // Surgical: bracket badge + strategy preview update in place. No body
-      // rebuild → focus stays put → Tab moves to the next field naturally.
-      const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
-      if (wrap) {
-        const badge = wrap.querySelector('.trade-bracket');
-        if (badge) {
-          const b = tfIvrBracket(state.ivr);
-          badge.className = `trade-bracket ${b.cls}`;
-          badge.textContent = b.text;
-        }
-      }
-      tfUpdateSwingStrategyPreview();
-    });
-  }
-  document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
-    el.addEventListener('input', e => {
-      const k = e.target.dataset.tfLiq;
-      const v = parseFloat(e.target.value);
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
-      state.liquidity[k] = isNaN(v) ? null : v;
-      if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
-        const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
-        state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
-      }
-      saveState();
-      tfRefreshHeaderOnly();
-    });
-  });
-}
-
-// ----- Swing step 4 — Sizing & stop -----
-// Goal: position math. Premium + ATR + underlying = auto-sized position with
-// volatility stop and profit target. Stop level set here passes Gate 06.
-
-function tfSwingStep4() {
-  const isOptions = state.instrument !== 'stocks';
-  const premium = state.premium;
-  const atr     = state.atr;
-  const upx     = state.underlyingPrice;
-  const gates   = tfEvaluateGates();
-
-  const reqLabel = isOptions ? 'Premium per contract ($)' : 'Share price ($)';
-  const reqHelp  = isOptions ? 'Mid of bid/ask from the TOS option chain.' : 'Current share price for sizing math.';
-
-  // Sizing card and stop-gate row are surgically updated on input by
-  // tfUpdateSwingSizing() — share the same markup helper to keep them in sync.
+  // Sizing card + Gate 06 row — surgically updated by tfUpdateSwingSizing().
   const sizingCard = `<div id="tf-sizing-card">${tfRenderSwingSizingHtml()}</div>`;
   const stopGateRow = `
     <div id="tf-stop-gate" class="trade-row ${gates['06'] ? 'checked' : 'fail'}" data-tf-readonly="1">
@@ -11360,7 +11559,7 @@ function tfSwingStep4() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Volatility stop (Gate 06)</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Volatility stop (Gate 06)</div>
           <div class="trade-section-subtitle">ATR + underlying price compute a volatility-adjusted stop. Skipping this is the #1 way to over-risk.</div>
         </div>
         <div class="trade-section-counter ${atr > 0 && upx > 0 ? 'complete' : ''}">${atr > 0 && upx > 0 ? '2 set' : 'fill 2'}</div>
@@ -11392,7 +11591,21 @@ function tfSwingStep4() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity ${isOptions ? '(stock + option)' : '(stock)'}</div>
+          <div class="trade-section-subtitle">Drives Gate 04. Without enough volume you can't get a clean fill or exit.</div>
+        </div>
+        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill ' + liqInputs.length}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">${liqGrid}</div>
+        ${spreadLine}
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
           <div class="trade-section-subtitle">${reqHelp}</div>
         </div>
         <div class="trade-section-counter ${premium > 0 ? 'complete' : ''}">${premium > 0 ? '1 set' : 'fill 1'}</div>
@@ -11412,10 +11625,23 @@ function tfSwingStep4() {
   `;
 }
 
-function tfMountSwingStep4() {
-  // Surgical updates only — no body rebuild on blur. The sizing card and
-  // Gate 06 row update in place via tfUpdateSwingSizing() so Tab still
-  // moves cleanly between premium → ATR → underlying.
+function tfMountSwingStep3() {
+  // Liquidity inputs — silent state writes + surgical header refresh only.
+  document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
+    el.addEventListener('input', e => {
+      const k = e.target.dataset.tfLiq;
+      const v = parseFloat(e.target.value);
+      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      state.liquidity[k] = isNaN(v) ? null : v;
+      if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
+        const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
+        state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
+      }
+      saveState();
+      tfRefreshHeaderOnly();
+    });
+  });
+  // Premium / ATR / underlying — surgical sizing-card updates, no rebuild.
   const wireNum = (id, key) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -11432,41 +11658,102 @@ function tfMountSwingStep4() {
   wireNum('tf-upx', 'underlyingPrice');
 }
 
+// ----- Swing step 4 — Verify: read-only 6-gate summary -----
+// Goal: one screen that shows what passed, what failed, and where to fix
+// each. Anything red → click status pill or stepper to jump back.
+
+function tfSwingStep4() {
+  const gates = tfEvaluateGates();
+  const passed = ['01','02','03','04','05','06'].filter(k => gates[k]).length;
+  const allGreen = passed === 6;
+
+  const gateMeta = {
+    '01': { name: 'SA Quant Rating ≥ 3.50',          where: 'Step 2', step: 2 },
+    '02': { name: 'Profitability grade B− or better', where: 'Step 2', step: 2 },
+    '03': { name: 'Momentum grade B− or better',      where: 'Step 2', step: 2 },
+    '04': { name: 'Stock + option liquidity',         where: 'Step 3', step: 3 },
+    '05': { name: 'Earnings ≥ 7 days away',           where: 'Step 2', step: 2 },
+    '06': { name: 'Stop level set (ATR + price)',     where: 'Step 3', step: 3 },
+  };
+
+  const gateRow = (k) => {
+    const ok = gates[k];
+    const m  = gateMeta[k];
+    return `
+      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-jump="${m.step}">
+        <span class="trade-row-check">${ok ? '✓' : ''}</span>
+        <span class="trade-row-main">
+          <span class="trade-row-name"><small>GATE ${k}</small> ${m.name}</span>
+          <span class="trade-row-help">${ok ? 'Pass' : 'Fix in'} ${m.where}</span>
+        </span>
+        <span class="trade-row-pill">${ok ? 'PASS' : 'FAIL'}</span>
+      </button>`;
+  };
+
+  const banner = allGreen
+    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
+         <div class="trade-output-title">All checks pass</div>
+         <div class="trade-output-main">Cleared to execute</div>
+         <div class="trade-output-rationale">Continue to step 5 to log the thesis and place the order.</div>
+       </div>`
+    : `<div class="trade-output">
+         <div class="trade-output-title">${6 - passed} gate${6 - passed === 1 ? '' : 's'} still blocking</div>
+         <div class="trade-output-main">${passed} of 6 passed</div>
+         <div class="trade-output-rationale">Click any failing row to jump back and fix it.</div>
+       </div>`;
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality gates</div>
+          <div class="trade-section-subtitle">Read-only — every gate must pass before GO unlocks.</div>
+        </div>
+        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of 6 passed</div>
+      </div>
+      <div class="trade-section-body">
+        ${banner}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+          ${gateRow('01')}
+          ${gateRow('02')}
+          ${gateRow('03')}
+          ${gateRow('04')}
+          ${gateRow('05')}
+          ${gateRow('06')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountSwingStep4() {
+  // Each row is a jump-to-fix button. Saves the user from hunting.
+  document.querySelectorAll('#panel-trade [data-tf-jump]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = parseInt(el.dataset.tfJump, 10);
+      if (target) tfGoToStep(target);
+    });
+  });
+}
+
 // ----- Swing step 5 — Execute -----
 // Goal: review at-a-glance, place the order in TOS, then log. Compact gate
 // summary up top so the user sees what's still red without going back.
 
 function tfSwingStep5() {
   const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
-  // Templates are shown as placeholder hints only — never auto-committed to
-  // state. The user clicks "Use template" to fill, or types their own.
   const thesis = state.tradeFlow.thesis || '';
   const preMortem = state.tradeFlow.preMortem || '';
   const thesisPh = tpl ? `Template: ${tpl.thesis}` : 'One sentence — what has to happen for this to work?';
   const preMortemPh = tpl ? `Template: ${tpl.preMortem}` : 'What invalidates the thesis?';
   const st = tfComputeStatus();
   const ready = st.tone === 'ready';
-  const gates = tfEvaluateGates();
-  const passed = Object.values(gates).filter(Boolean).length;
 
   const settings = state.settings || DEFAULT_SETTINGS;
   const premium = state.premium;
   const stopPrice = (premium > 0) ? (premium * (1 - (settings.stopPct || 50)/100)).toFixed(2) : '—';
   const targetPrice = (premium > 0) ? (premium * (1 + (settings.targetPct || 50)/100)).toFixed(2) : '—';
 
-  const gateRow = (k, name) => {
-    const ok = gates[k];
-    return `
-      <div class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-readonly="1" style="cursor:default;">
-        <span class="trade-row-check">${ok ? '✓' : ''}</span>
-        <span class="trade-row-main">
-          <span class="trade-row-name"><small>GATE ${k}</small> ${name}</span>
-        </span>
-        <span class="trade-row-pill">${ok ? 'PASS' : 'FAIL'}</span>
-      </div>`;
-  };
-
-  // Templates row — always visible. When no setup, buttons are disabled with help.
   const templateBtns = tpl ? `
     <div class="trade-templates">
       <span class="trade-templates-label">Templates for ${state.selectedSetup}:</span>
@@ -11481,27 +11768,7 @@ function tfSwingStep5() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Final gate check</div>
-          <div class="trade-section-subtitle">Read-only summary. Anything red, go back to fix.</div>
-        </div>
-        <div class="trade-section-counter ${passed === 6 ? 'complete' : ''}">${passed} of 6 passed</div>
-      </div>
-      <div class="trade-section-body">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          ${gateRow('01', 'SA Quant ≥ 3.50')}
-          ${gateRow('02', 'Profitability grade')}
-          ${gateRow('03', 'Momentum grade')}
-          ${gateRow('04', 'Liquidity')}
-          ${gateRow('05', 'Earnings ≥ 7d')}
-          ${gateRow('06', 'Stop level set')}
-        </div>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Place the order in TOS</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Place the order in TOS</div>
           <div class="trade-section-subtitle">Use the OCO bracket so target and stop fire automatically.</div>
         </div>
       </div>
@@ -11518,7 +11785,7 @@ function tfSwingStep5() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Thesis &amp; pre-mortem</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Thesis &amp; pre-mortem</div>
           <div class="trade-section-subtitle">Saved to the trade log. One sentence each is enough.</div>
         </div>
       </div>
@@ -11543,13 +11810,13 @@ function tfSwingStep5() {
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">D.</span> Final check</div>
+        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Final check</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-output">
+        <div class="trade-output" style="${ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
           <div class="trade-output-title">Status</div>
-          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
-          <div class="trade-output-rationale">${st.reason}</div>
+          <div class="trade-output-main">${ready ? 'Ready to log' : st.reason}</div>
+          <div class="trade-output-rationale">${ready ? 'Hit GO below — confirm dialog will summarize, then log.' : 'Status pill at the top jumps you to the failing step.'}</div>
         </div>
       </div>
     </div>
@@ -11626,6 +11893,7 @@ function tfIntradayStep1() {
             </div>
           </div>
         </div>
+        <div id="tf-i-ticker-memory">${tfRenderTickerMemoryHtml(it.ticker)}</div>
       </div>
     </div>
 
@@ -11668,9 +11936,11 @@ function tfMountIntradayStep1() {
       state.intraday.ticker = (e.target.value || '').toUpperCase();
       saveState();
       tfRefreshHeaderOnly();
+      tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
     });
-    // No body rebuild on blur — it tore down the next input mid-Tab.
   }
+  // Bind ticker pill clicks rendered initially.
+  tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
   document.querySelectorAll('#panel-trade [data-tf-i-dir]').forEach(b => {
     b.addEventListener('click', () => {
       state.intraday.direction = b.dataset.tfIDir;
@@ -11695,10 +11965,10 @@ function tfMountIntradayStep1() {
   });
 }
 
+// ----- Intraday step 2 — Plan: levels only -----
 function tfIntradayStep2() {
   const it = state.intraday || {};
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
-  const sb = tfSpreadBracket(it.spreadPct);
   const filled = (v) => v !== null && v !== undefined && v !== '';
   const inputValue = (key) => draft[key] !== undefined ? draft[key] : (it[key] ?? '');
   const lvlN = [filled(it.entry), filled(it.stop), filled(it.target)].filter(Boolean).length;
@@ -11741,31 +12011,6 @@ function tfIntradayStep2() {
         </div>
       </div>
     </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Spread &amp; sizing</div>
-          <div class="trade-section-subtitle">Spread% drives the liquidity check in step 3. Contracts auto-size if blank.</div>
-        </div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row"><div>
-            <label class="input-label">Spread %</label>
-            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="e.g. 2.0" />
-            <div class="input-help">Bid-ask as % of mid. Cap ${(state.settings && state.settings.intradayMaxSpreadPct) || 5}%.</div>
-          </div>
-          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Contracts (optional)</label>
-            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk" />
-            <div class="input-help">Leave blank to auto-size from per-trade risk budget.</div>
-          </div></div>
-        </div>
-      </div>
-    </div>
   `;
 }
 
@@ -11781,10 +12026,64 @@ function tfMountIntradayStep2() {
       state.intraday[key] = isNaN(v) ? null : v;
       saveState();
       tfRefreshHeaderOnly();
-      // Levels → live R-multiple
       if (key === 'entry' || key === 'stop' || key === 'target') {
         tfUpdateIntradayRMult();
       }
+    });
+  };
+  wire('tf-i-entry', 'entry');
+  wire('tf-i-stop', 'stop');
+  wire('tf-i-target', 'target');
+}
+
+// ----- Intraday step 3 — Size: spread + contracts -----
+function tfIntradayStep3() {
+  const it = state.intraday || {};
+  const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
+  const inputValue = (key) => draft[key] !== undefined ? draft[key] : (it[key] ?? '');
+  const sb = tfSpreadBracket(it.spreadPct);
+  const settings = state.settings || DEFAULT_SETTINGS;
+
+  return `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Spread &amp; sizing</div>
+          <div class="trade-section-subtitle">Spread% drives the liquidity check. Contracts auto-size from your per-trade risk budget if left blank.</div>
+        </div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row"><div>
+            <label class="input-label">Spread %</label>
+            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="e.g. 2.0" />
+            <div class="input-help">Bid-ask as % of mid. Cap ${settings.intradayMaxSpreadPct || 5}%.</div>
+          </div>
+          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Contracts (optional)</label>
+            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
+            <div class="input-help">Leave blank to auto-size from per-trade risk budget.</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tfMountIntradayStep3() {
+  const wire = (id, key, isInt) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', e => {
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
+      state.tradeFlow.intradayDraft[key] = e.target.value;
+      const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
+      state.intraday[key] = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
       if (id === 'tf-i-spread') {
         const wrap = el.parentElement && el.parentElement.parentElement;
         if (wrap) {
@@ -11797,16 +12096,13 @@ function tfMountIntradayStep2() {
         }
       }
     });
-    // (No blur rebuild — surgical updates above keep derived UI live.)
   };
-  wire('tf-i-entry', 'entry');
-  wire('tf-i-stop', 'stop');
-  wire('tf-i-target', 'target');
   wire('tf-i-spread', 'spreadPct');
   wire('tf-i-contracts', 'contracts', true);
 }
 
-function tfIntradayStep3() {
+// ----- Intraday step 4 — Verify: 5 quality checks -----
+function tfIntradayStep4() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
   const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
@@ -11815,52 +12111,77 @@ function tfIntradayStep3() {
   const lossBudget = settings.intradayMaxDailyLoss + dayPL;
 
   const checks = [
-    { key: 'setup', name: 'Setup matches one of the 6 approved patterns', ok: !!it.setup, rule: 'Set in step 1.' },
-    { key: 'dir',   name: 'Direction matches VWAP relation', ok: !((it.vwapRel === 'above' && it.direction === 'short') || (it.vwapRel === 'below' && it.direction === 'long')), rule: 'Long with Above/At VWAP, Short with Below/At VWAP.' },
-    { key: 'spread',name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`, ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct), rule: `Spread % from step 2.` },
-    { key: 'window',name: 'Inside an entry window', ok: inWin || tov, rule: '09:35–11:30 or 14:00–15:30 local. Override available for paper trading.' },
-    { key: 'budget',name: 'Loss budget remains', ok: lossBudget > 0, rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
+    { key: 'setup',  step: 1, name: 'Setup matches one of the 6 approved patterns',          ok: !!it.setup,                                                                                                            rule: 'Set in step 1.' },
+    { key: 'dir',    step: 1, name: 'Direction matches VWAP relation',                       ok: !((it.vwapRel === 'above' && it.direction === 'short') || (it.vwapRel === 'below' && it.direction === 'long')),       rule: 'Long with Above/At VWAP, Short with Below/At VWAP.' },
+    { key: 'spread', step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`,            ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),                rule: 'Spread % from step 3.' },
+    { key: 'window', step: 4, name: 'Inside an entry window',                                ok: inWin || tov,                                                                                                          rule: '09:35–11:30 or 14:00–15:30 local. Override available for paper trading.' },
+    { key: 'budget', step: 4, name: 'Loss budget remains',                                   ok: lossBudget > 0,                                                                                                        rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
   ];
   const passed = checks.filter(c => c.ok).length;
+  const allGreen = passed === 5;
 
   const rows = checks.map(c => `
-    <div class="trade-row ${c.ok ? 'checked' : 'fail'}">
+    <button type="button" class="trade-row ${c.ok ? 'checked' : 'fail'}" data-tf-jump="${c.step}">
       <span class="trade-row-check">${c.ok ? '✓' : ''}</span>
       <span class="trade-row-main">
         <span class="trade-row-name">${c.name}</span>
-        <span class="trade-row-help">${c.rule}${c.key === 'window' && !inWin ? ` <button type="button" class="trade-template-btn" data-tf-i-tov style="margin-left:6px;">${tov ? 'Override on — turn off' : 'Override (paper)'}</button>` : ''}</span>
+        <span class="trade-row-help">${c.rule}${c.key === 'window' && !inWin ? ` <span data-tf-i-tov style="margin-left:6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--cyan); font-family: var(--mono); font-size: 10px;">${tov ? 'Override on — turn off' : 'Override (paper)'}</span>` : ''}</span>
       </span>
       <span class="trade-row-pill">${c.ok ? 'PASS' : 'FAIL'}</span>
-    </div>`).join('');
+    </button>`).join('');
+
+  const banner = allGreen
+    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
+         <div class="trade-output-title">All checks pass</div>
+         <div class="trade-output-main">Cleared to execute</div>
+         <div class="trade-output-rationale">Continue to step 5 to log.</div>
+       </div>`
+    : `<div class="trade-output">
+         <div class="trade-output-title">${5 - passed} check${5 - passed === 1 ? '' : 's'} still blocking</div>
+         <div class="trade-output-main">${passed} of 5 passed</div>
+         <div class="trade-output-rationale">Click any failing row to jump back and fix it.</div>
+       </div>`;
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality checks</div>
-          <div class="trade-section-subtitle">Each check reads from steps 1–2 plus the clock and your loss budget. All five must pass.</div>
+          <div class="trade-section-subtitle">Reads from steps 1–3 plus the clock and your loss budget.</div>
         </div>
-        <div class="trade-section-counter ${passed === 5 ? 'complete' : ''}">${passed} of 5 passed</div>
+        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of 5 passed</div>
       </div>
       <div class="trade-section-body">
-        <div style="display:flex; flex-direction:column; gap:8px;">${rows}</div>
+        ${banner}
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">${rows}</div>
       </div>
     </div>
   `;
 }
 
-function tfMountIntradayStep3() {
+function tfMountIntradayStep4() {
+  // Time-window override toggle — stop the click from bubbling to the row's
+  // jump-to-fix handler.
   document.querySelectorAll('#panel-trade [data-tf-i-tov]').forEach(b => {
-    b.addEventListener('click', () => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       state.intradayQuality.timeOverride = !state.intradayQuality.timeOverride;
       saveState();
       tfRefreshAll();
     });
   });
+  // Jump-to-fix on each failing check.
+  document.querySelectorAll('#panel-trade [data-tf-jump]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = parseInt(el.dataset.tfJump, 10);
+      if (target) tfGoToStep(target);
+    });
+  });
 }
 
-function tfIntradayStep4() {
+// ----- Intraday step 5 — Execute: TOS bracket + notes + GO -----
+function tfIntradayStep5() {
   const it = state.intraday || {};
   const st = tfComputeStatus();
   const ready = st.tone === 'ready';
@@ -11898,17 +12219,17 @@ function tfIntradayStep4() {
         <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Final check</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-output">
+        <div class="trade-output" style="${ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
           <div class="trade-output-title">Status</div>
-          <div class="trade-output-main">${ready ? 'Ready to log' : st.label}</div>
-          <div class="trade-output-rationale">${st.reason}</div>
+          <div class="trade-output-main">${ready ? 'Ready to log' : st.reason}</div>
+          <div class="trade-output-rationale">${ready ? 'Hit GO below — confirm dialog will summarize, then log.' : 'Status pill at the top jumps you to the failing step.'}</div>
         </div>
       </div>
     </div>
   `;
 }
 
-function tfMountIntradayStep4() {
+function tfMountIntradayStep5() {
   const t = document.getElementById('tf-i-notes');
   if (t) {
     t.addEventListener('input', e => {
@@ -11976,6 +12297,7 @@ function tfMountStep(step) {
     if (step === 2) tfMountIntradayStep2();
     if (step === 3) tfMountIntradayStep3();
     if (step === 4) tfMountIntradayStep4();
+    if (step === 5) tfMountIntradayStep5();
   }
 }
 
@@ -12423,6 +12745,9 @@ function init() {
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
+  document.getElementById('btn-home-quick-repeat')?.addEventListener('click', () => {
+    if (typeof tfQuickRepeatIntraday === 'function') tfQuickRepeatIntraday();
+  });
 
   // Alpha Intel glossary panel — close on backdrop click / × / Esc.
   document.getElementById('ai-glossary-close')?.addEventListener('click', closeAIGlossary);
