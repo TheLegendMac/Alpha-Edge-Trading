@@ -10716,69 +10716,77 @@ function tfSpreadBracket(spread) {
 
 // ----- Rendering -----
 
-function tfStepCount() {
-  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  return m === 'swing' ? 5 : 4;
-}
+// Both flows now follow the same 5-step skeleton:
+//   1 Setup → 2 Plan → 3 Size → 4 Verify → 5 Execute
+// Universal labels keep the mental model identical when toggling modes.
+function tfStepCount() { return 5; }
 function tfStepNames() {
-  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  // Swing: forward flow — pick the trade → does it qualify? → what to buy → how big → fire it
-  // Intraday: tighter loop — pick the trade → plan levels → verify → fire it
-  return m === 'swing'
-    ? ['Setup', 'Eligibility', 'Structure', 'Sizing', 'Execute']
-    : ['Setup', 'Plan', 'Verify', 'Execute'];
+  return ['Setup', 'Plan', 'Size', 'Verify', 'Execute'];
 }
 
-// Determine which steps are "complete" — for the stepper checkmarks.
-// Each step is "complete" when its on-screen inputs are filled. Status pill
-// in the header is the source of truth for whether the trade is OK to fire.
+// Determine which steps are "complete" — drives the stepper checkmarks.
+// Each step is "complete" when its on-screen inputs are filled. The header
+// status pill is still the source of truth for "OK to fire".
 function tfStepCompletion() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const c = [false, false, false, false, false];
+
   if (m === 'swing') {
-    const c = [false, false, false, false, false];
     const isOptions = state.instrument !== 'stocks';
     const liq = state.liquidity || {};
     const gates = tfEvaluateGates();
 
-    // 1. Setup — pattern + direction (+ ticker counts toward complete)
+    // 1 Setup — ticker + direction + setup pattern.
     c[0] = !!(state.selectedSetup && state.direction && state.ticker);
 
-    // 2. Eligibility — SA quant filled, factor grades acknowledged, days-to-earnings filled
-    const elig = (state.saQuant !== null && state.saQuant !== undefined)
-              && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
-              && gates['02'] && gates['03'];
-    c[1] = !!elig;
+    // 2 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
+    //          Momentum gates) PLUS the structural read (IV Rank).
+    const eligDone = (state.saQuant !== null && state.saQuant !== undefined)
+                  && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
+                  && gates['02'] && gates['03'];
+    const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
+    c[1] = !!(eligDone && ivrSet);
 
-    // 3. Structure — IV Rank set + liquidity inputs filled (drive Gate 04)
+    // 3 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
     const liqFilled = isOptions
       ? (liq.stockVol > 0 && liq.optionOI > 0 && liq.optionVol > 0 && liq.bid > 0 && liq.ask > 0)
       : (liq.stockVol > 0);
-    const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
-    c[2] = !!(ivrSet && liqFilled);
-
-    // 4. Sizing & stop — premium, ATR, underlying price (volatility-adjusted stop)
-    c[3] = isOptions
+    const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
+    c[2] = !!(liqFilled && sizingFilled);
 
-    // 5. Execute — only flips green when status is ready
+    // 4 Verify — read-only gate summary; complete when every gate passes.
+    c[3] = ['01', '02', '03', '04', '05', '06'].every(k => gates[k]);
+
+    // 5 Execute — flips green only when overall status is 'ready'.
     const st = tfComputeStatus();
     c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
     return c;
   }
 
-  // Intraday — 4 steps
-  const c = [false, false, false, false];
+  // Intraday — same 5-step skeleton, lighter content per step.
   const it = state.intraday || {};
-  // 1. Setup — ticker + direction + setup pattern + VWAP relation
+  const settings = state.settings || DEFAULT_SETTINGS;
+
+  // 1 Setup — ticker + direction + setup + VWAP relation.
   c[0] = !!(it.ticker && it.direction && it.setup && it.vwapRel);
-  // 2. Plan — entry/stop/target levels (spread is verified in step 3)
+
+  // 2 Plan — entry / stop / target.
   c[1] = !!(it.entry && it.stop && it.target);
-  // 3. Verify — quality checks pass (status is not 'blocked')
+
+  // 3 Size — spread% must be entered (and within cap to be 'green' here).
+  const spreadOk = it.spreadPct !== null && it.spreadPct !== undefined
+                && Number(it.spreadPct) >= 0
+                && Number(it.spreadPct) <= settings.intradayMaxSpreadPct;
+  c[2] = !!(spreadOk);
+
+  // 4 Verify — quality checks pass (status not blocked).
   const st = tfComputeStatus();
-  c[2] = c[0] && c[1] && st.tone !== 'blocked';
-  // 4. Execute — everything ready
-  c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
+  c[3] = c[0] && c[1] && c[2] && st.tone !== 'blocked';
+
+  // 5 Execute — everything ready.
+  c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
   return c;
 }
 
@@ -11022,11 +11030,22 @@ function tfMountSwingStep1() {
 // Goal: fail fast. Before doing IV/liquidity/sizing math, verify the stock is
 // even worth trading. Gates 01/02/03/05 all live here with their own inputs.
 
+// ----- Swing step 2 — Plan: eligibility (SA quant, factor grades, earnings)
+//        AND structural read (IV Rank → contract spec).
+// "Plan" answers: is this name worth trading, and what are we buying?
+
 function tfSwingStep2() {
   const gates = tfEvaluateGates();
   const passed = ['01','02','03','05'].filter(k => gates[k]).length;
   const ticker = state.ticker || '';
   const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
+  const isOptions = state.instrument !== 'stocks';
+  const ivr = state.ivr;
+  const dir = state.direction;
+  const bracket = tfIvrBracket(ivr);
+  const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
+    ? getStrategyForIVR(Number(ivr), dir) : null;
+  const stratOut = `<div id="tf-strategy-preview">${sObj ? tfRenderStrategyOutHtml(sObj) : ''}</div>`;
 
   const gateRow = (k, name, rule, isManual) => {
     const ok = gates[k];
@@ -11046,6 +11065,39 @@ function tfSwingStep2() {
       Set a ticker in step 1 first — the SA factor-grade links need it.
     </p>` : '';
 
+  // Section C — IV Rank input + structure preview. Stocks mode shows a quiet note.
+  const ivrSection = isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> IV Rank → contract spec</div>
+          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
+        </div>
+        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">IV Rank (0–100)</label>
+            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
+              placeholder="e.g. 24"
+              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
+            <div class="input-help">Cheap below 30 · Moderate 30-50 · Rich 50+ · Skip if 70+</div>
+          </div>
+          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
+        </div>
+        ${stratOut}
+      </div>
+    </div>` : `
+    <div class="trade-section muted">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Stocks mode — IV doesn't apply</div>
+          <div class="trade-section-subtitle">Sizing math runs off share price in step 3.</div>
+        </div>
+      </div>
+    </div>`;
+
   return `
     <div class="trade-section">
       <div class="trade-section-head">
@@ -11060,7 +11112,7 @@ function tfSwingStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">SA Quant Rating (1.00–5.00)</label>
+              <label class="input-label">SA Quant Rating (1.00-5.00)</label>
               <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
                 placeholder="e.g. 4.12" value="${state.saQuant ?? ''}" />
               <div class="input-help">Auto-passes Gate 01 when ≥ 3.50 (Buy or Strong Buy).</div>
@@ -11095,6 +11147,8 @@ function tfSwingStep2() {
         </div>
       </div>
     </div>
+
+    ${ivrSection}
   `;
 }
 
@@ -11107,7 +11161,6 @@ function tfMountSwingStep2() {
       saveState();
       tfRefreshHeaderOnly();
     });
-    // No body rebuild on blur — Tab keeps caret in the next field.
   }
   const der = document.getElementById('tf-days-er');
   if (der) {
@@ -11117,15 +11170,34 @@ function tfMountSwingStep2() {
       saveState();
       tfRefreshHeaderOnly();
     });
-    // No body rebuild on blur — Tab keeps caret in the next field.
+  }
+  // IVR input — surgical bracket + strategy preview update on input.
+  const ivrEl = document.getElementById('tf-ivr');
+  if (ivrEl) {
+    ivrEl.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      state.ivr = isNaN(v) ? null : v;
+      saveState();
+      tfRefreshHeaderOnly();
+      const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
+      if (wrap) {
+        const badge = wrap.querySelector('.trade-bracket');
+        if (badge) {
+          const b = tfIvrBracket(state.ivr);
+          badge.className = `trade-bracket ${b.cls}`;
+          badge.textContent = b.text;
+        }
+      }
+      tfUpdateSwingStrategyPreview();
+    });
   }
   document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
     el.addEventListener('click', () => {
       const k = el.dataset.tfGate;
-      if (k !== '02' && k !== '03') return; // only manual gates are toggleable
+      if (k !== '02' && k !== '03') return;
       state.gateChecks[k] = !state.gateChecks[k];
       saveState();
-      tfRefreshAll(); // a click is a discrete action — full rebuild is fine
+      tfRefreshAll();
     });
   });
 }
