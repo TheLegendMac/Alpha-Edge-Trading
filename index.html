@@ -5658,7 +5658,7 @@ STRENGTH: 3/3</pre>
           </div>
         </div>
         <p style="font-size: 12px; color: var(--ink-3); margin: 14px 0 0; line-height: 1.5;">
-          <strong>Recognized keys:</strong> IVR, ATR, PX/PRICE, RVOL, RSMK (+/−/+rising/−rising or numeric), STACK (BULLISH/BEARISH/MIXED), STRENGTH (0–3), SETUP, REGIME, QUANT, EARNINGS, VOL (with k/M suffix), OI, OVOL, SPR. Keys are case-insensitive. Pairs can be space- or comma-separated.
+          <strong>Recognized keys:</strong> IVR, ATR, PX/PRICE, RVOL, RSMK (+/-/+rising/-rising or numeric), STACK (BULLISH/BEARISH/MIXED), STRENGTH (0-3), SETUP, REGIME, QUANT, EARNINGS, VOL (with k/M suffix), OI, OVOL, SPR. Keys are case-insensitive. Pairs can be space- or comma-separated.
         </p>
       </div>
 
@@ -6334,7 +6334,7 @@ STRENGTH: 3/3</pre>
       <div class="ai-glossary-term">
         <h4>Buffer / Trades remaining</h4>
         <p>How many more trades you can take before hitting your portfolio risk cap.</p>
-        <code>floor((maxRiskPct% of account − openRisk) / nextRisk)</code>
+        <code>floor((maxRiskPct% of account - openRisk) / nextRisk)</code>
       </div>
 
       <div class="ai-glossary-term">
@@ -6344,8 +6344,8 @@ STRENGTH: 3/3</pre>
 
       <div class="ai-glossary-term">
         <h4>Last <span data-ai-glossary-window>30</span>-day P/L</h4>
-        <p>Realized P/L over the rolling window you set in Settings. The kill switch fires when this number is worse than −7% of your account.</p>
-        <code>Σ pl(t) where exit_date ≥ today − killSwitchDays</code>
+        <p>Realized P/L over the rolling window you set in Settings. The kill switch fires when this number is worse than -7% of your account.</p>
+        <code>Σ pl(t) where exit_date ≥ today - killSwitchDays</code>
       </div>
     </section>
 
@@ -6420,8 +6420,8 @@ STRENGTH: 3/3</pre>
 
       <div class="ai-glossary-term">
         <h4>Kill switch</h4>
-        <p>Auto-stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>−7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
-        <code>kill = (Σ pl over last N days) / account ≤ −7%</code>
+        <p>Auto-stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>-7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
+        <code>kill = (Σ pl over last N days) / account ≤ -7%</code>
       </div>
 
       <div class="ai-glossary-term">
@@ -7986,7 +7986,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   const killActive = rolling.pct <= -7;
 
   // Money-readable formatter — keeps strings short and consistent.
-  const $ = (v) => `${v >= 0 ? '+$' : '−$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
   // ── headline diagnostic ─────────────────────────────────
   let headline = '', headlineTone = 'good';
@@ -8085,7 +8085,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   const ksHtml = killActive ? `
     <div class="ai-killswitch">
       <div class="ai-section-title">⚡ Kill switch active</div>
-      <div class="alpha-intel-line danger"><span>Last ${rolling.days} days: ${$(rolling.totalPL)} (${rolling.pct.toFixed(1)}% of account) — past the −7% stop-trading line.</span></div>
+      <div class="alpha-intel-line danger"><span>Last ${rolling.days} days: ${$(rolling.totalPL)} (${rolling.pct.toFixed(1)}% of account) — past the -7% stop-trading line.</span></div>
       <div class="alpha-intel-line warn"><span>Pause new trades until P/L recovers. Window is editable in Settings → Alpha Intelligence.</span></div>
     </div>` : '';
 
@@ -8094,11 +8094,15 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   if (headlineTone === 'warn') hlClass = 'neutral';
   if (headlineTone === 'danger' || headlineTone === 'bad') hlClass = 'risk-off';
 
+  // Kicker mirrors Home's "Today's read" pattern — gives the card a clear
+  // long-term identity and surfaces dataset size at a glance.
+  const kickerText = `Career view · ${n} closed${graded.length ? ` · ${graded.length} graded` : ''}`;
+
   return `
     <div class="home-card green" style="margin-bottom: 0;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
         <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence${helpBtn}</div>
-        <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-4); text-transform: uppercase; font-weight: 600;">${n} closed${graded.length ? ` · ${graded.length} graded` : ''}</div>
+        <div class="home-card-kicker" style="margin: 0;">${kickerText}</div>
       </div>
       <div class="home-intel-headline ${hlClass}">${headline}</div>
       <ul class="home-intel-points">
@@ -8569,113 +8573,115 @@ function renderHome() {
   const killActive = rolling.pct <= -7;
 
   // Money formatter — keeps lines compact and consistent.
-  const $ = (v) => `${v >= 0 ? '+$' : '−$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
-  // Headline for Home — what does TODAY say? Action-oriented, not generic
-  // regime text. Priority: kill switch > caps > regime > all-clear.
+  // Headline — concise, action-first. Priority: kill switch > caps > regime > all-clear.
   let regimeHeadline, headlineTone = '';
   if (killActive) {
-    regimeHeadline = `Kill switch active — last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account. Pause new trades.`;
+    regimeHeadline = `Kill switch on. Last ${rolling.days}d down ${Math.abs(rolling.pct).toFixed(1)}%. Pause.`;
     headlineTone = 'risk-off';
   } else if (!positionsOk) {
-    regimeHeadline = `Position cap reached (${openTrades.length}/${state.settings.maxPositions}). Close one before opening more.`;
+    regimeHeadline = `Position cap full (${openTrades.length}/${state.settings.maxPositions}). Close one to open another.`;
     headlineTone = 'neutral';
   } else if (!riskOk) {
-    regimeHeadline = `Risk buffer thin — next trade would push past the ${state.settings.maxRiskPct}% portfolio cap.`;
+    regimeHeadline = `Risk buffer thin. Next trade would push past the ${state.settings.maxRiskPct}% cap.`;
     headlineTone = 'neutral';
   } else if (state.regime === 'risk-off') {
-    regimeHeadline = `Risk-off tape — longs blocked by plan. Only puts on Avoid-list sectors at half size.`;
+    regimeHeadline = `Risk-off tape. Longs blocked. Puts on Avoid sectors only, half size.`;
     headlineTone = 'risk-off';
   } else if (state.regime === 'neutral') {
-    regimeHeadline = `Neutral tape — half-size both directions, demand cleaner confirmation.`;
+    regimeHeadline = `Neutral tape. Half size both ways. Wait for clean confirmation.`;
     headlineTone = 'neutral';
   } else {
-    regimeHeadline = `Risk-on tape — cleared to size up. ${tradesLeft} trade slot${tradesLeft === 1 ? '' : 's'} of buffer remain.`;
+    regimeHeadline = `Cleared to trade. ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left, $${nextRisk} per trade.`;
     headlineTone = '';
   }
 
-  // Build structured intel — array of {tone, icon, html}. Today-focused.
+  // Today-focused bullets. Each line is one breath; the color carries tone.
   const sectorStaleNow = state.sectorRatedAt && isSectorRatingStale();
   const intelPoints = [];
 
-  // 1. Today's session — what's happened so far today.
+  // 1. Today's session — only when there's something concrete to report.
+  // (Empty days were noise, per user feedback.)
   if (todayClosed.length) {
     const tone = todayPL >= 0 ? 'good' : 'bad';
     const wins = todayClosed.filter(t => (calcPL(t) || 0) > 0).length;
+    const rPart = todayR ? ` · ${todayR >= 0 ? '+' : ''}${todayR.toFixed(2)}R` : '';
     intelPoints.push({
       tone, icon: '📅',
-      html: `<strong>Today: ${$(todayPL)}</strong> across ${todayClosed.length} closed (${wins}W · ${todayClosed.length - wins}L${todayR ? `, ${todayR >= 0 ? '+' : ''}${todayR.toFixed(2)}R` : ''}).`,
+      html: `<strong>Today: ${$(todayPL)}</strong> · ${wins}W ${todayClosed.length - wins}L${rPart}.`,
     });
-  } else {
+  } else if (openTrades.length) {
     intelPoints.push({
       tone: 'info', icon: '📅',
-      html: `<strong>No closed trades today.</strong> Open positions: ${openTrades.length}. Plan ahead — don't chase.`,
+      html: `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} open · ${$(-Math.round(openRisk))} at risk. No closes today.`,
     });
   }
 
-  // 2. Rolling-window read — keeps the kill switch transparent.
+  // 2. Rolling-window read — concise.
   if (rolling.count > 0) {
     const tone = killActive ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
-    const verdict = killActive ? 'kill switch active' : rolling.pct < 0 ? 'in drawdown — size cautiously' : 'in form';
+    const verdict = killActive ? 'kill switch on' : rolling.pct < 0 ? 'in drawdown' : 'in form';
+    const wrPart = rolling.winRate !== null ? ` · ${rolling.winRate}% wins` : '';
     intelPoints.push({
       tone, icon: '⏱',
-      html: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.count} closed${rolling.winRate !== null ? ` · ${rolling.winRate}% wins` : ''}) — ${verdict}.`,
+      html: `Last ${rolling.days}d: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}%) · ${rolling.count} closed${wrPart} — ${verdict}.`,
     });
   } else if (closed.length === 0) {
     intelPoints.push({
       tone: 'info', icon: '📋',
-      html: `<strong>No closed trades yet.</strong> Log your first exit from the GO flow to start the rolling window.`,
+      html: `<strong>No closed trades yet.</strong> First exit starts the rolling window.`,
     });
   }
 
-  // 3. Sector lean — directional bias for the day.
+  // 3. Sector lean — directional bias.
   if (top3.length || avoid.length) {
     const topPart = top3.length
       ? `<strong>${top3.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
-      : 'none rated strong';
+      : 'none strong';
     const avoidPart = avoid.length
       ? ` · avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : '';
     intelPoints.push({
       tone: top3.length ? 'good' : 'warn', icon: '🧭',
-      html: `Sector lean — long ${topPart}${avoidPart}.`,
+      html: `Lean long ${topPart}${avoidPart}.`,
     });
   } else {
     intelPoints.push({
       tone: 'warn', icon: '🧭',
-      html: `<strong>No sector ratings.</strong> Rate sectors in Market Context before sizing this week's trades.`,
+      html: `<strong>No sector ratings.</strong> Rate sectors in Market Context first.`,
     });
   }
 
-  // Stale sector — only when actually stale, on its own line.
+  // Stale sector callout — only if actually stale.
   if (sectorStaleNow) {
     const days = daysSinceSectorRating();
     intelPoints.push({
       tone: 'warn', icon: '⚠️',
-      html: `Sector grades are <strong>${days} day${days === 1 ? '' : 's'} old</strong> — re-rate before today's trade.`,
+      html: `Sector grades <strong>${days}d old</strong> — re-rate before trading.`,
     });
   }
 
-  // 4. Action — the explicit "what should I do right now" line.
+  // 4. Action line — the explicit "what now".
   let actionTone = 'good', actionIcon = '✅', actionHtml = '';
   if (killActive) {
     actionTone = 'bad'; actionIcon = '🛑';
-    actionHtml = `<strong>Don't trade.</strong> Wait for the rolling P/L to recover above the −7% line, or widen the window in Settings.`;
+    actionHtml = `<strong>Don't trade.</strong> Wait for rolling P/L above -7%, or widen the window in Settings.`;
   } else if (state.regime === 'risk-off') {
     actionTone = 'bad'; actionIcon = '🛑';
-    actionHtml = `<strong>Defensive mode.</strong> Skip longs. Only consider puts on Avoid-list sectors at half size.`;
+    actionHtml = `<strong>Defensive.</strong> Skip longs. Puts on Avoid sectors at half size only.`;
   } else if (!positionsOk) {
     actionTone = 'warn'; actionIcon = '🔒';
-    actionHtml = `<strong>Position cap reached.</strong> Close one before opening another.`;
+    actionHtml = `<strong>Position cap.</strong> Close one before opening another.`;
   } else if (!riskOk) {
     actionTone = 'warn'; actionIcon = '🔒';
-    actionHtml = `<strong>Risk buffer thin.</strong> Next trade would push past the ${state.settings.maxRiskPct}% cap. Close something or pass.`;
+    actionHtml = `<strong>Buffer thin.</strong> Close something or pass on the next trade.`;
   } else if (state.regime === 'neutral') {
     actionTone = 'warn'; actionIcon = '⚖️';
-    actionHtml = `<strong>Half size, both directions.</strong> Cleaner confirmation required — demand the setup, don't force it.`;
+    actionHtml = `<strong>Half size.</strong> Both directions OK on confirmed setups only.`;
   } else {
     actionTone = 'good'; actionIcon = '✅';
-    actionHtml = `<strong>Cleared to trade.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} of buffer remain · next trade risks $${nextRisk}.`;
+    actionHtml = `<strong>Cleared.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk}.`;
   }
   intelPoints.push({ tone: actionTone, icon: actionIcon, html: actionHtml });
 
@@ -11741,7 +11747,7 @@ function tfIntradayStep3() {
     { key: 'dir',   name: 'Direction matches VWAP relation', ok: !((it.vwapRel === 'above' && it.direction === 'short') || (it.vwapRel === 'below' && it.direction === 'long')), rule: 'Long with Above/At VWAP, Short with Below/At VWAP.' },
     { key: 'spread',name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`, ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct), rule: `Spread % from step 2.` },
     { key: 'window',name: 'Inside an entry window', ok: inWin || tov, rule: '09:35–11:30 or 14:00–15:30 local. Override available for paper trading.' },
-    { key: 'budget',name: 'Loss budget remains', ok: lossBudget > 0, rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '−$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
+    { key: 'budget',name: 'Loss budget remains', ok: lossBudget > 0, rule: `Today's intraday P/L: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
   ];
   const passed = checks.filter(c => c.ok).length;
 
