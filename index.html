@@ -4130,12 +4130,12 @@ textarea.input-field {
 /* summary row */
 #panel-trade .trade-summary-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.4fr;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(280px, 1.35fr) minmax(210px, 0.9fr);
   gap: 0;
   background: var(--bg-elev);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  overflow: hidden;
+  overflow: visible;
 }
 #panel-trade .trade-summary-cell {
   padding: 12px 16px;
@@ -4161,6 +4161,102 @@ textarea.input-field {
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.01em;
+}
+#panel-trade .summary-control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#panel-trade .summary-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#panel-trade .summary-input,
+#panel-trade .summary-select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.035);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 8px 10px;
+  outline: none;
+}
+#panel-trade .summary-input:focus,
+#panel-trade .summary-select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(6,212,248,0.12);
+}
+#panel-trade .summary-input::placeholder {
+  color: var(--ink-4);
+  font-weight: 700;
+}
+#panel-trade .summary-strategy-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(96px, 0.75fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+#panel-trade .summary-direction-toggle {
+  display: grid;
+  grid-template-columns: 34px 34px;
+  gap: 6px;
+}
+#panel-trade .summary-dir-btn,
+#panel-trade .summary-paste-btn {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.035);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+#panel-trade .summary-paste-btn {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#panel-trade .summary-dir-btn.long.selected {
+  color: var(--green-bright);
+  border-color: rgba(16,185,129,0.5);
+  background: rgba(16,185,129,0.12);
+}
+#panel-trade .summary-dir-btn.short.selected {
+  color: var(--red-bright);
+  border-color: rgba(239,68,68,0.5);
+  background: rgba(239,68,68,0.12);
+}
+#panel-trade .summary-paste-wrap {
+  display: none;
+  margin-top: 8px;
+}
+#panel-trade .summary-paste-wrap.open { display: block; }
+#panel-trade .summary-paste-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+#panel-trade .summary-paste-hint {
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+#panel-trade .summary-ticker-memory {
+  max-height: 96px;
+  overflow: auto;
 }
 #panel-trade .trade-summary-status .trade-summary-value {
   font-family: var(--mono);
@@ -4964,10 +5060,12 @@ textarea.input-field {
     margin-bottom: 10px;
     font-size: 12px;
   }
-  #panel-trade .trade-summary-row { grid-template-columns: 1fr 1fr; }
+  #panel-trade .trade-summary-row { grid-template-columns: 1fr; }
   #panel-trade .trade-summary-cell { padding: 10px 12px; min-height: 50px; }
   #panel-trade .trade-summary-value { font-size: 14px; }
-  #panel-trade .trade-summary-status { grid-column: span 2; border-top: 1px solid var(--line); border-right: 0; }
+  #panel-trade .trade-summary-status { grid-column: auto; border-top: 1px solid var(--line); border-right: 0; }
+  #panel-trade .summary-strategy-grid { grid-template-columns: 1fr; }
+  #panel-trade .summary-direction-toggle { grid-template-columns: 1fr 1fr; }
   #panel-trade .trade-summary-status .trade-summary-value { font-size: 11px; }
   #panel-trade .trade-body { padding: 16px 0 0; }
   #panel-trade .trade-section { margin-bottom: 12px; }
@@ -5179,7 +5277,7 @@ textarea.input-field {
       <div class="log-toolbar">
         <div class="log-toolbar-title">Trade Log</div>
         <div class="log-toolbar-actions">
-          <input class="input-field" id="log-trade-search" placeholder="Filter ticker, setup…" autocomplete="off" style="width: 190px; height: 34px; font-size: 12px;" />
+          <input class="input-field" id="log-trade-search" placeholder="Ticker, setup, direction, status" autocomplete="off" style="width: 190px; height: 34px; font-size: 12px;" />
           <button class="btn-secondary log-icon-btn" id="btn-export-json" title="Export JSON" aria-label="Export JSON">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -5634,12 +5732,10 @@ STRENGTH: 3/3</pre>
         </div>
         <div class="trade-summary-row">
           <div class="trade-summary-cell">
-            <div class="trade-summary-label">Ticker</div>
-            <div class="trade-summary-value" id="trade-summary-ticker">—</div>
+            <div class="trade-summary-value" id="trade-summary-ticker"></div>
           </div>
           <div class="trade-summary-cell">
-            <div class="trade-summary-label">Strategy</div>
-            <div class="trade-summary-value" id="trade-summary-strategy">—</div>
+            <div class="trade-summary-value" id="trade-summary-strategy"></div>
           </div>
           <div class="trade-summary-cell trade-summary-status" id="trade-summary-status-cell">
             <div class="trade-summary-label">Status</div>
@@ -5727,7 +5823,7 @@ STRENGTH: 3/3</pre>
             <div class="input-group">
               <label class="input-label">Ticker</label>
               <input type="text" class="input-field" id="t-ticker" required
-                     style="text-transform: uppercase;" />
+                     placeholder="Ticker symbol" autocomplete="off" autocapitalize="characters" style="text-transform: uppercase;" />
             </div>
             <div class="input-group">
               <label class="input-label">Setup</label>
@@ -5772,11 +5868,11 @@ STRENGTH: 3/3</pre>
             <div class="input-group full">
               <label class="input-label">Thesis (1 sentence)</label>
               <textarea class="input-field" id="t-thesis"
-                        placeholder="What has to happen for this to work?"></textarea>
+                        placeholder="Entry thesis: setup, trigger, expected move"></textarea>
             </div>
             <div class="input-group full">
               <label class="input-label">Pre-mortem (if it loses, why?)</label>
-              <textarea class="input-field" id="t-premortem"></textarea>
+              <textarea class="input-field" id="t-premortem" placeholder="Invalidation: what proves this trade wrong?"></textarea>
             </div>
           </div>
           <div class="modal-pane-hint">
@@ -5856,7 +5952,7 @@ STRENGTH: 3/3</pre>
           </div>
           <div class="pos-mark-input-wrap">
             <label class="pos-mark-label" for="pos-mark">Mark Price ($)</label>
-            <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="0.00" />
+            <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="Current mark price" />
           </div>
         </div>
 
@@ -5871,8 +5967,8 @@ STRENGTH: 3/3</pre>
             <button type="button" class="pos-quick-btn" data-scale="1.00">MAX</button>
           </div>
           <div class="pos-input-row">
-            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Qty" />
-            <input type="number" id="pos-exit-price" class="pos-num-input" min="0" step="0.01" placeholder="Price" />
+            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Contracts / shares" />
+            <input type="number" id="pos-exit-price" class="pos-num-input" min="0" step="0.01" placeholder="Exit fill price" />
           </div>
           <button type="button" class="pos-execute-btn" id="pos-execute-btn">Execute Exit</button>
         </div>
@@ -5914,7 +6010,7 @@ STRENGTH: 3/3</pre>
               </button>
             </div>
           </div>
-          <textarea id="pos-notes" class="pos-notes-area" placeholder="What happened? Plan vs execution, lesson learned…"></textarea>
+          <textarea id="pos-notes" class="pos-notes-area" placeholder="Review: plan vs execution, exit reason, lesson"></textarea>
         </div>
 
         <div>
@@ -7001,6 +7097,7 @@ const INTRADAY_SETUPS = [
 function newIntradayTicket() {
   return {
     instrument: 'options',
+    structure: 'options',
     ticker: '', direction: 'long', setup: null,
     // Levels
     entry: null, stop: null, target: null,
@@ -7145,12 +7242,14 @@ function loadState() {
         if (it.vwapValue  === undefined) it.vwapValue  = null;
         if (it.vwapRel    === undefined) it.vwapRel    = '';
         if (!it.instrument) it.instrument = 'options';
+        if (!it.structure) it.structure = it.instrument === 'stocks' ? 'stocks' : 'options';
         if (it.bid        === undefined) it.bid        = null;
         if (it.ask        === undefined) it.ask        = null;
         if (it.mid        === undefined) it.mid        = null;
       }
       // Migrate older state without instrument field
       if (!state.instrument) state.instrument = 'options';
+      if (!state.structure) state.structure = state.instrument === 'stocks' ? 'stocks' : 'options';
       if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
       if (!state.logModeFilter) state.logModeFilter = 'all';
       if (state.logSearch === undefined) state.logSearch = '';
@@ -9889,7 +9988,7 @@ function renderSectors() {
             type="number"
             class="sector-card-grade-select"
             data-ticker="${s.ticker}"
-            placeholder="e.g. 4.32"
+            placeholder="SA Quant rating"
             inputmode="decimal"
             min="1"
             max="5"
@@ -10652,6 +10751,7 @@ function logIntradayTrade() {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     mode: 'intraday',
     instrument,
+    structure: t.structure || instrument,
     date: todayISO(),
     time: new Date().toTimeString().slice(0, 5),
     ticker: t.ticker,
@@ -10721,6 +10821,12 @@ const TRADE_SWING_SETUPS = [
   { id: 'Breakout Retest',  num: '03', desc: 'Stock breaks out, pulls back to retest the breakout level, then bounces.' },
   { id: '9-EMA Reclaim',    num: '04', desc: 'Intraday wick below the 9-day MA closes back above by EOD — dip-buyers showed up.' },
   { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true },
+];
+
+const TRADE_STRUCTURES = [
+  { id: 'stocks', label: 'Stock' },
+  { id: 'options', label: 'Option' },
+  { id: 'spread', label: 'Spread' },
 ];
 
 // Intraday setups now mirror the user's ThinkScript outputs exactly:
@@ -10825,35 +10931,35 @@ function tfComputeStatus() {
   }
 
   if (m === 'swing') {
-    // 1 Setup — ticker / direction / setup
+    // Header setup — ticker / direction / setup
     if (!state.ticker)        return { tone: 'progress', reason: 'Add ticker',        step: 1 };
     if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 1 };
     if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
-    // 2 Plan — eligibility inputs + IV Rank
-    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 2 };
-    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 2 };
+    // 1 Plan — eligibility inputs + IV Rank
+    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 1 };
+    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 1 };
     const g = tfEvaluateGates();
-    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 2 };
-    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 2 };
-    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 2 };
-    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 2 };
+    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 1 };
+    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 1 };
+    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 1 };
+    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 1 };
     const isOptions = state.instrument !== 'stocks';
-    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
-    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
-    // 3 Size — liquidity + premium / ATR / underlying
-    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 3 };
+    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 1 };
+    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 1 };
+    // 2 Size — liquidity + premium / ATR / underlying
+    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 2 };
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 3 };
+      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 2 };
     }
     if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
-      return { tone: 'progress', reason: 'Add ATR(14)', step: 3 };
+      return { tone: 'progress', reason: 'Add ATR(14)', step: 2 };
     }
     if (isOptions && (state.underlyingPrice === null || state.underlyingPrice === undefined || state.underlyingPrice <= 0)) {
-      return { tone: 'progress', reason: 'Add underlying price', step: 3 };
+      return { tone: 'progress', reason: 'Add underlying price', step: 2 };
     }
-    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 3 };
-    // 4 Verify — every gate must be green; if we got here, all are green.
-    return { tone: 'ready', reason: 'Ready to log', step: 5 };
+    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 2 };
+    // 3 Verify — every gate must be green; if we got here, all are green.
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   if (m === 'intraday') {
@@ -10861,42 +10967,42 @@ function tfComputeStatus() {
     const isOptions = (it.instrument || 'options') !== 'stocks';
     const setupDef = (typeof tfFindIntradaySetup === 'function') ? tfFindIntradaySetup(it.setup) : null;
 
-    // 1 Pattern — ticker / setup / direction (+ direction-vs-setup-bias)
+    // Header pattern — ticker / setup / direction (+ direction-vs-setup-bias)
     if (!it.ticker)    return { tone: 'progress', reason: 'Add ticker',     step: 1 };
     if (!it.setup)     return { tone: 'progress', reason: 'Pick a setup',   step: 1 };
     if (!it.direction) return { tone: 'progress', reason: 'Pick direction', step: 1 };
     if (setupDef && setupDef.bias !== 'either' && it.direction !== setupDef.bias) {
       return { tone: 'blocked', reason: `${setupDef.name} expects ${setupDef.bias.toUpperCase()}`, step: 1 };
     }
-    // 2 Levels — entry / stop / target
-    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
-    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
-    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    // 3 Sizing — options need a bid/ask-derived spread; stocks only need levels.
+    // 1 Levels — entry / stop / target
+    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 1 };
+    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 1 };
+    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 1 };
+    // 2 Sizing — options need a bid/ask-derived spread; stocks only need levels.
     const spreadPct = isOptions ? deriveSpreadPct(it) : null;
     if (isOptions && (spreadPct === null || spreadPct === undefined || spreadPct === '')) {
-      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 3 };
+      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 2 };
     }
     if (isOptions && Number(spreadPct) > s.intradayMaxSpreadPct) {
-      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
+      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 2 };
     }
-    // 4 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
+    // 3 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
       const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
         ? TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) : null;
       if (confDef && confDef.bias !== 'either' && it.direction !== confDef.bias) {
-        return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 4 };
+        return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 3 };
       }
     }
     const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
     if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
-      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 4 };
+      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 3 };
     }
     const dayPL = tfComputeIntradayDayPL();
     const lossBudget = s.intradayMaxDailyLoss + dayPL;
-    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 4 };
+    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 3 };
 
-    return { tone: 'ready', reason: 'Ready to log', step: 4 };
+    return { tone: 'ready', reason: 'Ready to log', step: 3 };
   }
 
   return { tone: 'progress', reason: 'Pick a setup', step: 1 };
@@ -10917,6 +11023,7 @@ function tfComputeStrategyLabel() {
   if (m === 'swing') {
     if (!state.direction) return '—';
     if (state.instrument === 'stocks') return state.direction === 'long' ? 'LONG STOCK' : 'SHORT STOCK';
+    if (tfStructureValue('swing') === 'spread') return state.direction === 'long' ? 'BULL DEBIT SPREAD' : 'BEAR DEBIT SPREAD';
     if (state.ivr === null || state.ivr === undefined) return state.direction === 'long' ? 'LONG (TBD)' : 'SHORT (TBD)';
     const sObj = (typeof getStrategyForIVR === 'function') ? getStrategyForIVR(state.ivr, state.direction) : null;
     if (!sObj) return state.direction === 'long' ? 'LONG' : 'SHORT';
@@ -10926,6 +11033,7 @@ function tfComputeStrategyLabel() {
     const it = state.intraday || {};
     if (!it.direction) return '—';
     if ((it.instrument || 'options') === 'stocks') return it.direction === 'long' ? 'INTRADAY LONG STOCK' : 'INTRADAY SHORT STOCK';
+    if (tfStructureValue('intraday') === 'spread') return it.direction === 'long' ? 'INTRADAY CALL SPREAD' : 'INTRADAY PUT SPREAD';
     return it.direction === 'long' ? 'INTRADAY CALL' : 'INTRADAY PUT';
   }
   return '—';
@@ -11042,6 +11150,16 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
         state.intraday.ticker = sym;
         const input = document.getElementById('tf-i-ticker');
         if (input) input.value = sym;
+      } else if (containerId === 'tf-summary-ticker-memory') {
+        const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+        if (m === 'intraday') {
+          if (!state.intraday) state.intraday = newIntradayTicket();
+          state.intraday.ticker = sym;
+        } else {
+          state.ticker = sym;
+        }
+        const input = document.getElementById('tf-summary-ticker-input');
+        if (input) input.value = sym;
       } else {
         state.ticker = sym;
         const input = document.getElementById('tf-ticker');
@@ -11054,6 +11172,183 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
       tfUpdateTickerMemory(containerId, sym);
     });
   });
+}
+
+function tfSummarySetupOptions(mode) {
+  if (mode === 'intraday') {
+    return `<option value="">Setup...</option>` + TRADE_INTRADAY_SETUPS.map(s =>
+      `<option value="${s.id}">${s.name}</option>`
+    ).join('');
+  }
+  return `<option value="">Setup...</option>` + TRADE_SWING_SETUPS.map(s =>
+    `<option value="${s.id}">${s.num} ${s.id}</option>`
+  ).join('');
+}
+
+function tfSummaryStructureOptions() {
+  return TRADE_STRUCTURES.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+}
+
+function tfEnsureSummaryControls(mode) {
+  const tickerEl = document.getElementById('trade-summary-ticker');
+  const stratEl = document.getElementById('trade-summary-strategy');
+  if (!tickerEl || !stratEl) return;
+  if (tickerEl.dataset.summaryMode === mode && stratEl.dataset.summaryMode === mode) return;
+
+  const pastePlaceholder = mode === 'intraday'
+    ? 'Paste TOS alert text. Example:\\nORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45\\nINTRADAY: LONG BIAS | VWAP: 486.50\\nBREADTH UP BID=2.10 ASK=2.20 QTY=2'
+    : 'Paste swing alert text. Example:\\nNVDA IVR=42 ATR=2.1 PX=185.50\\nRSMK=+rising RVOL=1.8 STACK=BULLISH SETUP=BASE_BO\\nSA: QUANT=4.2 EARNINGS=18d BID=2.10 ASK=2.20';
+
+  tickerEl.dataset.summaryMode = mode;
+  tickerEl.innerHTML = `
+    <div class="summary-control-stack">
+      <div class="summary-label-row">
+        <span class="trade-summary-label" style="margin:0;">Ticker</span>
+        <button type="button" class="summary-paste-btn" id="tf-summary-paste-toggle">Paste alert</button>
+      </div>
+      <input type="text" maxlength="10" class="summary-input" id="tf-summary-ticker-input" placeholder="Type ticker" autocomplete="off" autocapitalize="characters" />
+      <div class="summary-ticker-memory" id="tf-summary-ticker-memory"></div>
+      <div class="summary-paste-wrap" id="tf-summary-paste-wrap">
+        <textarea class="trade-textarea" id="tf-summary-paste-input" rows="4" placeholder="${pastePlaceholder.replace(/\\n/g, '&#10;').replace(/"/g, '&quot;')}"></textarea>
+        <div class="summary-paste-actions">
+          <button type="button" class="btn-primary" id="tf-summary-paste-apply">Apply</button>
+          <button type="button" class="btn-ghost" id="tf-summary-paste-clear">Clear</button>
+          <span class="summary-paste-hint" id="tf-summary-paste-hint">${mode === 'intraday' ? 'Reads TOS intraday alert fields.' : 'Reads swing alert, SA, IVR, liquidity, and gate fields.'}</span>
+        </div>
+      </div>
+    </div>`;
+
+  stratEl.dataset.summaryMode = mode;
+  stratEl.innerHTML = `
+    <div class="summary-control-stack">
+      <div class="summary-label-row">
+        <span class="trade-summary-label" style="margin:0;">Strategy</span>
+        <span class="summary-paste-hint" id="tf-summary-strategy-label"></span>
+      </div>
+      <div class="summary-strategy-grid">
+        <select class="summary-select" id="tf-summary-setup-select">${tfSummarySetupOptions(mode)}</select>
+        <select class="summary-select" id="tf-summary-structure-select">${tfSummaryStructureOptions()}</select>
+        <div class="summary-direction-toggle">
+          <button type="button" class="summary-dir-btn long" id="tf-summary-dir-long" title="Long / call">▲</button>
+          <button type="button" class="summary-dir-btn short" id="tf-summary-dir-short" title="Short / put">▼</button>
+        </div>
+      </div>
+    </div>`;
+
+  tfBindSummaryControls();
+}
+
+function tfBindSummaryControls() {
+  const tickerInput = document.getElementById('tf-summary-ticker-input');
+  if (tickerInput) {
+    tickerInput.addEventListener('input', e => {
+      const sym = (e.target.value || '').toUpperCase();
+      e.target.value = sym;
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') {
+        if (!state.intraday) state.intraday = newIntradayTicket();
+        state.intraday.ticker = sym;
+      } else {
+        state.ticker = sym;
+      }
+      saveState();
+      tfUpdateTickerMemory('tf-summary-ticker-memory', sym);
+      tfRenderStepper();
+      tfRenderActions();
+      tfUpdateSummaryStatus();
+    });
+  }
+
+  const setupSelect = document.getElementById('tf-summary-setup-select');
+  if (setupSelect) {
+    setupSelect.addEventListener('change', e => {
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') {
+        if (!state.intraday) state.intraday = newIntradayTicket();
+        const id = e.target.value || null;
+        state.intraday.setup = id;
+        const def = id ? tfFindIntradaySetup(id) : null;
+        if (def && def.bias === 'long') state.intraday.direction = 'long';
+        if (def && def.bias === 'short') state.intraday.direction = 'short';
+        tfAutoFillIntradayStockFromOR();
+      } else {
+        state.selectedSetup = e.target.value || null;
+      }
+      saveState();
+      tfRefreshAll();
+    });
+  }
+
+  const structureSelect = document.getElementById('tf-summary-structure-select');
+  if (structureSelect) {
+    structureSelect.addEventListener('change', e => {
+      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+      if (m === 'intraday') tfSetIntradayStructure(e.target.value);
+      else tfSetSwingStructure(e.target.value);
+    });
+  }
+
+  const setDir = dir => {
+    const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+    if (m === 'intraday') {
+      if (!state.intraday) state.intraday = newIntradayTicket();
+      state.intraday.direction = dir;
+    } else {
+      state.direction = dir;
+    }
+    saveState();
+    tfRefreshAll();
+  };
+  document.getElementById('tf-summary-dir-long')?.addEventListener('click', () => setDir('long'));
+  document.getElementById('tf-summary-dir-short')?.addEventListener('click', () => setDir('short'));
+
+  const pasteToggle = document.getElementById('tf-summary-paste-toggle');
+  const pasteWrap = document.getElementById('tf-summary-paste-wrap');
+  if (pasteToggle && pasteWrap) {
+    pasteToggle.addEventListener('click', () => {
+      pasteWrap.classList.toggle('open');
+      if (pasteWrap.classList.contains('open')) {
+        try { document.getElementById('tf-summary-paste-input')?.focus(); } catch (_) {}
+      }
+    });
+  }
+  document.getElementById('tf-summary-paste-clear')?.addEventListener('click', () => {
+    const ta = document.getElementById('tf-summary-paste-input');
+    const hint = document.getElementById('tf-summary-paste-hint');
+    if (ta) ta.value = '';
+    if (hint) { hint.textContent = 'Cleared.'; hint.style.color = ''; }
+  });
+  document.getElementById('tf-summary-paste-apply')?.addEventListener('click', () => {
+    const ta = document.getElementById('tf-summary-paste-input');
+    const hint = document.getElementById('tf-summary-paste-hint');
+    if (!ta) return;
+    const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+    const parsed = m === 'intraday' ? tfParseIntradayPaste(ta.value) : tfParseSwingPaste(ta.value);
+    const keys = Object.keys(parsed || {});
+    if (!keys.length) {
+      if (hint) { hint.textContent = 'No recognizable values found.'; hint.style.color = 'var(--amber-bright)'; }
+      return;
+    }
+    if (m === 'intraday') tfApplyIntradayPaste(parsed);
+    else tfApplySwingPaste(parsed);
+    if (hint) {
+      hint.textContent = `Applied ${keys.length} value${keys.length === 1 ? '' : 's'}.`;
+      hint.style.color = 'var(--green-bright)';
+    }
+    tfRefreshAll();
+  });
+}
+
+function tfUpdateSummaryStatus() {
+  const statusEl = document.getElementById('trade-summary-status');
+  const cell = document.getElementById('trade-summary-status-cell');
+  if (!statusEl || !cell) return;
+  const st = tfComputeStatus();
+  cell.classList.remove('ready', 'progress', 'blocked', 'clickable');
+  cell.classList.add(st.tone);
+  statusEl.textContent = st.tone === 'ready' ? 'Ready' : `Step ${st.step}: ${st.reason}`;
+  if (st.tone !== 'ready') cell.classList.add('clickable');
+  cell.dataset.tfStatusStep = st.step || '';
 }
 
 function tfRenderStrategyOutHtml(sObj) {
@@ -11158,20 +11453,42 @@ function tfInstrumentToggleHtml(current, attrName) {
     </div>`;
 }
 
-function tfSetSwingInstrument(instrument) {
-  state.instrument = instrument === 'stocks' ? 'stocks' : 'options';
+function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || 'swing')) {
+  if (mode === 'intraday') {
+    const it = state.intraday || {};
+    if (it.structure) return it.structure;
+    return it.instrument === 'stocks' ? 'stocks' : 'options';
+  }
+  if (state.structure) return state.structure;
+  return state.instrument === 'stocks' ? 'stocks' : 'options';
+}
+
+function tfSetSwingStructure(structure) {
+  const s = structure === 'spread' ? 'spread' : structure === 'stocks' ? 'stocks' : 'options';
+  state.structure = s;
+  state.instrument = s === 'stocks' ? 'stocks' : 'options';
   saveState();
   tfRefreshAll();
 }
 
-function tfSetIntradayInstrument(instrument) {
+function tfSetIntradayStructure(structure) {
   if (!state.intraday) state.intraday = newIntradayTicket();
-  state.intraday.instrument = instrument === 'stocks' ? 'stocks' : 'options';
+  const s = structure === 'spread' ? 'spread' : structure === 'stocks' ? 'stocks' : 'options';
+  state.intraday.structure = s;
+  state.intraday.instrument = s === 'stocks' ? 'stocks' : 'options';
   tfDeriveIntradaySpread();
   tfAutoFillIntradayOptionBracket();
   tfAutoFillIntradayStockFromOR();
   saveState();
   tfRefreshAll();
+}
+
+function tfSetSwingInstrument(instrument) {
+  tfSetSwingStructure(instrument === 'stocks' ? 'stocks' : 'options');
+}
+
+function tfSetIntradayInstrument(instrument) {
+  tfSetIntradayStructure(instrument === 'stocks' ? 'stocks' : 'options');
 }
 
 function tfIntradayInstrument() {
@@ -11285,19 +11602,20 @@ function tfSpreadBracket(spread) {
 
 // ----- Rendering -----
 
-// Swing paginates through five steps. Intraday is a four-section single
+// The sticky header now owns ticker, setup, structure, and direction.
+// Swing paginates through four supporting steps. Intraday is a three-section single
 // screen so the user can Tab through every input without losing speed.
-//   Swing:    Pattern → Quality   → Sizing → Checklist → Log
-//   Intraday: Pattern → Levels    → Sizing → Context
+//   Swing:    Quality → Sizing → Checklist → Log
+//   Intraday: Levels  → Sizing → Context
 // Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() {
-  return tfIsSingleScreen() ? 4 : 5;
+  return tfIsSingleScreen() ? 3 : 4;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   return m === 'swing'
-    ? ['Pattern', 'Quality', 'Sizing', 'Checklist', 'Log']
-    : ['Pattern', 'Levels',  'Sizing', 'Context'];
+    ? ['Quality', 'Sizing', 'Checklist', 'Log']
+    : ['Levels',  'Sizing', 'Context'];
 }
 function tfIsSingleScreen() {
   return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
@@ -11317,32 +11635,32 @@ function tfStepCompletion() {
     const liq = state.liquidity || {};
     const gates = tfEvaluateGates();
 
-    // 1 Setup — ticker + direction + setup pattern.
-    c[0] = !!(state.selectedSetup && state.direction && state.ticker);
+    // Header setup — ticker + direction + setup pattern.
+    const headerReady = !!(state.selectedSetup && state.direction && state.ticker);
 
-    // 2 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
+    // 1 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
     //          Momentum gates) PLUS the structural read (IV Rank).
     const eligDone = (state.saQuant !== null && state.saQuant !== undefined)
                   && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
                   && gates['02'] && gates['03'];
     const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
-    c[1] = !!(eligDone && ivrSet);
+    c[0] = !!(headerReady && eligDone && ivrSet);
 
-    // 3 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
+    // 2 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
     const liqFilled = isOptions
       ? (liq.stockVol > 0 && liq.optionOI > 0 && liq.optionVol > 0 && liq.bid > 0 && liq.ask > 0)
       : (liq.stockVol > 0);
     const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
-    c[2] = !!(liqFilled && sizingFilled);
+    c[1] = !!(headerReady && liqFilled && sizingFilled);
 
-    // 4 Verify — read-only gate summary; complete when every gate passes.
-    c[3] = ['01', '02', '03', '04', '05', '06'].every(k => gates[k]);
+    // 3 Verify — read-only gate summary; complete when every gate passes.
+    c[2] = !!(headerReady && ['01', '02', '03', '04', '05', '06'].every(k => gates[k]));
 
-    // 5 Execute — flips green only when overall status is 'ready'.
+    // 4 Execute — flips green only when overall status is 'ready'.
     const st = tfComputeStatus();
-    c[4] = c[0] && c[1] && c[2] && c[3] && st.tone === 'ready';
+    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
     return c;
   }
 
@@ -11351,24 +11669,22 @@ function tfStepCompletion() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
 
-  // 1 Pattern — ticker + setup + direction. Direction is auto-aligned but
-  // we still want it set, so we count it.
-  c[0] = !!(it.ticker && it.setup && it.direction);
+  const headerReady = !!(it.ticker && it.setup && it.direction);
 
-  // 2 Levels — entry / stop / target.
-  c[1] = !!(it.entry && it.stop && it.target);
+  // 1 Levels — entry / stop / target.
+  c[0] = !!(headerReady && it.entry && it.stop && it.target);
 
-  // 3 Sizing — options need spread within cap; stock sizing is auto.
+  // 2 Sizing — options need spread within cap; stock sizing is auto.
   const isOptions = (it.instrument || 'options') !== 'stocks';
   const spreadPct = isOptions ? deriveSpreadPct(it) : null;
   const spreadOk = !isOptions || (spreadPct !== null && spreadPct !== undefined
                 && Number(spreadPct) >= 0
                 && Number(spreadPct) <= settings.intradayMaxSpreadPct);
-  c[2] = !!(spreadOk);
+  c[1] = !!(headerReady && spreadOk);
 
-  // 4 Context — guardrails pass (status not blocked).
+  // 3 Context — guardrails pass (status not blocked).
   const st = tfComputeStatus();
-  c[3] = c[0] && c[1] && c[2] && st.tone !== 'blocked';
+  c[2] = c[0] && c[1] && st.tone !== 'blocked';
   return c;
 }
 
@@ -11419,24 +11735,24 @@ function tfRenderStepper() {
 function tfRenderHeader() {
   const tickerEl = document.getElementById('trade-summary-ticker');
   const stratEl  = document.getElementById('trade-summary-strategy');
-  const statusEl = document.getElementById('trade-summary-status');
-  const cell     = document.getElementById('trade-summary-status-cell');
-  if (!tickerEl || !stratEl || !statusEl || !cell) return;
+  if (!tickerEl || !stratEl) return;
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const ticker = m === 'swing' ? (state.ticker || '—') : ((state.intraday && state.intraday.ticker) || '—');
-  tickerEl.textContent = ticker || '—';
-  stratEl.textContent  = tfComputeStrategyLabel();
-  const st = tfComputeStatus();
-  cell.classList.remove('ready', 'progress', 'blocked', 'clickable');
-  cell.classList.add(st.tone);
-  if (st.tone === 'ready') {
-    statusEl.textContent = 'Ready';
-  } else {
-    // Step prefix tells the user where to fix it; pill is clickable to jump.
-    statusEl.textContent = `Step ${st.step}: ${st.reason}`;
-    cell.classList.add('clickable');
-  }
-  cell.dataset.tfStatusStep = st.step || '';
+  tfEnsureSummaryControls(m);
+  const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
+  const tickerInput = document.getElementById('tf-summary-ticker-input');
+  if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
+  tfUpdateTickerMemory('tf-summary-ticker-memory', ticker);
+
+  const setupSelect = document.getElementById('tf-summary-setup-select');
+  if (setupSelect) setupSelect.value = m === 'intraday' ? ((state.intraday && state.intraday.setup) || '') : (state.selectedSetup || '');
+  const structureSelect = document.getElementById('tf-summary-structure-select');
+  if (structureSelect) structureSelect.value = tfStructureValue(m);
+  const dir = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
+  document.getElementById('tf-summary-dir-long')?.classList.toggle('selected', dir === 'long');
+  document.getElementById('tf-summary-dir-short')?.classList.toggle('selected', dir === 'short');
+  const label = document.getElementById('tf-summary-strategy-label');
+  if (label) label.textContent = tfComputeStrategyLabel();
+  tfUpdateSummaryStatus();
   // Mode toggle highlight
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
     b.classList.toggle('active', b.dataset.tradeMode === m);
@@ -11521,6 +11837,10 @@ function tfReset() {
   const m = state.tradeFlow.mode;
   state.selectedSetup = null;
   if (m === 'swing') {
+    state.ticker = '';
+    state.direction = null;
+    state.structure = 'options';
+    state.instrument = 'options';
     state.ivr = null;
     state.premium = null;
     state.atr = null;
@@ -11543,14 +11863,13 @@ function tfReset() {
 
 function tfStepBody(step) {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  if (step > 5) step = 5;
+  if (step > tfStepCount()) step = tfStepCount();
   if (step < 1) step = 1;
   if (m === 'swing') {
-    if (step === 1) return tfSwingStep1();
-    if (step === 2) return tfSwingStep2();
-    if (step === 3) return tfSwingStep3();
-    if (step === 4) return tfSwingStep4();
-    if (step === 5) return tfSwingStep5();
+    if (step === 1) return tfSwingStep2();
+    if (step === 2) return tfSwingStep3();
+    if (step === 3) return tfSwingStep4();
+    if (step === 4) return tfSwingStep5();
     return '';
   }
   // Intraday — single screen. Render every section, separated by a small
@@ -11561,10 +11880,9 @@ function tfStepBody(step) {
       <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
       ${html}
     </div>`;
-  return wrap(0, tfIntradayStep1())
-       + wrap(1, tfIntradayStep2())
-       + wrap(2, tfIntradayStep3())
-       + wrap(3, tfIntradayStep4());
+  return wrap(0, tfIntradayStep2())
+       + wrap(1, tfIntradayStep3())
+       + wrap(2, tfIntradayStep4());
 }
 
 // ----- Swing step 1 — Setup: ticker + direction + pattern -----
@@ -11621,7 +11939,7 @@ function tfSwingStep1() {
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
               <label class="input-label">Ticker</label>
-              <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="e.g. AAPL"
+              <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="Ticker symbol"
                 value="${ticker.toString()}" autocomplete="off" style="text-transform: uppercase;" />
               <div class="input-help">Pick from your recent traders below or type new.</div>
             </div>
@@ -11772,7 +12090,7 @@ function tfSwingStep2() {
           <div>
             <label class="input-label">IV Rank (0–100)</label>
             <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
-              placeholder="e.g. 24"
+              placeholder="IV Rank 0-100"
               value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
             <div class="input-help">Cheap below 30 · Moderate 30-50 · Rich 50+ · Skip if 70+</div>
           </div>
@@ -11806,7 +12124,7 @@ function tfSwingStep2() {
             <div>
               <label class="input-label">SA Quant Rating (1.00-5.00)</label>
               <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
-                placeholder="e.g. 4.12" value="${state.saQuant ?? ''}" />
+                placeholder="SA Quant 1.00-5.00" value="${state.saQuant ?? ''}" />
               <div class="input-help">Auto-passes Gate 01 when ≥ 3.50 (Buy or Strong Buy).</div>
             </div>
           </div>
@@ -11814,7 +12132,7 @@ function tfSwingStep2() {
             <div>
               <label class="input-label">Days to next earnings</label>
               <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
-                placeholder="e.g. 21" value="${state.daysToEarnings ?? ''}" />
+                placeholder="Days until earnings" value="${state.daysToEarnings ?? ''}" />
               <div class="input-help">Auto-passes Gate 05 when ≥ 8. Don't hold through earnings.</div>
             </div>
           </div>
@@ -11957,7 +12275,7 @@ function tfSwingStep3() {
             <div>
               <label class="input-label">ATR(14) on the underlying</label>
               <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
-                placeholder="e.g. 2.45" value="${atr ?? ''}" />
+                placeholder="ATR(14) from chart" value="${atr ?? ''}" />
               <div class="input-help">From TOS daily chart, study: ATR length 14.</div>
             </div>
           </div>
@@ -11965,7 +12283,7 @@ function tfSwingStep3() {
             <div>
               <label class="input-label">Underlying current price ($)</label>
               <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
-                placeholder="e.g. 188.50" value="${upx ?? ''}" />
+                placeholder="Current underlying price" value="${upx ?? ''}" />
               <div class="input-help">Combined with ATR for the stop level.</div>
             </div>
           </div>
@@ -12002,7 +12320,7 @@ function tfSwingStep3() {
           <div>
             <label class="input-label">${reqLabel}</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-              placeholder="e.g. 2.45" value="${premium ?? ''}" />
+              placeholder="${isOptions ? 'Option mid / limit premium' : 'Share entry price'}" value="${premium ?? ''}" />
           </div>
         </div>
         ${sizingCard}
@@ -12357,7 +12675,10 @@ function tfParseSwingPaste(text) {
 function tfApplySwingPaste(parsed) {
   if (!parsed) return;
   if (parsed.ticker) state.ticker = parsed.ticker;
-  if (parsed.instrument) state.instrument = parsed.instrument;
+  if (parsed.instrument) {
+    state.instrument = parsed.instrument;
+    state.structure = parsed.instrument === 'stocks' ? 'stocks' : (state.structure === 'spread' ? 'spread' : 'options');
+  }
   if (parsed.direction) state.direction = parsed.direction;
   if (parsed.setup) state.selectedSetup = parsed.setup;
   if (parsed.regime) state.regime = parsed.regime;
@@ -12441,6 +12762,7 @@ function tfApplyIntradayPaste(parsed) {
   if (!state.intraday) state.intraday = newIntradayTicket();
   const it = state.intraday;
   if (parsed.instrument) it.instrument = parsed.instrument;
+  if (parsed.instrument) it.structure = parsed.instrument === 'stocks' ? 'stocks' : (it.structure === 'spread' ? 'spread' : 'options');
   if (parsed.ticker)     it.ticker = parsed.ticker;
   if (parsed.setup) {
     it.setup = parsed.setup;
@@ -12529,7 +12851,7 @@ function tfIntradayStep1() {
         <div class="trade-input-row" style="grid-template-columns: 1fr;">
           <div>
             <label class="input-label">Ticker</label>
-            <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="e.g. SPY"
+            <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="Ticker symbol"
               value="${(it.ticker || '').toString()}" autocomplete="off" style="text-transform: uppercase;" />
           </div>
         </div>
@@ -12685,15 +13007,15 @@ function tfIntradayStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">OR_HI $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orHi" value="${inputValue('orHi')}" placeholder="opening range high" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orHi" value="${inputValue('orHi')}" placeholder="OR_HI from TOS alert" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">OR_LO $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="opening range low" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="OR_LO from TOS alert" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">RNG $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orRng" value="${inputValue('orRng')}" placeholder="auto-derived if blank" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orRng" value="${inputValue('orRng')}" placeholder="RNG auto-fills from OR_HI/OR_LO" />
             <div class="input-help">Auto-fills as <code>OR_HI − OR_LO</code> if you leave it empty.</div>
           </div></div>
         </div>
@@ -12713,15 +13035,15 @@ function tfIntradayStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">${isOptions ? 'Entry premium $' : 'Entry price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'auto-mid or e.g. 2.15' : 'e.g. 188.50'}" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Auto mid from bid/ask' : 'Share entry price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">${isOptions ? 'Stop premium $' : 'Stop price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'auto from stop %' : 'below structure'}" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Auto premium stop' : 'Invalidation price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">${isOptions ? 'Target premium $' : 'Target price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'auto from target %' : 'prior high / VWAP / etc.'}" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'Auto premium target' : 'Target price'}" />
           </div></div>
         </div>
         <div id="tf-i-rmult">
@@ -12806,23 +13128,23 @@ function tfIntradayStep3() {
     <div class="trade-section-grid-2">
       <div class="trade-input-row"><div>
         <label class="input-label">Bid $</label>
-        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-bid" value="${inputValue('bid')}" placeholder="from option chain" />
+        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-bid" value="${inputValue('bid')}" placeholder="Option bid" />
       </div>
       <div class="trade-bracket ${sb.cls}">${sb.text}</div>
       </div>
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Ask $</label>
-        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-ask" value="${inputValue('ask')}" placeholder="from option chain" />
+        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-ask" value="${inputValue('ask')}" placeholder="Option ask" />
         ${midLine || '<div class="input-help">Spread = (ask - bid) / mid. Paste or type bid/ask and Cockpit calculates it.</div>'}
       </div></div>
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Spread % fallback</label>
-        <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="auto, or e.g. 2.0" />
+        <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="Spread % if bid/ask missing" />
         <div class="input-help">Only needed if you do not have bid/ask.</div>
       </div></div>
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Contracts (optional)</label>
-        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
+        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Contracts, or leave blank" />
       </div></div>
     </div>`;
 
@@ -12830,7 +13152,7 @@ function tfIntradayStep3() {
     <div class="trade-section-grid-2">
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Shares (optional)</label>
-        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
+        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Shares, or leave blank" />
         <div class="input-help">Leave blank to auto-size from entry-stop distance.</div>
       </div></div>
     </div>`;
@@ -12990,13 +13312,13 @@ function tfIntradayStep4() {
         <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
           <div>
             <label class="input-label">VWAP value (optional)</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="e.g. 486.50" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="VWAP value from label" />
           </div>
         </div>
         <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
           <div>
             <label class="input-label">Trigger / invalidation notes (optional)</label>
-            <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="e.g. Reclaimed VWAP on 5m volume. Wrong if loses VWAP again.">${it.notes || ''}</textarea>
+            <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="Execution note: trigger, invalidation, context">${it.notes || ''}</textarea>
           </div>
         </div>
       </div>
@@ -13129,15 +13451,13 @@ function tfMountStep(step) {
     const max = tfStepCount();
     if (step > max) step = max;
     if (step < 1) step = 1;
-    if (step === 1) tfMountSwingStep1();
-    if (step === 2) tfMountSwingStep2();
-    if (step === 3) tfMountSwingStep3();
-    if (step === 4) tfMountSwingStep4();
-    if (step === 5) tfMountSwingStep5();
+    if (step === 1) tfMountSwingStep2();
+    if (step === 2) tfMountSwingStep3();
+    if (step === 3) tfMountSwingStep4();
+    if (step === 4) tfMountSwingStep5();
     return;
   }
   // Intraday single-screen — every section is in the DOM, mount all of them.
-  tfMountIntradayStep1();
   tfMountIntradayStep2();
   tfMountIntradayStep3();
   tfMountIntradayStep4();
@@ -13283,6 +13603,7 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     id: (typeof genTradeId === 'function') ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
     mode: 'swing',
     instrument: isOptions ? 'options' : 'stocks',
+    structure: state.structure || (isOptions ? 'options' : 'stocks'),
     date: new Date().toISOString().split('T')[0],
     ticker,
     setup: state.selectedSetup,
