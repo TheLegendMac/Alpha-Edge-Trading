@@ -6928,11 +6928,15 @@ const INTRADAY_SETUPS = [
 
 function newIntradayTicket() {
   return {
+    instrument: 'options',
     ticker: '', direction: 'long', setup: null,
     // Levels
     entry: null, stop: null, target: null,
     // Sizing
     contracts: null, spreadPct: null,
+    bid: null,
+    ask: null,
+    mid: null,
     // ThinkScript-aligned context fields
     orbType:   '30',   // 5 / 15 / 30 — only meaningful when setup.isOrb
     orHi:      null,   // OR_HI from MAC_Intraday_ORB_Cloud alert
@@ -7068,6 +7072,10 @@ function loadState() {
         if (it.breadth    === undefined) it.breadth    = '';
         if (it.vwapValue  === undefined) it.vwapValue  = null;
         if (it.vwapRel    === undefined) it.vwapRel    = '';
+        if (!it.instrument) it.instrument = 'options';
+        if (it.bid        === undefined) it.bid        = null;
+        if (it.ask        === undefined) it.ask        = null;
+        if (it.mid        === undefined) it.mid        = null;
       }
       // Migrate older state without instrument field
       if (!state.instrument) state.instrument = 'options';
@@ -7491,7 +7499,10 @@ function getStrategyForIVR(ivr, direction) {
 function deriveSpreadPct(liq) {
   const bid = Number(liq?.bid);
   const ask = Number(liq?.ask);
-  if (!bid || !ask || bid <= 0 || ask <= 0 || ask < bid) return null;
+  if (!bid || !ask || bid <= 0 || ask <= 0 || ask < bid) {
+    const fallback = Number(liq?.spreadPct);
+    return Number.isFinite(fallback) && fallback >= 0 ? fallback : null;
+  }
   const mid = (bid + ask) / 2;
   if (mid <= 0) return null;
   return ((ask - bid) / mid) * 100;
@@ -7501,7 +7512,7 @@ function liquidityOK() {
   const liq = state.liquidity || {};
   const derivedSpread = deriveSpreadPct(liq);
   if (state.instrument === "stocks") {
-    return Number(liq.stockVol) >= 1000000 && derivedSpread !== null && derivedSpread <= 5;
+    return Number(liq.stockVol) >= 1000000 && (derivedSpread === null || derivedSpread <= 5);
   }
   return Number(liq.stockVol) >= 1000000
       && Number(liq.optionOI) >= 500
@@ -10124,14 +10135,16 @@ function isInIntradayWindow() {
 
 function logIntradayTrade() {
   const t = state.intraday;
+  const instrument = t.instrument === 'stocks' ? 'stocks' : 'options';
+  const multiplier = instrument === 'stocks' ? 1 : 100;
   const stopDist = Math.abs(t.entry - t.stop);
-  const contracts = t.contracts ||
-    Math.max(1, Math.floor(state.settings.intradayRiskPerTrade / Math.max(0.01, stopDist * 100)));
+  const qty = t.contracts ||
+    Math.max(1, Math.floor(state.settings.intradayRiskPerTrade / Math.max(0.01, stopDist * multiplier)));
   const nowIso = new Date().toISOString();
   const trade = {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
     mode: 'intraday',
-    instrument: 'options',
+    instrument,
     date: todayISO(),
     time: new Date().toTimeString().slice(0, 5),
     ticker: t.ticker,
@@ -10140,8 +10153,12 @@ function logIntradayTrade() {
     entry: t.entry,
     stop: t.stop,
     target: t.target,
-    contracts: contracts,
+    contracts: qty,
+    shares: instrument === 'stocks' ? qty : null,
     spreadPct: t.spreadPct,
+    bid: t.bid ?? null,
+    ask: t.ask ?? null,
+    mid: t.mid ?? null,
     // Legacy field — kept for older trade rows that may still be pulling it.
     vwapRel: t.vwapRel || '',
     // ThinkScript-aligned context (recorded for review, not blocking GO).
@@ -10334,6 +10351,7 @@ function tfComputeStatus() {
 
   if (m === 'intraday') {
     const it = state.intraday || {};
+    const isOptions = (it.instrument || 'options') !== 'stocks';
     const setupDef = (typeof tfFindIntradaySetup === 'function') ? tfFindIntradaySetup(it.setup) : null;
 
     // 1 Pattern — ticker / setup / direction (+ direction-vs-setup-bias)
@@ -10347,12 +10365,13 @@ function tfComputeStatus() {
     if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
     if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
     if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    // 3 Sizing — spread% (drives liquidity check) + optional contracts
-    if (it.spreadPct === null || it.spreadPct === undefined || it.spreadPct === '') {
-      return { tone: 'progress', reason: 'Add spread %', step: 3 };
+    // 3 Sizing — options need a bid/ask-derived spread; stocks only need levels.
+    const spreadPct = isOptions ? deriveSpreadPct(it) : null;
+    if (isOptions && (spreadPct === null || spreadPct === undefined || spreadPct === '')) {
+      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 3 };
     }
-    if (Number(it.spreadPct) > s.intradayMaxSpreadPct) {
-      return { tone: 'blocked', reason: `Spread ${it.spreadPct}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
+    if (isOptions && Number(spreadPct) > s.intradayMaxSpreadPct) {
+      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
     }
     // 4 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
@@ -10399,7 +10418,8 @@ function tfComputeStrategyLabel() {
   if (m === 'intraday') {
     const it = state.intraday || {};
     if (!it.direction) return '—';
-    return it.direction === 'long' ? 'INTRADAY LONG' : 'INTRADAY SHORT';
+    if ((it.instrument || 'options') === 'stocks') return it.direction === 'long' ? 'INTRADAY LONG STOCK' : 'INTRADAY SHORT STOCK';
+    return it.direction === 'long' ? 'INTRADAY CALL' : 'INTRADAY PUT';
   }
   return '—';
 }
@@ -10613,6 +10633,120 @@ function tfUpdateSwingSizing() {
   }
 }
 
+function tfInstrumentToggleHtml(current, attrName) {
+  const cur = current === 'stocks' ? 'stocks' : 'options';
+  return `
+    <div class="flow-instrument-row" style="margin-bottom: 12px;">
+      <span class="flow-instrument-label">Trading</span>
+      <div class="flow-instrument-pills">
+        <button type="button" class="flow-instrument-pill ${cur === 'options' ? 'active' : ''}" ${attrName}="options">
+          <span class="flow-instrument-pill-name">Options</span>
+          <span class="flow-instrument-pill-detail">Calls / puts</span>
+        </button>
+        <button type="button" class="flow-instrument-pill ${cur === 'stocks' ? 'active' : ''}" ${attrName}="stocks">
+          <span class="flow-instrument-pill-name">Stock</span>
+          <span class="flow-instrument-pill-detail">Shares</span>
+        </button>
+      </div>
+    </div>`;
+}
+
+function tfSetSwingInstrument(instrument) {
+  state.instrument = instrument === 'stocks' ? 'stocks' : 'options';
+  saveState();
+  tfRefreshAll();
+}
+
+function tfSetIntradayInstrument(instrument) {
+  if (!state.intraday) state.intraday = newIntradayTicket();
+  state.intraday.instrument = instrument === 'stocks' ? 'stocks' : 'options';
+  tfDeriveIntradaySpread();
+  tfAutoFillIntradayOptionBracket();
+  tfAutoFillIntradayStockFromOR();
+  saveState();
+  tfRefreshAll();
+}
+
+function tfIntradayInstrument() {
+  const it = state.intraday || {};
+  return it.instrument === 'stocks' ? 'stocks' : 'options';
+}
+
+function tfDeriveIntradaySpread() {
+  const it = state.intraday || {};
+  const bid = Number(it.bid);
+  const ask = Number(it.ask);
+  if (bid > 0 && ask > 0 && ask >= bid) {
+    const mid = (bid + ask) / 2;
+    it.mid = +mid.toFixed(2);
+    it.spreadPct = +(((ask - bid) / mid) * 100).toFixed(1);
+    return it.spreadPct;
+  }
+  const fallback = Number(it.spreadPct);
+  return Number.isFinite(fallback) ? fallback : null;
+}
+
+function tfAutoFillIntradayOptionBracket({ force = false } = {}) {
+  const it = state.intraday || {};
+  if ((it.instrument || 'options') === 'stocks') return;
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const mid = Number(it.mid);
+  if (mid > 0 && (force || !it.entry)) it.entry = mid;
+  const entry = Number(it.entry);
+  if (!(entry > 0)) return;
+  if (force || !it.stop) {
+    it.stop = +(entry * (1 - ((settings.stopPct || 50) / 100))).toFixed(2);
+  }
+  if (force || !it.target) {
+    it.target = +(entry * (1 + ((settings.targetPct || 50) / 100))).toFixed(2);
+  }
+}
+
+function tfAutoFillIntradayStockFromOR({ force = false } = {}) {
+  const it = state.intraday || {};
+  if (it.instrument !== 'stocks') return;
+  const hi = Number(it.orHi);
+  const lo = Number(it.orLo);
+  const rng = Number(it.orRng) || (hi > 0 && lo > 0 ? hi - lo : null);
+  if (!(hi > 0 && lo > 0 && rng > 0)) return;
+  if (it.setup === 'orb-up-break') {
+    if (force || !it.entry) it.entry = +hi.toFixed(2);
+    if (force || !it.stop) it.stop = +lo.toFixed(2);
+    if (force || !it.target) it.target = +(hi + rng).toFixed(2);
+  } else if (it.setup === 'orb-dn-break') {
+    if (force || !it.entry) it.entry = +lo.toFixed(2);
+    if (force || !it.stop) it.stop = +hi.toFixed(2);
+    if (force || !it.target) it.target = +(lo - rng).toFixed(2);
+  }
+}
+
+function tfRenderIntradaySizingHtml() {
+  const it = state.intraday || {};
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const isOptions = tfIntradayInstrument() !== 'stocks';
+  const entry = Number(it.entry);
+  const stop = Number(it.stop);
+  if (!(entry > 0 && stop > 0)) {
+    return `<div class="input-help" style="margin-top:8px;">Fill entry and stop to auto-size ${isOptions ? 'contracts' : 'shares'}.</div>`;
+  }
+  const stopDist = Math.abs(entry - stop);
+  const mult = isOptions ? 100 : 1;
+  const qty = Math.max(1, Math.floor((settings.intradayRiskPerTrade || 100) / Math.max(0.01, stopDist * mult)));
+  const label = isOptions ? 'contract' : 'share';
+  const risk = qty * stopDist * mult;
+  return `
+    <div class="trade-output" style="margin-top:10px;">
+      <div class="trade-output-title">Auto size</div>
+      <div class="trade-output-main">${qty} ${label}${qty === 1 ? '' : 's'} · risk $${Math.round(risk)}</div>
+      <div class="trade-output-rationale">$${settings.intradayRiskPerTrade || 100} intraday risk ÷ ${isOptions ? 'premium' : 'price'} stop distance.</div>
+    </div>`;
+}
+
+function tfUpdateIntradaySizing() {
+  const card = document.getElementById('tf-i-sizing-card');
+  if (card) card.innerHTML = tfRenderIntradaySizingHtml();
+}
+
 // Intraday R-multiple block — surgical update on entry/stop/target change.
 function tfUpdateIntradayRMult() {
   const el = document.getElementById('tf-i-rmult');
@@ -10717,10 +10851,12 @@ function tfStepCompletion() {
   // 2 Levels — entry / stop / target.
   c[1] = !!(it.entry && it.stop && it.target);
 
-  // 3 Sizing — spread% must be entered (and within cap to be 'green' here).
-  const spreadOk = it.spreadPct !== null && it.spreadPct !== undefined
-                && Number(it.spreadPct) >= 0
-                && Number(it.spreadPct) <= settings.intradayMaxSpreadPct;
+  // 3 Sizing — options need spread within cap; stock sizing is auto.
+  const isOptions = (it.instrument || 'options') !== 'stocks';
+  const spreadPct = isOptions ? deriveSpreadPct(it) : null;
+  const spreadOk = !isOptions || (spreadPct !== null && spreadPct !== undefined
+                && Number(spreadPct) >= 0
+                && Number(spreadPct) <= settings.intradayMaxSpreadPct);
   c[2] = !!(spreadOk);
 
   // 4 Context — guardrails pass (status not blocked).
@@ -10932,6 +11068,7 @@ function tfSwingStep1() {
   const sel = state.selectedSetup;
   const dir = state.direction;
   const ticker = state.ticker || '';
+  const instrument = state.instrument || 'options';
   const cards = TRADE_SWING_SETUPS.map(s => `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
       <span class="trade-setup-card-num">SETUP ${s.num}${s.halfSize ? ' · ½ SIZE' : ''}</span>
@@ -10944,7 +11081,31 @@ function tfSwingStep1() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
-          <div class="trade-section-subtitle">What stock, and which way are you betting? Direction sets the option type later.</div>
+          <div class="trade-section-subtitle">Smart paste can fill the whole ticket from your TOS labels or quick notes.</div>
+        </div>
+        <button type="button" class="tf-paste-btn" id="tf-s-paste-toggle" title="Paste swing setup text">
+          <span class="tf-paste-icon">⎘</span>
+          <span>Paste alert</span>
+        </button>
+      </div>
+      <div class="trade-section-body">
+        <div class="tf-paste-wrap" id="tf-s-paste-wrap" hidden>
+          <textarea class="trade-textarea" id="tf-s-paste-input" rows="4" placeholder="Paste TOS labels or quick notes. Example:&#10;NVDA IVR=42 ATR=2.1 PX=185.50&#10;RSMK=+rising RVOL=1.8 STACK=BULLISH SETUP=BASE_BO&#10;SA: QUANT=4.2 EARNINGS=18d LIQ: VOL=35M OI=2500 OVOL=800 BID=2.10 ASK=2.20"></textarea>
+          <div class="tf-paste-actions">
+            <button type="button" class="btn-primary" id="tf-s-paste-apply">Apply</button>
+            <button type="button" class="btn-ghost" id="tf-s-paste-clear">Clear</button>
+            <span class="tf-paste-hint" id="tf-s-paste-hint">Reads ticker, setup, direction, regime, IVR, ATR, price, SA fields, liquidity, bid/ask, and spread.</span>
+          </div>
+        </div>
+        ${tfInstrumentToggleHtml(instrument, 'data-tf-instrument')}
+      </div>
+    </div>
+
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Symbol &amp; bias</div>
+          <div class="trade-section-subtitle">${instrument === 'stocks' ? 'Share direction.' : 'Option bias; long means calls, short means puts.'}</div>
         </div>
         <div class="trade-section-counter ${ticker && dir ? 'complete' : ''}">${ticker && dir ? 'set' : 'fill 2'}</div>
       </div>
@@ -10973,7 +11134,7 @@ function tfSwingStep1() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Pick the setup</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Pick the setup</div>
           <div class="trade-section-subtitle">One of 5 approved patterns. If none fit the chart, do not trade.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
@@ -10986,6 +11147,46 @@ function tfSwingStep1() {
 }
 
 function tfMountSwingStep1() {
+  document.querySelectorAll('#panel-trade [data-tf-instrument]').forEach(b => {
+    b.addEventListener('click', () => tfSetSwingInstrument(b.dataset.tfInstrument));
+  });
+  const pasteToggle = document.getElementById('tf-s-paste-toggle');
+  const pasteWrap = document.getElementById('tf-s-paste-wrap');
+  if (pasteToggle && pasteWrap) {
+    pasteToggle.addEventListener('click', () => {
+      pasteWrap.hidden = !pasteWrap.hidden;
+      if (!pasteWrap.hidden) {
+        const ta = document.getElementById('tf-s-paste-input');
+        if (ta) { try { ta.focus(); } catch (_) {} }
+      }
+    });
+  }
+  document.getElementById('tf-s-paste-apply')?.addEventListener('click', () => {
+    const ta = document.getElementById('tf-s-paste-input');
+    const hint = document.getElementById('tf-s-paste-hint');
+    if (!ta) return;
+    const parsed = tfParseSwingPaste(ta.value);
+    const applied = Object.keys(parsed).filter(k => {
+      if (k === 'gates' || k === 'liquidity') return Object.keys(parsed[k] || {}).length;
+      return parsed[k] !== undefined && parsed[k] !== null;
+    });
+    if (!applied.length) {
+      if (hint) { hint.textContent = 'No recognizable swing values found.'; hint.style.color = 'var(--amber-bright)'; }
+      return;
+    }
+    tfApplySwingPaste(parsed);
+    if (hint) {
+      hint.textContent = `Applied ${applied.length} field${applied.length === 1 ? '' : 's'}: ${applied.join(', ')}.`;
+      hint.style.color = 'var(--green-bright)';
+    }
+    tfRefreshAll();
+  });
+  document.getElementById('tf-s-paste-clear')?.addEventListener('click', () => {
+    const ta = document.getElementById('tf-s-paste-input');
+    const hint = document.getElementById('tf-s-paste-hint');
+    if (ta) ta.value = '';
+    if (hint) { hint.textContent = 'Reads ticker, setup, direction, regime, IVR, ATR, price, SA fields, liquidity, bid/ask, and spread.'; hint.style.color = ''; }
+  });
   document.querySelectorAll('#panel-trade [data-tf-setup]').forEach(b => {
     b.addEventListener('click', () => {
       state.selectedSetup = b.dataset.tfSetup;
@@ -11217,8 +11418,9 @@ function tfSwingStep3() {
       </div>
     </div>`).join('');
 
-  const spreadLine = (isOptions && liq.bid > 0 && liq.ask > 0)
-    ? `<p class="trade-row-help" style="margin-top:8px;">Mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · spread ${(((Number(liq.ask)-Number(liq.bid))/((Number(liq.bid)+Number(liq.ask))/2))*100).toFixed(1)}%</p>`
+  const derivedSpread = deriveSpreadPct(liq);
+  const spreadLine = (isOptions && derivedSpread !== null)
+    ? `<p class="trade-row-help" style="margin-top:8px;">${liq.bid > 0 && liq.ask > 0 ? `Mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · ` : ''}spread ${Number(derivedSpread).toFixed(1)}%</p>`
     : '';
 
   // Sizing card + Gate 06 row — surgically updated by tfUpdateSwingSizing().
@@ -11537,6 +11739,135 @@ function tfFindIntradaySetup(id) {
   return TRADE_INTRADAY_SETUPS.find(s => s.id === id) || null;
 }
 
+function tfParseHumanNumber(raw) {
+  if (raw === null || raw === undefined) return null;
+  const m = String(raw).trim().replace(/,/g, '').match(/^([-+]?\d*\.?\d+)\s*([KMB])?/i);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  if (!Number.isFinite(n)) return null;
+  const suffix = (m[2] || '').toUpperCase();
+  if (suffix === 'K') return n * 1000;
+  if (suffix === 'M') return n * 1000000;
+  if (suffix === 'B') return n * 1000000000;
+  return n;
+}
+
+function tfReadKeyNumber(text, keys) {
+  const list = Array.isArray(keys) ? keys : [keys];
+  for (const key of list) {
+    const re = new RegExp(`\\b${key}\\s*(?:=|:)\\s*([-+]?\\d[\\d,.]*\\s*[KMB]?)`, 'i');
+    const m = text.match(re);
+    if (m) return tfParseHumanNumber(m[1]);
+  }
+  return null;
+}
+
+function tfGradePasses(raw) {
+  const g = String(raw || '').trim().toUpperCase();
+  const order = { 'A+': 12, 'A': 11, 'A-': 10, 'B+': 9, 'B': 8, 'B-': 7, 'C+': 6, 'C': 5, 'C-': 4, 'D+': 3, 'D': 2, 'D-': 1, 'F': 0 };
+  return order[g] !== undefined && order[g] >= order['B-'];
+}
+
+function tfNormalizeSwingSetup(raw) {
+  const s = String(raw || '').toUpperCase().replace(/[_-]+/g, ' ').trim();
+  if (!s) return null;
+  if (/21/.test(s) && /EMA|PULL/.test(s)) return '21-EMA Pullback';
+  if (/BASE|BO|BREAKOUT/.test(s) && !/RETEST/.test(s)) return 'Base Breakout';
+  if (/RETEST/.test(s)) return 'Breakout Retest';
+  if (/9/.test(s) && /EMA|RECLAIM/.test(s)) return '9-EMA Reclaim';
+  if (/EDGE|REVERS/.test(s)) return 'Edge Reversal';
+  return null;
+}
+
+function tfParseSwingPaste(text) {
+  const out = { gates: {}, liquidity: {} };
+  const raw = text || '';
+  const upper = raw.toUpperCase();
+
+  const explicitTicker = raw.match(/\b(?:TICKER|SYMBOL|SYM)\s*(?:=|:)\s*([A-Z]{1,6})\b/i);
+  const firstToken = raw.trim().match(/^([A-Z]{1,6})(?=\s|$)/);
+  const skipFirst = /^(REGIME|FIRE|IVR|RSMK|RVOL|STACK|SETUP|SA|LIQ)$/i;
+  if (explicitTicker) out.ticker = explicitTicker[1].toUpperCase();
+  else if (firstToken && !skipFirst.test(firstToken[1])) out.ticker = firstToken[1].toUpperCase();
+
+  if (/\b(STOCK|SHARES?)\b/.test(upper)) out.instrument = 'stocks';
+  if (/\b(OPTION|OPTIONS|CALL|PUT|CONTRACTS?)\b/.test(upper)) out.instrument = 'options';
+  if (/\b(SHORT|PUT|BEARISH)\b/.test(upper)) out.direction = 'short';
+  if (/\b(LONG|CALL|BULLISH)\b/.test(upper)) out.direction = out.direction || 'long';
+
+  const setupMatch = raw.match(/\b(?:SETUP|FIRE)\s*(?:=|:)\s*([A-Z0-9 _-]+)/i);
+  if (setupMatch) out.setup = tfNormalizeSwingSetup(setupMatch[1]);
+  else out.setup = tfNormalizeSwingSetup(raw);
+
+  const regimeMatch = raw.match(/\bREGIME\s*(?:=|:)\s*(RISK[-\s]?ON|NEUTRAL|RISK[-\s]?OFF)\b/i);
+  if (regimeMatch) {
+    const r = regimeMatch[1].toUpperCase().replace(/\s+/g, '-');
+    out.regime = r === 'RISK-ON' ? 'risk-on' : r === 'RISK-OFF' ? 'risk-off' : 'neutral';
+  }
+
+  const ivr = tfReadKeyNumber(raw, ['IVR', 'IV\\s*RANK']);
+  const atr = tfReadKeyNumber(raw, ['ATR']);
+  const px = tfReadKeyNumber(raw, ['PX', 'PRICE', 'UNDERLYING']);
+  const premium = tfReadKeyNumber(raw, ['PREM', 'PREMIUM', 'MID', 'DEBIT', 'ENTRY']);
+  const quant = tfReadKeyNumber(raw, ['QUANT', 'SA\\s*QUANT']);
+  const earnings = tfReadKeyNumber(raw, ['EARNINGS', 'ER', 'DTE\\s*ER']);
+  if (ivr !== null) out.ivr = ivr;
+  if (atr !== null) out.atr = atr;
+  if (px !== null) out.underlyingPrice = px;
+  if (premium !== null) out.premium = premium;
+  if (quant !== null) out.saQuant = quant;
+  if (earnings !== null) out.daysToEarnings = earnings;
+
+  const stockVol = tfReadKeyNumber(raw, ['VOL', 'AVG\\s*VOL', 'STOCK\\s*VOL']);
+  const optionOI = tfReadKeyNumber(raw, ['OI', 'OPEN\\s*INTEREST']);
+  const optionVol = tfReadKeyNumber(raw, ['OVOL', 'OPT\\s*VOL', 'OPTION\\s*VOL']);
+  const bid = tfReadKeyNumber(raw, ['BID']);
+  const ask = tfReadKeyNumber(raw, ['ASK']);
+  const spread = tfReadKeyNumber(raw, ['SPR', 'SPREAD']);
+  if (stockVol !== null) out.liquidity.stockVol = stockVol;
+  if (optionOI !== null) out.liquidity.optionOI = optionOI;
+  if (optionVol !== null) out.liquidity.optionVol = optionVol;
+  if (bid !== null) out.liquidity.bid = bid;
+  if (ask !== null) out.liquidity.ask = ask;
+  if (spread !== null) out.liquidity.spreadPct = spread;
+
+  const strength = tfReadKeyNumber(raw, ['STRENGTH']);
+  const stack = raw.match(/\bSTACK\s*(?:=|:)\s*(BULLISH|BEARISH|MIXED)\b/i);
+  const rvol = tfReadKeyNumber(raw, ['RVOL']);
+  const rsmkPositive = /\bRSMK\s*(?:=|:)\s*(?:\+|POS|POSITIVE|LEADER)/i.test(raw);
+  if (strength !== null && strength >= 2) out.gates['03'] = true;
+  if (stack && stack[1].toUpperCase() !== 'MIXED') out.gates['03'] = true;
+  if (rvol !== null && rvol >= 1 && rsmkPositive) out.gates['03'] = true;
+
+  const prof = raw.match(/\b(?:PROFITABILITY|PROFIT)\s*(?:=|:)\s*([A-F][+-]?)\b/i);
+  const momo = raw.match(/\b(?:MOMENTUM|MOMO)\s*(?:=|:)\s*([A-F][+-]?)\b/i);
+  if (prof && tfGradePasses(prof[1])) out.gates['02'] = true;
+  if (momo && tfGradePasses(momo[1])) out.gates['03'] = true;
+
+  return out;
+}
+
+function tfApplySwingPaste(parsed) {
+  if (!parsed) return;
+  if (parsed.ticker) state.ticker = parsed.ticker;
+  if (parsed.instrument) state.instrument = parsed.instrument;
+  if (parsed.direction) state.direction = parsed.direction;
+  if (parsed.setup) state.selectedSetup = parsed.setup;
+  if (parsed.regime) state.regime = parsed.regime;
+  ['ivr', 'atr', 'underlyingPrice', 'premium', 'saQuant', 'daysToEarnings'].forEach(k => {
+    if (parsed[k] !== undefined && parsed[k] !== null) state[k] = parsed[k];
+  });
+  if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+  Object.assign(state.liquidity, parsed.liquidity || {});
+  if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
+    state.liquidity.spreadPct = deriveSpreadPct(state.liquidity);
+    if (!state.premium) state.premium = +(((Number(state.liquidity.bid) + Number(state.liquidity.ask)) / 2).toFixed(2));
+  }
+  if (!state.gateChecks) state.gateChecks = {};
+  Object.entries(parsed.gates || {}).forEach(([k, v]) => { if (v) state.gateChecks[k] = true; });
+  saveState();
+}
+
 // Smart paste — parses TOS alert text from the user's MAC_Intraday_*
 // scripts. Each regex matches one of the labels those studies emit.
 function tfParseIntradayPaste(text) {
@@ -11576,12 +11907,33 @@ function tfParseIntradayPaste(text) {
   const mTk = text && text.match(/(?:TICKER|SYMBOL|SYM)\s*[=:]\s*([A-Z]{1,6})/i);
   if (mTk) out.ticker = mTk[1].toUpperCase();
 
+  if (/\b(STOCK|SHARES?)\b/i.test(text || '')) out.instrument = 'stocks';
+  if (/\b(OPTION|OPTIONS|CALL|PUT|CONTRACTS?)\b/i.test(text || '')) out.instrument = 'options';
+
+  const entry = tfReadKeyNumber(text || '', ['ENTRY', 'ENT', 'PRICE', 'PX']);
+  const stop = tfReadKeyNumber(text || '', ['STOP', 'STP']);
+  const target = tfReadKeyNumber(text || '', ['TARGET', 'TGT']);
+  const bid = tfReadKeyNumber(text || '', ['BID']);
+  const ask = tfReadKeyNumber(text || '', ['ASK']);
+  const mid = tfReadKeyNumber(text || '', ['MID']);
+  const spread = tfReadKeyNumber(text || '', ['SPR', 'SPREAD']);
+  const qty = tfReadKeyNumber(text || '', ['QTY', 'CONTRACTS', 'SHARES']);
+  if (entry !== null) out.entry = entry;
+  if (stop !== null) out.stop = stop;
+  if (target !== null) out.target = target;
+  if (bid !== null) out.bid = bid;
+  if (ask !== null) out.ask = ask;
+  if (mid !== null) out.mid = mid;
+  if (spread !== null) out.spreadPct = spread;
+  if (qty !== null) out.contracts = Math.max(1, Math.floor(qty));
+
   return out;
 }
 
 function tfApplyIntradayPaste(parsed) {
   if (!state.intraday) state.intraday = newIntradayTicket();
   const it = state.intraday;
+  if (parsed.instrument) it.instrument = parsed.instrument;
   if (parsed.ticker)     it.ticker = parsed.ticker;
   if (parsed.setup) {
     it.setup = parsed.setup;
@@ -11600,6 +11952,12 @@ function tfApplyIntradayPaste(parsed) {
     it.orRng = +(parsed.orHi - parsed.orLo).toFixed(2);
   }
   if (parsed.vwapValue !== undefined) it.vwapValue = parsed.vwapValue;
+  ['entry', 'stop', 'target', 'bid', 'ask', 'mid', 'spreadPct', 'contracts'].forEach(k => {
+    if (parsed[k] !== undefined && parsed[k] !== null) it[k] = parsed[k];
+  });
+  tfDeriveIntradaySpread();
+  tfAutoFillIntradayOptionBracket();
+  tfAutoFillIntradayStockFromOR();
   saveState();
 }
 
@@ -11608,6 +11966,7 @@ function tfApplyIntradayPaste(parsed) {
 // the top section header expands an inline alert-text textarea.
 function tfIntradayStep1() {
   const it = state.intraday || {};
+  const instrument = tfIntradayInstrument();
   const setupDef = tfFindIntradaySetup(it.setup);
   const isOrb = !!(setupDef && setupDef.isOrb);
   const cards = TRADE_INTRADAY_SETUPS.map(s => {
@@ -11652,13 +12011,14 @@ function tfIntradayStep1() {
       </div>
       <div class="trade-section-body">
         <div class="tf-paste-wrap" id="tf-i-paste-wrap" hidden>
-          <textarea class="trade-textarea" id="tf-i-paste-input" rows="3" placeholder="Paste TOS alert / chart label text. Example:&#10;ORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45&#10;INTRADAY: LONG BIAS (above VWAP + EMA stack) | VWAP: 486.50 | Diff: 0.12%&#10;BREADTH UP"></textarea>
+          <textarea class="trade-textarea" id="tf-i-paste-input" rows="4" placeholder="Paste TOS alert / chart label text. Example:&#10;ORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45&#10;INTRADAY: LONG BIAS (above VWAP + EMA stack) | VWAP: 486.50 | Diff: 0.12%&#10;BREADTH UP BID=2.10 ASK=2.20 QTY=2"></textarea>
           <div class="tf-paste-actions">
             <button type="button" class="btn-primary" id="tf-i-paste-apply">Apply</button>
             <button type="button" class="btn-ghost" id="tf-i-paste-clear">Clear</button>
-            <span class="tf-paste-hint" id="tf-i-paste-hint">Reads ORB / VWAP / BREADTH labels and OR_HI / OR_LO / RNG / VWAP values.</span>
+            <span class="tf-paste-hint" id="tf-i-paste-hint">Reads ORB / VWAP / BREADTH labels, OR levels, VWAP, bid/ask, spread, quantity, entry, stop, and target.</span>
           </div>
         </div>
+        ${tfInstrumentToggleHtml(instrument, 'data-tf-i-instrument')}
         <div class="trade-input-row" style="grid-template-columns: 1fr;">
           <div>
             <label class="input-label">Ticker</label>
@@ -11693,6 +12053,9 @@ function tfIntradayStep1() {
 }
 
 function tfMountIntradayStep1() {
+  document.querySelectorAll('#panel-trade [data-tf-i-instrument]').forEach(b => {
+    b.addEventListener('click', () => tfSetIntradayInstrument(b.dataset.tfIInstrument));
+  });
   // Smart-paste toggle + apply.
   const pasteToggle = document.getElementById('tf-i-paste-toggle');
   const pasteWrap   = document.getElementById('tf-i-paste-wrap');
@@ -11731,7 +12094,7 @@ function tfMountIntradayStep1() {
       const ta = document.getElementById('tf-i-paste-input');
       const hint = document.getElementById('tf-i-paste-hint');
       if (ta) ta.value = '';
-      if (hint) { hint.textContent = 'Reads ORB / VWAP / BREADTH labels and OR_HI / OR_LO / RNG / VWAP values.'; hint.style.color = ''; }
+      if (hint) { hint.textContent = 'Reads ORB / VWAP / BREADTH labels, OR levels, VWAP, bid/ask, spread, quantity, entry, stop, and target.'; hint.style.color = ''; }
     });
   }
 
@@ -11765,6 +12128,7 @@ function tfMountIntradayStep1() {
       const def = tfFindIntradaySetup(id);
       if (def && def.bias === 'long')  state.intraday.direction = 'long';
       if (def && def.bias === 'short') state.intraday.direction = 'short';
+      tfAutoFillIntradayStockFromOR();
       saveState();
       tfRefreshAll();
     });
@@ -11783,9 +12147,10 @@ function tfMountIntradayStep1() {
 // ----- Intraday step 2 — Levels (entry/stop/target + optional ORB OR levels) -----
 function tfIntradayStep2() {
   const it = state.intraday || {};
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
   const filled = (v) => v !== null && v !== undefined && v !== '';
-  const inputValue = (key) => draft[key] !== undefined ? draft[key] : (it[key] ?? '');
+  const inputValue = (key) => (draft[key] !== undefined && draft[key] !== '') ? draft[key] : (it[key] ?? '');
   const lvlN = [filled(it.entry), filled(it.stop), filled(it.target)].filter(Boolean).length;
   const r = (it.entry && it.stop && it.target)
     ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
@@ -11833,23 +12198,23 @@ function tfIntradayStep2() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Entry · stop · target</div>
-          <div class="trade-section-subtitle">All three required. R-multiple updates as you type — aim for ≥ 1.5R.</div>
+          <div class="trade-section-subtitle">${isOptions ? 'Option premium bracket. Bid/ask in sizing can fill this automatically.' : 'Share-price bracket. ORB alerts can fill this automatically for stock trades.'}</div>
         </div>
         <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Entry $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="e.g. 188.50" />
+            <label class="input-label">${isOptions ? 'Entry premium $' : 'Entry price $'}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'auto-mid or e.g. 2.15' : 'e.g. 188.50'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Stop $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="below structure" />
+            <label class="input-label">${isOptions ? 'Stop premium $' : 'Stop price $'}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'auto from stop %' : 'below structure'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Target $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="prior high / VWAP / etc." />
+            <label class="input-label">${isOptions ? 'Target premium $' : 'Target price $'}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'auto from target %' : 'prior high / VWAP / etc.'}" />
           </div></div>
         </div>
         <div id="tf-i-rmult">
@@ -11879,6 +12244,7 @@ function tfMountIntradayStep2() {
       tfRefreshHeaderOnly();
       if (key === 'entry' || key === 'stop' || key === 'target') {
         tfUpdateIntradayRMult();
+        tfUpdateIntradaySizing();
       }
       // Auto-derive RNG = OR_HI - OR_LO when both sides are filled and the
       // user hasn't typed anything into the RNG field.
@@ -11890,8 +12256,21 @@ function tfMountIntradayStep2() {
           state.intraday.orRng = +(hi - lo).toFixed(2);
           const rngEl = document.getElementById('tf-i-orRng');
           if (rngEl) rngEl.value = state.intraday.orRng;
+          tfAutoFillIntradayStockFromOR();
           saveState();
         }
+      }
+      if (key === 'orHi' || key === 'orLo' || key === 'orRng') {
+        tfAutoFillIntradayStockFromOR();
+        ['entry', 'stop', 'target'].forEach(levelKey => {
+          const levelEl = document.getElementById(`tf-i-${levelKey}`);
+          if (levelEl && state.intraday[levelKey] !== null && state.intraday[levelKey] !== undefined) {
+            levelEl.value = state.intraday[levelKey];
+          }
+        });
+        tfUpdateIntradayRMult();
+        tfUpdateIntradaySizing();
+        saveState();
       }
     });
   };
@@ -11903,43 +12282,86 @@ function tfMountIntradayStep2() {
   wire('tf-i-orRng', 'orRng');
 }
 
-// ----- Intraday step 3 — Size: spread + contracts -----
+// ----- Intraday step 3 — Size: options bid/ask spread or stock share count -----
 function tfIntradayStep3() {
   const it = state.intraday || {};
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
-  const inputValue = (key) => draft[key] !== undefined ? draft[key] : (it[key] ?? '');
-  const sb = tfSpreadBracket(it.spreadPct);
+  const inputValue = (key) => (draft[key] !== undefined && draft[key] !== '') ? draft[key] : (it[key] ?? '');
+  const spread = tfDeriveIntradaySpread();
+  const sb = tfSpreadBracket(spread);
   const settings = state.settings || DEFAULT_SETTINGS;
+  const midLine = isOptions && it.bid > 0 && it.ask > 0
+    ? `<div class="input-help">Mid $${Number(it.mid || ((Number(it.bid) + Number(it.ask)) / 2)).toFixed(2)} · spread ${Number(spread).toFixed(1)}%. Entry/stop/target auto-fill from mid.</div>`
+    : '';
+
+  const optionsSizing = `
+    <div class="trade-section-grid-2">
+      <div class="trade-input-row"><div>
+        <label class="input-label">Bid $</label>
+        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-bid" value="${inputValue('bid')}" placeholder="from option chain" />
+      </div>
+      <div class="trade-bracket ${sb.cls}">${sb.text}</div>
+      </div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+        <label class="input-label">Ask $</label>
+        <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-ask" value="${inputValue('ask')}" placeholder="from option chain" />
+        ${midLine || '<div class="input-help">Spread = (ask - bid) / mid. Paste or type bid/ask and Cockpit calculates it.</div>'}
+      </div></div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+        <label class="input-label">Spread % fallback</label>
+        <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="auto, or e.g. 2.0" />
+        <div class="input-help">Only needed if you do not have bid/ask.</div>
+      </div></div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+        <label class="input-label">Contracts (optional)</label>
+        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
+      </div></div>
+    </div>`;
+
+  const stockSizing = `
+    <div class="trade-section-grid-2">
+      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+        <label class="input-label">Shares (optional)</label>
+        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
+        <div class="input-help">Leave blank to auto-size from entry-stop distance.</div>
+      </div></div>
+    </div>`;
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Spread &amp; sizing</div>
-          <div class="trade-section-subtitle">Spread% drives the liquidity check. Contracts auto-size from your per-trade risk budget if left blank.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Bid/ask & sizing' : 'Share sizing'}</div>
+          <div class="trade-section-subtitle">${isOptions ? `Bid/ask auto-calculates spread. Max allowed ${settings.intradayMaxSpreadPct || 5}%.` : 'No option spread needed for stock. Shares auto-size from your intraday risk budget.'}</div>
         </div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row"><div>
-            <label class="input-label">Spread %</label>
-            <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="e.g. 2.0" />
-            <div class="input-help">Bid-ask as % of mid. Cap ${settings.intradayMaxSpreadPct || 5}%.</div>
-          </div>
-          <div class="trade-bracket ${sb.cls}">${sb.text}</div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Contracts (optional)</label>
-            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="auto-sizes from $${settings.intradayRiskPerTrade || 100} risk" />
-            <div class="input-help">Leave blank to auto-size from per-trade risk budget.</div>
-          </div></div>
-        </div>
+        ${isOptions ? optionsSizing : stockSizing}
+        <div id="tf-i-sizing-card">${tfRenderIntradaySizingHtml()}</div>
       </div>
     </div>
   `;
 }
 
 function tfMountIntradayStep3() {
+  const updateOptionDerived = () => {
+    tfDeriveIntradaySpread();
+    tfAutoFillIntradayOptionBracket();
+    ['entry', 'stop', 'target'].forEach(key => {
+      const el = document.getElementById(`tf-i-${key}`);
+      if (el && state.intraday[key] !== null && state.intraday[key] !== undefined) el.value = state.intraday[key];
+    });
+    tfUpdateIntradayRMult();
+    tfUpdateIntradaySizing();
+    const badge = document.querySelector('#panel-trade #tf-i-bid')?.closest('.trade-input-row')?.querySelector('.trade-bracket')
+      || document.querySelector('#panel-trade .trade-bracket');
+    if (badge) {
+      const b = tfSpreadBracket(state.intraday.spreadPct);
+      badge.className = `trade-bracket ${b.cls}`;
+      badge.textContent = b.text;
+    }
+  };
   const wire = (id, key, isInt) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -11949,6 +12371,7 @@ function tfMountIntradayStep3() {
       state.tradeFlow.intradayDraft[key] = e.target.value;
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
       state.intraday[key] = isNaN(v) ? null : v;
+      if (key === 'bid' || key === 'ask') updateOptionDerived();
       saveState();
       tfRefreshHeaderOnly();
       if (id === 'tf-i-spread') {
@@ -11962,8 +12385,11 @@ function tfMountIntradayStep3() {
           }
         }
       }
+      tfUpdateIntradaySizing();
     });
   };
+  wire('tf-i-bid', 'bid');
+  wire('tf-i-ask', 'ask');
   wire('tf-i-spread', 'spreadPct');
   wire('tf-i-contracts', 'contracts', true);
 }
@@ -11974,12 +12400,14 @@ function tfMountIntradayStep3() {
 // into the trade log; only an explicit confluence conflict blocks GO.
 function tfIntradayStep4() {
   const it = state.intraday || {};
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const settings = state.settings || DEFAULT_SETTINGS;
   const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
   const tov   = !!(state.intradayQuality && state.intradayQuality.timeOverride);
   const dayPL = tfComputeIntradayDayPL();
   const lossBudget = settings.intradayMaxDailyLoss + dayPL;
   const setupDef = tfFindIntradaySetup(it.setup);
+  const spreadPct = isOptions ? deriveSpreadPct(it) : null;
 
   // Direction vs setup bias — explicit conflict (e.g. ORB UP-BREAK + Short).
   const dirSetupOk = !setupDef || setupDef.bias === 'either' || it.direction === setupDef.bias;
@@ -11993,8 +12421,8 @@ function tfIntradayStep4() {
       rule: setupDef ? `${setupDef.name} expects ${setupDef.bias === 'either' ? 'either direction' : setupDef.bias.toUpperCase()}.` : 'Pick a setup first.' },
     { key: 'dir-conf',  step: 4, name: 'VWAP confluence', ok: dirConfOk,
       rule: conf ? `Confluence chip is ${conf.label}.` : 'Optional — leave blank when you do not need it.' },
-    { key: 'spread',    step: 3, name: `Spread ≤ ${settings.intradayMaxSpreadPct}%`, ok: !(it.spreadPct !== null && it.spreadPct !== undefined && it.spreadPct > settings.intradayMaxSpreadPct),
-      rule: 'Uses the spread % from sizing.' },
+    { key: 'spread',    step: 3, name: isOptions ? `Spread ≤ ${settings.intradayMaxSpreadPct}%` : 'Spread not needed for stock', ok: !isOptions || (spreadPct !== null && spreadPct <= settings.intradayMaxSpreadPct),
+      rule: isOptions ? 'Uses bid/ask or spread % from sizing.' : 'Stock trades skip option-chain spread.' },
     { key: 'window',    step: 4, name: 'Entry window', ok: inWin || tov,
       rule: '09:35–11:30 or 14:00–15:30 local. Override for paper.' },
     { key: 'budget',    step: 4, name: 'Daily loss budget', ok: lossBudget > 0,
@@ -12389,10 +12817,16 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
 function tfLogIntradayDirect() {
   const it = state.intraday || {};
   const ticker = (it.ticker || '').toUpperCase();
+  const st = tfComputeStatus();
+  if (st.tone !== 'ready') {
+    if (typeof toast === 'function') toast(st.reason || 'Intraday ticket is not ready yet.', true);
+    return;
+  }
   if (!ticker || !it.setup || !it.entry || !it.stop || !it.target) {
     if (typeof toast === 'function') toast('Missing required field — go back and check.', true);
     return;
   }
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const setupDef   = TRADE_INTRADAY_SETUPS.find(s => s.id === it.setup) || null;
   const setupLabel = setupDef ? setupDef.name : it.setup;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
@@ -12409,17 +12843,22 @@ function tfLogIntradayDirect() {
         it.vwapValue ? `VWAP ${esc(it.vwapValue)}` : ''
       ].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>`
     : '';
+  const optionRows = isOptions ? `
+      <div class="row"><span class="k">Bid / Ask</span><span>${it.bid ? '$' + esc(it.bid) : '—'} / ${it.ask ? '$' + esc(it.ask) : '—'}${it.mid ? ` · mid $${esc(it.mid)}` : ''}</span></div>
+      <div class="row"><span class="k">Spread</span><span>${it.spreadPct != null ? esc(it.spreadPct) + '%' : '—'}</span></div>
+      <div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`
+    : `<div class="row"><span class="k">Shares</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`;
   const bodyHtml = `
     <p style="margin: 0 0 6px;">This intraday trade will be added to the log as <strong>open</strong>.</p>
     <div class="tf-confirm-summary">
       <div class="row"><span class="k">Ticker</span><span>${esc(ticker)}</span></div>
+      <div class="row"><span class="k">Instrument</span><span>${isOptions ? 'Options' : 'Stock'}</span></div>
       <div class="row"><span class="k">Setup</span><span>${esc(setupLabel)}</span></div>
       <div class="row"><span class="k">Direction</span><span>${esc(dir)}</span></div>
       <div class="row"><span class="k">Entry</span><span>$${esc(it.entry)}</span></div>
       <div class="row"><span class="k">Stop</span><span>$${esc(it.stop)}</span></div>
       <div class="row"><span class="k">Target</span><span>$${esc(it.target)}</span></div>
-      <div class="row"><span class="k">Spread</span><span>${it.spreadPct != null ? esc(it.spreadPct) + '%' : '—'}</span></div>
-      <div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>
+      ${optionRows}
       ${orRow}
       ${ctxRow}
     </div>
