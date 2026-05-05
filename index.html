@@ -4146,30 +4146,6 @@ textarea.input-field {
   .pretrade-check { grid-template-columns: 1fr; gap: 12px; }
 }
 
-/* ===== MODE PICKER MODAL ===== */
-.mode-picker-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-}
-.mode-picker-card {
-  background: var(--bg-elev); border: 2px solid var(--line);
-  border-radius: var(--r-md); padding: 18px; cursor: pointer;
-  text-align: left; transition: all 0.15s; color: inherit;
-}
-.mode-picker-card:hover { border-color: var(--cyan); transform: translateY(-2px); }
-.mode-picker-card[data-mode="decision"]:hover { border-color: var(--green); }
-.mode-picker-card[data-mode="intraday"]:hover { border-color: var(--amber); }
-.mode-picker-tag {
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  letter-spacing: 0.1em; color: var(--ink-3); margin-bottom: 6px;
-}
-.mode-picker-name {
-  font-family: var(--mono); font-size: 20px; font-weight: 700;
-  color: var(--ink); margin-bottom: 8px;
-}
-.mode-picker-detail {
-  font-size: 12px; color: var(--ink-2); line-height: 1.5;
-}
-
 /* ===== INTRADAY MODE ===== */
 .intraday-grid {
   display: grid;
@@ -5299,7 +5275,7 @@ textarea.input-field {
 }
 
 /* ============================================================== */
-/* ====== UNIFIED TRADE FLOW (preview) ========================== */
+/* ====== UNIFIED TRADE FLOW ==================================== */
 /* ============================================================== */
 /* Scoped under #panel-trade so nothing in the legacy panels is affected. */
 
@@ -7259,7 +7235,7 @@ STRENGTH: 3/3</pre>
     </div>
   </section>
 
-  <!-- ===== UNIFIED TRADE FLOW (preview behind Settings toggle) ===== -->
+  <!-- ===== UNIFIED TRADE FLOW ===== -->
   <section class="tab-panel" id="panel-trade" aria-label="Unified trade entry">
     <div class="trade-shell">
       <header class="trade-header">
@@ -7712,18 +7688,6 @@ STRENGTH: 3/3</pre>
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Preview features</div>
-          <div class="settings-section-desc">Optional UI experiments. Toggle off to revert to the current behavior at any time.</div>
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: var(--bg-elev); border-radius: var(--r-md); border: 1px solid var(--line);">
-            <input type="checkbox" id="set-new-trade-flow" style="width: 18px; height: 18px; cursor: pointer;" />
-            <div>
-              <div style="font-weight: 600; color: var(--ink);">New Trade flow (preview)</div>
-              <div style="font-size: 11px; color: var(--ink-3); margin-top: 2px;">Unified Swing + Intraday entry with sticky summary header, point-budget sub-sections, and templated thesis. Routes <strong>+ New Analysis</strong> to the new panel.</div>
-            </div>
-          </label>
-        </div>
-
-        <div class="settings-section">
           <div class="settings-section-title">Reset settings</div>
           <div class="settings-section-desc">Reset all settings to v3 defaults. Doesn't affect your trade log.</div>
           <button class="btn-secondary" id="btn-reset-settings">Reset to defaults</button>
@@ -7871,7 +7835,7 @@ STRENGTH: 3/3</pre>
   </div>
 </aside>
 
-<!-- ============ TRADE FLOW CONFIRM MODAL (preview) ============ -->
+<!-- ============ TRADE FLOW CONFIRM MODAL ============ -->
 <div class="modal-backdrop" id="modal-tf-confirm">
   <div class="modal" style="max-width: 520px;">
     <div class="modal-header">
@@ -7884,31 +7848,6 @@ STRENGTH: 3/3</pre>
     <div class="modal-footer">
       <button class="btn-ghost" id="tf-confirm-cancel" type="button">Cancel</button>
       <button class="btn-primary" id="tf-confirm-ok" type="button">Confirm &amp; log</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODE PICKER MODAL — single entry point for "+ New Analysis" ============ -->
-<div class="modal-backdrop" id="modal-mode-picker">
-  <div class="modal" style="max-width: 520px;">
-    <div class="modal-header">
-      <h3 class="modal-title">New analysis — pick the mode</h3>
-      <button class="modal-close" data-close-mode-picker>×</button>
-    </div>
-    <div class="modal-body">
-      <p style="color: var(--ink-2); margin: 0 0 16px;">Different rules, different sizing, different speed. Pick the mode that matches the setup you're analyzing. Alpha Edge routes you to the matching flow.</p>
-      <div class="mode-picker-grid">
-        <button class="mode-picker-card" data-mode="decision">
-          <div class="mode-picker-tag">SLOW · DELIBERATE</div>
-          <div class="mode-picker-name">Swing</div>
-          <div class="mode-picker-detail">5-step flow with 8 quality gates. 30–45 DTE. Hold 3–15 days. Use when you have time to investigate.</div>
-        </button>
-        <button class="mode-picker-card" data-mode="intraday">
-          <div class="mode-picker-tag">FAST · DEFENSIBLE</div>
-          <div class="mode-picker-name">Intraday</div>
-          <div class="mode-picker-detail">Same 5-step skeleton, fewer required fields, 5 quality checks. Same-day exits. Use when speed matters.</div>
-        </button>
-      </div>
     </div>
   </div>
 </div>
@@ -8643,8 +8582,6 @@ const DEFAULT_SETTINGS = {
   intradayDefaultDelta: 0.65,
   // ---- ALPHA INTEL ----
   killSwitchDays: 30, // window (in days) for kill-switch P/L computation
-  // ---- PREVIEW ----
-  newTradeFlow: false, // when true, Home "+ New Analysis" routes to the unified Trade panel
 };
 
 // ---------- Intraday setup library ----------
@@ -8753,7 +8690,7 @@ let state = {
   logSetupFilter: '',
   homePortfolioView: 'recent', // 'recent' | 'open'
   marketContextUpdatedAt: null,
-  // Unified trade flow (preview)
+  // Unified trade flow
   tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
 };
 
@@ -8784,7 +8721,7 @@ function loadState() {
       if (!state.deletedTradeIds) state.deletedTradeIds = {};
       if (!Array.isArray(state.backtestReports)) state.backtestReports = [];
       if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
-      // Migrate tradeFlow (preview)
+      // Migrate tradeFlow
       if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
       if (!state.tradeFlow.mode) state.tradeFlow.mode = 'swing';
       if (!state.tradeFlow.step) state.tradeFlow.step = 1;
@@ -12436,9 +12373,6 @@ function openSettings() {
   // Alpha Intel
   const ksEl = document.getElementById('set-killswitch-days');
   if (ksEl) ksEl.value = s.killSwitchDays || DEFAULT_SETTINGS.killSwitchDays;
-  // Preview features
-  const ntfEl = document.getElementById('set-new-trade-flow');
-  if (ntfEl) ntfEl.checked = !!s.newTradeFlow;
   document.getElementById('modal-settings').classList.add('show');
 }
 
@@ -12463,7 +12397,6 @@ function saveSettings() {
     intradayMaxSpreadPct: parseFloat(document.getElementById('set-i-max-spread').value) || DEFAULT_SETTINGS.intradayMaxSpreadPct,
     intradayDefaultDelta: parseFloat(document.getElementById('set-i-delta').value) || DEFAULT_SETTINGS.intradayDefaultDelta,
     killSwitchDays: parseInt(document.getElementById('set-killswitch-days')?.value) || DEFAULT_SETTINGS.killSwitchDays,
-    newTradeFlow: document.getElementById('set-new-trade-flow')?.checked || false,
   };
   state.settings = newSettings;
   saveState();
@@ -13353,7 +13286,7 @@ function logIntradayTrade() {
 }
 
 // =====================================================================
-// UNIFIED TRADE FLOW (preview behind state.settings.newTradeFlow)
+// UNIFIED TRADE FLOW
 // =====================================================================
 // Self-contained module. Reads/writes the same state fields as the
 // legacy panels (selectedSetup, ivr, premium, atr, underlyingPrice,
@@ -15114,6 +15047,7 @@ function tfLogIntradayDirect() {
 
 // ---------- Tabs ----------
 function setTab(name) {
+  if (name === 'decision' || name === 'intraday') name = 'trade';
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   state.activeMode = name;
@@ -15123,9 +15057,7 @@ function setTab(name) {
   // Refresh dynamic content when navigating
   if (name === 'home') renderHome();
   if (name === 'sunday') renderSectors();
-  if (name === 'decision') renderSectorStatusMini();
   if (name === 'reference') renderReference();
-  if (name === 'intraday') { renderIntradaySetupGrid(); renderIntraday(); }
   if (name === 'log') { renderLogStats(); renderLogTable(); }
   if (name === 'trade') renderTrade();
 }
@@ -15369,11 +15301,7 @@ function init() {
   });
 
   document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => {
-    if (state.settings && state.settings.newTradeFlow) {
-      setTab('trade');
-    } else {
-      document.getElementById('modal-mode-picker').classList.add('show');
-    }
+    setTab('trade');
   });
   document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
   document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
@@ -15397,22 +15325,6 @@ function init() {
       document.getElementById('home-regime-picker')?.classList.remove('show');
     });
   });
-  const mpModal = document.getElementById('modal-mode-picker');
-  if (mpModal) {
-    mpModal.addEventListener('click', e => {
-      if (e.target === e.currentTarget) mpModal.classList.remove('show');
-    });
-    mpModal.querySelectorAll('[data-close-mode-picker]').forEach(b =>
-      b.addEventListener('click', () => mpModal.classList.remove('show')));
-    mpModal.querySelectorAll('.mode-picker-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const mode = card.dataset.mode;
-        mpModal.classList.remove('show');
-        setTab(mode); // 'decision' (Swing) or 'intraday'
-      });
-    });
-  }
-
   // Reset and GO buttons
   document.getElementById('btn-reset-flow').addEventListener('click', () => {
     if (confirm('Reset the entire flow?')) {
@@ -15543,8 +15455,10 @@ function init() {
   if (clearBtn) clearBtn.addEventListener('click', clearSectors);
 
   // Restore last-active mode
-  if (state.activeMode && ['home','decision','intraday','sunday','log','reference','trade'].includes(state.activeMode)) {
+  if (state.activeMode && ['home','sunday','log','reference','trade'].includes(state.activeMode)) {
     setTab(state.activeMode);
+  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
+    setTab('trade');
   }
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
