@@ -4855,6 +4855,36 @@ textarea.input-field {
   font-weight: 800;
   letter-spacing: 0.12em;
 }
+#panel-trade .tf-moonshot-control {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--blue) 12%, var(--bg));
+}
+#panel-trade .tf-moonshot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue-bright);
+}
+#panel-trade .tf-moonshot-head output {
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+#panel-trade .tf-moonshot-slider {
+  width: 100%;
+  height: 18px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
 #panel-trade .tf-risk-table {
   margin-top: 12px;
   overflow: hidden;
@@ -7430,7 +7460,7 @@ let state = {
   homePortfolioView: 'recent', // 'recent' | 'open'
   marketContextUpdatedAt: null,
   // Unified trade flow
-  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
+  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 },
 };
 
 function loadState() {
@@ -7483,11 +7513,12 @@ function loadState() {
       if (!Array.isArray(state.backtestReports)) state.backtestReports = [];
       if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
       // Migrate tradeFlow
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
       if (!state.tradeFlow.mode) state.tradeFlow.mode = 'swing';
       if (!state.tradeFlow.step) state.tradeFlow.step = 1;
       if (state.tradeFlow.thesis === undefined) state.tradeFlow.thesis = '';
       if (state.tradeFlow.preMortem === undefined) state.tradeFlow.preMortem = '';
+      if (state.tradeFlow.moonshotR === undefined) state.tradeFlow.moonshotR = 3;
     }
   } catch (e) { console.warn('Load failed:', e); }
 }
@@ -9698,7 +9729,10 @@ function resetFlowSilent() {
   state.daysToEarnings = null;
   state.gateChecks = {};
   state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
-  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
+  if (state.tradeFlow) {
+    state.tradeFlow.swingPremiumManual = false;
+    state.tradeFlow.moonshotR = 3;
+  }
   saveState();
   if (typeof renderTrade === 'function') renderTrade();
 }
@@ -10546,6 +10580,7 @@ function clearAllTradesAndData() {
     logSearch: '',
     logSetupFilter: '',
     homePortfolioView: 'recent',
+    tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 },
   };
 
   ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']
@@ -11599,7 +11634,35 @@ function tfOptionBidAskInputsHtml({ bidValue = '', askValue = '', bidAttrs = '',
     <div data-tf-spread-read>${tfSpreadReadHtml(spread, spreadMax)}</div>`;
 }
 
-function tfRiskLevelRows({ entry, stop, target, qty, mult = 1, riskUnitDollars = null } = {}) {
+function tfClampMoonshotR(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 3;
+  return Math.max(2, Math.min(6, Math.round(n * 4) / 4));
+}
+
+function tfFormatR(value) {
+  const n = tfClampMoonshotR(value);
+  return `${n.toFixed(2).replace(/\.00$/, '').replace(/0$/, '')}R`;
+}
+
+function tfMoonshotR() {
+  const tf = state.tradeFlow || {};
+  return tfClampMoonshotR(tf.moonshotR);
+}
+
+function tfRenderMoonshotSliderHtml(moonshotR) {
+  const r = tfClampMoonshotR(moonshotR);
+  return `
+    <div class="tf-moonshot-control">
+      <div class="tf-moonshot-head">
+        <span>Adjust moon shot target</span>
+        <output data-tf-moonshot-value>${tfFormatR(r)}</output>
+      </div>
+      <input type="range" min="2" max="6" step="0.25" value="${r}" class="tf-moonshot-slider" data-tf-moonshot-slider aria-label="Adjust moon shot target" />
+    </div>`;
+}
+
+function tfRiskLevelRows({ entry, stop, target, qty, mult = 1, riskUnitDollars = null, moonshotR = null } = {}) {
   const e = Number(entry);
   const s = Number(stop);
   const t = Number(target);
@@ -11614,6 +11677,7 @@ function tfRiskLevelRows({ entry, stop, target, qty, mult = 1, riskUnitDollars =
   const rBase = riskUnit > 0 ? riskUnit : loss;
   const targetR = Math.abs(t - e) / stopDist;
   const targetLabel = Number.isFinite(targetR) ? `Target 1 (${targetR.toFixed(1)}R)` : 'Target 1';
+  const moonR = tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? tfMoonshotR() : moonshotR);
   const make = (label, price, cls) => {
     const p = Number(price);
     const pnl = (p - e) * direction * q * m;
@@ -11626,7 +11690,7 @@ function tfRiskLevelRows({ entry, stop, target, qty, mult = 1, riskUnitDollars =
     make('Entry', e, 'entry'),
     make(targetLabel, t, 'target'),
     make('Target 2 (2R)', e + direction * stopDist * 2, 'target'),
-    make('Moon shot (3R)', e + direction * stopDist * 3, 'moon'),
+    make(`Moon shot (${tfFormatR(moonR)})`, e + direction * stopDist * moonR, 'moon'),
   ];
 }
 
@@ -11650,7 +11714,7 @@ function tfRenderRiskTableHtml(args = {}) {
     </div>`;
 }
 
-function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = 'Visual risk profile', unitLabel = 'unit', riskUnitDollars = null } = {}) {
+function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = 'Visual risk profile', unitLabel = 'unit', riskUnitDollars = null, moonshotR = null } = {}) {
   const e = Number(entry);
   const s = Number(stop);
   const t = Number(target);
@@ -11669,8 +11733,9 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
   const lossPct = (1 / total) * 100;
   const targetPct = (visualRewardR / total) * 100;
   const twoPct = Math.max(12, 100 - lossPct - targetPct);
+  const moonR = tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? tfMoonshotR() : moonshotR);
   return `
-    <div class="tf-risk-profile">
+    <div class="tf-risk-profile" data-tf-risk-entry="${e}" data-tf-risk-stop="${s}" data-tf-risk-target="${t}" data-tf-risk-qty="${q}" data-tf-risk-mult="${m}" data-tf-risk-unit="${riskUnit}">
       <div class="tf-risk-profile-head">
         <div class="tf-risk-profile-title">${title}</div>
         <div class="tf-risk-profile-meta">1R = ${tfAbsMoneyText(riskUnit)} · stop risk ${tfAbsMoneyText(loss)} · ${q} ${unitLabel}${q === 1 ? '' : 's'} · ${displayR.toFixed(2)}R target</div>
@@ -11687,8 +11752,48 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
         </div>
         <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"></div>
       </div>
-      ${tfRenderRiskTableHtml({ entry, stop, target, qty, mult, riskUnitDollars: riskUnit })}
+      ${tfRenderMoonshotSliderHtml(moonR)}
+      <div data-tf-risk-table-wrap>${tfRenderRiskTableHtml({ entry, stop, target, qty, mult, riskUnitDollars: riskUnit, moonshotR: moonR })}</div>
     </div>`;
+}
+
+function tfRiskArgsFromProfile(profile, moonshotR) {
+  if (!profile) return null;
+  return {
+    entry: Number(profile.dataset.tfRiskEntry),
+    stop: Number(profile.dataset.tfRiskStop),
+    target: Number(profile.dataset.tfRiskTarget),
+    qty: Number(profile.dataset.tfRiskQty),
+    mult: Number(profile.dataset.tfRiskMult),
+    riskUnitDollars: Number(profile.dataset.tfRiskUnit),
+    moonshotR,
+  };
+}
+
+function tfRefreshMoonshotProfile(profile, moonshotR) {
+  if (!profile) return;
+  const value = profile.querySelector('[data-tf-moonshot-value]');
+  if (value) value.textContent = tfFormatR(moonshotR);
+  const tableWrap = profile.querySelector('[data-tf-risk-table-wrap]');
+  const args = tfRiskArgsFromProfile(profile, moonshotR);
+  if (tableWrap && args) tableWrap.innerHTML = tfRenderRiskTableHtml(args);
+}
+
+function tfBindMoonshotSliders() {
+  document.querySelectorAll('#panel-trade [data-tf-moonshot-slider]').forEach(slider => {
+    if (slider.dataset.tfMoonshotBound === '1') return;
+    slider.dataset.tfMoonshotBound = '1';
+    slider.addEventListener('input', e => {
+      const next = tfClampMoonshotR(e.target.value);
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      state.tradeFlow.moonshotR = next;
+      document.querySelectorAll('#panel-trade [data-tf-moonshot-slider]').forEach(other => {
+        other.value = next;
+        tfRefreshMoonshotProfile(other.closest('.tf-risk-profile'), next);
+      });
+      saveState();
+    });
+  });
 }
 
 function tfRenderSwingSizingHtml() {
@@ -11795,6 +11900,7 @@ function tfUpdateSwingSpreadLine() {
 function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
   if (card) card.innerHTML = tfRenderSwingSizingHtml();
+  tfBindMoonshotSliders();
   const premiumCounter = document.getElementById('tf-premium-counter');
   if (premiumCounter) {
     const ok = Number(state.premium) > 0;
@@ -11995,7 +12101,7 @@ function tfApplyIntradayRiskSize() {
   if (!auto) return null;
   if (!state.intraday) state.intraday = newIntradayTicket();
   state.intraday.contracts = auto.qty;
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
   if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
   state.tradeFlow.intradayDraft.contracts = String(auto.qty);
   return auto.qty;
@@ -12022,6 +12128,7 @@ function tfUpdateIntradaySizing() {
   const card = document.getElementById('tf-i-sizing-card');
   if (card) card.innerHTML = tfRenderIntradaySizingHtml();
   tfBindIntradayRiskSizeButton();
+  tfBindMoonshotSliders();
 }
 
 // Intraday R-multiple block — surgical update on entry/stop/target change.
@@ -12281,7 +12388,7 @@ function tfGoToStep(n) {
 
 function tfSetMode(mode) {
   if (mode !== 'swing' && mode !== 'intraday') return;
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
   state.tradeFlow.mode = mode;
   state.tradeFlow.step = 1;
   saveState();
@@ -12312,6 +12419,7 @@ function tfReset() {
   state.tradeFlow.thesis = '';
   state.tradeFlow.preMortem = '';
   state.tradeFlow.intradayDraft = {};
+  state.tradeFlow.moonshotR = 3;
   saveState();
   renderTrade();
 }
@@ -12724,7 +12832,7 @@ function tfMountSwingStep3() {
     el.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       if (key === 'premium') {
-        if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+        if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
         state.tradeFlow.swingPremiumManual = !isNaN(v) && v > 0;
       }
       state[key] = isNaN(v) ? null : v;
@@ -13272,7 +13380,7 @@ function tfMountIntradayStep2() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
       if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
       state.tradeFlow.intradayDraft[key] = e.target.value;
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
@@ -13380,7 +13488,7 @@ function tfMountIntradayStep3() {
     const spread = tfDeriveIntradaySpread();
     tfAutoFillIntradayOptionBracket({ force: forceBracket });
     if (forceBracket) {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
       if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
       ['entry', 'stop', 'target'].forEach(key => {
         state.tradeFlow.intradayDraft[key] = state.intraday[key] ?? '';
@@ -13406,7 +13514,7 @@ function tfMountIntradayStep3() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
       if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
       state.tradeFlow.intradayDraft[key] = e.target.value;
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
@@ -13612,7 +13720,7 @@ function tfMountIntradayStep4() {
 function renderTrade() {
   const panel = document.getElementById('panel-trade');
   if (!panel) return;
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
   panel.querySelectorAll('[data-trade-mode]').forEach(b => {
     b.onclick = () => tfSetMode(b.dataset.tradeMode);
   });
