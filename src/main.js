@@ -17,3 +17,8 @@ import '../styles/panels.css';
 import '../styles/utilities.css';
 import '../styles/print.css';
 
+// Phase 3 — pure utility modules. Each module also assigns its exports to
+// window so legacy.js (a regular script) can resolve them via global lookup.
+import './models/formatters.js';
+import './models/trade.js';
+

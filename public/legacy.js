@@ -732,30 +732,7 @@ const SECTORS = [
 //   1.50 - 2.49 = Sell
 //   1.00 - 1.49 = Strong Sell
 
-// Map SA decimal rating to category label
-function ratingToLabel(rating) {
-  if (rating === null || rating === undefined || rating === '') return null;
-  const r = parseFloat(rating);
-  if (isNaN(r) || r < 1 || r > 5) return null;
-  if (r >= 4.5) return 'Strong Buy';
-  if (r >= 3.5) return 'Buy';
-  if (r >= 2.5) return 'Hold';
-  if (r >= 1.5) return 'Sell';
-  return 'Strong Sell';
-}
-
-// Map SA decimal rating to traffic-light status
-//   3.50 to 5.00 = STRONG (Buy or Strong Buy)
-//   2.50 to 3.49 = NEUTRAL (Hold)
-//   1.00 to 2.49 = WEAK (Sell or Strong Sell)
-function ratingToStatus(rating) {
-  if (rating === null || rating === undefined || rating === '') return null;
-  const r = parseFloat(rating);
-  if (isNaN(r) || r < 1 || r > 5) return null;
-  if (r >= 3.5) return 'STRONG';
-  if (r >= 2.5) return 'NEUTRAL';
-  return 'WEAK';
-}
+// ratingToLabel, ratingToStatus → src/models/trade.js
 
 // ---------- State ----------
 let state = {
@@ -1285,17 +1262,7 @@ function liquidityOK() {
 }
 
 // ---------- Trade Log ----------
-function genTradeId() {
-  return 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-}
-
-function tradeInstrument(t) {
-  return t && t.instrument === 'stocks' ? 'stocks' : 'options';
-}
-
-function tradeMultiplier(t) {
-  return tradeInstrument(t) === 'stocks' ? 1 : 100;
-}
+// genTradeId, tradeInstrument, tradeMultiplier → src/models/trade.js
 
 function tradeRiskDollars(t) {
   const explicit = Number(t && t.riskDollars);
@@ -1315,20 +1282,7 @@ function tradeRiskDollars(t) {
     : 0;
 }
 
-function isClosedTrade(t) {
-  return !!t && t.status !== 'open';
-}
-
-function calcPL(t) {
-  if (t.status === 'open' || !t.exit) return null;
-  const multiplier = tradeMultiplier(t);
-  // Sign flip only for short stock — long puts are still long positions in the option.
-  const bias = (typeof tradeBias === 'function') ? tradeBias(t)
-    : (String(t.direction || 'Long').toLowerCase() === 'short' ? 'bearish' : 'bullish');
-  const sign = (tradeInstrument(t) === 'stocks' && bias === 'bearish') ? -1 : 1;
-  const qty = (typeof tradeQty === 'function') ? tradeQty(t) : (t.qty ?? t.contracts ?? t.shares ?? 0);
-  return sign * (t.exit - t.entry) * multiplier * qty;
-}
+// isClosedTrade, calcPL → src/models/trade.js
 
 // R-multiple: P/L expressed in units of risk dollars. 2R = 2x risk dollars profit.
 function calcR(t) {
@@ -1339,28 +1293,8 @@ function calcR(t) {
   return pl / risk;
 }
 
-function dateOffsetISO(daysAgo) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().split('T')[0];
-}
-
-function normalizeProcessQuality(grade) {
-  if (!grade) return '';
-  const g = String(grade).toLowerCase();
-  if (g === 'a' || g === 'b' || g === 'clean') return 'clean';
-  if (g === 'c' || g === 'mixed') return 'mixed';
-  if (g === 'd' || g === 'f' || g === 'broken') return 'broken';
-  return g;
-}
-
-function processQualityLabel(grade) {
-  const q = normalizeProcessQuality(grade);
-  if (q === 'clean') return 'Good';
-  if (q === 'mixed') return 'Okay';
-  if (q === 'broken') return 'Bad';
-  return '';
-}
+// dateOffsetISO → src/models/formatters.js
+// normalizeProcessQuality, processQualityLabel → src/models/trade.js
 
 function addTestTrades() {
   const ok = confirm(
@@ -2501,11 +2435,7 @@ function renderLogTable() {
   `;
 }
 
-function formatDate(d) {
-  if (!d) return '—';
-  const dt = new Date(d);
-  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+// formatDate → src/models/formatters.js
 
 function renderHome() {
   const today = todayISO();
@@ -3097,13 +3027,7 @@ const POS = {
 
 function _posMultiplier(t) { return tradeMultiplier(t); }
 
-// Bias drives the LABEL (Long Call vs Long Put). The PnL math sign only flips
-// for short stock — long puts are still long positions in the option (you bought
-// it; sell-to-close higher = profit).
-function tradeBias(t) {
-  if (t.bias) return t.bias;
-  return (String(t.direction || 'Long').toLowerCase() === 'short') ? 'bearish' : 'bullish';
-}
+// tradeBias → src/models/trade.js
 
 function _posSign(t) {
   // Only short stock requires sign flip — long calls and long puts both use +1.
@@ -3121,14 +3045,7 @@ function _posQtyUnit(t) {
   return t.instrument === 'stocks' ? 'Shares' : 'Contracts';
 }
 
-// Single source of truth for trade size — handles legacy `contracts` and `shares`.
-function tradeQty(t) {
-  if (tradeInstrument(t) === 'stocks' && t.shares != null) return Number(t.shares) || 0;
-  if (t.qty != null) return Number(t.qty) || 0;
-  if (t.contracts != null) return Number(t.contracts) || 0;
-  if (t.shares != null) return Number(t.shares) || 0;
-  return 0;
-}
+// tradeQty → src/models/trade.js
 
 function _posRealizedPL(t, executions) {
   const mult = _posMultiplier(t);
@@ -3151,16 +3068,7 @@ function _posUnrealizedPL(t, executions, mark) {
   return sign * (Number(mark) - Number(t.entry)) * mult * open;
 }
 
-function _fmtMoney(n) {
-  const v = Number(n) || 0;
-  const sign = v >= 0 ? '+' : '-';
-  return `${sign}$${Math.abs(v).toFixed(2)}`;
-}
-function _fmtMoneyPlain(n) {
-  const v = Number(n) || 0;
-  return `$${v.toFixed(2)}`;
-}
-function _toneClass(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
+// _fmtMoney, _fmtMoneyPlain, _toneClass → src/models/formatters.js
 
 function openPositionEditor(trade, tab = 'exec') {
   POS.id = trade.id;
@@ -4317,7 +4225,7 @@ function importBacktestFromPaste() {
 }
 
 // ---------- Intraday Trade Helpers ----------
-function todayISO() { return new Date().toISOString().split("T")[0]; }
+// todayISO → src/models/formatters.js
 
 function todayIntradayTrades() {
   return state.trades.filter(t => t.mode === "intraday" && t.date === todayISO());
