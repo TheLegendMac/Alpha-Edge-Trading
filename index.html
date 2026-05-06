@@ -11371,6 +11371,16 @@ function tfCapitalDeployed() {
   }, 0);
 }
 
+function tfMoneyText(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? `$${n.toFixed(2)}` : '—';
+}
+
+function tfPctText(value, digits = 1) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${n.toFixed(digits)}%` : '—';
+}
+
 function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
@@ -11441,14 +11451,34 @@ function tfAutoFillSwingPremiumFromQuote(previousMid = null) {
   return true;
 }
 
+function tfSetSwingPremiumFromQuote() {
+  const mid = tfSwingQuoteMid();
+  if (mid === null) return null;
+  state.premium = mid;
+  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
+  return mid;
+}
+
 function tfRenderSwingSpreadLineHtml() {
   const liq = state.liquidity || {};
   const isOptions = state.instrument !== 'stocks';
   const derived = deriveSpreadPct(liq);
   if (!isOptions || derived === null) return '';
-  const bidOk = Number(liq.bid) > 0 && Number(liq.ask) > 0;
-  const mid = bidOk ? ((Number(liq.bid) + Number(liq.ask)) / 2).toFixed(2) : null;
-  return `<p class="trade-row-help" style="margin-top:8px;">${mid ? `Mid $${mid} · ` : ''}spread ${Number(derived).toFixed(1)}%${mid ? ' · entry premium fills from mid unless you override it.' : ''}</p>`;
+  const mid = tfSwingQuoteMid(liq);
+  const max = 5;
+  const ok = derived <= max;
+  return `
+    <div class="trade-output" style="margin-top:10px; ${ok ? '' : 'border-color: var(--red-dim); background: linear-gradient(135deg, var(--red-bg), var(--bg) 62%);'}">
+      <div class="trade-output-title">Quote read</div>
+      <div class="trade-output-main">${ok ? 'Tradable spread' : 'Spread too wide'}</div>
+      <div class="trade-output-rationale">Entry premium follows mid until you type a manual limit.</div>
+      <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Bid</span><span class="trade-output-cell-value">${tfMoneyText(liq.bid)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Ask</span><span class="trade-output-cell-value">${tfMoneyText(liq.ask)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Mid</span><span class="trade-output-cell-value">${tfMoneyText(mid)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Spread</span><span class="trade-output-cell-value">${tfPctText(derived)}</span></div>
+      </div>
+    </div>`;
 }
 
 function tfUpdateSwingSpreadLine() {
@@ -11464,6 +11494,16 @@ function tfUpdateSwingSizing() {
     const ok = Number(state.premium) > 0;
     premiumCounter.classList.toggle('complete', ok);
     premiumCounter.textContent = ok ? '1 set' : 'fill 1';
+  }
+  const riskCounter = document.getElementById('tf-swing-risk-counter');
+  if (riskCounter) {
+    const isOptions = state.instrument !== 'stocks';
+    const gates = tfEvaluateGates();
+    const ready = isOptions
+      ? Number(state.premium) > 0 && Number(state.atr) > 0 && Number(state.underlyingPrice) > 0
+      : gates['04'] && Number(state.premium) > 0;
+    riskCounter.classList.toggle('complete', !!ready);
+    riskCounter.textContent = ready ? 'ready' : (isOptions ? 'fill 3' : 'fill 2');
   }
   // Gate 06 row also reflects ATR + underlying — refresh in place.
   const gateRow = document.getElementById('tf-stop-gate');
@@ -11589,6 +11629,34 @@ function tfAutoFillIntradayStockFromOR({ force = false } = {}) {
   }
 }
 
+function tfRenderIntradayQuoteSummaryHtml() {
+  const it = state.intraday || {};
+  if (tfIntradayInstrument() === 'stocks') return '';
+  const spread = tfDeriveIntradaySpread();
+  const max = (state.settings && state.settings.intradayMaxSpreadPct) || 5;
+  if (spread === null) {
+    return `
+      <div class="trade-output" style="margin-top:10px;">
+        <div class="trade-output-title">Quote read</div>
+        <div class="trade-output-main">Add bid and ask</div>
+        <div class="trade-output-rationale">Mid, spread, entry premium, and risk size will derive from the quote.</div>
+      </div>`;
+  }
+  const ok = Number(spread) <= max;
+  return `
+    <div class="trade-output" style="margin-top:10px; ${ok ? '' : 'border-color: var(--red-dim); background: linear-gradient(135deg, var(--red-bg), var(--bg) 62%);'}">
+      <div class="trade-output-title">Quote read</div>
+      <div class="trade-output-main">${ok ? 'Quote usable' : 'Spread too wide'}</div>
+      <div class="trade-output-rationale">Mid drives the entry premium. Stop, target, and risk size update from entry.</div>
+      <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Bid</span><span class="trade-output-cell-value">${tfMoneyText(it.bid)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Ask</span><span class="trade-output-cell-value">${tfMoneyText(it.ask)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Mid entry</span><span class="trade-output-cell-value">${tfMoneyText(it.mid)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Spread</span><span class="trade-output-cell-value">${tfPctText(spread)}</span></div>
+      </div>
+    </div>`;
+}
+
 function tfRenderIntradaySizingHtml() {
   const it = state.intraday || {};
   const isOptions = tfIntradayInstrument() !== 'stocks';
@@ -11597,18 +11665,25 @@ function tfRenderIntradaySizingHtml() {
     return `<div class="input-help" style="margin-top:8px;">Fill entry and stop to auto-size ${isOptions ? 'contracts' : 'shares'}.</div>`;
   }
   const manualQty = Number(it.contracts);
-  const fieldLine = manualQty > 0 && manualQty !== auto.qty
-    ? `<div class="trade-output-rationale">Current field: ${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} · estimated risk $${Math.round(manualQty * auto.stopDist * auto.mult)}.</div>`
-    : '';
+  const manualRisk = manualQty > 0 ? Math.round(manualQty * auto.stopDist * auto.mult) : null;
+  const qtyLine = manualQty > 0
+    ? `${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} in the override field · estimated risk $${manualRisk}`
+    : `Blank quantity logs the suggested ${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'}.`;
+  const perUnit = auto.stopDist * auto.mult;
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">Auto size</div>
-      <div class="trade-output-main">${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'} · risk $${Math.round(auto.risk)}</div>
-      <div class="trade-output-rationale">$${auto.riskBudget} intraday risk ÷ ${isOptions ? 'premium' : 'price'} stop distance.</div>
-      ${fieldLine}
+      <div class="trade-output-title">Risk unit size</div>
+      <div class="trade-output-main">${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'} suggested</div>
+      <div class="trade-output-rationale">${qtyLine}</div>
+      <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${auto.riskBudget}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / ${isOptions ? 'ct' : 'share'}</span><span class="trade-output-cell-value">$${perUnit.toFixed(isOptions ? 0 : 2)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Suggested risk</span><span class="trade-output-cell-value">$${Math.round(auto.risk)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop distance</span><span class="trade-output-cell-value">${tfMoneyText(auto.stopDist)}</span></div>
+      </div>
       <div class="trade-templates" style="margin-top:10px;">
-        <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Use risk size</button>
-        <span class="trade-templates-label">Writes ${auto.qty} to ${isOptions ? 'contracts' : 'shares'}.</span>
+        <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Apply suggested size</button>
+        <span class="trade-templates-label">Writes ${auto.qty} to the ${isOptions ? 'contracts' : 'shares'} override.</span>
       </div>
     </div>`;
 }
@@ -12226,28 +12301,21 @@ function tfSwingStep3() {
   const premium = state.premium;
   const atr     = state.atr;
   const upx     = state.underlyingPrice;
-  const reqLabel = isOptions ? 'Entry premium / mid ($)' : 'Share price ($)';
-  const reqHelp  = isOptions
-    ? 'Auto-filled from bid/ask mid. Edit only when your actual limit differs.'
-    : 'Current share price for sizing math.';
-
-  // Liquidity row inputs — fields differ between options and stocks.
-  const liqInputs = [
+  const allLiqInputs = [
     { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
     { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
     { key: 'optionVol', label: 'Option volume today',   rule: '≥ 100',       step: '1' },
     { key: 'bid',       label: 'Option Bid ($)',        rule: 'paired',      step: '0.01' },
     { key: 'ask',       label: 'Option Ask ($)',        rule: 'spread auto', step: '0.01' },
-  ].filter(f => isOptions || f.key === 'stockVol');
-
-  const liqGrid = liqInputs.map(f => `
+  ];
+  const liqInputHtml = (f) => `
     <div class="trade-input-row" style="grid-template-columns: 1fr;">
       <div>
         <label class="input-label">${f.label} <span style="float:right; color:var(--ink-4); font-weight:400; font-size:10px;">need ${f.rule}</span></label>
         <input type="number" min="0" step="${f.step}" class="trade-input" data-tf-liq="${f.key}"
           value="${liq[f.key] ?? ''}" />
       </div>
-    </div>`).join('');
+    </div>`;
 
   const spreadLine = `<div id="tf-swing-spread-line">${tfRenderSwingSpreadLineHtml()}</div>`;
 
@@ -12263,49 +12331,45 @@ function tfSwingStep3() {
       <span class="trade-row-pill">${gates['06'] ? 'PASS' : 'FAIL'}</span>
     </div>`;
 
-  const atrSection = isOptions ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Volatility stop (Gate 06)</div>
-          <div class="trade-section-subtitle">ATR + underlying price compute a volatility-adjusted stop. Skipping this is the #1 way to over-risk.</div>
+  if (!isOptions) {
+    return `
+      <div class="trade-section">
+        <div class="trade-section-head">
+          <div class="trade-section-head-stack">
+            <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Stock price & risk size</div>
+            <div class="trade-section-subtitle">Volume proves tradability. Share price drives the risk-unit size.</div>
+          </div>
+          <div class="trade-section-counter ${gates['04'] && premium > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${gates['04'] && premium > 0 ? 'ready' : 'fill 2'}</div>
         </div>
-        <div class="trade-section-counter ${atr > 0 && upx > 0 ? 'complete' : ''}">${atr > 0 && upx > 0 ? '2 set' : 'fill 2'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row">
-            <div>
-              <label class="input-label">ATR(14) on the underlying</label>
-              <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
-                placeholder="ATR(14) from chart" value="${atr ?? ''}" />
-              <div class="input-help">From TOS daily chart, study: ATR length 14.</div>
+        <div class="trade-section-body">
+          <div class="trade-section-grid-2">
+            ${liqInputHtml(allLiqInputs[0])}
+            <div class="trade-input-row" style="grid-template-columns: 1fr;">
+              <div>
+                <label class="input-label">Share entry price ($)</label>
+                <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
+                  placeholder="Share entry price" value="${premium ?? ''}" />
+              </div>
             </div>
           </div>
-          <div class="trade-input-row">
-            <div>
-              <label class="input-label">Underlying current price ($)</label>
-              <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
-                placeholder="Current underlying price" value="${upx ?? ''}" />
-              <div class="input-help">Combined with ATR for the stop level.</div>
-            </div>
-          </div>
+          ${sizingCard}
         </div>
-        <div style="margin-top:10px;">${stopGateRow}</div>
-      </div>
-    </div>` : '';
+      </div>`;
+  }
+
+  const quoteGrid = allLiqInputs.map(liqInputHtml).join('');
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity ${isOptions ? '(stock + option)' : '(stock)'}</div>
-          <div class="trade-section-subtitle">Drives Gate 04. Without enough volume you can't get a clean fill or exit.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity & quote</div>
+          <div class="trade-section-subtitle">Stock volume, option activity, and bid/ask all decide whether this contract is tradable.</div>
         </div>
-        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill ' + liqInputs.length}</div>
+        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill quote'}</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">${liqGrid}</div>
+        <div class="trade-section-grid-2">${quoteGrid}</div>
         ${spreadLine}
       </div>
     </div>
@@ -12313,24 +12377,44 @@ function tfSwingStep3() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> ${isOptions ? 'Entry premium' : 'Share price'}</div>
-          <div class="trade-section-subtitle">${reqHelp}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Entry, stop & size</div>
+          <div class="trade-section-subtitle">Entry premium follows quote mid until you override it. ATR and price set the underlying stop.</div>
         </div>
-        <div class="trade-section-counter ${premium > 0 ? 'complete' : ''}" id="tf-premium-counter">${premium > 0 ? '1 set' : 'fill 1'}</div>
+        <div class="trade-section-counter ${premium > 0 && atr > 0 && upx > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${premium > 0 && atr > 0 && upx > 0 ? 'ready' : 'fill 3'}</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-input-row">
-          <div>
-            <label class="input-label">${reqLabel}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-              placeholder="${isOptions ? 'Auto from bid/ask' : 'Share entry price'}" value="${premium ?? ''}" />
-            ${isOptions ? '<div class="input-help">This follows the quote mid until you type your own limit.</div>' : ''}
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Entry premium / limit ($)</label>
+              <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
+                placeholder="Auto from quote mid" value="${premium ?? ''}" />
+              <div class="input-help">Type here only when your real limit is different from mid.</div>
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">ATR(14) on the underlying</label>
+              <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
+                placeholder="ATR(14) from chart" value="${atr ?? ''}" />
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Underlying current price ($)</label>
+              <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
+                placeholder="Current underlying price" value="${upx ?? ''}" />
+            </div>
           </div>
         </div>
+        <div class="trade-templates" style="margin-top:10px;">
+          <button type="button" class="trade-template-btn" id="tf-swing-use-mid">Use quote mid</button>
+          <span class="trade-templates-label">Resets entry premium from bid/ask.</span>
+        </div>
+        <div style="margin-top:10px;">${stopGateRow}</div>
         ${sizingCard}
       </div>
     </div>
-    ${atrSection}
   `;
 }
 
@@ -12386,6 +12470,21 @@ function tfMountSwingStep3() {
   wireNum('tf-premium', 'premium');
   wireNum('tf-atr', 'atr');
   wireNum('tf-upx', 'underlyingPrice');
+  const useMidBtn = document.getElementById('tf-swing-use-mid');
+  if (useMidBtn) {
+    useMidBtn.addEventListener('click', () => {
+      const mid = tfSetSwingPremiumFromQuote();
+      if (mid === null) {
+        if (typeof toast === 'function') toast('Enter valid bid and ask first.', true);
+        return;
+      }
+      const premiumEl = document.getElementById('tf-premium');
+      if (premiumEl) premiumEl.value = mid;
+      saveState();
+      tfRefreshHeaderOnly();
+      tfUpdateSwingSizing();
+    });
+  }
 }
 
 // ----- Swing step 4 — Execute -----
@@ -12961,9 +13060,7 @@ function tfIntradayStep3() {
   const spread = tfDeriveIntradaySpread();
   const sb = tfSpreadBracket(spread);
   const settings = state.settings || DEFAULT_SETTINGS;
-  const midLine = isOptions && it.bid > 0 && it.ask > 0
-    ? `Mid $${Number(it.mid || ((Number(it.bid) + Number(it.ask)) / 2)).toFixed(2)} · spread ${Number(spread).toFixed(1)}%. Entry bracket below is filled from mid.`
-    : 'Spread = (ask - bid) / mid. Bid/ask also fills the entry bracket below.';
+  const quoteSummary = isOptions ? `<div id="tf-i-quote-summary">${tfRenderIntradayQuoteSummaryHtml()}</div>` : '';
 
   const optionsSizing = `
     <div class="trade-section-grid-2">
@@ -12976,25 +13073,27 @@ function tfIntradayStep3() {
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Ask $</label>
         <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-ask" value="${inputValue('ask')}" placeholder="Option ask" />
-        <div class="input-help" id="tf-i-midline">${midLine}</div>
-        <div class="trade-templates" style="margin-top:8px;">
-          <button type="button" class="trade-template-btn" id="tf-i-use-quote">Use bid/ask mid</button>
-          <span class="trade-templates-label">Recalculates entry, stop, target, and size.</span>
-        </div>
       </div></div>
+    </div>
+    ${quoteSummary}
+    <div class="trade-templates" style="margin-top:10px;">
+      <button type="button" class="trade-template-btn" id="tf-i-use-quote">Reset levels to quote</button>
+      <span class="trade-templates-label">Sets entry to mid, then rebuilds stop and target.</span>
+    </div>
+    <div class="trade-section-grid-2">
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-        <label class="input-label">Contracts</label>
+        <label class="input-label">Contracts override</label>
         <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Auto from risk, or override" />
-        <div class="input-help">Leave blank to log the risk-sized contract count automatically.</div>
+        <div class="input-help">Blank uses the suggested risk-unit size.</div>
       </div></div>
     </div>`;
 
   const stockSizing = `
     <div class="trade-section-grid-2">
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-        <label class="input-label">Shares (optional)</label>
+        <label class="input-label">Shares override</label>
         <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Shares, or leave blank" />
-        <div class="input-help">Leave blank to auto-size from entry-stop distance.</div>
+        <div class="input-help">Blank uses the suggested risk-unit size.</div>
       </div></div>
     </div>`;
 
@@ -13002,8 +13101,8 @@ function tfIntradayStep3() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Bid/ask & sizing' : 'Share sizing'}</div>
-          <div class="trade-section-subtitle">${isOptions ? `Enter bid/ask once. Cockpit calculates mid, spread, entry, stop, target, and size. Max spread ${settings.intradayMaxSpreadPct || 5}%.` : 'No option spread needed for stock. Shares auto-size from your intraday risk budget.'}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Option quote & risk size' : 'Share risk size'}</div>
+          <div class="trade-section-subtitle">${isOptions ? `Bid/ask creates the mid entry and spread check. Quantity is suggested from your $${settings.intradayRiskPerTrade || 100} risk unit.` : `Quantity is suggested from your $${settings.intradayRiskPerTrade || 100} risk unit.`}</div>
         </div>
       </div>
       <div class="trade-section-body">
@@ -13031,6 +13130,8 @@ function tfMountIntradayStep3() {
     });
     tfUpdateIntradayRMult();
     tfUpdateIntradaySizing();
+    const quoteSummary = document.getElementById('tf-i-quote-summary');
+    if (quoteSummary) quoteSummary.innerHTML = tfRenderIntradayQuoteSummaryHtml();
     const badge = document.querySelector('#panel-trade #tf-i-bid')?.closest('.trade-input-row')?.querySelector('.trade-bracket')
       || document.querySelector('#panel-trade .trade-bracket');
     if (badge) {
