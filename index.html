@@ -12165,8 +12165,8 @@ function tfSpreadBracket(spread, maxOverride = null) {
 
 // ----- Rendering -----
 
-// The sticky header owns ticker, setup, structure, and direction.
-// The body keeps the fill path short: setup, one plan/size step, then log/context.
+// The sticky header owns ticker, structure, and direction.
+// Swing starts with quality gates, then technicals, sizing, and log. Intraday stays compact.
 function tfStepCount() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   return m === 'swing' ? 4 : 3;
@@ -12474,8 +12474,8 @@ function tfSwingStep1() {
 
   return `
     <div class="trade-section">
-          <div class="trade-section-head">
-            <div class="trade-section-head-stack">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Technical setup</div>
           <div class="trade-section-subtitle">Pick one approved chart pattern. If none fit, stop here.</div>
         </div>
@@ -12670,7 +12670,7 @@ function tfMountSwingStep2() {
   });
 }
 
-// ----- Swing plan — Size: liquidity + premium / ATR / underlying -----
+// ----- Swing size — liquidity + premium / ATR / underlying -----
 // Goal: prove the contract is tradable, then math out position size + stop.
 
 function tfSwingStep3() {
@@ -13779,12 +13779,13 @@ function tfMountStep(step) {
     const max = tfStepCount();
     if (step > max) step = max;
     if (step < 1) step = 1;
-    if (step === 1) tfMountSwingStep1();
+    if (step === 1) tfMountSwingStep2();
     if (step === 2) {
-      tfMountSwingStep2();
-      tfMountSwingStep3();
+      tfMountSwingStep1();
+      tfMountSwingContractSpec();
     }
-    if (step === 3) tfMountSwingStep4();
+    if (step === 3) tfMountSwingStep3();
+    if (step === 4) tfMountSwingStep4();
     return;
   }
   // Intraday single-screen — every section is in the DOM, mount all of them.
