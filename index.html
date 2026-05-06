@@ -11020,42 +11020,42 @@ function tfComputeStatus() {
     const isOptions = (it.instrument || 'options') !== 'stocks';
     const setupDef = (typeof tfFindIntradaySetup === 'function') ? tfFindIntradaySetup(it.setup) : null;
 
-    // Header pattern — ticker / setup / direction (+ direction-vs-setup-bias)
+    // 1 Setup — ticker / setup pattern / direction (+ direction-vs-setup-bias)
     if (!it.ticker)    return { tone: 'progress', reason: 'Add ticker',     step: 1 };
     if (!it.setup)     return { tone: 'progress', reason: 'Pick a setup',   step: 1 };
     if (!it.direction) return { tone: 'progress', reason: 'Pick direction', step: 1 };
     if (setupDef && setupDef.bias !== 'either' && it.direction !== setupDef.bias) {
       return { tone: 'blocked', reason: `${setupDef.name} expects ${setupDef.bias.toUpperCase()}`, step: 1 };
     }
-    // 1 Levels — entry / stop / target
-    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 1 };
-    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 1 };
-    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 1 };
-    // 2 Sizing — options need a bid/ask-derived spread; stocks only need levels.
+    // 2 Levels — entry / stop / target
+    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
+    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
+    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
+    // 3 Sizing — options need a bid/ask-derived spread; stocks only need levels.
     const spreadPct = isOptions ? deriveSpreadPct(it) : null;
     if (isOptions && (spreadPct === null || spreadPct === undefined || spreadPct === '')) {
-      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 2 };
+      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 3 };
     }
     if (isOptions && Number(spreadPct) > s.intradayMaxSpreadPct) {
-      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 2 };
+      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
     }
-    // 3 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
+    // 4 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
       const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
         ? TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) : null;
       if (confDef && confDef.bias !== 'either' && it.direction !== confDef.bias) {
-        return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 3 };
+        return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 4 };
       }
     }
     const inWin = (typeof isInIntradayWindow === 'function') ? isInIntradayWindow() : true;
     if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
-      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 3 };
+      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 4 };
     }
     const dayPL = tfComputeIntradayDayPL();
     const lossBudget = s.intradayMaxDailyLoss + dayPL;
-    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 3 };
+    if (lossBudget <= 0) return { tone: 'blocked', reason: 'Daily loss budget reached', step: 4 };
 
-    return { tone: 'ready', reason: 'Ready to log', step: 3 };
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   return { tone: 'progress', reason: 'Pick a setup', step: 1 };
@@ -11678,22 +11678,24 @@ function tfStepCompletion() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
 
+  // 1 Setup — ticker + direction + setup pattern (header + setup-cards body).
   const headerReady = !!(it.ticker && it.setup && it.direction);
+  c[0] = headerReady;
 
-  // 1 Levels — entry / stop / target.
-  c[0] = !!(headerReady && it.entry && it.stop && it.target);
+  // 2 Levels — entry / stop / target.
+  c[1] = !!(headerReady && it.entry && it.stop && it.target);
 
-  // 2 Sizing — options need spread within cap; stock sizing is auto.
+  // 3 Sizing — options need spread within cap; stock sizing is auto.
   const isOptions = (it.instrument || 'options') !== 'stocks';
   const spreadPct = isOptions ? deriveSpreadPct(it) : null;
   const spreadOk = !isOptions || (spreadPct !== null && spreadPct !== undefined
                 && Number(spreadPct) >= 0
                 && Number(spreadPct) <= settings.intradayMaxSpreadPct);
-  c[1] = !!(headerReady && spreadOk);
+  c[2] = !!(headerReady && spreadOk);
 
-  // 3 Context — guardrails pass (status not blocked).
+  // 4 Context — guardrails pass (status not blocked).
   const st = tfComputeStatus();
-  c[2] = c[0] && c[1] && st.tone !== 'blocked';
+  c[3] = c[1] && c[2] && st.tone !== 'blocked';
   return c;
 }
 
