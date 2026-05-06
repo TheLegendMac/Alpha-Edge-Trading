@@ -27,7 +27,7 @@ function clearLogSetupFilter() {
   setLogSetupFilter('');
 }
 
-function renderLogTable() {
+export function renderLogTable() {
   const container = document.getElementById('log-table-container');
   const filter = state.logModeFilter || 'all';
   const setupFilter = state.logSetupFilter || '';

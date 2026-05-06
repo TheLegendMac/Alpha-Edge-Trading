@@ -1,5 +1,8 @@
-// Pure trade utilities — no state dependencies.
-// (tradeRiskDollars and calcR depend on state.settings; they stay in legacy.js until after Phase 4.)
+// Trade utilities. The pure ones don't read external state; tradeRiskDollars
+// and calcR fall back to state.settings.stopPct when entry/stop aren't both set.
+
+import { state } from '../state/store.js';
+import { DEFAULT_SETTINGS } from '../config/constants.js';
 
 export function genTradeId() {
   return 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -85,6 +88,35 @@ export function processQualityLabel(grade) {
   return '';
 }
 
+// Risk dollars on a trade. Prefers explicit t.riskDollars, then |entry-stop| × qty
+// × multiplier, then a settings-derived percentage of premium as final fallback.
+export function tradeRiskDollars(t) {
+  const explicit = Number(t && t.riskDollars);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+
+  const entry = Number(t && t.entry);
+  const stop = Number(t && t.stop);
+  const qty = tradeQty(t);
+  if (Number.isFinite(entry) && Number.isFinite(stop) && entry > 0 && stop > 0 && qty > 0) {
+    return Math.abs(entry - stop) * tradeMultiplier(t) * qty;
+  }
+
+  const settings = state.settings || DEFAULT_SETTINGS || {};
+  const fallbackStopPct = ((settings.stopPct || 50) / 100);
+  return (Number.isFinite(entry) && entry > 0 && qty > 0)
+    ? entry * fallbackStopPct * tradeMultiplier(t) * qty
+    : 0;
+}
+
+// R-multiple: P/L expressed in units of risk dollars. 2R = 2× risk dollars profit.
+export function calcR(t) {
+  const pl = calcPL(t);
+  if (pl === null) return null;
+  const risk = tradeRiskDollars(t) || 1;
+  if (!risk || risk === 0) return null;
+  return pl / risk;
+}
+
 // Bridge to legacy.js (regular <script>).
 window.genTradeId = genTradeId;
 window.tradeInstrument = tradeInstrument;
@@ -97,3 +129,5 @@ window.ratingToLabel = ratingToLabel;
 window.ratingToStatus = ratingToStatus;
 window.normalizeProcessQuality = normalizeProcessQuality;
 window.processQualityLabel = processQualityLabel;
+window.tradeRiskDollars = tradeRiskDollars;
+window.calcR = calcR;

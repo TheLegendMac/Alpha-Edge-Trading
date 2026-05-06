@@ -123,7 +123,7 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
 }
 
 
-function _buildTickerHistory() {
+export function _buildTickerHistory() {
   // Aggregate from trades + recent
   const map = new Map();
   (state.trades || []).forEach(t => {
@@ -148,7 +148,7 @@ function _buildTickerHistory() {
   });
 }
 
-function rememberTicker(sym) {
+export function rememberTicker(sym) {
   const s = (sym || '').toUpperCase().trim();
   if (!s || s.length > 6) return;
   if (!Array.isArray(state.recentTickers)) state.recentTickers = [];

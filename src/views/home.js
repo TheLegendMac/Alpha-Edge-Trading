@@ -19,7 +19,7 @@ function renderUniversalSidebar() {
 }
 
 
-function renderHome() {
+export function renderHome() {
   const today = todayISO();
   const closed = (state.trades || []).filter(t => isClosedTrade(t));
   const todayClosed = closed.filter(t => (t.exit_date || t.date) === today);

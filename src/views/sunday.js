@@ -26,7 +26,7 @@ function toggleSunday(el) {
 }
 
 // ---------- Sectors panel (Sunday Prep Block 02) ----------
-function renderSectors() {
+export function renderSectors() {
   const grid = document.getElementById('sector-grid');
   if (!grid) return;
 

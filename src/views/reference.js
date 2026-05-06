@@ -2,7 +2,7 @@
 
 import { state } from '../state/store.js';
 
-function renderReference() {
+export function renderReference() {
   const s = state.settings;
   const account = s.account;
 
