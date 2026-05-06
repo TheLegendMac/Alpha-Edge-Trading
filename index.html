@@ -7737,7 +7737,11 @@ function liquidityOK() {
   if (state.instrument === "stocks") {
     return Number(liq.stockVol) >= 1000000;
   }
-  const derivedSpread = deriveSpreadPct(liq);
+  const bid = Number(liq.bid);
+  const ask = Number(liq.ask);
+  if (!(bid > 0 && ask > 0 && ask >= bid)) return false;
+  const mid = (bid + ask) / 2;
+  const derivedSpread = mid > 0 ? ((ask - bid) / mid) * 100 : null;
   return Number(liq.stockVol) >= 1000000
       && Number(liq.optionOI) >= 500
       && Number(liq.optionVol) >= 100
@@ -11462,9 +11466,11 @@ function tfSetSwingPremiumFromQuote() {
 function tfRenderSwingSpreadLineHtml() {
   const liq = state.liquidity || {};
   const isOptions = state.instrument !== 'stocks';
-  const derived = deriveSpreadPct(liq);
-  if (!isOptions || derived === null) return '';
   const mid = tfSwingQuoteMid(liq);
+  if (!isOptions || mid === null) return '';
+  const bid = Number(liq.bid);
+  const ask = Number(liq.ask);
+  const derived = ((ask - bid) / mid) * 100;
   const max = 5;
   const ok = derived <= max;
   return `
@@ -11484,6 +11490,12 @@ function tfRenderSwingSpreadLineHtml() {
 function tfUpdateSwingSpreadLine() {
   const el = document.getElementById('tf-swing-spread-line');
   if (el) el.innerHTML = tfRenderSwingSpreadLineHtml();
+  const liqCounter = document.getElementById('tf-swing-liq-counter');
+  if (liqCounter) {
+    const ok = tfEvaluateGates()['04'];
+    liqCounter.classList.toggle('complete', !!ok);
+    liqCounter.textContent = ok ? 'pass' : 'fill quote';
+  }
 }
 
 function tfUpdateSwingSizing() {
@@ -12366,7 +12378,7 @@ function tfSwingStep3() {
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity & quote</div>
           <div class="trade-section-subtitle">Stock volume, option activity, and bid/ask all decide whether this contract is tradable.</div>
         </div>
-        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}">${gates['04'] ? 'pass' : 'fill quote'}</div>
+        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}" id="tf-swing-liq-counter">${gates['04'] ? 'pass' : 'fill quote'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">${quoteGrid}</div>
