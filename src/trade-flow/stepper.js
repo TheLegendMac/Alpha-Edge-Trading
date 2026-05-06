@@ -1,0 +1,600 @@
+// Stepper: step labels, completion, header/actions render, navigation + orchestration.
+// Includes mount dispatch, refresh, continue/log handlers, confirm modal.
+
+import { state } from '../state/store.js';
+import { saveState } from '../state/persistence.js';
+
+function tfStepCount() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  return m === 'swing' ? 4 : 3;
+}
+function tfStepNames() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'swing') return ['Quality', 'Technicals', 'Size', 'Log'];
+  return ['Setup', 'Plan & Size', 'Context'];
+}
+function tfIsSingleScreen() {
+  return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
+}
+
+// Determine which steps are "complete" — drives the stepper checkmarks.
+// Each step is "complete" when its on-screen inputs are filled. The header
+// status pill is still the source of truth for "OK to fire".
+function tfStepCompletion() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const c = Array(window.tfStepCount()).fill(false);
+
+  if (m === 'swing') {
+    const isOptions = state.instrument !== 'stocks';
+    const gates = window.tfEvaluateGates();
+
+    // 1 Quality — ticker plus SA Quant, factor-grade gates, and earnings gap.
+    const tickerReady = !!state.ticker;
+    const qualityInputsDone = (state.saQuant !== null && state.saQuant !== undefined)
+                           && (state.daysToEarnings !== null && state.daysToEarnings !== undefined);
+    const qualityGatesOk = gates['01'] && gates['02'] && gates['03'] && gates['05'];
+    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk);
+
+    // 2 Technicals — direction + approved setup + IV Rank contract read.
+    const ivrOk = !isOptions || (state.ivr !== null && state.ivr !== undefined && Number(state.ivr) < 70);
+    c[1] = !!(c[0] && state.direction && state.selectedSetup && ivrOk);
+
+    // 3 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
+    const sizingFilled = isOptions
+      ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
+      : !!(state.premium > 0);
+    c[2] = !!(c[1] && gates['04'] && gates['06'] && sizingFilled);
+
+    // 4 Log — flips green only when the whole swing ticket is ready.
+    const st = window.tfComputeStatus();
+    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
+    return c;
+  }
+
+  // Intraday — single-screen render. Completion still drives the header
+  // status and guardrail jump targets.
+  const it = state.intraday || {};
+  const settings = state.settings || DEFAULT_SETTINGS;
+
+  // 1 Setup — ticker + direction + setup pattern (header + setup-cards body).
+  const headerReady = !!(it.ticker && it.setup && it.direction);
+  c[0] = headerReady;
+
+  const isOptions = (it.instrument || 'options') !== 'stocks';
+  const levelsOk = !!(headerReady && it.entry && it.stop && it.target);
+  if (isOptions) {
+    // 2 Plan & Size — spread comes from bid/ask; levels and quantity derive from there.
+    const spreadPct = window.tfDeriveIntradaySpread();
+    const spreadOk = spreadPct !== null && spreadPct !== undefined
+                  && Number(spreadPct) >= 0
+                  && Number(spreadPct) <= settings.intradayMaxSpreadPct;
+    c[1] = !!(headerReady && spreadOk && levelsOk);
+  } else {
+    // Share count itself is optional because it auto-sizes from entry/stop.
+    c[1] = levelsOk;
+  }
+
+  // 3 Context — guardrails pass (status not blocked).
+  const st = window.tfComputeStatus();
+  c[2] = c[1] && st.tone !== 'blocked';
+  return c;
+}
+
+function tfRenderStepper() {
+  const stepper = document.getElementById('trade-stepper');
+  const mob     = document.getElementById('trade-stepper-mobile');
+  if (!stepper) return;
+  // Single-screen mode: hide both stepper variants. Header still shows mode
+  // toggle + summary row. Status pill remains the navigation cue.
+  if (window.tfIsSingleScreen()) {
+    stepper.innerHTML = '';
+    stepper.style.display = 'none';
+    if (mob) mob.style.display = 'none';
+    return;
+  }
+  stepper.style.display = '';
+  if (mob) mob.style.display = '';
+  const names = window.tfStepNames();
+  const compl = window.tfStepCompletion();
+  const cur = state.tradeFlow.step || 1;
+  stepper.innerHTML = names.map((n, i) => {
+    const idx = i + 1;
+    const isComplete = compl[i];
+    const isActive = idx === cur;
+    const cls = isComplete ? 'complete' : isActive ? 'active' : (idx < cur ? '' : (compl.slice(0, i).every(Boolean) ? '' : 'locked'));
+    const inner = isComplete ? '✓' : idx;
+    return `<button class="trade-step ${cls}" data-trade-step="${idx}" type="button">
+      <span class="trade-step-node">${inner}</span>
+      <span class="trade-step-label">${n}</span>
+    </button>`;
+  }).join('');
+  stepper.querySelectorAll('[data-trade-step]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = parseInt(el.dataset.tradeStep, 10);
+      if (target && target !== cur) window.tfGoToStep(target);
+    });
+  });
+  if (mob) {
+    const numEl = document.getElementById('trade-stepper-mobile-num');
+    const nameEl = document.getElementById('trade-stepper-mobile-name');
+    const progEl = document.getElementById('trade-stepper-mobile-progress');
+    if (numEl) numEl.textContent = `Step ${cur} of ${names.length}`;
+    if (nameEl) nameEl.textContent = names[cur - 1] || '';
+    if (progEl) progEl.textContent = `${compl.filter(Boolean).length} of ${names.length}`;
+  }
+}
+
+function tfBindHeaderScroll() {
+  const header = document.querySelector('#panel-trade .trade-header');
+  if (!header || header.dataset.tfScrollBound === '1') return;
+  header.dataset.tfScrollBound = '1';
+  const onScroll = () => {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    header.classList.toggle('collapsed', y > 120);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+function tfRenderHeader() {
+  const tickerEl = document.getElementById('trade-summary-ticker');
+  const stratEl  = document.getElementById('trade-summary-strategy');
+  if (!tickerEl || !stratEl) return;
+  window.tfBindHeaderScroll();
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  window.tfEnsureSummaryControls(m);
+
+  const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
+  const tickerInput = document.getElementById('tf-summary-ticker-input');
+  if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
+  window.tfUpdateTickerMemory('tf-summary-ticker-memory', ticker);
+
+  const struct = window.tfStructureValue(m);
+  document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tfStructure === struct);
+  });
+  const dir = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
+  document.querySelectorAll('#trade-summary-strategy [data-tf-summary-dir]').forEach(b => {
+    b.classList.toggle('selected', b.dataset.tfSummaryDir === dir);
+  });
+
+  window.tfUpdateSummaryStatus();
+  // Mode toggle highlight
+  document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tradeMode === m);
+  });
+}
+
+function tfRenderActions() {
+  const backBtn = document.getElementById('trade-back-btn');
+  const contBtn = document.getElementById('trade-continue-btn');
+  const contLbl = document.getElementById('trade-continue-label');
+  const reasonEl = document.getElementById('trade-action-reason');
+  if (!backBtn || !contBtn) return;
+  const cur = state.tradeFlow.step || 1;
+  const max = window.tfStepCount();
+  const compl = window.tfStepCompletion();
+  const st = window.tfComputeStatus();
+  if (reasonEl) reasonEl.textContent = '';
+
+  // Single-screen (intraday): just GO. Back leaves the panel.
+  if (window.tfIsSingleScreen()) {
+    backBtn.disabled = false;
+    backBtn.textContent = '← Home';
+    contBtn.classList.add('go');
+    contLbl.textContent = 'GO';
+    contBtn.disabled = st.tone !== 'ready';
+    return;
+  }
+
+  // Swing — paginated. Step 1's Back goes Home; later steps go back a step.
+  backBtn.disabled = false;
+  backBtn.textContent = cur <= 1 ? '← Home' : 'Back';
+
+  const isLast = cur >= max;
+  if (isLast) {
+    contBtn.classList.add('go');
+    contLbl.textContent = 'GO';
+    contBtn.disabled = st.tone !== 'ready';
+  } else {
+    contBtn.classList.remove('go');
+    contLbl.textContent = 'Continue';
+    const stepOk = compl.slice(0, cur).every(Boolean);
+    contBtn.disabled = !stepOk;
+  }
+}
+
+function tfGoToStep(n) {
+  // Single-screen mode — every "step" is already in the DOM, so jumping
+  // means scrolling to the matching group anchor and dropping focus into
+  // its first interactive control. Status-pill clicks and gate-row jumps
+  // both feed through here.
+  if (window.tfIsSingleScreen()) {
+    const target = document.getElementById(`tf-i-group-${n}`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Brief highlight to confirm where we landed.
+      target.classList.remove('tf-flash');
+      // Reflow so re-adding the class re-triggers the animation.
+      void target.offsetWidth;
+      target.classList.add('tf-flash');
+      const focusable = target.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+      if (focusable) { try { focusable.focus({ preventScroll: true }); } catch(_) {} }
+    }
+    return;
+  }
+  const max = window.tfStepCount();
+  state.tradeFlow.step = Math.max(1, Math.min(max, n));
+  saveState();
+  window.renderTrade();
+}
+
+function tfSetMode(mode) {
+  if (mode !== 'swing' && mode !== 'intraday') return;
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  state.tradeFlow.mode = mode;
+  state.tradeFlow.step = 1;
+  saveState();
+  window.renderTrade();
+}
+
+function tfReset() {
+  if (!confirm('Clear all current analysis fields? Trade log is unchanged.')) return;
+  const m = state.tradeFlow.mode;
+  state.selectedSetup = null;
+  if (m === 'swing') {
+    state.ticker = '';
+    state.direction = null;
+    state.structure = 'options';
+    state.instrument = 'options';
+    state.ivr = null;
+    state.premium = null;
+    state.atr = null;
+    state.underlyingPrice = null;
+    state.gateChecks = {};
+    state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+    state.tradeFlow.swingPremiumManual = false;
+  } else {
+    state.intraday = newIntradayTicket();
+    state.intradayQuality = { timeOverride: false };
+  }
+  state.tradeFlow.step = 1;
+  state.tradeFlow.thesis = '';
+  state.tradeFlow.preMortem = '';
+  state.tradeFlow.intradayDraft = {};
+  state.tradeFlow.moonshotR = 3;
+  saveState();
+  window.renderTrade();
+}
+
+// ============== Step body renderers ==============
+
+function tfStepBody(step) {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (step > window.tfStepCount()) step = window.tfStepCount();
+  if (step < 1) step = 1;
+  if (m === 'swing') {
+    if (step === 1) return window.tfSwingStep2();
+    if (step === 2) return window.tfSwingStep1() + window.tfSwingContractSpecHtml();
+    if (step === 3) return window.tfSwingStep3();
+    if (step === 4) return window.tfSwingStep4();
+    return '';
+  }
+  // Intraday — single screen. Render every section, separated by a small
+  // group divider so the user has visual anchors to scroll between.
+  const names = window.tfStepNames();
+  const wrap = (idx, html) => `
+    <div class="trade-step-group" id="tf-i-group-${idx + 1}">
+      <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
+      ${html}
+    </div>`;
+  const planAndSize = window.tfIntradayInstrument() === 'stocks'
+    ? window.tfIntradayStep2() + window.tfIntradayStep3()
+    : window.tfIntradayStep3() + window.tfIntradayStep2();
+  return wrap(0, window.tfIntradayStep1())
+       + wrap(1, planAndSize)
+       + wrap(2, window.tfIntradayStep4());
+}
+
+// ----- Swing technicals — pick one of 5 approved patterns -----
+// Ticker, direction, and structure live in the sticky header. This screen is
+// the chart/setup picker after the quality gates pass.
+
+function tfMountStep(step) {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'swing') {
+    const max = window.tfStepCount();
+    if (step > max) step = max;
+    if (step < 1) step = 1;
+    if (step === 1) window.tfMountSwingStep2();
+    if (step === 2) {
+      window.tfMountSwingStep1();
+      window.tfMountSwingContractSpec();
+    }
+    if (step === 3) window.tfMountSwingStep3();
+    if (step === 4) window.tfMountSwingStep4();
+    return;
+  }
+  // Intraday single-screen — every section is in the DOM, mount all of them.
+  window.tfMountIntradayStep1();
+  window.tfMountIntradayStep2();
+  window.tfMountIntradayStep3();
+  window.tfMountIntradayStep4();
+}
+
+function tfRefreshHeaderOnly() {
+  window.tfRenderHeader();
+  window.tfRenderStepper();
+  window.tfRenderActions();
+}
+
+function tfRefreshAll() {
+  // Re-renders step body too. Use only when input focus isn't an issue.
+  window.renderTrade();
+}
+
+function tfContinue() {
+  if (window.tfIsSingleScreen()) {
+    window.tfLogIntradayDirect();
+    return;
+  }
+  const cur = state.tradeFlow.step || 1;
+  const max = window.tfStepCount();
+  if (cur < max) {
+    window.tfGoToStep(cur + 1);
+    return;
+  }
+  // Last step → GO. Direct log with styled confirm — no native modal.
+  const m = state.tradeFlow.mode;
+  if (m === 'swing') window.tfLogSwingDirect();
+  else               window.tfLogIntradayDirect();
+}
+
+// Styled confirm dialog. `bodyHtml` is trusted markup we build ourselves —
+// not user input — so innerHTML is safe here. Calls onConfirm() if user
+// clicks Confirm, drops if user cancels.
+function tfShowConfirm({ title = 'Confirm', okLabel = 'Confirm', bodyHtml = '', onConfirm }) {
+  const modal = document.getElementById('modal-tf-confirm');
+  if (!modal) { if (onConfirm) onConfirm(); return; }
+  document.getElementById('tf-confirm-title').textContent = title;
+  document.getElementById('tf-confirm-body').innerHTML = bodyHtml;
+  const okBtn = document.getElementById('tf-confirm-ok');
+  okBtn.textContent = okLabel;
+
+  const cancel = document.getElementById('tf-confirm-cancel');
+  const xBtn   = document.getElementById('tf-confirm-x');
+
+  // Replace the click handlers via clone so prior bindings don't pile up.
+  const fresh = (el) => { const c = el.cloneNode(true); el.parentNode.replaceChild(c, el); return c; };
+  const newOk = fresh(okBtn);
+  const newCancel = fresh(cancel);
+  const newX = fresh(xBtn);
+
+  const close = () => modal.classList.remove('show');
+  newOk.addEventListener('click', () => { close(); if (onConfirm) onConfirm(); });
+  newCancel.addEventListener('click', close);
+  newX.addEventListener('click', close);
+
+  modal.classList.add('show');
+  // Move focus to the OK button so Enter confirms, Esc cancels (browsers'
+  // default behavior on dialogs).
+  setTimeout(() => { try { newOk.focus(); } catch (_) {} }, 30);
+}
+
+// Build a swing trade record from current flow state and log it. Confirms
+// first so the user can spot a wrong number before it lands in the journal.
+function tfLogSwingDirect() {
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const isOptions = state.instrument !== 'stocks';
+  const premium = Number(state.premium);
+  const atr = Number(state.atr);
+  const upx = Number(state.underlyingPrice);
+
+  // Sizing: regime risk%, halved for Edge Reversal. Same math as the legacy
+  // calc — we replicate it inline to avoid a dependency on the modal.
+  let riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskDollars = settings.account * riskPct;
+  const stopFraction = (settings.stopPct || 50) / 100;
+  let contracts = 1;
+  let stopUnderlying = null;
+  if (isOptions) {
+    const maxLossPerContract = premium * stopFraction * 100;
+    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+    if (atr > 0 && upx > 0) {
+      const dist = atr * 1.5;
+      stopUnderlying = +(state.direction === 'short' ? upx + dist : upx - dist).toFixed(2);
+    }
+  } else {
+    const maxLossPerShare = premium * stopFraction;
+    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+  }
+
+  const ticker = (state.ticker || '').toUpperCase();
+  const directionLabel = state.direction === 'short' ? 'Short' : 'Long';
+  const regimeText = (typeof REGIME_DATA !== 'undefined' && REGIME_DATA[state.regime])
+    ? REGIME_DATA[state.regime].text
+    : (state.regime || 'risk-on').toUpperCase();
+
+  if (!ticker || !state.selectedSetup || !premium || premium <= 0) {
+    if (typeof toast === 'function') window.toast('Missing required field — go back and check the inputs.', true);
+    return;
+  }
+
+  // Build a styled summary for the confirm modal.
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+  const sizeLine = isOptions
+    ? `${premium.toFixed(2)} premium × ${contracts} contract${contracts > 1 ? 's' : ''}`
+    : `$${premium.toFixed(2)} × ${contracts} share${contracts > 1 ? 's' : ''}`;
+  const thesisHtml = state.tradeFlow.thesis
+    ? `<div class="tf-confirm-thesis">${esc(state.tradeFlow.thesis)}</div>`
+    : `<div class="tf-confirm-thesis empty">Thesis is empty — log anyway?</div>`;
+  const bodyHtml = `
+    <p style="margin: 0 0 6px;">This trade will be added to the log as <strong>open</strong>.</p>
+    <div class="tf-confirm-summary">
+      <div class="row"><span class="k">Ticker</span><span>${esc(ticker)}</span></div>
+      <div class="row"><span class="k">Setup</span><span>${esc(state.selectedSetup)}</span></div>
+      <div class="row"><span class="k">Direction</span><span>${esc(directionLabel)}</span></div>
+      <div class="row"><span class="k">Size</span><span>${esc(sizeLine)}</span></div>
+      <div class="row"><span class="k">Risk</span><span>$${Math.round(riskDollars)} (${esc(regimeText)})</span></div>
+      ${stopUnderlying ? `<div class="row"><span class="k">Underlying stop</span><span>$${stopUnderlying}</span></div>` : ''}
+    </div>
+    ${thesisHtml}
+  `;
+
+  // Capture values needed for the post-confirm path so the closure stays small.
+  window.tfShowConfirm({
+    title: `Log ${ticker} ${state.selectedSetup}?`,
+    okLabel: 'Confirm & log',
+    bodyHtml,
+    onConfirm: () => window.tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopUnderlying, riskDollars, regimeText }),
+  });
+}
+
+function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopUnderlying, riskDollars, regimeText }) {
+  const nowIso = new Date().toISOString();
+  const liq = state.liquidity || {};
+  const bid = Number(liq.bid);
+  const ask = Number(liq.ask);
+  const mid = isOptions && bid > 0 && ask > 0 ? (bid + ask) / 2 : null;
+  const trade = {
+    id: (typeof genTradeId === 'function') ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+    mode: 'swing',
+    instrument: isOptions ? 'options' : 'stocks',
+    structure: state.structure || (isOptions ? 'options' : 'stocks'),
+    date: new Date().toISOString().split('T')[0],
+    ticker,
+    setup: state.selectedSetup,
+    direction: directionLabel,
+    entry: premium,
+    contracts,
+    shares: isOptions ? null : contracts,
+    ivr: (state.ivr === null || state.ivr === undefined) ? null : Number(state.ivr),
+    bid: isOptions ? (liq.bid ?? null) : null,
+    ask: isOptions ? (liq.ask ?? null) : null,
+    mid,
+    spreadPct: isOptions ? window.deriveSpreadPct(liq) : null,
+    regime: regimeText,
+    thesis: state.tradeFlow.thesis || '',
+    premortem: state.tradeFlow.preMortem || '',
+    stop: stopUnderlying,
+    riskDollars,
+    status: 'open',
+    exit: null, exit_date: null, grade: null, followed_plan: null,
+    emotion: null, exit_reason: null, lesson: null,
+    created_at: nowIso, updated_at: nowIso,
+  };
+
+  if (!Array.isArray(state.trades)) state.trades = [];
+  state.trades.push(trade);
+  saveState();
+  // Trades are too important to wait the 1.5s debounce — push right now.
+  if (typeof doPush === 'function') {
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
+  }
+
+  // Reset the flow and bounce the user to Home so they see the new trade.
+  if (typeof resetFlowSilent === 'function') window.resetFlowSilent();
+  state.tradeFlow.step = 1;
+  state.tradeFlow.thesis = '';
+  state.tradeFlow.preMortem = '';
+  saveState();
+  if (typeof toast === 'function') window.toast(`Logged ${ticker} ${state.selectedSetup || ''}`);
+  if (typeof renderHome === 'function') window.renderHome();
+  if (typeof renderLogStats === 'function') window.renderLogStats();
+  if (typeof renderLogTable === 'function') window.renderLogTable();
+  if (typeof setTab === 'function') window.setTab('home');
+}
+
+// Wrap the existing intraday logger with a styled confirm prompt, then reset
+// the flow's step pointer afterward.
+function tfLogIntradayDirect() {
+  const it = state.intraday || {};
+  const ticker = (it.ticker || '').toUpperCase();
+  const st = window.tfComputeStatus();
+  if (st.tone !== 'ready') {
+    if (typeof toast === 'function') window.toast(st.reason || 'Intraday ticket is not ready yet.', true);
+    return;
+  }
+  if (!ticker || !it.setup || !it.entry || !it.stop || !it.target) {
+    if (typeof toast === 'function') window.toast('Missing required field — go back and check.', true);
+    return;
+  }
+  const isOptions = window.tfIntradayInstrument() !== 'stocks';
+  const setupDef   = TRADE_INTRADAY_SETUPS.find(s => s.id === it.setup) || null;
+  const setupLabel = setupDef ? setupDef.name : it.setup;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+  const dir = (it.direction || '').toUpperCase();
+  const orRow = (setupDef && setupDef.isOrb && (it.orHi || it.orLo || it.orRng))
+    ? `<div class="row"><span class="k">OR (${esc(it.orbType || '30')}-min)</span><span>HI ${esc(it.orHi || '—')} · LO ${esc(it.orLo || '—')} · RNG ${esc(it.orRng || '—')}</span></div>`
+    : '';
+  const confluenceLabel = ((TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || {}).label) || '';
+  const breadthLabel    = ((TRADE_BREADTH_OPTIONS.find(b => b.id === it.breadth) || {}).label) || '';
+  const ctxRow = (confluenceLabel || breadthLabel || it.vwapValue)
+    ? `<div class="row"><span class="k">Context</span><span>${[
+        confluenceLabel,
+        breadthLabel,
+        it.vwapValue ? `VWAP ${esc(it.vwapValue)}` : ''
+      ].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>`
+    : '';
+  const optionRows = isOptions ? `
+      <div class="row"><span class="k">Bid / Ask</span><span>${it.bid ? '$' + esc(it.bid) : '—'} / ${it.ask ? '$' + esc(it.ask) : '—'}${it.mid ? ` · mid $${esc(it.mid)}` : ''}</span></div>
+      <div class="row"><span class="k">Spread</span><span>${it.spreadPct != null ? esc(it.spreadPct) + '%' : '—'}</span></div>
+      <div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`
+    : `<div class="row"><span class="k">Shares</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`;
+  const bodyHtml = `
+    <p style="margin: 0 0 6px;">This intraday trade will be added to the log as <strong>open</strong>.</p>
+    <div class="tf-confirm-summary">
+      <div class="row"><span class="k">Ticker</span><span>${esc(ticker)}</span></div>
+      <div class="row"><span class="k">Instrument</span><span>${isOptions ? 'Options' : 'Stock'}</span></div>
+      <div class="row"><span class="k">Setup</span><span>${esc(setupLabel)}</span></div>
+      <div class="row"><span class="k">Direction</span><span>${esc(dir)}</span></div>
+      <div class="row"><span class="k">Entry</span><span>$${esc(it.entry)}</span></div>
+      <div class="row"><span class="k">Stop</span><span>$${esc(it.stop)}</span></div>
+      <div class="row"><span class="k">Target</span><span>$${esc(it.target)}</span></div>
+      ${optionRows}
+      ${orRow}
+      ${ctxRow}
+    </div>
+  `;
+  window.tfShowConfirm({
+    title: `Log ${ticker} ${setupLabel}?`,
+    okLabel: 'Confirm & log',
+    bodyHtml,
+    onConfirm: () => {
+      if (typeof logIntradayTrade !== 'function') {
+        if (typeof toast === 'function') window.toast('Intraday logging is unavailable.', true);
+        return;
+      }
+      window.logIntradayTrade();
+      state.tradeFlow.step = 1;
+      saveState();
+      if (typeof setTab === 'function') window.setTab('home');
+    },
+  });
+}
+
+// setTab → kept in legacy.js (Phase 11 will move it to src/tabs.js)
+
+window.tfStepCount = tfStepCount;
+window.tfStepNames = tfStepNames;
+window.tfIsSingleScreen = tfIsSingleScreen;
+window.tfStepCompletion = tfStepCompletion;
+window.tfRenderStepper = tfRenderStepper;
+window.tfBindHeaderScroll = tfBindHeaderScroll;
+window.tfRenderHeader = tfRenderHeader;
+window.tfRenderActions = tfRenderActions;
+window.tfGoToStep = tfGoToStep;
+window.tfSetMode = tfSetMode;
+window.tfReset = tfReset;
+window.tfStepBody = tfStepBody;
+window.tfMountStep = tfMountStep;
+window.tfRefreshHeaderOnly = tfRefreshHeaderOnly;
+window.tfRefreshAll = tfRefreshAll;
+window.tfContinue = tfContinue;
+window.tfShowConfirm = tfShowConfirm;
+window.tfLogSwingDirect = tfLogSwingDirect;
+window.tfLogSwingFinalize = tfLogSwingFinalize;
+window.tfLogIntradayDirect = tfLogIntradayDirect;

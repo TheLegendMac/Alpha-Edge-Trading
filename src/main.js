@@ -58,3 +58,15 @@ import './modals/import-export.js';
 import './modals/position-editor.js';
 import './modals/trade-modal.js';
 
+// Phase 10 — trade flow (10 modules).
+import './trade-flow/intraday-helpers.js';
+import './trade-flow/gates.js';
+import './trade-flow/ticker-memory.js';
+import './trade-flow/summary.js';
+import './trade-flow/risk.js';
+import './trade-flow/swing-sizing.js';
+import './trade-flow/intraday-sizing.js';
+import './trade-flow/stepper.js';
+import './trade-flow/swing-steps.js';
+import './trade-flow/intraday-steps.js';
+
