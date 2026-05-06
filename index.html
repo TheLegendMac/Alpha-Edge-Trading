@@ -3996,6 +3996,31 @@ textarea.input-field {
   margin: 0 -24px;
   padding: 18px 24px 14px;
   border-bottom: 1px solid var(--line);
+  transition: padding 0.18s ease;
+}
+#panel-trade .trade-header.collapsed { padding: 10px 24px 8px; }
+#panel-trade .trade-header.collapsed .trade-header-top { margin-bottom: 8px; }
+#panel-trade .trade-header.collapsed .trade-stepper { padding: 4px 0 6px; }
+#panel-trade .trade-header.collapsed .trade-stepper-mobile { padding: 6px 10px; }
+#panel-trade .trade-header.collapsed .trade-summary-row {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+}
+#panel-trade .trade-header.collapsed .trade-summary-cell {
+  padding: 8px 14px;
+  min-height: 0;
+}
+#panel-trade .trade-header.collapsed .trade-summary-cell:nth-child(2) { display: none; }
+#panel-trade .trade-header.collapsed .trade-summary-label,
+#panel-trade .trade-header.collapsed .summary-ticker-memory { display: none; }
+#panel-trade .trade-header.collapsed .summary-ticker-wrap { gap: 0; }
+#panel-trade .trade-header.collapsed .summary-ticker-input {
+  font-size: 18px;
+  padding: 0;
+  letter-spacing: 0.06em;
+  border-bottom: 0;
+}
+#panel-trade .trade-header.collapsed .summary-ticker-input:focus {
+  box-shadow: none;
 }
 #panel-trade .trade-header-top {
   display: flex;
@@ -11138,7 +11163,8 @@ function tfTickerSuggestions(prefix, limit = 8) {
 // HTML for the ticker memory block (Recent pills + history snapshot).
 // Container id = tf-ticker-memory (swing) or tf-i-ticker-memory (intraday).
 function tfRenderTickerMemoryHtml(currentTicker) {
-  const matches = tfTickerSuggestions(currentTicker, 8);
+  const hasInput = !!(currentTicker || '').trim();
+  const matches = tfTickerSuggestions(currentTicker, hasInput ? 8 : 3);
   const hist = currentTicker ? tfTickerHistory(currentTicker) : null;
   const fmtMoney = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
   const snapClass = hist ? (hist.totalPL >= 0 ? 'pos' : 'neg') : '';
@@ -11326,14 +11352,31 @@ function tfUpdateSwingStrategyPreview() {
 }
 
 // Sizing card markup for swing step 4 — also rendered surgically on input.
+// Sum of capital tied up in open positions: options = entry × qty × 100,
+// stocks = entry × qty. Used to reduce sizing's effective account size.
+function tfCapitalDeployed() {
+  const trades = (state.trades || []).filter(t => t && t.status === 'open');
+  return trades.reduce((sum, t) => {
+    const entry = Number(t.entry);
+    const qty = (typeof tradeQty === 'function') ? tradeQty(t) : Number(t.qty ?? t.contracts ?? t.shares ?? 0);
+    if (!Number.isFinite(entry) || !Number.isFinite(qty) || entry <= 0 || qty <= 0) return sum;
+    return sum + (entry * qty * tradeMultiplier(t));
+  }, 0);
+}
+
 function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
   const premium = state.premium;
   if (!premium || premium <= 0) return '';
   const account = settings.account || 10000;
+  const deployed = tfCapitalDeployed();
+  const available = Math.max(0, account - deployed);
   const riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
-  const riskDollars = Math.round(account * riskPct);
+  const riskDollars = Math.round(available * riskPct);
+  const deployedNote = deployed > 0
+    ? ` Capital deployed in open positions $${Math.round(deployed).toLocaleString()} subtracted; available $${Math.round(available).toLocaleString()}.`
+    : '';
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
     const maxLossPerContract = premium * stopFraction * 100;
@@ -11348,7 +11391,7 @@ function tfRenderSwingSizingHtml() {
       <div class="trade-output">
         <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
         <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
-        <div class="trade-output-rationale">Account $${account.toLocaleString()} × ${(riskPct * 100).toFixed(2)}% = $${riskDollars} risk per trade. Stop at ${(settings.stopPct || 50)}% of premium → max loss per contract $${maxLossPerContract.toFixed(0)}.</div>
+        <div class="trade-output-rationale">Account $${account.toLocaleString()} × ${(riskPct * 100).toFixed(2)}% = $${riskDollars} risk per trade. Stop at ${(settings.stopPct || 50)}% of premium → max loss per contract $${maxLossPerContract.toFixed(0)}.${deployedNote}</div>
         <div class="trade-output-grid">
           <div class="trade-output-cell"><span class="trade-output-cell-label">Total premium</span><span class="trade-output-cell-value">$${Math.round(totalPremium)}</span></div>
           <div class="trade-output-cell"><span class="trade-output-cell-label">Profit target</span><span class="trade-output-cell-value">$${target.toFixed(2)} / ct</span></div>
@@ -11364,8 +11407,23 @@ function tfRenderSwingSizingHtml() {
     <div class="trade-output">
       <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
       <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
-      <div class="trade-output-rationale">Stop at ${(settings.stopPct || 5)}% of price → max loss per share $${maxLossPerShare.toFixed(2)}.</div>
+      <div class="trade-output-rationale">Stop at ${(settings.stopPct || 5)}% of price → max loss per share $${maxLossPerShare.toFixed(2)}.${deployedNote}</div>
     </div>`;
+}
+
+function tfRenderSwingSpreadLineHtml() {
+  const liq = state.liquidity || {};
+  const isOptions = state.instrument !== 'stocks';
+  const derived = deriveSpreadPct(liq);
+  if (!isOptions || derived === null) return '';
+  const bidOk = Number(liq.bid) > 0 && Number(liq.ask) > 0;
+  const mid = bidOk ? ((Number(liq.bid) + Number(liq.ask)) / 2).toFixed(2) : null;
+  return `<p class="trade-row-help" style="margin-top:8px;">${mid ? `Mid $${mid} · ` : ''}spread ${Number(derived).toFixed(1)}%</p>`;
+}
+
+function tfUpdateSwingSpreadLine() {
+  const el = document.getElementById('tf-swing-spread-line');
+  if (el) el.innerHTML = tfRenderSwingSpreadLineHtml();
 }
 
 function tfUpdateSwingSizing() {
@@ -11559,13 +11617,13 @@ function tfSpreadBracket(spread) {
 //   Intraday: Levels  → Sizing → Context
 // Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() {
-  return tfIsSingleScreen() ? 3 : 5;
+  return tfIsSingleScreen() ? 4 : 5;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   return m === 'swing'
     ? ['Setup', 'Quality', 'Sizing', 'Checklist', 'Log']
-    : ['Levels', 'Sizing', 'Context'];
+    : ['Setup', 'Levels', 'Sizing', 'Context'];
 }
 function tfIsSingleScreen() {
   return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
@@ -11683,10 +11741,23 @@ function tfRenderStepper() {
   }
 }
 
+function tfBindHeaderScroll() {
+  const header = document.querySelector('#panel-trade .trade-header');
+  if (!header || header.dataset.tfScrollBound === '1') return;
+  header.dataset.tfScrollBound = '1';
+  const onScroll = () => {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    header.classList.toggle('collapsed', y > 120);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
 function tfRenderHeader() {
   const tickerEl = document.getElementById('trade-summary-ticker');
   const stratEl  = document.getElementById('trade-summary-strategy');
   if (!tickerEl || !stratEl) return;
+  tfBindHeaderScroll();
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   tfEnsureSummaryControls(m);
 
@@ -11833,9 +11904,10 @@ function tfStepBody(step) {
       <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
       ${html}
     </div>`;
-  return wrap(0, tfIntradayStep2())
-       + wrap(1, tfIntradayStep3())
-       + wrap(2, tfIntradayStep4());
+  return wrap(0, tfIntradayStep1())
+       + wrap(1, tfIntradayStep2())
+       + wrap(2, tfIntradayStep3())
+       + wrap(3, tfIntradayStep4());
 }
 
 // ----- Swing step 1 — Setup: pick one of 5 approved patterns -----
@@ -12080,10 +12152,7 @@ function tfSwingStep3() {
       </div>
     </div>`).join('');
 
-  const derivedSpread = deriveSpreadPct(liq);
-  const spreadLine = (isOptions && derivedSpread !== null)
-    ? `<p class="trade-row-help" style="margin-top:8px;">${liq.bid > 0 && liq.ask > 0 ? `Mid $${((Number(liq.bid)+Number(liq.ask))/2).toFixed(2)} · ` : ''}spread ${Number(derivedSpread).toFixed(1)}%</p>`
-    : '';
+  const spreadLine = `<div id="tf-swing-spread-line">${tfRenderSwingSpreadLineHtml()}</div>`;
 
   // Sizing card + Gate 06 row — surgically updated by tfUpdateSwingSizing().
   const sizingCard = `<div id="tf-sizing-card">${tfRenderSwingSizingHtml()}</div>`;
@@ -12178,8 +12247,11 @@ function tfMountSwingStep3() {
       if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
         const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
         state.liquidity.spreadPct = mid > 0 ? ((state.liquidity.ask - state.liquidity.bid) / mid) * 100 : null;
+      } else {
+        state.liquidity.spreadPct = null;
       }
       saveState();
+      tfUpdateSwingSpreadLine();
       tfRefreshHeaderOnly();
     });
   });
@@ -12627,12 +12699,11 @@ function tfApplyIntradayPaste(parsed) {
   saveState();
 }
 
-// Section 1 — Pattern. Ticker + setup pattern + direction + breakout type
-// (only when the picked pattern is an ORB variant). Smart-paste icon in
-// the top section header expands an inline alert-text textarea.
+// Section 1 — Setup picker (parallel to swing's setup step). Ticker, direction,
+// and instrument all live in the sticky header; ORB range chips appear when an
+// ORB variant is picked.
 function tfIntradayStep1() {
   const it = state.intraday || {};
-  const instrument = tfIntradayInstrument();
   const setupDef = tfFindIntradaySetup(it.setup);
   const isOrb = !!(setupDef && setupDef.isOrb);
   const cards = TRADE_INTRADAY_SETUPS.map(s => {
@@ -12648,148 +12719,36 @@ function tfIntradayStep1() {
   }).join('');
 
   const orbChips = isOrb ? `
-    <div class="tf-chip-row" id="tf-i-orb-chips">
+    <div class="tf-chip-row" id="tf-i-orb-chips" style="margin-top:12px;">
       <span class="tf-chip-row-label">Range:</span>
       ${TRADE_ORB_TYPES.map(o => `
         <button type="button" class="tf-chip ${(it.orbType || '30') === o.id ? 'selected' : ''}" data-tf-i-orb-type="${o.id}">${o.label}</button>
       `).join('')}
     </div>` : '';
 
-  const dirLong  = it.direction === 'long';
-  const dirShort = it.direction === 'short';
-  const dirHint  = setupDef
-    ? (setupDef.bias === 'long'  ? 'Auto-aligned LONG by setup.'
-     : setupDef.bias === 'short' ? 'Auto-aligned SHORT by setup.'
-     :                             'MEAN-RV: choose direction.')
-    : 'Auto-aligns after setup pick.';
-
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker</div>
-          <div class="trade-section-subtitle">Symbol you're trading. Smart paste reads TOS alert text and fills the fields below.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">1.</span> Pick the setup</div>
+          <div class="trade-section-subtitle">Mirrors your ThinkScript labels. Direction auto-aligns from the picked pattern's bias.</div>
         </div>
-        <button type="button" class="tf-paste-btn" id="tf-i-paste-toggle" title="Paste a TOS alert message">
-          <span class="tf-paste-icon">⎘</span>
-          <span>Paste alert</span>
-        </button>
-      </div>
-      <div class="trade-section-body">
-        <div class="tf-paste-wrap" id="tf-i-paste-wrap" hidden>
-          <textarea class="trade-textarea" id="tf-i-paste-input" rows="4" placeholder="Paste TOS alert / chart label text. Example:&#10;ORB UP-BREAK | OR_HI=486.20 | OR_LO=484.75 | RNG=1.45&#10;INTRADAY: LONG BIAS (above VWAP + EMA stack) | VWAP: 486.50 | Diff: 0.12%&#10;BREADTH UP BID=2.10 ASK=2.20 QTY=2"></textarea>
-          <div class="tf-paste-actions">
-            <button type="button" class="btn-primary" id="tf-i-paste-apply">Apply</button>
-            <button type="button" class="btn-ghost" id="tf-i-paste-clear">Clear</button>
-            <span class="tf-paste-hint" id="tf-i-paste-hint">Reads ORB / VWAP / BREADTH labels, OR levels, VWAP, bid/ask, spread, quantity, entry, stop, and target.</span>
-          </div>
-        </div>
-        ${tfInstrumentToggleHtml(instrument, 'data-tf-i-instrument')}
-        <div class="trade-input-row" style="grid-template-columns: 1fr;">
-          <div>
-            <label class="input-label">Ticker</label>
-            <input type="text" maxlength="10" class="trade-input" id="tf-i-ticker" placeholder="Ticker symbol"
-              value="${(it.ticker || '').toString()}" autocomplete="off" style="text-transform: uppercase;" />
-          </div>
-        </div>
-        <div id="tf-i-ticker-memory">${tfRenderTickerMemoryHtml(it.ticker)}</div>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Setup &amp; direction</div>
-          <div class="trade-section-subtitle">Mirrors your ThinkScript labels. Direction auto-aligns, with manual override when needed.</div>
-        </div>
-        <div class="trade-section-counter ${it.setup && it.direction ? 'complete' : ''}">${it.setup && it.direction ? it.direction.toUpperCase() : 'pick setup'}</div>
+        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid">${cards}</div>
         ${orbChips}
-        <div class="tf-chip-row" style="margin-top:12px;">
-          <span class="tf-chip-row-label">Direction:</span>
-          <button type="button" class="trade-direction-btn long ${dirLong ? 'selected' : ''}" data-tf-i-dir="long">▲ LONG</button>
-          <button type="button" class="trade-direction-btn short ${dirShort ? 'selected' : ''}" data-tf-i-dir="short">▼ SHORT</button>
-          <span class="input-help" style="margin:0;">${dirHint}</span>
-        </div>
       </div>
     </div>
   `;
 }
 
 function tfMountIntradayStep1() {
-  document.querySelectorAll('#panel-trade [data-tf-i-instrument]').forEach(b => {
-    b.addEventListener('click', () => tfSetIntradayInstrument(b.dataset.tfIInstrument));
-  });
-  // Smart-paste toggle + apply.
-  const pasteToggle = document.getElementById('tf-i-paste-toggle');
-  const pasteWrap   = document.getElementById('tf-i-paste-wrap');
-  if (pasteToggle && pasteWrap) {
-    pasteToggle.addEventListener('click', () => {
-      pasteWrap.hidden = !pasteWrap.hidden;
-      if (!pasteWrap.hidden) {
-        const ta = document.getElementById('tf-i-paste-input');
-        if (ta) { try { ta.focus(); } catch (_) {} }
-      }
-    });
-  }
-  const pasteApply = document.getElementById('tf-i-paste-apply');
-  if (pasteApply) {
-    pasteApply.addEventListener('click', () => {
-      const ta = document.getElementById('tf-i-paste-input');
-      const hint = document.getElementById('tf-i-paste-hint');
-      if (!ta) return;
-      const parsed = tfParseIntradayPaste(ta.value);
-      const keys = Object.keys(parsed);
-      if (!keys.length) {
-        if (hint) { hint.textContent = 'No recognizable values found.'; hint.style.color = 'var(--amber-bright)'; }
-        return;
-      }
-      tfApplyIntradayPaste(parsed);
-      if (hint) {
-        hint.textContent = `Applied ${keys.length} value${keys.length === 1 ? '' : 's'}: ${keys.join(', ')}.`;
-        hint.style.color = 'var(--green-bright)';
-      }
-      tfRefreshAll();
-    });
-  }
-  const pasteClear = document.getElementById('tf-i-paste-clear');
-  if (pasteClear) {
-    pasteClear.addEventListener('click', () => {
-      const ta = document.getElementById('tf-i-paste-input');
-      const hint = document.getElementById('tf-i-paste-hint');
-      if (ta) ta.value = '';
-      if (hint) { hint.textContent = 'Reads ORB / VWAP / BREADTH labels, OR levels, VWAP, bid/ask, spread, quantity, entry, stop, and target.'; hint.style.color = ''; }
-    });
-  }
-
-  // Ticker input + history snapshot (per Phase-2 ticker-memory feature).
-  const t = document.getElementById('tf-i-ticker');
-  if (t) {
-    t.addEventListener('input', e => {
-      state.intraday.ticker = (e.target.value || '').toUpperCase();
-      saveState();
-      tfRefreshHeaderOnly();
-      tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
-    });
-  }
-  tfUpdateTickerMemory('tf-i-ticker-memory', state.intraday.ticker);
-
-  // Direction toggle — manual override allowed even if it conflicts with
-  // the setup's bias (status pill will surface the mismatch).
-  document.querySelectorAll('#panel-trade [data-tf-i-dir]').forEach(b => {
-    b.addEventListener('click', () => {
-      state.intraday.direction = b.dataset.tfIDir;
-      saveState();
-      tfRefreshAll();
-    });
-  });
-
   // Setup pattern — auto-align direction with bias on first pick.
   document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
     b.addEventListener('click', () => {
       const id = b.dataset.tfISetup;
+      if (!state.intraday) state.intraday = newIntradayTicket();
       state.intraday.setup = id;
       const def = tfFindIntradaySetup(id);
       if (def && def.bias === 'long')  state.intraday.direction = 'long';
@@ -12800,9 +12759,10 @@ function tfMountIntradayStep1() {
     });
   });
 
-  // ORB type chips (only present when setup is an ORB variant).
+  // ORB range chips (only present when setup is an ORB variant).
   document.querySelectorAll('#panel-trade [data-tf-i-orb-type]').forEach(b => {
     b.addEventListener('click', () => {
+      if (!state.intraday) state.intraday = newIntradayTicket();
       state.intraday.orbType = b.dataset.tfIOrbType;
       saveState();
       tfRefreshAll();
@@ -13296,6 +13256,7 @@ function tfMountStep(step) {
     return;
   }
   // Intraday single-screen — every section is in the DOM, mount all of them.
+  tfMountIntradayStep1();
   tfMountIntradayStep2();
   tfMountIntradayStep3();
   tfMountIntradayStep4();
