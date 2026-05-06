@@ -45,3 +45,10 @@ import './intel/alpha.js';
 import './intel/clt-card.js';
 import './intel/backtest.js';
 
+// Phase 8 — views.
+import './views/home.js';
+import './views/log.js';
+import './views/sunday.js';
+import './views/reference.js';
+import './views/settings.js';
+
