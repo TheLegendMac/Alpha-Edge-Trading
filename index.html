@@ -7734,10 +7734,10 @@ function deriveSpreadPct(liq) {
 
 function liquidityOK() {
   const liq = state.liquidity || {};
-  const derivedSpread = deriveSpreadPct(liq);
   if (state.instrument === "stocks") {
-    return Number(liq.stockVol) >= 1000000 && (derivedSpread === null || derivedSpread <= 5);
+    return Number(liq.stockVol) >= 1000000;
   }
+  const derivedSpread = deriveSpreadPct(liq);
   return Number(liq.stockVol) >= 1000000
       && Number(liq.optionOI) >= 500
       && Number(liq.optionVol) >= 100
@@ -9524,6 +9524,7 @@ function resetFlowSilent() {
   state.daysToEarnings = null;
   state.gateChecks = {};
   state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
   saveState();
   if (typeof renderTrade === 'function') renderTrade();
 }
@@ -10958,13 +10959,16 @@ function tfComputeRolling30dPL() {
 // Pure gate evaluation — doesn't mutate state
 function tfEvaluateGates() {
   const liqOk = (typeof liquidityOK === 'function') ? liquidityOK() : !!state.gateChecks['04'];
+  const isOptions = state.instrument !== 'stocks';
   return {
     '01': state.saQuant !== null && state.saQuant !== undefined && state.saQuant >= 3.5,
     '02': !!state.gateChecks['02'],
     '03': !!state.gateChecks['03'],
     '04': liqOk,
     '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= 8,
-    '06': state.atr !== null && state.atr > 0 && state.underlyingPrice !== null && state.underlyingPrice > 0,
+    '06': isOptions
+      ? state.atr !== null && state.atr > 0 && state.underlyingPrice !== null && state.underlyingPrice > 0
+      : state.premium !== null && state.premium > 0,
   };
 }
 
@@ -11002,7 +11006,7 @@ function tfComputeStatus() {
     // 3 Size — liquidity + premium / ATR / underlying
     if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 3 };
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 3 };
+      return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add share price', step: 3 };
     }
     if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
       return { tone: 'progress', reason: 'Add ATR(14)', step: 3 };
@@ -11011,8 +11015,8 @@ function tfComputeStatus() {
       return { tone: 'progress', reason: 'Add underlying price', step: 3 };
     }
     if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 3 };
-    // 5 Log — every gate green; ready to fire.
-    return { tone: 'ready', reason: 'Ready to log', step: 5 };
+    // 4 Log — every gate green; ready to fire.
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   if (m === 'intraday') {
@@ -11414,6 +11418,29 @@ function tfRenderSwingSizingHtml() {
     </div>`;
 }
 
+function tfSwingQuoteMid(liq = (state.liquidity || {})) {
+  const bid = Number(liq.bid);
+  const ask = Number(liq.ask);
+  if (!(bid > 0 && ask > 0 && ask >= bid)) return null;
+  return +(((bid + ask) / 2).toFixed(2));
+}
+
+function tfCanAutoFillSwingPremium(previousMid = null) {
+  if (state.tradeFlow && state.tradeFlow.swingPremiumManual) return false;
+  const premium = Number(state.premium);
+  if (!(premium > 0)) return true;
+  return previousMid !== null && Math.abs(premium - previousMid) < 0.005;
+}
+
+function tfAutoFillSwingPremiumFromQuote(previousMid = null) {
+  if (state.instrument === 'stocks') return false;
+  const mid = tfSwingQuoteMid();
+  if (mid === null || !tfCanAutoFillSwingPremium(previousMid)) return false;
+  state.premium = mid;
+  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
+  return true;
+}
+
 function tfRenderSwingSpreadLineHtml() {
   const liq = state.liquidity || {};
   const isOptions = state.instrument !== 'stocks';
@@ -11421,7 +11448,7 @@ function tfRenderSwingSpreadLineHtml() {
   if (!isOptions || derived === null) return '';
   const bidOk = Number(liq.bid) > 0 && Number(liq.ask) > 0;
   const mid = bidOk ? ((Number(liq.bid) + Number(liq.ask)) / 2).toFixed(2) : null;
-  return `<p class="trade-row-help" style="margin-top:8px;">${mid ? `Mid $${mid} · ` : ''}spread ${Number(derived).toFixed(1)}%</p>`;
+  return `<p class="trade-row-help" style="margin-top:8px;">${mid ? `Mid $${mid} · ` : ''}spread ${Number(derived).toFixed(1)}%${mid ? ' · entry premium fills from mid unless you override it.' : ''}</p>`;
 }
 
 function tfUpdateSwingSpreadLine() {
@@ -11432,6 +11459,12 @@ function tfUpdateSwingSpreadLine() {
 function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
   if (card) card.innerHTML = tfRenderSwingSizingHtml();
+  const premiumCounter = document.getElementById('tf-premium-counter');
+  if (premiumCounter) {
+    const ok = Number(state.premium) > 0;
+    premiumCounter.classList.toggle('complete', ok);
+    premiumCounter.textContent = ok ? '1 set' : 'fill 1';
+  }
   // Gate 06 row also reflects ATR + underlying — refresh in place.
   const gateRow = document.getElementById('tf-stop-gate');
   if (gateRow) {
@@ -11614,17 +11647,17 @@ function tfSpreadBracket(spread) {
 // ----- Rendering -----
 
 // The sticky header now owns ticker, setup, structure, and direction.
-// Swing paginates through four supporting steps. Intraday is a single screen
+// Swing paginates through three supporting steps. Intraday is a single screen
 // ordered around the fastest fill path: setup, quote, derived levels, context.
-//   Swing:    Quality → Sizing → Checklist → Log
+//   Swing:    Quality → Sizing → Log
 //   Intraday: Quote   → Levels → Context
 // Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() {
-  return tfIsSingleScreen() ? 4 : 5;
+  return 4;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  if (m === 'swing') return ['Setup', 'Quality', 'Sizing', 'Checklist', 'Log'];
+  if (m === 'swing') return ['Setup', 'Quality', 'Sizing', 'Log'];
   return tfIntradayInstrument() === 'stocks'
     ? ['Setup', 'Levels', 'Shares', 'Context']
     : ['Setup', 'Quote', 'Levels', 'Context'];
@@ -11638,42 +11671,32 @@ function tfIsSingleScreen() {
 // status pill is still the source of truth for "OK to fire".
 function tfStepCompletion() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const c = m === 'swing'
-    ? [false, false, false, false, false]
-    : [false, false, false, false];
+  const c = [false, false, false, false];
 
   if (m === 'swing') {
     const isOptions = state.instrument !== 'stocks';
-    const liq = state.liquidity || {};
     const gates = tfEvaluateGates();
 
     // 1 Setup — ticker + direction + setup pattern (header + setup-cards body).
     const headerReady = !!(state.selectedSetup && state.direction && state.ticker);
     c[0] = headerReady;
 
-    // 2 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
-    //          Momentum gates) PLUS the structural read (IV Rank).
-    const eligDone = (state.saQuant !== null && state.saQuant !== undefined)
-                  && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
-                  && gates['02'] && gates['03'];
-    const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
-    c[1] = !!(headerReady && eligDone && ivrSet);
+    // 2 Quality — eligibility gates plus IV Rank for options.
+    const qualityInputsDone = (state.saQuant !== null && state.saQuant !== undefined)
+                           && (state.daysToEarnings !== null && state.daysToEarnings !== undefined);
+    const qualityGatesOk = gates['01'] && gates['02'] && gates['03'] && gates['05'];
+    const ivrOk = !isOptions || (state.ivr !== null && state.ivr !== undefined && Number(state.ivr) < 70);
+    c[1] = !!(headerReady && qualityInputsDone && qualityGatesOk && ivrOk);
 
-    // 3 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
-    const liqFilled = isOptions
-      ? (liq.stockVol > 0 && liq.optionOI > 0 && liq.optionVol > 0 && liq.bid > 0 && liq.ask > 0)
-      : (liq.stockVol > 0);
+    // 3 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
     const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
-    c[2] = !!(headerReady && liqFilled && sizingFilled);
+    c[2] = !!(headerReady && gates['04'] && gates['06'] && sizingFilled);
 
-    // 4 Checklist — read-only gate summary; complete when every gate passes.
-    c[3] = !!(headerReady && ['01', '02', '03', '04', '05', '06'].every(k => gates[k]));
-
-    // 5 Log — flips green only when overall status is 'ready'.
+    // 4 Log — flips green only when the whole swing ticket is ready.
     const st = tfComputeStatus();
-    c[4] = c[1] && c[2] && c[3] && st.tone === 'ready';
+    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
     return c;
   }
 
@@ -11882,6 +11905,7 @@ function tfReset() {
     state.underlyingPrice = null;
     state.gateChecks = {};
     state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+    state.tradeFlow.swingPremiumManual = false;
   } else {
     state.intraday = newIntradayTicket();
     state.intradayQuality = { timeOverride: false };
@@ -11905,7 +11929,6 @@ function tfStepBody(step) {
     if (step === 2) return tfSwingStep2();
     if (step === 3) return tfSwingStep3();
     if (step === 4) return tfSwingStep4();
-    if (step === 5) return tfSwingStep5();
     return '';
   }
   // Intraday — single screen. Render every section, separated by a small
@@ -12149,8 +12172,10 @@ function tfSwingStep3() {
   const premium = state.premium;
   const atr     = state.atr;
   const upx     = state.underlyingPrice;
-  const reqLabel = isOptions ? 'Premium per contract ($)' : 'Share price ($)';
-  const reqHelp  = isOptions ? 'Mid of bid/ask from the TOS option chain.' : 'Current share price for sizing math.';
+  const reqLabel = isOptions ? 'Entry premium / mid ($)' : 'Share price ($)';
+  const reqHelp  = isOptions
+    ? 'Auto-filled from bid/ask mid. Edit only when your actual limit differs.'
+    : 'Current share price for sizing math.';
 
   // Liquidity row inputs — fields differ between options and stocks.
   const liqInputs = [
@@ -12234,17 +12259,18 @@ function tfSwingStep3() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> ${isOptions ? 'Option premium' : 'Share price'}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> ${isOptions ? 'Entry premium' : 'Share price'}</div>
           <div class="trade-section-subtitle">${reqHelp}</div>
         </div>
-        <div class="trade-section-counter ${premium > 0 ? 'complete' : ''}">${premium > 0 ? '1 set' : 'fill 1'}</div>
+        <div class="trade-section-counter ${premium > 0 ? 'complete' : ''}" id="tf-premium-counter">${premium > 0 ? '1 set' : 'fill 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-input-row">
           <div>
             <label class="input-label">${reqLabel}</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-              placeholder="${isOptions ? 'Option mid / limit premium' : 'Share entry price'}" value="${premium ?? ''}" />
+              placeholder="${isOptions ? 'Auto from bid/ask' : 'Share entry price'}" value="${premium ?? ''}" />
+            ${isOptions ? '<div class="input-help">This follows the quote mid until you type your own limit.</div>' : ''}
           </div>
         </div>
         ${sizingCard}
@@ -12255,12 +12281,21 @@ function tfSwingStep3() {
 }
 
 function tfMountSwingStep3() {
+  if (tfAutoFillSwingPremiumFromQuote()) {
+    const premiumEl = document.getElementById('tf-premium');
+    if (premiumEl) premiumEl.value = state.premium;
+    saveState();
+    tfRefreshHeaderOnly();
+    tfUpdateSwingSizing();
+  }
   // Liquidity inputs — silent state writes + surgical header refresh only.
   document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
     el.addEventListener('input', e => {
       const k = e.target.dataset.tfLiq;
       const v = parseFloat(e.target.value);
       if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      const quoteChanged = k === 'bid' || k === 'ask';
+      const previousMid = quoteChanged ? tfSwingQuoteMid(state.liquidity) : null;
       state.liquidity[k] = isNaN(v) ? null : v;
       if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
         const mid = (state.liquidity.bid + state.liquidity.ask) / 2;
@@ -12268,8 +12303,13 @@ function tfMountSwingStep3() {
       } else {
         state.liquidity.spreadPct = null;
       }
+      if (quoteChanged && tfAutoFillSwingPremiumFromQuote(previousMid)) {
+        const premiumEl = document.getElementById('tf-premium');
+        if (premiumEl) premiumEl.value = state.premium;
+      }
       saveState();
       tfUpdateSwingSpreadLine();
+      tfUpdateSwingSizing();
       tfRefreshHeaderOnly();
     });
   });
@@ -12279,6 +12319,10 @@ function tfMountSwingStep3() {
     if (!el) return;
     el.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
+      if (key === 'premium') {
+        if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
+        state.tradeFlow.swingPremiumManual = !isNaN(v) && v > 0;
+      }
       state[key] = isNaN(v) ? null : v;
       saveState();
       tfRefreshHeaderOnly();
@@ -12290,89 +12334,11 @@ function tfMountSwingStep3() {
   wireNum('tf-upx', 'underlyingPrice');
 }
 
-// ----- Swing step 4 — Verify: read-only 6-gate summary -----
-// Goal: one screen that shows what passed, what failed, and where to fix
-// each. Anything red → click status pill or stepper to jump back.
+// ----- Swing step 4 — Execute -----
+// Goal: review at-a-glance, place the order in TOS, then log.
 
 function tfSwingStep4() {
-  const gates = tfEvaluateGates();
-  const passed = ['01','02','03','04','05','06'].filter(k => gates[k]).length;
-  const allGreen = passed === 6;
-
-  const gateMeta = {
-    '01': { name: 'SA Quant Rating ≥ 3.50',          where: 'Step 2', step: 2 },
-    '02': { name: 'Profitability grade B− or better', where: 'Step 2', step: 2 },
-    '03': { name: 'Momentum grade B− or better',      where: 'Step 2', step: 2 },
-    '04': { name: 'Stock + option liquidity',         where: 'Step 3', step: 3 },
-    '05': { name: 'Earnings ≥ 7 days away',           where: 'Step 2', step: 2 },
-    '06': { name: 'Stop level set (ATR + price)',     where: 'Step 3', step: 3 },
-  };
-
-  const gateRow = (k) => {
-    const ok = gates[k];
-    const m  = gateMeta[k];
-    return `
-      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-jump="${m.step}">
-        <span class="trade-row-check">${ok ? '✓' : ''}</span>
-        <span class="trade-row-main">
-          <span class="trade-row-name"><small>GATE ${k}</small> ${m.name}</span>
-          <span class="trade-row-help">${ok ? 'Pass' : 'Fix in'} ${m.where}</span>
-        </span>
-        <span class="trade-row-pill">${ok ? 'PASS' : 'FAIL'}</span>
-      </button>`;
-  };
-
-  const banner = allGreen
-    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
-         <div class="trade-output-title">All checks pass</div>
-         <div class="trade-output-main">Cleared to execute</div>
-         <div class="trade-output-rationale">Continue to step 5 to log the thesis and place the order.</div>
-       </div>`
-    : `<div class="trade-output">
-         <div class="trade-output-title">${6 - passed} gate${6 - passed === 1 ? '' : 's'} still blocking</div>
-         <div class="trade-output-main">${passed} of 6 passed</div>
-         <div class="trade-output-rationale">Click any failing row to jump back and fix it.</div>
-       </div>`;
-
-  return `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality gates</div>
-          <div class="trade-section-subtitle">Read-only — every gate must pass before GO unlocks.</div>
-        </div>
-        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of 6 passed</div>
-      </div>
-      <div class="trade-section-body">
-        ${banner}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
-          ${gateRow('01')}
-          ${gateRow('02')}
-          ${gateRow('03')}
-          ${gateRow('04')}
-          ${gateRow('05')}
-          ${gateRow('06')}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function tfMountSwingStep4() {
-  // Each row is a jump-to-fix button. Saves the user from hunting.
-  document.querySelectorAll('#panel-trade [data-tf-jump]').forEach(el => {
-    el.addEventListener('click', () => {
-      const target = parseInt(el.dataset.tfJump, 10);
-      if (target) tfGoToStep(target);
-    });
-  });
-}
-
-// ----- Swing step 5 — Execute -----
-// Goal: review at-a-glance, place the order in TOS, then log. Compact gate
-// summary up top so the user sees what's still red without going back.
-
-function tfSwingStep5() {
+  const isOptions = state.instrument !== 'stocks';
   const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
   const thesis = state.tradeFlow.thesis || '';
   const preMortem = state.tradeFlow.preMortem || '';
@@ -12385,6 +12351,16 @@ function tfSwingStep5() {
   const premium = state.premium;
   const stopPrice = (premium > 0) ? (premium * (1 - (settings.stopPct || 50)/100)).toFixed(2) : '—';
   const targetPrice = (premium > 0) ? (premium * (1 + (settings.targetPct || 50)/100)).toFixed(2) : '—';
+  const orderSteps = isOptions ? `
+          <li>Open option chain in TOS (Trade tab → ${state.ticker || 'ticker'} → Option Chain).</li>
+          <li>Right-click the contract → Buy → With OCO Bracket.</li>
+          <li>Entry limit ≈ $${premium ? premium.toFixed(2) : '—'} · target +${settings.targetPct || 50}% ($${targetPrice}) · stop ${settings.stopPct || 50}% ($${stopPrice}).</li>
+          <li>Submit in TOS, then click GO below to log the thesis.</li>`
+    : `
+          <li>Open the order ticket in TOS for ${state.ticker || 'ticker'}.</li>
+          <li>Buy the share size from the sizing card.</li>
+          <li>Set your planned stop and target in TOS.</li>
+          <li>Submit in TOS, then click GO below to log the thesis.</li>`;
 
   const templateBtns = tpl ? `
     <div class="trade-templates">
@@ -12406,10 +12382,7 @@ function tfSwingStep5() {
       </div>
       <div class="trade-section-body">
         <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
-          <li>Open option chain in TOS (Trade tab → ${state.ticker || 'ticker'} → Option Chain).</li>
-          <li>Right-click the contract → Buy → With OCO Bracket.</li>
-          <li>Entry limit ≈ $${premium ? premium.toFixed(2) : '—'} · target +${settings.targetPct || 50}% ($${targetPrice}) · stop ${settings.stopPct || 50}% ($${stopPrice}).</li>
-          <li>Submit in TOS, then click GO below to log the thesis.</li>
+          ${orderSteps}
         </ol>
       </div>
     </div>
@@ -12455,7 +12428,7 @@ function tfSwingStep5() {
   `;
 }
 
-function tfMountSwingStep5() {
+function tfMountSwingStep4() {
   const t = document.getElementById('tf-thesis');
   const p = document.getElementById('tf-premortem');
   if (t) t.addEventListener('input', e => { state.tradeFlow.thesis = e.target.value; saveState(); });
@@ -12482,8 +12455,7 @@ function tfMountSwingStep5() {
 }
 
 // ----- Intraday steps (single-screen) -----
-// 5 sections: 1 Pattern → 2 Levels → 3 Sizing → 4 Checklist → 5 Log.
-// All rendered on one page; user Tabs through every input. Layout aligned
+// Four groups rendered on one page; user Tabs through every input. Layout aligned
 // with the user's ThinkScript outputs so chart labels map 1:1 to fields.
 
 // Lookup helper: returns the intraday setup definition (with bias + isOrb).
@@ -13281,7 +13253,6 @@ function tfMountStep(step) {
     if (step === 2) tfMountSwingStep2();
     if (step === 3) tfMountSwingStep3();
     if (step === 4) tfMountSwingStep4();
-    if (step === 5) tfMountSwingStep5();
     return;
   }
   // Intraday single-screen — every section is in the DOM, mount all of them.
