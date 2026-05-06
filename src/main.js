@@ -37,3 +37,11 @@ import './sync/auth-modal.js';
 import './market/regime.js';
 import './market/context-panel.js';
 
+// Phase 7 — intel cards. rolling depends on trade.js (already imported).
+// alpha depends on rolling, so order matters.
+import './intel/glossary.js';
+import './intel/rolling.js';
+import './intel/alpha.js';
+import './intel/clt-card.js';
+import './intel/backtest.js';
+
