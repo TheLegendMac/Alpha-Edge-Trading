@@ -4199,16 +4199,27 @@ textarea.input-field {
   color: var(--cyan);
   box-shadow: 0 1px 0 0 var(--cyan);
 }
+#panel-trade .summary-ticker-memory {
+  width: 100%;
+  margin-top: 2px;
+}
+#panel-trade .summary-ticker-memory:empty { display: none; }
+#panel-trade .summary-ticker-memory .tf-ticker-pills {
+  margin-top: 0;
+  flex-wrap: wrap;
+}
+#panel-trade .summary-ticker-memory .tf-ticker-snap {
+  margin-top: 6px;
+}
 #panel-trade .summary-strategy-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 #panel-trade .summary-strategy-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 #panel-trade .summary-structure-pills {
   display: grid;
@@ -4241,25 +4252,28 @@ textarea.input-field {
 }
 #panel-trade .summary-direction-toggle {
   display: grid;
-  grid-template-columns: 36px 36px;
+  grid-template-columns: 1fr 1fr;
   gap: 4px;
 }
 #panel-trade .summary-dir-btn {
   height: 32px;
+  padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
   background: rgba(255,255,255,0.035);
   color: var(--ink-3);
   font-family: var(--mono);
-  font-size: 14px;
   font-weight: 900;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
 }
 #panel-trade .summary-dir-btn:hover { color: var(--ink); }
+#panel-trade .summary-dir-arrow { font-size: 13px; line-height: 1; }
+#panel-trade .summary-dir-text { font-size: 10px; letter-spacing: 0.14em; }
 #panel-trade .summary-dir-btn.long.selected {
   color: var(--green-bright);
   border-color: rgba(16,185,129,0.6);
@@ -5079,8 +5093,6 @@ textarea.input-field {
   #panel-trade .trade-summary-value { font-size: 14px; }
   #panel-trade .trade-summary-status { grid-column: auto; border-top: 1px solid var(--line); border-right: 0; }
   #panel-trade .summary-ticker-input { font-size: 22px; }
-  #panel-trade .summary-strategy-row { grid-template-columns: 1fr; gap: 6px; }
-  #panel-trade .summary-direction-toggle { grid-template-columns: 1fr 1fr; }
   #panel-trade .summary-dir-btn { height: 36px; }
   #panel-trade .trade-summary-status .trade-summary-value { font-size: 11px; }
   #panel-trade .trade-body { padding: 16px 0 0; }
@@ -10947,35 +10959,35 @@ function tfComputeStatus() {
   }
 
   if (m === 'swing') {
-    // Header setup — ticker / direction / setup
+    // 1 Setup — ticker / direction / setup pattern
     if (!state.ticker)        return { tone: 'progress', reason: 'Add ticker',        step: 1 };
     if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 1 };
     if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
-    // 1 Plan — eligibility inputs + IV Rank
-    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 1 };
-    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 1 };
+    // 2 Plan — eligibility inputs + IV Rank
+    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 2 };
+    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 2 };
     const g = tfEvaluateGates();
-    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 1 };
-    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 1 };
-    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 1 };
-    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 1 };
+    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 2 };
+    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 2 };
+    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 2 };
+    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 2 };
     const isOptions = state.instrument !== 'stocks';
-    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 1 };
-    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 1 };
-    // 2 Size — liquidity + premium / ATR / underlying
-    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 2 };
+    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
+    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
+    // 3 Size — liquidity + premium / ATR / underlying
+    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 3 };
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 2 };
+      return { tone: 'progress', reason: isOptions ? 'Add option premium' : 'Add share price', step: 3 };
     }
     if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
-      return { tone: 'progress', reason: 'Add ATR(14)', step: 2 };
+      return { tone: 'progress', reason: 'Add ATR(14)', step: 3 };
     }
     if (isOptions && (state.underlyingPrice === null || state.underlyingPrice === undefined || state.underlyingPrice <= 0)) {
-      return { tone: 'progress', reason: 'Add underlying price', step: 2 };
+      return { tone: 'progress', reason: 'Add underlying price', step: 3 };
     }
-    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 2 };
-    // 3 Verify — every gate must be green; if we got here, all are green.
-    return { tone: 'ready', reason: 'Ready to log', step: 4 };
+    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 3 };
+    // 5 Log — every gate green; ready to fire.
+    return { tone: 'ready', reason: 'Ready to log', step: 5 };
   }
 
   if (m === 'intraday') {
@@ -11166,6 +11178,16 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
         state.intraday.ticker = sym;
         const input = document.getElementById('tf-i-ticker');
         if (input) input.value = sym;
+      } else if (containerId === 'tf-summary-ticker-memory') {
+        const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+        if (m === 'intraday') {
+          if (!state.intraday) state.intraday = newIntradayTicket();
+          state.intraday.ticker = sym;
+        } else {
+          state.ticker = sym;
+        }
+        const input = document.getElementById('tf-summary-ticker-input');
+        if (input) input.value = sym;
       } else {
         state.ticker = sym;
         const input = document.getElementById('tf-ticker');
@@ -11191,6 +11213,7 @@ function tfEnsureSummaryControls(mode) {
     <div class="summary-ticker-wrap">
       <span class="trade-summary-label" style="margin:0;">Ticker</span>
       <input type="text" maxlength="20" class="summary-ticker-input" id="tf-summary-ticker-input" placeholder="—" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+      <div class="summary-ticker-memory" id="tf-summary-ticker-memory"></div>
     </div>`;
 
   stratEl.dataset.summaryMode = mode;
@@ -11204,8 +11227,12 @@ function tfEnsureSummaryControls(mode) {
           <button type="button" class="summary-structure-pill" data-tf-structure="spread" role="tab">Spread</button>
         </div>
         <div class="summary-direction-toggle" role="group" aria-label="Direction">
-          <button type="button" class="summary-dir-btn long" data-tf-summary-dir="long" title="Long / call" aria-label="Long">▲</button>
-          <button type="button" class="summary-dir-btn short" data-tf-summary-dir="short" title="Short / put" aria-label="Short">▼</button>
+          <button type="button" class="summary-dir-btn long" data-tf-summary-dir="long" title="Long / call" aria-label="Bull / long">
+            <span class="summary-dir-arrow">▲</span><span class="summary-dir-text">BULL</span>
+          </button>
+          <button type="button" class="summary-dir-btn short" data-tf-summary-dir="short" title="Short / put" aria-label="Bear / short">
+            <span class="summary-dir-arrow">▼</span><span class="summary-dir-text">BEAR</span>
+          </button>
         </div>
       </div>
     </div>`;
@@ -11227,11 +11254,16 @@ function tfBindSummaryControls() {
         state.ticker = sym;
       }
       saveState();
+      tfUpdateTickerMemory('tf-summary-ticker-memory', sym);
       tfRenderStepper();
       tfRenderActions();
       tfUpdateSummaryStatus();
     });
   }
+  tfUpdateTickerMemory('tf-summary-ticker-memory',
+    ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday'
+      ? ((state.intraday && state.intraday.ticker) || '')
+      : (state.ticker || ''));
 
   document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
     b.addEventListener('click', () => {
@@ -11527,13 +11559,13 @@ function tfSpreadBracket(spread) {
 //   Intraday: Levels  → Sizing → Context
 // Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() {
-  return tfIsSingleScreen() ? 3 : 4;
+  return tfIsSingleScreen() ? 3 : 5;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   return m === 'swing'
-    ? ['Quality', 'Sizing', 'Checklist', 'Log']
-    : ['Levels',  'Sizing', 'Context'];
+    ? ['Setup', 'Quality', 'Sizing', 'Checklist', 'Log']
+    : ['Levels', 'Sizing', 'Context'];
 }
 function tfIsSingleScreen() {
   return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
@@ -11553,32 +11585,33 @@ function tfStepCompletion() {
     const liq = state.liquidity || {};
     const gates = tfEvaluateGates();
 
-    // Header setup — ticker + direction + setup pattern.
+    // 1 Setup — ticker + direction + setup pattern (header + setup-cards body).
     const headerReady = !!(state.selectedSetup && state.direction && state.ticker);
+    c[0] = headerReady;
 
-    // 1 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
+    // 2 Plan — eligibility inputs (SA Quant, Days to ER, Profitability /
     //          Momentum gates) PLUS the structural read (IV Rank).
     const eligDone = (state.saQuant !== null && state.saQuant !== undefined)
                   && (state.daysToEarnings !== null && state.daysToEarnings !== undefined)
                   && gates['02'] && gates['03'];
     const ivrSet = !isOptions || (state.ivr !== null && state.ivr !== undefined);
-    c[0] = !!(headerReady && eligDone && ivrSet);
+    c[1] = !!(headerReady && eligDone && ivrSet);
 
-    // 2 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
+    // 3 Size — liquidity (drives Gate 04) + premium/ATR/underlying (drives Gate 06).
     const liqFilled = isOptions
       ? (liq.stockVol > 0 && liq.optionOI > 0 && liq.optionVol > 0 && liq.bid > 0 && liq.ask > 0)
       : (liq.stockVol > 0);
     const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
-    c[1] = !!(headerReady && liqFilled && sizingFilled);
+    c[2] = !!(headerReady && liqFilled && sizingFilled);
 
-    // 3 Verify — read-only gate summary; complete when every gate passes.
-    c[2] = !!(headerReady && ['01', '02', '03', '04', '05', '06'].every(k => gates[k]));
+    // 4 Checklist — read-only gate summary; complete when every gate passes.
+    c[3] = !!(headerReady && ['01', '02', '03', '04', '05', '06'].every(k => gates[k]));
 
-    // 4 Execute — flips green only when overall status is 'ready'.
+    // 5 Log — flips green only when overall status is 'ready'.
     const st = tfComputeStatus();
-    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
+    c[4] = c[1] && c[2] && c[3] && st.tone === 'ready';
     return c;
   }
 
@@ -11660,6 +11693,7 @@ function tfRenderHeader() {
   const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
   const tickerInput = document.getElementById('tf-summary-ticker-input');
   if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
+  tfUpdateTickerMemory('tf-summary-ticker-memory', ticker);
 
   const struct = tfStructureValue(m);
   document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
@@ -11784,10 +11818,11 @@ function tfStepBody(step) {
   if (step > tfStepCount()) step = tfStepCount();
   if (step < 1) step = 1;
   if (m === 'swing') {
-    if (step === 1) return tfSwingStep2();
-    if (step === 2) return tfSwingStep3();
-    if (step === 3) return tfSwingStep4();
-    if (step === 4) return tfSwingStep5();
+    if (step === 1) return tfSwingStep1();
+    if (step === 2) return tfSwingStep2();
+    if (step === 3) return tfSwingStep3();
+    if (step === 4) return tfSwingStep4();
+    if (step === 5) return tfSwingStep5();
     return '';
   }
   // Intraday — single screen. Render every section, separated by a small
@@ -11803,15 +11838,12 @@ function tfStepBody(step) {
        + wrap(2, tfIntradayStep4());
 }
 
-// ----- Swing step 1 — Setup: ticker + direction + pattern -----
-// Goal: in one screen, name the trade. Everything from here on is "is this
-// trade good" not "what is this trade".
+// ----- Swing step 1 — Setup: pick one of 5 approved patterns -----
+// Ticker, direction, and structure live in the sticky header. This step is
+// just the pattern-card picker.
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
-  const dir = state.direction;
-  const ticker = state.ticker || '';
-  const instrument = state.instrument || 'options';
   const cards = TRADE_SWING_SETUPS.map(s => `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
       <span class="trade-setup-card-num">SETUP ${s.num}${s.halfSize ? ' · ½ SIZE' : ''}</span>
@@ -11823,61 +11855,7 @@ function tfSwingStep1() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Ticker &amp; direction</div>
-          <div class="trade-section-subtitle">Smart paste can fill the whole ticket from your TOS labels or quick notes.</div>
-        </div>
-        <button type="button" class="tf-paste-btn" id="tf-s-paste-toggle" title="Paste swing setup text">
-          <span class="tf-paste-icon">⎘</span>
-          <span>Paste alert</span>
-        </button>
-      </div>
-      <div class="trade-section-body">
-        <div class="tf-paste-wrap" id="tf-s-paste-wrap" hidden>
-          <textarea class="trade-textarea" id="tf-s-paste-input" rows="4" placeholder="Paste TOS labels or quick notes. Example:&#10;NVDA IVR=42 ATR=2.1 PX=185.50&#10;RSMK=+rising RVOL=1.8 STACK=BULLISH SETUP=BASE_BO&#10;SA: QUANT=4.2 EARNINGS=18d LIQ: VOL=35M OI=2500 OVOL=800 BID=2.10 ASK=2.20"></textarea>
-          <div class="tf-paste-actions">
-            <button type="button" class="btn-primary" id="tf-s-paste-apply">Apply</button>
-            <button type="button" class="btn-ghost" id="tf-s-paste-clear">Clear</button>
-            <span class="tf-paste-hint" id="tf-s-paste-hint">Reads ticker, setup, direction, regime, IVR, ATR, price, SA fields, liquidity, bid/ask, and spread.</span>
-          </div>
-        </div>
-        ${tfInstrumentToggleHtml(instrument, 'data-tf-instrument')}
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Symbol &amp; bias</div>
-          <div class="trade-section-subtitle">${instrument === 'stocks' ? 'Share direction.' : 'Option bias; long means calls, short means puts.'}</div>
-        </div>
-        <div class="trade-section-counter ${ticker && dir ? 'complete' : ''}">${ticker && dir ? 'set' : 'fill 2'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Ticker</label>
-              <input type="text" class="trade-input" id="tf-ticker" maxlength="10" placeholder="Ticker symbol"
-                value="${ticker.toString()}" autocomplete="off" style="text-transform: uppercase;" />
-              <div class="input-help">Pick from your recent traders below or type new.</div>
-            </div>
-          </div>
-          <div>
-            <label class="input-label">Direction</label>
-            <div class="trade-direction-toggle" id="tf-direction-toggle">
-              <button type="button" class="trade-direction-btn long ${dir === 'long' ? 'selected' : ''}" data-tf-dir="long">▲ LONG</button>
-              <button type="button" class="trade-direction-btn short ${dir === 'short' ? 'selected' : ''}" data-tf-dir="short">▼ SHORT</button>
-            </div>
-          </div>
-        </div>
-        <div id="tf-ticker-memory">${tfRenderTickerMemoryHtml(ticker)}</div>
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Pick the setup</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">1.</span> Pick the setup</div>
           <div class="trade-section-subtitle">One of 5 approved patterns. If none fit the chart, do not trade.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
@@ -11890,46 +11868,6 @@ function tfSwingStep1() {
 }
 
 function tfMountSwingStep1() {
-  document.querySelectorAll('#panel-trade [data-tf-instrument]').forEach(b => {
-    b.addEventListener('click', () => tfSetSwingInstrument(b.dataset.tfInstrument));
-  });
-  const pasteToggle = document.getElementById('tf-s-paste-toggle');
-  const pasteWrap = document.getElementById('tf-s-paste-wrap');
-  if (pasteToggle && pasteWrap) {
-    pasteToggle.addEventListener('click', () => {
-      pasteWrap.hidden = !pasteWrap.hidden;
-      if (!pasteWrap.hidden) {
-        const ta = document.getElementById('tf-s-paste-input');
-        if (ta) { try { ta.focus(); } catch (_) {} }
-      }
-    });
-  }
-  document.getElementById('tf-s-paste-apply')?.addEventListener('click', () => {
-    const ta = document.getElementById('tf-s-paste-input');
-    const hint = document.getElementById('tf-s-paste-hint');
-    if (!ta) return;
-    const parsed = tfParseSwingPaste(ta.value);
-    const applied = Object.keys(parsed).filter(k => {
-      if (k === 'gates' || k === 'liquidity') return Object.keys(parsed[k] || {}).length;
-      return parsed[k] !== undefined && parsed[k] !== null;
-    });
-    if (!applied.length) {
-      if (hint) { hint.textContent = 'No recognizable swing values found.'; hint.style.color = 'var(--amber-bright)'; }
-      return;
-    }
-    tfApplySwingPaste(parsed);
-    if (hint) {
-      hint.textContent = `Applied ${applied.length} field${applied.length === 1 ? '' : 's'}: ${applied.join(', ')}.`;
-      hint.style.color = 'var(--green-bright)';
-    }
-    tfRefreshAll();
-  });
-  document.getElementById('tf-s-paste-clear')?.addEventListener('click', () => {
-    const ta = document.getElementById('tf-s-paste-input');
-    const hint = document.getElementById('tf-s-paste-hint');
-    if (ta) ta.value = '';
-    if (hint) { hint.textContent = 'Reads ticker, setup, direction, regime, IVR, ATR, price, SA fields, liquidity, bid/ask, and spread.'; hint.style.color = ''; }
-  });
   document.querySelectorAll('#panel-trade [data-tf-setup]').forEach(b => {
     b.addEventListener('click', () => {
       state.selectedSetup = b.dataset.tfSetup;
@@ -11937,25 +11875,6 @@ function tfMountSwingStep1() {
       tfRefreshAll();
     });
   });
-  document.querySelectorAll('#panel-trade [data-tf-dir]').forEach(b => {
-    b.addEventListener('click', () => {
-      state.direction = b.dataset.tfDir;
-      saveState();
-      tfRefreshAll();
-    });
-  });
-  const t = document.getElementById('tf-ticker');
-  if (t) {
-    t.addEventListener('input', e => {
-      state.ticker = (e.target.value || '').toUpperCase();
-      saveState();
-      tfRefreshHeaderOnly();
-      // Surgical update — keeps focus + caret on the input as the user types.
-      tfUpdateTickerMemory('tf-ticker-memory', state.ticker);
-    });
-  }
-  // Wire ticker pill clicks rendered initially (before any input event fires).
-  tfUpdateTickerMemory('tf-ticker-memory', state.ticker);
 }
 
 // ----- Swing step 2 — Plan: eligibility (SA quant, factor grades, earnings)
@@ -13369,10 +13288,11 @@ function tfMountStep(step) {
     const max = tfStepCount();
     if (step > max) step = max;
     if (step < 1) step = 1;
-    if (step === 1) tfMountSwingStep2();
-    if (step === 2) tfMountSwingStep3();
-    if (step === 3) tfMountSwingStep4();
-    if (step === 4) tfMountSwingStep5();
+    if (step === 1) tfMountSwingStep1();
+    if (step === 2) tfMountSwingStep2();
+    if (step === 3) tfMountSwingStep3();
+    if (step === 4) tfMountSwingStep4();
+    if (step === 5) tfMountSwingStep5();
     return;
   }
   // Intraday single-screen — every section is in the DOM, mount all of them.
