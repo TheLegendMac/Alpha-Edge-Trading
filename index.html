@@ -4736,6 +4736,103 @@ textarea.input-field {
   color: var(--ink);
 }
 
+#panel-trade .tf-risk-profile {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+#panel-trade .tf-risk-profile-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#panel-trade .tf-risk-profile-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+#panel-trade .tf-risk-profile-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+#panel-trade .tf-risk-rail {
+  position: relative;
+  display: flex;
+  min-height: 72px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+#panel-trade .tf-risk-zone {
+  display: grid;
+  place-items: center;
+  min-width: 72px;
+  padding: 10px;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+#panel-trade .tf-risk-zone:last-child { border-right: 0; }
+#panel-trade .tf-risk-zone.loss {
+  background: linear-gradient(90deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05));
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,0.22);
+}
+#panel-trade .tf-risk-zone.target {
+  background: linear-gradient(90deg, rgba(16,185,129,0.10), rgba(16,185,129,0.05));
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
+}
+#panel-trade .tf-risk-zone.runner {
+  background: rgba(16,185,129,0.07);
+}
+#panel-trade .tf-risk-zone strong {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+#panel-trade .tf-risk-zone span {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+}
+#panel-trade .tf-risk-zone.loss span { color: var(--red-bright); }
+#panel-trade .tf-risk-zone.target span { color: var(--green-bright); }
+#panel-trade .tf-risk-entry-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ink);
+  box-shadow: 0 0 12px rgba(255,255,255,0.35);
+}
+#panel-trade .tf-risk-entry-marker::before {
+  content: 'ENTRY';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
 /* gate row — visible rule */
 #panel-trade .trade-gate-rule {
   font-size: 11px;
@@ -11385,6 +11482,57 @@ function tfPctText(value, digits = 1) {
   return Number.isFinite(n) ? `${n.toFixed(digits)}%` : '—';
 }
 
+function tfSignedMoneyText(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  const sign = n >= 0 ? '+' : '-';
+  return `${sign}$${Math.abs(n).toFixed(0)}`;
+}
+
+function tfAbsMoneyText(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `$${Math.abs(n).toFixed(0)}` : '—';
+}
+
+function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = 'Visual risk profile', unitLabel = 'unit' } = {}) {
+  const e = Number(entry);
+  const s = Number(stop);
+  const t = Number(target);
+  const q = Number(qty);
+  const m = Number(mult) || 1;
+  if (!(e > 0 && s > 0 && t > 0 && q > 0)) return '';
+  const loss = Math.abs(e - s) * q * m;
+  const reward = Math.abs(t - e) * q * m;
+  if (!(loss > 0 && reward > 0)) return '';
+  const rewardR = reward / loss;
+  const displayR = Number.isFinite(rewardR) ? rewardR : 0;
+  const visualRewardR = Math.max(0.45, Math.min(2.5, displayR || 1));
+  const runnerR = 0.55;
+  const total = 1 + visualRewardR + runnerR;
+  const lossPct = (1 / total) * 100;
+  const targetPct = (visualRewardR / total) * 100;
+  const runnerPct = Math.max(12, 100 - lossPct - targetPct);
+  return `
+    <div class="tf-risk-profile">
+      <div class="tf-risk-profile-head">
+        <div class="tf-risk-profile-title">${title}</div>
+        <div class="tf-risk-profile-meta">${q} ${unitLabel}${q === 1 ? '' : 's'} · ${displayR.toFixed(2)}R target</div>
+      </div>
+      <div class="tf-risk-rail">
+        <div class="tf-risk-zone loss" style="width:${lossPct.toFixed(2)}%;">
+          <div><strong>-1R</strong><span>-${tfAbsMoneyText(loss)}</span></div>
+        </div>
+        <div class="tf-risk-zone target" style="width:${targetPct.toFixed(2)}%;">
+          <div><strong>${displayR.toFixed(2)}R</strong><span>${tfSignedMoneyText(reward)}</span></div>
+        </div>
+        <div class="tf-risk-zone runner" style="width:${runnerPct.toFixed(2)}%;">
+          <div><strong>RUN</strong><span>...</span></div>
+        </div>
+        <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"></div>
+      </div>
+    </div>`;
+}
+
 function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
@@ -11419,16 +11567,21 @@ function tfRenderSwingSizingHtml() {
           <div class="trade-output-cell"><span class="trade-output-cell-label">Premium stop</span><span class="trade-output-cell-value">$${stopPrem.toFixed(2)} / ct</span></div>
           <div class="trade-output-cell"><span class="trade-output-cell-label">Underlying stop</span><span class="trade-output-cell-value">$${stopDollar}</span></div>
         </div>
+        ${tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract' })}
       </div>`;
   }
   const stopPct = (settings.stopPct || 5) / 100;
   const maxLossPerShare = premium * stopPct;
   const shares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+  const targetPct = (settings.targetPct || 50) / 100;
+  const stopPrice = state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct);
+  const targetPrice = state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct);
   return `
     <div class="trade-output">
       <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
       <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
       <div class="trade-output-rationale">Stop at ${(settings.stopPct || 5)}% of price → max loss per share $${maxLossPerShare.toFixed(2)}.${deployedNote}</div>
+      ${tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share' })}
     </div>`;
 }
 
@@ -11678,6 +11831,7 @@ function tfRenderIntradaySizingHtml() {
   }
   const manualQty = Number(it.contracts);
   const manualRisk = manualQty > 0 ? Math.round(manualQty * auto.stopDist * auto.mult) : null;
+  const profileQty = manualQty > 0 ? manualQty : auto.qty;
   const qtyLine = manualQty > 0
     ? `${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} in the override field · estimated risk $${manualRisk}`
     : `Blank quantity logs the suggested ${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'}.`;
@@ -11693,6 +11847,7 @@ function tfRenderIntradaySizingHtml() {
         <div class="trade-output-cell"><span class="trade-output-cell-label">Suggested risk</span><span class="trade-output-cell-value">$${Math.round(auto.risk)}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Stop distance</span><span class="trade-output-cell-value">${tfMoneyText(auto.stopDist)}</span></div>
       </div>
+      ${tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: profileQty, mult: auto.mult, unitLabel: auto.label })}
       <div class="trade-templates" style="margin-top:10px;">
         <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Apply suggested size</button>
         <span class="trade-templates-label">Writes ${auto.qty} to the ${isOptions ? 'contracts' : 'shares'} override.</span>
