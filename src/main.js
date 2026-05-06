@@ -33,3 +33,7 @@ import './sync/merge.js';
 import './sync/supabase.js';
 import './sync/auth-modal.js';
 
+// Phase 6 — market: regime, pre-trade check, IV-rank strategy, liquidity, context panel.
+import './market/regime.js';
+import './market/context-panel.js';
+
