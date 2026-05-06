@@ -1,0 +1,142 @@
+/* ============ COMMAND BAR — unified nav + regime ============ */
+.cmdbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8, 9, 13, 0.82);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset, 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+.cmdbar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: var(--green);
+  transition: background 0.3s, box-shadow 0.3s;
+  box-shadow: 0 0 12px var(--green-glow);
+}
+.cmdbar.neutral::before { background: var(--amber); box-shadow: 0 0 12px var(--amber-glow); }
+.cmdbar.risk-off::before { background: var(--red); box-shadow: 0 0 12px var(--red-glow); }
+
+.cmdbar-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+/* Brand */
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+.brand:hover { opacity: 0.85; }
+.brand-mark {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--cyan), #0284c7);
+  display: grid; place-items: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--bg);
+  border-radius: 6px;
+  box-shadow: 0 0 16px rgba(6, 212, 248, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.brand-name { color: var(--ink); }
+
+/* Right-side actions group */
+.cmdbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+/* Market context trigger inside cmdbar */
+.cmdbar-context-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+  color: var(--ink-3);
+  transition: border-color 0.2s;
+}
+.cmdbar-context-btn {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cmdbar-context-btn:hover {
+  color: var(--ink);
+  border-color: var(--cyan-dim);
+  background: rgba(6, 212, 248, 0.06);
+}
+.cmdbar-regime-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green), 0 0 4px var(--green);
+  flex-shrink: 0;
+}
+#regime-state.neutral .cmdbar-regime-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+#regime-state.risk-off .cmdbar-regime-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.cmdbar-context-regime {
+  color: var(--ink-4);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+/* Sync pill */
+.cmdbar-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cmdbar-sync:hover { color: var(--ink); border-color: var(--line-soft); }
+.cmdbar-sync #sync-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex-shrink: 0;
+}
+
+.nav-icon-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--ink-3);
+  width: 34px; height: 34px;
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nav-icon-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.06); }
+
