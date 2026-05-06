@@ -11197,35 +11197,37 @@ function tfComputeStatus() {
   }
 
   if (m === 'swing') {
-    // 1 Setup — ticker / direction / setup pattern
+    // 1 Quality — ticker plus business/quality gates.
     if (!state.ticker)        return { tone: 'progress', reason: 'Add ticker',        step: 1 };
-    if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 1 };
-    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
-    // 2 Plan — eligibility inputs + IV Rank
-    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 2 };
-    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 2 };
+    if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 1 };
+    if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 1 };
     const g = tfEvaluateGates();
-    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 2 };
-    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 2 };
-    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 2 };
-    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 2 };
+    if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 1 };
+    if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 1 };
+    if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 1 };
+    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 1 };
+
+    // 2 Technicals — direction, setup pattern, and option contract spec.
+    if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 2 };
+    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 2 };
     const isOptions = state.instrument !== 'stocks';
     if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
     if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
-    // 2 Plan & Size — quality, liquidity, quote/entry, and risk sizing.
-    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 2 };
+
+    // 3 Size — liquidity, quote/entry, and risk sizing.
+    if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 3 };
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add share price', step: 2 };
+      return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add share price', step: 3 };
     }
     if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
-      return { tone: 'progress', reason: 'Add ATR(14)', step: 2 };
+      return { tone: 'progress', reason: 'Add ATR(14)', step: 3 };
     }
     if (isOptions && (state.underlyingPrice === null || state.underlyingPrice === undefined || state.underlyingPrice <= 0)) {
-      return { tone: 'progress', reason: 'Add underlying price', step: 2 };
+      return { tone: 'progress', reason: 'Add underlying price', step: 3 };
     }
-    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 2 };
-    // 3 Log — every gate green; ready to fire.
-    return { tone: 'ready', reason: 'Ready to log', step: 3 };
+    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 3 };
+    // 4 Log — every gate green; ready to fire.
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   if (m === 'intraday') {
@@ -12166,11 +12168,12 @@ function tfSpreadBracket(spread, maxOverride = null) {
 // The sticky header owns ticker, setup, structure, and direction.
 // The body keeps the fill path short: setup, one plan/size step, then log/context.
 function tfStepCount() {
-  return 3;
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  return m === 'swing' ? 4 : 3;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  if (m === 'swing') return ['Setup', 'Plan & Size', 'Log'];
+  if (m === 'swing') return ['Quality', 'Technicals', 'Size', 'Log'];
   return ['Setup', 'Plan & Size', 'Context'];
 }
 function tfIsSingleScreen() {
@@ -12182,29 +12185,32 @@ function tfIsSingleScreen() {
 // status pill is still the source of truth for "OK to fire".
 function tfStepCompletion() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  const c = [false, false, false];
+  const c = Array(tfStepCount()).fill(false);
 
   if (m === 'swing') {
     const isOptions = state.instrument !== 'stocks';
     const gates = tfEvaluateGates();
 
-    // 1 Setup — ticker + direction + setup pattern (header + setup-cards body).
-    const headerReady = !!(state.selectedSetup && state.direction && state.ticker);
-    c[0] = headerReady;
-
-    // 2 Plan & Size — quality gates, IV Rank, liquidity, quote, and risk inputs.
+    // 1 Quality — ticker plus SA Quant, factor-grade gates, and earnings gap.
+    const tickerReady = !!state.ticker;
     const qualityInputsDone = (state.saQuant !== null && state.saQuant !== undefined)
                            && (state.daysToEarnings !== null && state.daysToEarnings !== undefined);
     const qualityGatesOk = gates['01'] && gates['02'] && gates['03'] && gates['05'];
+    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk);
+
+    // 2 Technicals — direction + approved setup + IV Rank contract read.
     const ivrOk = !isOptions || (state.ivr !== null && state.ivr !== undefined && Number(state.ivr) < 70);
+    c[1] = !!(c[0] && state.direction && state.selectedSetup && ivrOk);
+
+    // 3 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
     const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
-    c[1] = !!(headerReady && qualityInputsDone && qualityGatesOk && ivrOk && gates['04'] && gates['06'] && sizingFilled);
+    c[2] = !!(c[1] && gates['04'] && gates['06'] && sizingFilled);
 
-    // 3 Log — flips green only when the whole swing ticket is ready.
+    // 4 Log — flips green only when the whole swing ticket is ready.
     const st = tfComputeStatus();
-    c[2] = c[0] && c[1] && st.tone === 'ready';
+    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
     return c;
   }
 
@@ -12431,9 +12437,10 @@ function tfStepBody(step) {
   if (step > tfStepCount()) step = tfStepCount();
   if (step < 1) step = 1;
   if (m === 'swing') {
-    if (step === 1) return tfSwingStep1();
-    if (step === 2) return tfSwingStep2() + tfSwingStep3();
-    if (step === 3) return tfSwingStep4();
+    if (step === 1) return tfSwingStep2();
+    if (step === 2) return tfSwingStep1() + tfSwingContractSpecHtml();
+    if (step === 3) return tfSwingStep3();
+    if (step === 4) return tfSwingStep4();
     return '';
   }
   // Intraday — single screen. Render every section, separated by a small
@@ -12452,9 +12459,9 @@ function tfStepBody(step) {
        + wrap(2, tfIntradayStep4());
 }
 
-// ----- Swing step 1 — Setup: pick one of 5 approved patterns -----
-// Ticker, direction, and structure live in the sticky header. This step is
-// just the pattern-card picker.
+// ----- Swing technicals — pick one of 5 approved patterns -----
+// Ticker, direction, and structure live in the sticky header. This screen is
+// the chart/setup picker after the quality gates pass.
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
@@ -12467,10 +12474,10 @@ function tfSwingStep1() {
 
   return `
     <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">1.</span> Pick the setup</div>
-          <div class="trade-section-subtitle">One of 5 approved patterns. If none fit the chart, do not trade.</div>
+          <div class="trade-section-head">
+            <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Technical setup</div>
+          <div class="trade-section-subtitle">Pick one approved chart pattern. If none fit, stop here.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
       </div>
@@ -12491,15 +12498,7 @@ function tfMountSwingStep1() {
   });
 }
 
-// ----- Swing plan — eligibility (SA quant, factor grades, earnings)
-//        AND structural read (IV Rank → contract spec).
-// "Plan" answers: is this name worth trading, and what are we buying?
-
-function tfSwingStep2() {
-  const gates = tfEvaluateGates();
-  const passed = ['01','02','03','05'].filter(k => gates[k]).length;
-  const ticker = state.ticker || '';
-  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
+function tfSwingContractSpecHtml() {
   const isOptions = state.instrument !== 'stocks';
   const ivr = state.ivr;
   const dir = state.direction;
@@ -12507,6 +12506,69 @@ function tfSwingStep2() {
   const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
     ? getStrategyForIVR(Number(ivr), dir) : null;
   const stratOut = `<div id="tf-strategy-preview">${sObj ? tfRenderStrategyOutHtml(sObj) : ''}</div>`;
+
+  return isOptions ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> IV Rank → contract spec</div>
+          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
+        </div>
+        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-input-row">
+          <div>
+            <label class="input-label">IV Rank (0-100)</label>
+            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
+              placeholder="IV Rank 0-100"
+              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
+            <div class="input-help">Cheap below 30 · Moderate 30-50 · Rich 50+ · Skip if 70+</div>
+          </div>
+          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
+        </div>
+        ${stratOut}
+      </div>
+    </div>` : `
+    <div class="trade-section muted">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Stocks mode — IV doesn't apply</div>
+          <div class="trade-section-subtitle">Sizing math runs off share price in the size step.</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function tfMountSwingContractSpec() {
+  const ivrEl = document.getElementById('tf-ivr');
+  if (!ivrEl) return;
+  ivrEl.addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    state.ivr = isNaN(v) ? null : v;
+    saveState();
+    tfRefreshHeaderOnly();
+    const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
+    if (wrap) {
+      const badge = wrap.querySelector('.trade-bracket');
+      if (badge) {
+        const b = tfIvrBracket(state.ivr);
+        badge.className = `trade-bracket ${b.cls}`;
+        badge.textContent = b.text;
+      }
+    }
+    tfUpdateSwingStrategyPreview();
+  });
+}
+
+// ----- Swing quality — eligibility (SA quant, factor grades, earnings) -----
+// "Quality" answers: is this name worth trading before we inspect the chart?
+
+function tfSwingStep2() {
+  const gates = tfEvaluateGates();
+  const passed = ['01','02','03','05'].filter(k => gates[k]).length;
+  const ticker = state.ticker || '';
+  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
 
   const gateRow = (k, name, rule, isManual) => {
     const ok = gates[k];
@@ -12523,41 +12585,8 @@ function tfSwingStep2() {
 
   const noTickerWarn = !ticker ? `
     <p class="trade-row-help" style="color: var(--amber-bright); margin-bottom: 10px;">
-      Set a ticker in step 1 first — the SA factor-grade links need it.
+      Set a ticker in the header first — the SA factor-grade links need it.
     </p>` : '';
-
-  // Section C — IV Rank input + structure preview. Stocks mode shows a quiet note.
-  const ivrSection = isOptions ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> IV Rank → contract spec</div>
-          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
-        </div>
-        <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-input-row">
-          <div>
-            <label class="input-label">IV Rank (0–100)</label>
-            <input type="number" min="0" max="100" step="1" class="trade-input" id="tf-ivr"
-              placeholder="IV Rank 0-100"
-              value="${ivr !== null && ivr !== undefined ? ivr : ''}" />
-            <div class="input-help">Cheap below 30 · Moderate 30-50 · Rich 50+ · Skip if 70+</div>
-          </div>
-          <div class="trade-bracket ${bracket.cls}">${bracket.text}</div>
-        </div>
-        ${stratOut}
-      </div>
-    </div>` : `
-    <div class="trade-section muted">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Stocks mode — IV doesn't apply</div>
-          <div class="trade-section-subtitle">Sizing math runs off share price in this step.</div>
-        </div>
-      </div>
-    </div>`;
 
   return `
     <div class="trade-section">
@@ -12608,8 +12637,6 @@ function tfSwingStep2() {
         </div>
       </div>
     </div>
-
-    ${ivrSection}
   `;
 }
 
@@ -12630,26 +12657,6 @@ function tfMountSwingStep2() {
       state.daysToEarnings = isNaN(v) ? null : v;
       saveState();
       tfRefreshHeaderOnly();
-    });
-  }
-  // IVR input — surgical bracket + strategy preview update on input.
-  const ivrEl = document.getElementById('tf-ivr');
-  if (ivrEl) {
-    ivrEl.addEventListener('input', e => {
-      const v = parseFloat(e.target.value);
-      state.ivr = isNaN(v) ? null : v;
-      saveState();
-      tfRefreshHeaderOnly();
-      const wrap = ivrEl.parentElement && ivrEl.parentElement.parentElement;
-      if (wrap) {
-        const badge = wrap.querySelector('.trade-bracket');
-        if (badge) {
-          const b = tfIvrBracket(state.ivr);
-          badge.className = `trade-bracket ${b.cls}`;
-          badge.textContent = b.text;
-        }
-      }
-      tfUpdateSwingStrategyPreview();
     });
   }
   document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
@@ -12714,7 +12721,7 @@ function tfSwingStep3() {
       <div class="trade-section">
         <div class="trade-section-head">
           <div class="trade-section-head-stack">
-            <div class="trade-section-title"><span class="trade-section-title-icon">D.</span> Stock price & risk size</div>
+            <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Stock price & risk size</div>
             <div class="trade-section-subtitle">Volume proves tradability. Share price drives the risk-unit size.</div>
           </div>
           <div class="trade-section-counter ${gates['04'] && premium > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${gates['04'] && premium > 0 ? 'ready' : 'fill 2'}</div>
@@ -12741,7 +12748,7 @@ function tfSwingStep3() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">D.</span> Liquidity & quote</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity & quote</div>
           <div class="trade-section-subtitle">Stock volume, option activity, and bid/ask all decide whether this contract is tradable.</div>
         </div>
         <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}" id="tf-swing-liq-counter">${gates['04'] ? 'pass' : 'fill quote'}</div>
@@ -12755,7 +12762,7 @@ function tfSwingStep3() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">E.</span> Entry, stop & size</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Entry, stop & size</div>
           <div class="trade-section-subtitle">Entry premium follows quote mid until you override it. ATR and price set the underlying stop.</div>
         </div>
         <div class="trade-section-counter ${premium > 0 && atr > 0 && upx > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${premium > 0 && atr > 0 && upx > 0 ? 'ready' : 'fill 3'}</div>
