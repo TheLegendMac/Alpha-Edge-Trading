@@ -52,3 +52,9 @@ import './views/sunday.js';
 import './views/reference.js';
 import './views/settings.js';
 
+// Phase 9 — modals + toast + import/export.
+import './modals/toast.js';
+import './modals/import-export.js';
+import './modals/position-editor.js';
+import './modals/trade-modal.js';
+
