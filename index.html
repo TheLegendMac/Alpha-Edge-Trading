@@ -11027,18 +11027,21 @@ function tfComputeStatus() {
     if (setupDef && setupDef.bias !== 'either' && it.direction !== setupDef.bias) {
       return { tone: 'blocked', reason: `${setupDef.name} expects ${setupDef.bias.toUpperCase()}`, step: 1 };
     }
-    // 2 Levels — entry / stop / target
-    if (!it.entry)  return { tone: 'progress', reason: 'Add entry $',  step: 2 };
-    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
-    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    // 3 Sizing — options need a bid/ask-derived spread; stocks only need levels.
-    const spreadPct = isOptions ? deriveSpreadPct(it) : null;
-    if (isOptions && (spreadPct === null || spreadPct === undefined || spreadPct === '')) {
-      return { tone: 'progress', reason: 'Add bid/ask or spread %', step: 3 };
+    if (isOptions) {
+      // 2 Quote — bid/ask derives spread and usually fills the bracket.
+      const spreadPct = deriveSpreadPct(it);
+      if (spreadPct === null || spreadPct === undefined || spreadPct === '') {
+        return { tone: 'progress', reason: 'Add bid/ask to auto-fill entry', step: 2 };
+      }
+      if (Number(spreadPct) > s.intradayMaxSpreadPct) {
+        return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 2 };
+      }
     }
-    if (isOptions && Number(spreadPct) > s.intradayMaxSpreadPct) {
-      return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 3 };
-    }
+    // Levels — options review derived values; stocks type price levels first.
+    const levelsStep = isOptions ? 3 : 2;
+    if (!it.entry)  return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add entry $', step: levelsStep };
+    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: levelsStep };
+    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: levelsStep };
     // 4 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
       const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
@@ -11611,19 +11614,20 @@ function tfSpreadBracket(spread) {
 // ----- Rendering -----
 
 // The sticky header now owns ticker, setup, structure, and direction.
-// Swing paginates through four supporting steps. Intraday is a three-section single
-// screen so the user can Tab through every input without losing speed.
+// Swing paginates through four supporting steps. Intraday is a single screen
+// ordered around the fastest fill path: setup, quote, derived levels, context.
 //   Swing:    Quality → Sizing → Checklist → Log
-//   Intraday: Levels  → Sizing → Context
+//   Intraday: Quote   → Levels → Context
 // Labels are mode-aware because step 2's topic differs between flows.
 function tfStepCount() {
   return tfIsSingleScreen() ? 4 : 5;
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  return m === 'swing'
-    ? ['Setup', 'Quality', 'Sizing', 'Checklist', 'Log']
-    : ['Setup', 'Levels', 'Sizing', 'Context'];
+  if (m === 'swing') return ['Setup', 'Quality', 'Sizing', 'Checklist', 'Log'];
+  return tfIntradayInstrument() === 'stocks'
+    ? ['Setup', 'Levels', 'Shares', 'Context']
+    : ['Setup', 'Quote', 'Levels', 'Context'];
 }
 function tfIsSingleScreen() {
   return ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday';
@@ -11682,16 +11686,22 @@ function tfStepCompletion() {
   const headerReady = !!(it.ticker && it.setup && it.direction);
   c[0] = headerReady;
 
-  // 2 Levels — entry / stop / target.
-  c[1] = !!(headerReady && it.entry && it.stop && it.target);
-
-  // 3 Sizing — options need spread within cap; stock sizing is auto.
   const isOptions = (it.instrument || 'options') !== 'stocks';
-  const spreadPct = isOptions ? deriveSpreadPct(it) : null;
-  const spreadOk = !isOptions || (spreadPct !== null && spreadPct !== undefined
-                && Number(spreadPct) >= 0
-                && Number(spreadPct) <= settings.intradayMaxSpreadPct);
-  c[2] = !!(headerReady && spreadOk);
+  const levelsOk = !!(headerReady && it.entry && it.stop && it.target);
+  if (isOptions) {
+    // 2 Quote — spread from bid/ask or explicit fallback.
+    const spreadPct = deriveSpreadPct(it);
+    const spreadOk = spreadPct !== null && spreadPct !== undefined
+                  && Number(spreadPct) >= 0
+                  && Number(spreadPct) <= settings.intradayMaxSpreadPct;
+    c[1] = !!(headerReady && spreadOk);
+    // 3 Levels — entry / stop / target.
+    c[2] = levelsOk;
+  } else {
+    // 2 Levels, 3 Shares. Share count itself is optional because it auto-sizes.
+    c[1] = levelsOk;
+    c[2] = levelsOk;
+  }
 
   // 4 Context — guardrails pass (status not blocked).
   const st = tfComputeStatus();
@@ -11906,9 +11916,15 @@ function tfStepBody(step) {
       <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
       ${html}
     </div>`;
+  if (tfIntradayInstrument() === 'stocks') {
+    return wrap(0, tfIntradayStep1())
+         + wrap(1, tfIntradayStep2())
+         + wrap(2, tfIntradayStep3())
+         + wrap(3, tfIntradayStep4());
+  }
   return wrap(0, tfIntradayStep1())
-       + wrap(1, tfIntradayStep2())
-       + wrap(2, tfIntradayStep3())
+       + wrap(1, tfIntradayStep3())
+       + wrap(2, tfIntradayStep2())
        + wrap(3, tfIntradayStep4());
 }
 
@@ -12826,15 +12842,15 @@ function tfIntradayStep2() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Entry · stop · target</div>
-          <div class="trade-section-subtitle">${isOptions ? 'Option premium bracket. Bid/ask in sizing can fill this automatically.' : 'Share-price bracket. ORB alerts can fill this automatically for stock trades.'}</div>
+          <div class="trade-section-subtitle">${isOptions ? 'Auto-filled from bid/ask mid. Edit only when your actual limit, stop, or target differs.' : 'Share-price bracket. ORB alerts can fill this automatically for stock trades.'}</div>
         </div>
         <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${isOptions ? 'Entry premium $' : 'Entry price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Auto mid from bid/ask' : 'Share entry price'}" />
+            <label class="input-label">${isOptions ? 'Entry premium / mid $' : 'Entry price $'}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Auto from quote' : 'Share entry price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">${isOptions ? 'Stop premium $' : 'Stop price $'}</label>
@@ -12920,8 +12936,8 @@ function tfIntradayStep3() {
   const sb = tfSpreadBracket(spread);
   const settings = state.settings || DEFAULT_SETTINGS;
   const midLine = isOptions && it.bid > 0 && it.ask > 0
-    ? `<div class="input-help">Mid $${Number(it.mid || ((Number(it.bid) + Number(it.ask)) / 2)).toFixed(2)} · spread ${Number(spread).toFixed(1)}%. Entry/stop/target auto-fill from mid.</div>`
-    : '';
+    ? `Mid $${Number(it.mid || ((Number(it.bid) + Number(it.ask)) / 2)).toFixed(2)} · spread ${Number(spread).toFixed(1)}%. Entry bracket below is filled from mid.`
+    : 'Spread = (ask - bid) / mid. Bid/ask also fills the entry bracket below.';
 
   const optionsSizing = `
     <div class="trade-section-grid-2">
@@ -12934,12 +12950,12 @@ function tfIntradayStep3() {
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Ask $</label>
         <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-ask" value="${inputValue('ask')}" placeholder="Option ask" />
-        ${midLine || '<div class="input-help">Spread = (ask - bid) / mid. Paste or type bid/ask and Cockpit calculates it.</div>'}
+        <div class="input-help" id="tf-i-midline">${midLine}</div>
       </div></div>
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Spread % fallback</label>
         <input type="number" min="0" step="0.1" class="trade-input" id="tf-i-spread" value="${inputValue('spreadPct')}" placeholder="Spread % if bid/ask missing" />
-        <div class="input-help">Only needed if you do not have bid/ask.</div>
+        <div class="input-help">Only needed if you cannot see bid/ask. It will not auto-fill entry.</div>
       </div></div>
       <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
         <label class="input-label">Contracts (optional)</label>
@@ -12961,7 +12977,7 @@ function tfIntradayStep3() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> ${isOptions ? 'Bid/ask & sizing' : 'Share sizing'}</div>
-          <div class="trade-section-subtitle">${isOptions ? `Bid/ask auto-calculates spread. Max allowed ${settings.intradayMaxSpreadPct || 5}%.` : 'No option spread needed for stock. Shares auto-size from your intraday risk budget.'}</div>
+          <div class="trade-section-subtitle">${isOptions ? `Enter bid/ask once. Cockpit calculates mid, spread, entry, stop, target, and size. Max spread ${settings.intradayMaxSpreadPct || 5}%.` : 'No option spread needed for stock. Shares auto-size from your intraday risk budget.'}</div>
         </div>
       </div>
       <div class="trade-section-body">
@@ -12988,6 +13004,17 @@ function tfMountIntradayStep3() {
       const b = tfSpreadBracket(state.intraday.spreadPct);
       badge.className = `trade-bracket ${b.cls}`;
       badge.textContent = b.text;
+    }
+    const midLine = document.getElementById('tf-i-midline');
+    if (midLine) {
+      const bid = Number(state.intraday.bid);
+      const ask = Number(state.intraday.ask);
+      const mid = bid > 0 && ask > 0 && ask >= bid
+        ? Number(state.intraday.mid || ((bid + ask) / 2)).toFixed(2)
+        : null;
+      midLine.textContent = mid
+        ? `Mid $${mid} · spread ${Number(state.intraday.spreadPct).toFixed(1)}%. Entry bracket below is filled from mid.`
+        : 'Spread = (ask - bid) / mid. Bid/ask also fills the entry bracket below.';
     }
   };
   const wire = (id, key, isInt) => {
