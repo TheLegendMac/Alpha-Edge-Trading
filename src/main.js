@@ -82,20 +82,33 @@ import { setTab, attachTickerAutocomplete } from './tabs.js';
 import { state } from './state/store.js';
 import { loadState } from './state/persistence.js';
 
+function runSafe(label, fn) {
+  try {
+    if (typeof fn === 'function') fn();
+  } catch (err) {
+    console.error(`[bootstrap] ${label} failed`, err);
+  }
+}
+
+function on(id, event, handler) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`[bootstrap] Missing #${id}`);
+    return null;
+  }
+  el.addEventListener(event, handler);
+  return el;
+}
+
 function init() {
   loadState();
 
-  // Initial render pass.
-  window.renderHome();
-  window.renderRegime();
-  window.renderPretradeCheck();
-  window.renderLogStats();
-  window.renderLogTable();
-  window.renderSunday();
-  window.renderReference();
-  if (typeof window.renderSectorStatusMini === 'function') window.renderSectorStatusMini();
-
-  document.getElementById('home-portfolio-toggle')?.addEventListener('click', window.toggleHomePortfolioView);
+  // Wire the home actions early. If a later optional renderer fails, these
+  // buttons still work and the user can navigate out of the bad state.
+  on('home-portfolio-toggle', 'click', window.toggleHomePortfolioView);
+  on('btn-home-new-analysis', 'click', () => setTab('trade'));
+  on('btn-home-log', 'click', () => setTab('log'));
+  on('brand-home', 'click', () => setTab('home'));
 
   // Context panel — regime cluster click opens the two-in-one panel.
   const ctxTrigger = document.getElementById('regime-state');
@@ -132,10 +145,6 @@ function init() {
 
   // Ticker autocomplete for the edit modal. New Trade flow fields render dynamically.
   attachTickerAutocomplete(document.getElementById('t-ticker'));
-
-  document.getElementById('btn-home-new-analysis')?.addEventListener('click', () => setTab('trade'));
-  document.getElementById('btn-home-log')?.addEventListener('click', () => setTab('log'));
-  document.getElementById('brand-home')?.addEventListener('click', () => setTab('home'));
 
   // Alpha Intel glossary panel — close on backdrop click / × / Esc.
   document.getElementById('ai-glossary-close')?.addEventListener('click', window.closeAIGlossary);
@@ -239,11 +248,22 @@ function init() {
   const clearBtn = document.getElementById('btn-clear-sectors');
   if (clearBtn) clearBtn.addEventListener('click', window.clearSectors);
 
+  // Initial render pass. Keep each render isolated so one bad panel cannot
+  // prevent button wiring or leave the home screen inert.
+  runSafe('renderHome', window.renderHome);
+  runSafe('renderRegime', window.renderRegime);
+  runSafe('renderPretradeCheck', window.renderPretradeCheck);
+  runSafe('renderLogStats', window.renderLogStats);
+  runSafe('renderLogTable', window.renderLogTable);
+  runSafe('renderSunday', window.renderSunday);
+  runSafe('renderReference', window.renderReference);
+  runSafe('renderSectorStatusMini', window.renderSectorStatusMini);
+
   // Restore last-active mode.
   if (state.activeMode && ['home','sunday','log','reference','trade'].includes(state.activeMode)) {
-    setTab(state.activeMode);
+    runSafe('restoreTab', () => setTab(state.activeMode));
   } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
-    setTab('trade');
+    runSafe('restoreTradeTab', () => setTab('trade'));
   }
 
   // ============ SUPABASE SYNC BOOTSTRAP ============

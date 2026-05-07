@@ -455,7 +455,7 @@ function wireHomeActivityList(container) {
 }
 
 function toggleHomePortfolioView() {
-  state.homePortfolioView = state.homePortfolioView === 'open' ? 'all' : 'open';
+  state.homePortfolioView = state.homePortfolioView === 'open' ? 'recent' : 'open';
   saveState();
   renderHome();
 }

@@ -1306,7 +1306,9 @@ STRENGTH: 3/3</pre>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => {
+      navigator.serviceWorker.register('sw.js?v=2').then(reg => {
+        reg.update();
+      }).catch(err => {
         console.log('ServiceWorker registration failed: ', err);
       });
     });
