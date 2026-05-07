@@ -2,7 +2,7 @@ import { state } from '../state/store.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { calcPL, isClosedTrade, processQualityLabel } from '../models/trade.js';
 import { computeSetupScorecards } from './setup-scorecards.js';
-import { esc, money } from '../dom/html.js';
+import { esc, money, plainMoney } from '../dom/html.js';
 
 function localISO(d) {
   const y = d.getFullYear();
@@ -56,6 +56,7 @@ export function buildWeeklyReportHtml({ trades = state.trades || [], range = cur
   const biggestLoss = [...closedRows].sort((a, b) => a.pl - b.pl)[0];
   const index = buildTradeIndex(trades);
   const openRisk = index.open.reduce((s, t) => s + (Number(t.riskDollars) || window.tradeRiskDollars(t) || 0), 0);
+  const bestTone = biggestWin && biggestWin.pl >= 0 ? 'pos' : 'neg';
 
   const tradeTable = closedRows.length ? closedRows
     .sort((a, b) => (a.trade.exit_date || a.trade.date || '').localeCompare(b.trade.exit_date || b.trade.date || ''))
@@ -113,7 +114,7 @@ export function buildWeeklyReportHtml({ trades = state.trades || [], range = cur
     <div class="card"><div class="label">Avg R</div><div class="value ${avgR >= 0 ? 'pos' : 'neg'}">${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R</div></div>
   </section>
   <section class="split">
-    <div class="card"><h2>Best Trade</h2>${biggestWin ? `${esc(biggestWin.trade.ticker || '—')} · ${esc(biggestWin.trade.setup || 'No setup')}<br><strong class="pos">${money(biggestWin.pl)} · +${biggestWin.r.toFixed(2)}R</strong>` : '—'}</div>
+    <div class="card"><h2>Best Trade</h2>${biggestWin ? `${esc(biggestWin.trade.ticker || '—')} · ${esc(biggestWin.trade.setup || 'No setup')}<br><strong class="${bestTone}">${money(biggestWin.pl)} · ${biggestWin.r >= 0 ? '+' : ''}${biggestWin.r.toFixed(2)}R</strong>` : '—'}</div>
     <div class="card"><h2>Largest Loss</h2>${biggestLoss && biggestLoss.pl < 0 ? `${esc(biggestLoss.trade.ticker || '—')} · ${esc(biggestLoss.trade.setup || 'No setup')}<br><strong class="neg">${money(biggestLoss.pl)} · ${biggestLoss.r.toFixed(2)}R</strong>` : '—'}</div>
   </section>
   <section class="card" style="margin-top:12px;">
@@ -128,7 +129,7 @@ export function buildWeeklyReportHtml({ trades = state.trades || [], range = cur
     </table>
   </section>
   <section class="grid">
-    <div class="card"><div class="label">Open Risk</div><div class="value">${money(-openRisk).replace('-', '')}</div></div>
+    <div class="card"><div class="label">Open Risk</div><div class="value">${plainMoney(openRisk)}</div></div>
     <div class="card"><div class="label">Open Positions</div><div class="value">${index.open.length}</div></div>
     <div class="card"><div class="label">Weekly R</div><div class="value ${totalR >= 0 ? 'pos' : 'neg'}">${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R</div></div>
     <div class="card"><div class="label">Next Week Focus</div><div class="value" style="font-size:14px;">Write one rule below</div></div>
