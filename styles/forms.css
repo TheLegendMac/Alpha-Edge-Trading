@@ -43,6 +43,53 @@ select.input-field {
   padding-right: 36px;
 }
 
+.btn-primary,
+.btn-danger {
+  appearance: none;
+  border: 0;
+  padding: 10px 16px;
+  min-height: 40px;
+  border-radius: var(--r-md);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
+}
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg);
+  box-shadow: 0 0 18px rgba(6, 212, 248, 0.22);
+}
+.btn-primary:hover {
+  background: #67e8f9;
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(6, 212, 248, 0.32);
+}
+.btn-primary:disabled,
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-danger {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 0 18px var(--red-glow);
+}
+.btn-danger:hover {
+  background: var(--red-bright);
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px var(--red-glow);
+}
+
 .btn-secondary {
   background: var(--bg-elev);
   color: var(--ink-2);
@@ -187,4 +234,3 @@ select.input-field {
   font-size: 12px;
 }
 .btn-ghost:hover { color: var(--ink); }
-
