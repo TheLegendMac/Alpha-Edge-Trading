@@ -786,6 +786,8 @@ STRENGTH: 3/3</pre>
           <span>Entry: <strong id="pos-entry">$0.00</strong></span>
           <span class="sub-dot">•</span>
           <span><strong id="pos-qty-total">0</strong> <span id="pos-qty-unit">Contracts</span></span>
+          <span class="sub-dot">•</span>
+          <span>Setup: <strong id="pos-setup">—</strong></span>
         </div>
       </div>
       <div class="pos-modal-head-right">
@@ -825,13 +827,14 @@ STRENGTH: 3/3</pre>
           <div class="pos-stat-row">
             <div class="pos-stat-block">
               <div class="pos-stat-value" id="pos-open-qty">0</div>
-              <div class="pos-stat-sub">Contracts Open</div>
+              <div class="pos-stat-sub"><span id="pos-open-qty-unit">Contracts</span> Open</div>
             </div>
             <div class="pos-stat-block right">
               <div class="pos-stat-value zero" id="pos-unrealized">$0.00</div>
               <div class="pos-stat-sub">Unrealized PNL</div>
             </div>
           </div>
+          <div class="pos-risk-profile" id="pos-risk-profile"></div>
           <div class="pos-mark-input-wrap">
             <label class="pos-mark-label" for="pos-mark">Mark Price ($)</label>
             <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="Current mark price" />
@@ -844,12 +847,11 @@ STRENGTH: 3/3</pre>
             Quick Scale
           </div>
           <div class="pos-quick-row">
-            <button type="button" class="pos-quick-btn" data-scale="0.25">25%</button>
             <button type="button" class="pos-quick-btn" data-scale="0.50">50%</button>
             <button type="button" class="pos-quick-btn" data-scale="1.00">MAX</button>
           </div>
           <div class="pos-input-row">
-            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Contracts / shares" />
+            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Contracts to sell" aria-label="Exit quantity" />
             <input type="number" id="pos-exit-price" class="pos-num-input" min="0" step="0.01" placeholder="Exit fill price" />
           </div>
           <button type="button" class="pos-execute-btn" id="pos-execute-btn">Execute Exit</button>
@@ -904,7 +906,7 @@ STRENGTH: 3/3</pre>
               <div class="pos-notes-actions">
                 <button type="button" class="pos-paste-btn" id="pos-paste-img-btn">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                  Paste Image
+                  <span id="pos-paste-img-label">Paste Image</span>
                 </button>
               </div>
             </div>

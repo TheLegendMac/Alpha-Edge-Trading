@@ -8,8 +8,10 @@ import {
   tradeMultiplier,
   tradeQty,
   calcPL,
+  tradeRiskDollars,
 } from '../models/trade.js';
 import { _fmtMoney, _fmtMoneyPlain, _toneClass } from '../models/formatters.js';
+import { attr, esc } from '../dom/html.js';
 
 const POS = {
   id: null,
@@ -38,7 +40,7 @@ function _posSideLabel(t) {
 }
 
 function _posQtyUnit(t) {
-  return t.instrument === 'stocks' ? 'Shares' : 'Contracts';
+  return tradeInstrument(t) === 'stocks' ? 'Shares' : 'Contracts';
 }
 
 // tradeQty → src/models/trade.js
@@ -65,6 +67,109 @@ function _posUnrealizedPL(t, executions, mark) {
 }
 
 // _fmtMoney, _fmtMoneyPlain, _toneClass → src/models/formatters.js
+
+function _posSetupLabel(t) {
+  const raw = t.setup || 'No setup';
+  if (typeof window.tfFindIntradaySetup === 'function') {
+    const def = window.tfFindIntradaySetup(raw);
+    if (def && def.name) return def.name;
+  }
+  return raw;
+}
+
+function _fmtR(value) {
+  if (value === null || !Number.isFinite(value)) return '—';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}R`;
+}
+
+function _rMultiple(value, risk) {
+  return risk > 0 ? value / risk : null;
+}
+
+function _clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function _levelPL(t, price) {
+  const entry = Number(t.entry);
+  const level = Number(price);
+  const qty = tradeQty(t);
+  if (!Number.isFinite(entry) || !Number.isFinite(level) || entry <= 0 || level <= 0 || qty <= 0) return null;
+  // Swing option records can store an underlying stop; don't compare that to premium entry.
+  if (tradeInstrument(t) === 'options' && level > entry * 4) return null;
+  return _posSign(t) * (level - entry) * _posMultiplier(t) * qty;
+}
+
+function _fallbackTargetPL(riskUnit) {
+  const settings = state.settings || {};
+  const targetPct = Number(settings.targetPct) || 50;
+  const stopPct = Number(settings.stopPct) || 50;
+  return riskUnit > 0 ? riskUnit * (targetPct / Math.max(1, stopPct)) : 0;
+}
+
+function _rTitle(label, dollars, r) {
+  const rText = _fmtR(r);
+  const dollarText = _fmtMoney(dollars || 0);
+  return `${label}: ${rText} (${dollarText})`;
+}
+
+function _updateQtyInputForTrade(t) {
+  const qtyEl = document.getElementById('pos-exit-qty');
+  const unit = _posQtyUnit(t);
+  const lower = unit.toLowerCase();
+  qtyEl.placeholder = `${unit} to sell`;
+  qtyEl.setAttribute('aria-label', `Exit ${lower}`);
+  document.getElementById('pos-open-qty-unit').textContent = unit;
+}
+
+function _renderRiskProfile({ trade, realized, unrealized, total }) {
+  const el = document.getElementById('pos-risk-profile');
+  if (!el) return;
+  const risk = tradeRiskDollars(trade);
+  const setup = _posSetupLabel(trade);
+  const stopFromLevel = _levelPL(trade, trade.stop);
+  const stopDollars = stopFromLevel !== null ? -Math.abs(stopFromLevel) : -Math.abs(risk);
+  const riskUnit = Math.abs(stopDollars) || risk || 0;
+  const targetFromLevel = _levelPL(trade, trade.target);
+  const targetDollars = targetFromLevel !== null ? targetFromLevel : _fallbackTargetPL(riskUnit);
+  const stopR = _rMultiple(stopDollars, riskUnit);
+  const targetR = _rMultiple(targetDollars, riskUnit);
+  const totalR = _rMultiple(total, riskUnit);
+  const realizedR = _rMultiple(realized, riskUnit);
+  const openR = _rMultiple(unrealized, riskUnit);
+  const minR = Math.min(stopR ?? -1, totalR ?? 0, 0);
+  const maxR = Math.max(targetR ?? 1, totalR ?? 0, 0);
+  const spanR = Math.max(0.01, maxR - minR);
+  const zeroLeft = ((0 - minR) / spanR) * 100;
+  const markerR = totalR === null ? 0 : _clamp(totalR, minR, maxR);
+  const markerLeft = ((markerR - minR) / spanR) * 100;
+  const markerTone = total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero';
+  const stopLabel = trade.stop ? _fmtMoneyPlain(trade.stop) : 'Risk stop';
+  const targetLabel = trade.target ? _fmtMoneyPlain(trade.target) : 'Plan target';
+
+  el.innerHTML = `
+    <div class="pos-risk-head">
+      <span>Setup <strong>${esc(setup)}</strong></span>
+      <span title="${attr(_rTitle('1R risk', riskUnit, 1))}">1R <strong>${riskUnit > 0 ? _fmtMoneyPlain(riskUnit) : '—'}</strong></span>
+    </div>
+    <div class="pos-risk-bar" aria-label="Risk profile from stop to target">
+      <span class="pos-risk-loss" style="width:${zeroLeft}%"></span>
+      <span class="pos-risk-gain" style="left:${zeroLeft}%;"></span>
+      <span class="pos-risk-zero" style="left:${zeroLeft}%"></span>
+      <span class="pos-risk-marker ${markerTone}" style="left:${markerLeft}%"></span>
+    </div>
+    <div class="pos-risk-scale">
+      <span title="${attr(_rTitle('Stop', stopDollars, stopR))}">Stop <strong>${esc(stopLabel)}</strong> · ${_fmtR(stopR)}</span>
+      <span title="${attr(_rTitle('Entry', 0, 0))}">Entry · 0R</span>
+      <span title="${attr(_rTitle('Target', targetDollars, targetR))}">Target <strong>${esc(targetLabel)}</strong> · ${_fmtR(targetR)}</span>
+    </div>
+    <div class="pos-risk-chips">
+      <span title="${attr(_rTitle('Realized', realized, realizedR))}">Realized <strong>${_fmtMoney(realized)} · ${_fmtR(realizedR)}</strong></span>
+      <span title="${attr(_rTitle('Open', unrealized, openR))}">Open <strong>${_fmtMoney(unrealized)} · ${_fmtR(openR)}</strong></span>
+      <span title="${attr(_rTitle('Total', total, totalR))}">Total <strong>${_fmtMoney(total)} · ${_fmtR(totalR)}</strong></span>
+    </div>
+  `;
+}
 
 function openPositionEditor(trade, tab = 'exec') {
   POS.id = trade.id;
@@ -100,6 +205,8 @@ function openPositionEditor(trade, tab = 'exec') {
   document.getElementById('pos-entry').textContent = _fmtMoneyPlain(trade.entry);
   document.getElementById('pos-qty-total').textContent = tradeQty(trade);
   document.getElementById('pos-qty-unit').textContent = _posQtyUnit(trade);
+  document.getElementById('pos-setup').textContent = _posSetupLabel(trade);
+  _updateQtyInputForTrade(trade);
 
   // Mark input
   const markInput = document.getElementById('pos-mark');
@@ -153,6 +260,7 @@ function renderPositionEditor() {
   unrealEl.textContent = _fmtMoney(unrealized);
   unrealEl.classList.remove('pos','neg','zero');
   unrealEl.classList.add(_toneClass(unrealized));
+  _renderRiskProfile({ trade: t, realized, unrealized, total });
 
   // Quick scale buttons (mark % off open qty)
   document.querySelectorAll('.pos-quick-btn').forEach(b => {
@@ -185,7 +293,7 @@ function _renderExecLog() {
       <td><span class="pos-exec-type-pill">${typeLabel}</span></td>
       <td><strong>${e.qty}</strong></td>
       <td>${_fmtMoneyPlain(e.price)}</td>
-      <td class="right ${pl >= 0 ? 'pl-pos' : 'pl-neg'}">${_fmtMoney(pl)}</td>
+      <td class="right pos-exec-pnl ${pl >= 0 ? 'pl-pos' : 'pl-neg'}">${_fmtMoney(pl)}</td>
       <td class="right"><button class="pos-exec-del-btn" data-exec-id="${e.id}" aria-label="Remove exit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button></td>
     </tr>`;
   }).join('');
@@ -197,14 +305,20 @@ function _renderExecLog() {
 
 function _renderPlaybookImage() {
   const drop = document.getElementById('pos-playbook-drop');
+  const btn = document.getElementById('pos-paste-img-btn');
+  const label = document.getElementById('pos-paste-img-label');
   if (POS.playbookImage) {
     drop.classList.add('has-image');
     drop.innerHTML = `<img src="${POS.playbookImage}" alt="Playbook screenshot" />`;
+    btn.classList.add('remove');
+    label.textContent = 'Remove Image';
   } else {
     drop.classList.remove('has-image');
     drop.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <div>Paste (Ctrl+V) Screenshot</div>`;
+    btn.classList.remove('remove');
+    label.textContent = 'Paste Image';
   }
 }
 
@@ -429,7 +543,15 @@ function _wirePositionEditor() {
   const drop = document.getElementById('pos-playbook-drop');
   const fileInput = document.getElementById('pos-playbook-file');
   drop.addEventListener('click', () => fileInput.click());
-  document.getElementById('pos-paste-img-btn').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+  document.getElementById('pos-paste-img-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (POS.playbookImage) {
+      POS.playbookImage = null;
+      _renderPlaybookImage();
+      return;
+    }
+    fileInput.click();
+  });
   fileInput.addEventListener('change', e => {
     const f = e.target.files[0]; if (!f) return;
     const reader = new FileReader();
