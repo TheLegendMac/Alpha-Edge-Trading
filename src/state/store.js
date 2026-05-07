@@ -38,6 +38,9 @@ export const state = {
   logSearch: '',
   logSetupFilter: '',
   homePortfolioView: 'recent', // 'recent' | 'open'
+  homeCalendar: null,           // { year, month } — lazy default = current month
+  homeCalendarFilter: null,     // ISO date string when filtering portfolio to a day
+  statsExpanded: false,         // log-page advanced analytics expanded?
   marketContextUpdatedAt: null,
   // Unified trade flow
   tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 },

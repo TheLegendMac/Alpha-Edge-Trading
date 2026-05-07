@@ -116,6 +116,70 @@
   margin-top: 5px;
   line-height: 1.3;
 }
+/* Card-grid variant — used for the simplified Stats Snapshot. Each cell is
+   its own bordered card (vs. the older shared-strip with internal borders).
+   Matches the reference dashboard aesthetic — clean spacing, big values. */
+.sms-grid.sms-grid--cards {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  border-bottom: none;
+  margin-bottom: 12px;
+}
+.sms-grid.sms-grid--cards .sms-cell {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px 18px 16px;
+  background: var(--bg-card);
+}
+.sms-grid.sms-grid--cards .sms-cell::before {
+  display: none;
+}
+.sms-grid.sms-grid--cards .sms-label {
+  font-size: 10px;
+  margin-bottom: 10px;
+}
+.sms-grid.sms-grid--cards .sms-value {
+  font-size: 26px;
+}
+@media (max-width: 1080px) {
+  .sms-grid.sms-grid--cards { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 760px) {
+  .sms-grid.sms-grid--cards { grid-template-columns: repeat(2, 1fr); }
+  .sms-grid.sms-grid--cards .sms-value { font-size: 22px; }
+}
+/* Expand/collapse trigger for advanced analytics. */
+.stats-expand-btn {
+  appearance: none;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px dashed var(--line-soft);
+  border-radius: 8px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.stats-expand-btn:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--line-soft);
+  color: var(--ink);
+}
+.stats-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: stats-details-in 0.18s ease-out;
+}
+@keyframes stats-details-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* Horizontal bar rows used inside panels */
 .bar-row {

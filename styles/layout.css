@@ -285,6 +285,95 @@
 }
 .home-calendar-legend .dot.green { background: var(--green); }
 .home-calendar-legend .dot.red { background: var(--red); }
+/* Calendar nav header (prev / month-label / next) — replaces the static title. */
+.home-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.home-cal-month {
+  flex: 1;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.home-cal-arrow {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.home-cal-arrow:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--line-soft);
+  color: var(--ink);
+}
+/* Day cells are buttons now — strip default styling and add hover. */
+button.home-day {
+  appearance: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: var(--mono);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+button.home-day.has-trades { cursor: pointer; }
+button.home-day:hover:not(.future):not(.home-day-blank) {
+  border-color: var(--line-soft);
+  transform: translateY(-1px);
+}
+.home-day.selected {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+.home-day-blank {
+  background: transparent;
+  pointer-events: none;
+}
+/* Show-all-trades / clear-filter button. */
+.home-cal-clear {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--cyan-dim);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.home-cal-clear:hover {
+  background: rgba(6, 212, 248, 0.08);
+}
+/* Portfolio filter banner above the trade list when a calendar day is active. */
+.home-portfolio-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: rgba(6, 212, 248, 0.06);
+  border: 1px solid var(--cyan-dim);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
 .home-actions {
   display: grid;
   grid-template-columns: 1fr auto;

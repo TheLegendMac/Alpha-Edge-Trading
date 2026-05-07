@@ -392,7 +392,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
     return `
       <div class="home-card ai-empty" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-          <div class="home-card-title" style="color:var(--cyan); margin: 0;">Alpha Intelligence${helpBtn}</div>
+          <div class="home-card-title" style="color:#7ee787; margin: 0;">Edge Intelligence${helpBtn}</div>
         </div>
         <div class="ai-empty-body">
           <div class="ai-empty-icon">⌁</div>
@@ -542,7 +542,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
     <div class="ai-killswitch">
       <div class="ai-section-title">⚡ Kill switch active</div>
       <div class="alpha-intel-line danger"><span>Last ${rolling.days} days: ${$(rolling.totalPL)} (${rolling.pct.toFixed(1)}% of account) — past the -7% stop-trading line.</span></div>
-      <div class="alpha-intel-line warn"><span>Pause new trades until P/L recovers. Window is editable in Settings → Alpha Intelligence.</span></div>
+      <div class="alpha-intel-line warn"><span>Pause new trades until P/L recovers. Window is editable in Settings → Edge Intelligence.</span></div>
     </div>` : '';
 
   // ── assemble ─────────────────────────────────────────────
@@ -557,7 +557,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   return `
     <div class="home-card green" style="margin-bottom: 0;">
       <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence${helpBtn}</div>
+        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
         <div class="home-card-kicker" style="margin: 0;">${kickerText}</div>
       </div>
       <div class="home-intel-headline ${hlClass}">${headline}</div>
@@ -565,6 +565,135 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
         ${bullets.slice(0, 6).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
       </ul>
       ${ksHtml}
+    </div>`;
+}
+
+// ──────────────────────────────────────────────────────────
+//  buildTradeFlowEdgeIntel — Edge Intel sized for the final trade step.
+//  Surfaces 3-4 bullets relevant to the trade about to be logged:
+//  setup history, friction warnings, regime/budget reminders. Renders
+//  with the same visual language as the home Edge Intel card so the user
+//  reads it the same way no matter where they see it.
+// ──────────────────────────────────────────────────────────
+function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
+  const helpBtn = '<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
+  const closed = (state.trades || []).filter(t => isClosedTrade(t));
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const dirKey = (direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+
+  const bullets = [];
+
+  // 1. Setup × direction history — "this exact pattern has been a winner / loser".
+  if (setup) {
+    const peers = closedWithPL.filter(x => {
+      const t = x.trade;
+      const tDir = (t.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+      return (t.setup === setup) && (tDir === dirKey);
+    });
+    if (peers.length >= 2) {
+      const wins = peers.filter(x => x.pl > 0).length;
+      const wr = Math.round(wins / peers.length * 100);
+      const avgR = peers.reduce((s, x) => s + x.r, 0) / peers.length;
+      const totalPL = peers.reduce((s, x) => s + x.pl, 0);
+      const tone = avgR >= 0.4 ? 'good' : avgR >= 0 ? 'info' : 'bad';
+      const verdict = avgR >= 0.4 ? 'edge confirmed' : avgR >= 0 ? 'mixed read' : 'historical leak';
+      bullets.push({
+        tone, icon: avgR >= 0 ? '📈' : '📉',
+        text: `<strong>${setup} · ${dirKey === 'short' ? 'Short' : 'Long'}:</strong> ${peers.length} prior trades, ${wr}% wins, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg (${$(totalPL)}). <em>${verdict}.</em>`,
+      });
+    } else if (peers.length === 1) {
+      bullets.push({
+        tone: 'info', icon: '🆕',
+        text: `<strong>Only 1 prior ${setup} ${dirKey}.</strong> Sample is too small for an edge read — log this one and watch for a pattern.`,
+      });
+    } else {
+      bullets.push({
+        tone: 'info', icon: '🆕',
+        text: `<strong>First ${setup} ${dirKey} of your career.</strong> No history to lean on — trust the setup criteria.`,
+      });
+    }
+  }
+
+  // 2. Regime alignment.
+  const regime = state.regime || 'risk-on';
+  if (regime === 'risk-off' && dirKey === 'long') {
+    bullets.push({
+      tone: 'bad', icon: '🛑',
+      text: `<strong>Risk-off tape — long bias is fighting the trend.</strong> Your defensive rules call for puts on Avoid sectors, half size only.`,
+    });
+  } else if (regime === 'neutral') {
+    bullets.push({
+      tone: 'warn', icon: '⚖️',
+      text: `<strong>Neutral regime → half size.</strong> Both directions OK only on confirmed setups.`,
+    });
+  } else if (state.selectedSetup === 'Edge Reversal' && mode === 'swing') {
+    bullets.push({
+      tone: 'warn', icon: '⚠️',
+      text: `<strong>Edge Reversal is half-size by rule.</strong> Counter-trend trades fail more often — keep size honest.`,
+    });
+  }
+
+  // 3. Rolling drawdown warning (kill switch).
+  const rolling = computeRollingPL();
+  if (rolling.pct <= -7) {
+    bullets.push({
+      tone: 'bad', icon: '⚡',
+      text: `<strong>Kill switch active.</strong> Last ${rolling.days}d at ${rolling.pct.toFixed(1)}% — pause until P/L recovers.`,
+    });
+  } else if (rolling.pct <= -4 && rolling.count > 0) {
+    bullets.push({
+      tone: 'warn', icon: '⏱',
+      text: `Rolling P/L is <strong>${rolling.pct.toFixed(1)}% over ${rolling.days}d</strong>. Watch for the -7% line.`,
+    });
+  }
+
+  // 4. Friction (intraday-specific): spread + daily loss budget.
+  if (mode === 'intraday') {
+    const it = state.intraday || {};
+    const settings = state.settings || {};
+    const isOptions = (it.instrument || 'options') !== 'stocks';
+    if (isOptions && it.spreadPct !== null && it.spreadPct !== undefined) {
+      const spread = Number(it.spreadPct);
+      const max = settings.intradayMaxSpreadPct || 5;
+      if (spread > max * 0.7) {
+        bullets.push({
+          tone: spread > max ? 'bad' : 'warn', icon: '💧',
+          text: `<strong>Spread ${spread.toFixed(1)}%</strong> — friction will eat ~${(spread / 2).toFixed(1)}% of your edge per round trip.`,
+        });
+      }
+    }
+    if (typeof window.tfComputeIntradayDayPL === 'function') {
+      const dayPL = window.tfComputeIntradayDayPL();
+      const cap = settings.intradayMaxDailyLoss || 200;
+      const remaining = cap + dayPL;
+      if (remaining < cap * 0.4 && dayPL < 0) {
+        bullets.push({
+          tone: remaining <= 0 ? 'bad' : 'warn', icon: '🔒',
+          text: `<strong>Loss budget: ${$(remaining)} left of $${cap}.</strong> ${remaining <= 0 ? 'Stop for the day.' : 'One more loss puts you out.'}`,
+        });
+      }
+    }
+  }
+
+  // Empty fallback.
+  if (!bullets.length) {
+    bullets.push({
+      tone: 'info', icon: '✅',
+      text: `Nothing flagged from history or context — proceed when ready.`,
+    });
+  }
+
+  // Render with the same green-card language as the home Edge Intel card.
+  return `
+    <div class="home-card green trade-edge-intel" style="margin: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
+        <div class="home-card-kicker" style="margin: 0;">Pre-trade read</div>
+      </div>
+      <ul class="home-intel-points">
+        ${bullets.slice(0, 4).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
+      </ul>
     </div>`;
 }
 
@@ -607,17 +736,54 @@ function renderLogStats() {
     ? (winRateNum / 100) * avgWinR + (1 - winRateNum / 100) * avgLossR
     : null;
 
+  // ── Mean Convergence (CLT) summary — sample mean R + 95% CI half-width.
+  // Surfaced as a top-line metric per UX priority.
+  let cltMean = null, cltCiHalf = null, cltSignificant = null;
+  if (closedWithPL.length >= 2) {
+    const rs = closedWithPL.map(x => x.r || 0);
+    const m = rs.reduce((s, x) => s + x, 0) / rs.length;
+    const variance = rs.length > 1 ? rs.reduce((s, x) => s + (x - m) * (x - m), 0) / (rs.length - 1) : 0;
+    const sd = Math.sqrt(variance);
+    const se = sd / Math.sqrt(rs.length);
+    const half = 1.96 * se;
+    cltMean = m;
+    cltCiHalf = half;
+    cltSignificant = (m - half) > 0 || (m + half) < 0;
+  }
+  const cltTone = cltMean === null ? 'neutral' : (cltSignificant ? (cltMean > 0 ? 'pos' : 'neg') : 'amber');
+  const cltValue = cltMean === null
+    ? '—'
+    : `${cltMean >= 0 ? '+' : ''}${cltMean.toFixed(2)}R`;
+  const cltSub = cltMean === null
+    ? 'need 2+ trades'
+    : `±${cltCiHalf.toFixed(2)}R · ${cltSignificant ? 'edge significant' : 'not yet significant'}`;
+
   // ── Metric strip ──────────────────────────────────────────
+  // Priority order (per UX brief): Expectancy first, Mean Convergence second,
+  // then Profit Factor, Win Rate, Avg R, Total P/L, R Expectancy, Open Risk.
   const plTone    = totalPL >= 0 ? 'pos' : 'neg';
   const wrTone    = winRateNum === null ? 'neutral' : winRateNum >= 50 ? 'pos' : winRateNum >= 45 ? 'amber' : 'neg';
   const avgRTone  = closed.length ? (avgR >= 0.5 ? 'pos' : avgR >= 0 ? 'neutral' : 'neg') : 'neutral';
+  const rExpTone  = rExpectancy === null ? 'neutral' : rExpectancy >= 0.3 ? 'pos' : rExpectancy >= 0 ? 'neutral' : 'neg';
 
   const metricCells = [
     {
-      label: 'Total P/L', tone: plTone,
-      help: 'Realized profit or loss across closed trades in the current filter. Open trades are counted separately.',
-      value: (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toFixed(0),
-      sub: `${closed.length} closed · ${open.length} open`,
+      label: 'Expectancy', tone: expectancy >= 0 ? 'pos' : 'neg',
+      help: 'Average dollars made or lost per closed trade. Top-line edge metric — keep it positive.',
+      value: closed.length ? (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0) : '$0',
+      sub: closed.length ? 'per closed trade' : 'no closed trades',
+    },
+    {
+      label: 'Mean Convergence', tone: cltTone,
+      help: 'Sample mean R-multiple with a 95% confidence band. Narrow band + non-zero mean = a real edge. Wide band = need more sample.',
+      value: cltValue,
+      sub: cltSub,
+    },
+    {
+      label: 'Profit Factor', tone: 'cyan',
+      help: 'Gross wins divided by gross losses. Above 1.00 means wins are larger than losses overall.',
+      value: profitFactor,
+      sub: grossLoss > 0 ? `$${grossWin.toFixed(0)} gross win` : (grossWin > 0 ? 'no losses yet' : ''),
     },
     {
       label: 'Win Rate', tone: wrTone,
@@ -629,19 +795,19 @@ function renderLogStats() {
       label: 'Avg R / Trade', tone: avgRTone,
       help: 'Average result measured in units of risk. +1R means the trade made one times the planned risk.',
       value: closed.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—',
-      sub: rExpectancy !== null ? `R exp: ${rExpectancy >= 0 ? '+' : ''}${rExpectancy.toFixed(2)}R` : '',
+      sub: closed.length ? `${closed.length} closed` : '',
     },
     {
-      label: 'Profit Factor', tone: 'cyan',
-      help: 'Gross wins divided by gross losses. Above 1.00 means wins are larger than losses overall.',
-      value: profitFactor,
-      sub: grossLoss > 0 ? `$${grossWin.toFixed(0)} gross win` : '',
+      label: 'Total P/L', tone: plTone,
+      help: 'Realized profit or loss across closed trades in the current filter. Open trades are counted separately.',
+      value: (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toFixed(0),
+      sub: `${closed.length} closed · ${open.length} open`,
     },
     {
-      label: 'Expectancy', tone: expectancy >= 0 ? 'pos' : 'neg',
-      help: 'Average dollars made or lost per closed trade.',
-      value: (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0),
-      sub: 'per closed trade',
+      label: 'R Expectancy', tone: rExpTone,
+      help: 'Probability-weighted R per trade. Stable across position-size changes — the cleanest read on edge.',
+      value: rExpectancy === null ? '—' : `${rExpectancy >= 0 ? '+' : ''}${rExpectancy.toFixed(2)}R`,
+      sub: rExpectancy === null ? 'need closed trades' : 'per trade',
     },
     {
       label: 'Open Exposure', tone: openRisk > 0 ? 'amber' : 'neutral',
@@ -723,36 +889,56 @@ function renderLogStats() {
   // ── TOS Backtest import panel ──────────────────────────────
   const backtestHtml = window.buildBacktestCard(help);
 
+  // Expand/collapse: top of page shows just Edge Intel + 8 stat cards.
+  // Detailed analytics (setup performance, exit discipline, full Mean
+  // Convergence card, edge card, backtest) live behind a "View More" toggle.
+  const expanded = !!state.statsExpanded;
+  const expandLabel = expanded ? 'Hide detailed analytics ▴' : 'View detailed analytics ▾';
+  const detailsBlock = expanded ? `
+      <div class="stats-details">
+        ${buildAlphaEdgeCard(closedWithPL, help)}
+
+        ${cltHtml}
+
+        <div class="home-row stats-card-row">
+          <div class="home-card">
+            <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
+            ${setupHtml}
+          </div>
+          <div class="home-card">
+            <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
+            ${exitHtml}
+          </div>
+        </div>
+
+        ${backtestHtml}
+      </div>` : '';
+
   container.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
 
       <div class="home-card">
         <div class="stats-snapshot-head">
-          <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Six core indicators for the selected trade set. Use these for the fastest read on performance and risk.')}</div>
+          <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Eight prioritized indicators — Expectancy and Mean Convergence first, then ratio and exposure metrics.')}</div>
           <div class="stats-snapshot-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
         </div>
-        <div class="sms-grid" style="border-bottom: none;">${smsCells}</div>
+        <div class="sms-grid sms-grid--cards">${smsCells}</div>
+        <button type="button" id="stats-expand-btn" class="stats-expand-btn">${expandLabel}</button>
       </div>
 
-      ${buildAlphaEdgeCard(closedWithPL, help)}
-
-      ${cltHtml}
-
-      <div class="home-row stats-card-row">
-        <div class="home-card">
-          <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
-          ${setupHtml}
-        </div>
-        <div class="home-card">
-          <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
-          ${exitHtml}
-        </div>
-      </div>
-
-      ${backtestHtml}
+      ${detailsBlock}
     </div>
   `;
+
+  const expandBtn = document.getElementById('stats-expand-btn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      state.statsExpanded = !state.statsExpanded;
+      window.saveState && window.saveState();
+      renderLogStats();
+    });
+  }
 }
 
 // Bridge to legacy.js.
@@ -781,6 +967,7 @@ window.alphaSection = alphaSection;
 window.buildAlphaHighlightBullets = buildAlphaHighlightBullets;
 window.buildAlphaEdgeCard = buildAlphaEdgeCard;
 window.buildAlphaIntel = buildAlphaIntel;
+window.buildTradeFlowEdgeIntel = buildTradeFlowEdgeIntel;
 // renderLogStats was inadvertently captured by the alpha extraction; will move to
 // src/views/log.js in Phase 8. Exposed on window so legacy.js callers keep working.
 window.renderLogStats = renderLogStats;

@@ -145,7 +145,10 @@ function tfSwingStep2() {
       <div class="trade-section-body" style="padding-top: 4px;">
         <div style="display:flex; gap:8px; align-items:stretch;">
           <textarea id="tf-s-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
-          <button type="button" id="tf-s-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button type="button" id="tf-s-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+            <button type="button" id="tf-s-demo-fill" class="trade-template-btn" style="white-space:nowrap; opacity:0.85;" title="Dev utility: fill all swing fields with realistic random data">Demo fill</button>
+          </div>
         </div>
         <div id="tf-s-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
       </div>
@@ -250,6 +253,10 @@ function tfMountSwingStep2() {
   }
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
+  }
+  const demoBtn = document.getElementById('tf-s-demo-fill');
+  if (demoBtn) {
+    demoBtn.addEventListener('click', () => window.tfDemoFillSwing());
   }
 
   const sa = document.getElementById('tf-sa-quant');
@@ -624,6 +631,13 @@ function tfSwingStep4() {
         </div>
       </div>
     </div>
+
+    ${typeof window.buildTradeFlowEdgeIntel === 'function' ? window.buildTradeFlowEdgeIntel({
+      mode: 'swing',
+      setup: state.selectedSetup,
+      direction: state.direction,
+      instrument: state.instrument,
+    }) : ''}
   `;
 }
 
@@ -764,6 +778,58 @@ function tfApplySwingPaste(parsed) {
 // Smart paste — parses TOS alert text from the user's MAC_Intraday_*
 // scripts. Each regex matches one of the labels those studies emit.
 
+// Dev utility — populate the swing flow with realistic random data so the
+// rest of the UI can be exercised without typing every field.
+function tfDemoFillSwing() {
+  const tickers = ['AAPL','MSFT','NVDA','TSLA','META','AMZN','AMD','AVGO','COIN'];
+  const setups = ['21-EMA Pullback','Base Breakout','Breakout Retest','9-EMA Reclaim'];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const rand = (min, max, dec = 2) => +(min + Math.random() * (max - min)).toFixed(dec);
+  const isOptions = Math.random() < 0.7;
+  const dir = Math.random() < 0.7 ? 'long' : 'short';
+  const upx = rand(80, 480, 2);
+  state.ticker = pick(tickers);
+  state.direction = dir;
+  state.instrument = isOptions ? 'options' : 'stocks';
+  state.structure = isOptions ? 'options' : 'stocks';
+  state.selectedSetup = pick(setups);
+  state.saQuant = rand(3.5, 4.8, 2);
+  state.daysToEarnings = Math.floor(rand(8, 60, 0));
+  state.ivr = isOptions ? Math.floor(rand(15, 65, 0)) : null;
+  if (!state.gateChecks) state.gateChecks = {};
+  state.gateChecks['02'] = true;
+  state.gateChecks['03'] = true;
+  state.underlyingPrice = upx;
+  state.atr = rand(1.5, 8.5, 2);
+  if (isOptions) {
+    const mid = rand(2.5, 7.5, 2);
+    const half = +(mid * rand(0.006, 0.022, 3) / 2).toFixed(2);
+    state.liquidity = {
+      stockVol: Math.floor(rand(2_000_000, 50_000_000, 0)),
+      optionOI: Math.floor(rand(800, 8000, 0)),
+      optionVol: Math.floor(rand(200, 2000, 0)),
+      bid: +(mid - half).toFixed(2),
+      ask: +(mid + half).toFixed(2),
+      spreadPct: null,
+    };
+    state.liquidity.spreadPct = window.deriveSpreadPct(state.liquidity);
+    state.premium = mid;
+  } else {
+    state.liquidity = {
+      stockVol: Math.floor(rand(2_000_000, 50_000_000, 0)),
+      optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null,
+    };
+    state.premium = upx;
+  }
+  // Land the user on the last step so they can verify the review card.
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  state.tradeFlow.step = window.tfStepCount();
+  saveState();
+  if (typeof window.toast === 'function') window.toast('Demo trade filled');
+  window.renderTrade();
+}
+
+window.tfDemoFillSwing = tfDemoFillSwing;
 window.tfSwingStep1 = tfSwingStep1;
 window.tfMountSwingStep1 = tfMountSwingStep1;
 window.tfSwingContractSpecHtml = tfSwingContractSpecHtml;

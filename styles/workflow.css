@@ -1420,14 +1420,62 @@
   #panel-trade .trade-stepper { display: none; }
   #panel-trade .trade-stepper-mobile {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px;
     background: var(--bg-card);
     border: 1px solid var(--line);
     border-radius: var(--r-md);
     margin-bottom: 10px;
-    font-size: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #panel-trade .trade-step-mobile-pill {
+    flex: 1 1 0;
+    min-width: 0;
+    appearance: none;
+    background: rgba(10, 16, 28, 0.4);
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    border-radius: 8px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  #panel-trade .trade-step-mobile-node {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  #panel-trade .trade-step-mobile-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  #panel-trade .trade-step-mobile-pill.complete {
+    background: rgba(63, 185, 80, 0.12);
+    border-color: var(--green-dim);
+    color: var(--green-bright);
+  }
+  #panel-trade .trade-step-mobile-pill.active {
+    background: rgba(6, 212, 248, 0.12);
+    border-color: var(--cyan-dim);
+    color: var(--cyan);
+  }
+  #panel-trade .trade-step-mobile-pill.locked {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
   #panel-trade .trade-summary-row { grid-template-columns: 1fr; }
   #panel-trade .trade-summary-cell { padding: 10px 12px; min-height: 50px; }

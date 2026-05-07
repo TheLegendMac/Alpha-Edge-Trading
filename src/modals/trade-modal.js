@@ -20,13 +20,17 @@ import {
 import { formatDate, dateOffsetISO } from '../models/formatters.js';
 import { getRiskPctForRegime } from '../state/store.js';
 
-// addTestTrades is a dev/test utility — generates random trades.
-function addTestTrades() {
-  const ok = confirm(
-    'Generate 25 random test trades?\n\n' +
-    'They will be saved locally and pushed to Supabase if you are signed in.'
-  );
-  if (!ok) return;
+// addTestTrades is a dev/test utility — generates random trades. Count
+// defaults to 25; loadDemoData calls it with 30. The skipConfirm flag lets
+// in-app onboarding (Load Demo Data button) skip the prompt.
+function addTestTrades(count = 25, skipConfirm = false) {
+  if (!skipConfirm) {
+    const ok = confirm(
+      `Generate ${count} random test trades?\n\n` +
+      'They will be saved locally and pushed to Supabase if you are signed in.'
+    );
+    if (!ok) return;
+  }
 
   const batchId = Date.now().toString(36).toUpperCase();
   const nowIso = new Date().toISOString();
@@ -40,7 +44,7 @@ function addTestTrades() {
   const emotions = ['calm', 'focused', 'anxious', 'rushed', 'patient'];
   const exitReasons = ['target', 'stop', 'thesis-broke', 'discretionary', 'time'];
 
-  const sampleTrades = Array.from({ length: 25 }, (_, i) => {
+  const sampleTrades = Array.from({ length: count }, (_, i) => {
     const mode = Math.random() < 0.65 ? 'swing' : 'intraday';
     const instrument = Math.random() < 0.18 ? 'stocks' : 'options';
     const statusRoll = Math.random();
@@ -409,6 +413,8 @@ window.reviewTrade = function(id) {
 // ---------- Position Editor (simplified Execution Manager + Journal) ----------
 
 window.addTestTrades = addTestTrades;
+// Onboarding shortcut — 30 trades, no confirm prompt.
+window.loadDemoData = () => addTestTrades(30, true);
 window.populateTradeModalSetups = populateTradeModalSetups;
 window.setTradeInstrument = setTradeInstrument;
 window.openTradeModal = openTradeModal;

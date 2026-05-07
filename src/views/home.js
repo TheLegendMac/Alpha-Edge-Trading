@@ -212,72 +212,122 @@ export function renderHome() {
 
   const calendar = document.getElementById('home-calendar');
   const title = document.getElementById('home-calendar-title');
+  // Local-time ISO formatter — toISOString() shifts to UTC and can land on the
+  // wrong calendar date for late-evening trades. We need the user's local day.
+  const isoLocal = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   if (calendar) {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - currentDay - 14); // Start on Sunday, 2 weeks ago
-    const end = new Date(now);
-    end.setDate(start.getDate() + 20); // 21 days total
-    if (title) {
-      title.textContent = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    // Full month view — lazy-default to the current month on first render.
+    if (!state.homeCalendar) {
+      const now = new Date();
+      state.homeCalendar = { year: now.getFullYear(), month: now.getMonth() };
     }
+    const cal = state.homeCalendar;
+    const monthFirst = new Date(cal.year, cal.month, 1);
+    const monthLast = new Date(cal.year, cal.month + 1, 0);
+    const startWeekday = monthFirst.getDay();
+    const daysInMonth = monthLast.getDate();
+    const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+
+    if (title) {
+      const monthLabel = monthFirst.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      title.innerHTML = `
+        <div class="home-calendar-nav">
+          <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous month">‹</button>
+          <span class="home-cal-month">${monthLabel}</span>
+          <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next month">›</button>
+        </div>`;
+    }
+
     const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const headerHtml = weekdays.map(day => `<div class="home-day-dow">${day}</div>`).join('');
     let totalPeriodPL = 0;
-    
-    const daysHtml = Array.from({ length: 21 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      const iso = d.toISOString().split('T')[0];
+    const filterIso = state.homeCalendarFilter || null;
+
+    const cellsHtml = Array.from({ length: totalCells }, (_, i) => {
+      const dayNum = i - startWeekday + 1;
+      if (i < startWeekday || dayNum > daysInMonth) {
+        return `<div class="home-day home-day-blank" aria-hidden="true"></div>`;
+      }
+      const d = new Date(cal.year, cal.month, dayNum);
+      const iso = isoLocal(d);
       const dayTrades = closed.filter(t => (t.exit_date || t.date) === iso);
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
-      
       totalPeriodPL += pl;
-      
       const isFuture = iso > today;
       let cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
       if (isFuture) cls += ' future';
-      
+      if (iso === filterIso) cls += ' selected';
+      if (dayTrades.length) cls += ' has-trades';
       const plLabel = dayTrades.length ? `<span class="home-day-pl">${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}</span>` : '';
-      
       let hoverText = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
       if (dayTrades.length > 0) {
-        hoverText += `\nTrades: ${dayTrades.length}\nP/L: ${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}`;
-        const setupMap = {};
-        dayTrades.forEach(t => {
-          const s = t.setup || 'Other';
-          setupMap[s] = (setupMap[s] || 0) + (calcPL(t) || 0);
-        });
-        const topSetup = Object.entries(setupMap).sort((a,b) => b[1] - a[1])[0];
-        if (topSetup) {
-          hoverText += `\nTop Setup: ${topSetup[0]} (${topSetup[1] >= 0 ? '+$' : '-$'}${Math.abs(topSetup[1]).toFixed(0)})`;
-        }
+        hoverText += `\nTrades: ${dayTrades.length}\nP/L: ${pl >= 0 ? '+$' : '-$'}${Math.abs(pl).toFixed(0)}\nClick to filter`;
       } else {
         hoverText += `\nNo trades`;
       }
-      
-      return `<div class="home-day ${cls}" title="${hoverText}"><span class="home-day-num">${d.getDate()}</span>${plLabel}</div>`;
+      return `<button type="button" class="home-day ${cls}" data-cal-day="${iso}" title="${hoverText}"><span class="home-day-num">${dayNum}</span>${plLabel}</button>`;
     }).join('');
-    
+
     const summaryHtml = `
       <div class="home-calendar-summary">
         <div class="home-calendar-legend">
           <span><span class="dot green"></span> Win</span>
           <span><span class="dot red"></span> Loss</span>
+          ${filterIso ? `<button type="button" class="home-cal-clear" data-cal-clear="1">Show all trades</button>` : ''}
         </div>
-        <div>Period P/L: <span style="color: ${totalPeriodPL >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'}; font-weight: 700;">${totalPeriodPL >= 0 ? '+$' : '-$'}${Math.abs(totalPeriodPL).toFixed(0)}</span></div>
-      </div>
-    `;
-    
-    calendar.innerHTML = headerHtml + daysHtml + summaryHtml;
+        <div>Month P/L: <span style="color: ${totalPeriodPL >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'}; font-weight: 700;">${totalPeriodPL >= 0 ? '+$' : '-$'}${Math.abs(totalPeriodPL).toFixed(0)}</span></div>
+      </div>`;
+
+    calendar.innerHTML = headerHtml + cellsHtml + summaryHtml;
+
+    // Wire month navigation arrows.
+    if (title) {
+      title.querySelectorAll('[data-cal-arrow]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dir = btn.dataset.calArrow === 'next' ? 1 : -1;
+          const next = new Date(cal.year, cal.month + dir, 1);
+          state.homeCalendar = { year: next.getFullYear(), month: next.getMonth() };
+          saveState();
+          renderHome();
+        });
+      });
+    }
+    // Wire day cells — toggle filter on/off when a day is clicked.
+    calendar.querySelectorAll('[data-cal-day]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const iso = cell.dataset.calDay;
+        state.homeCalendarFilter = (state.homeCalendarFilter === iso) ? null : iso;
+        saveState();
+        renderHome();
+      });
+    });
+    // Wire the "Show all trades" reset button.
+    const clearBtn = calendar.querySelector('[data-cal-clear]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.homeCalendarFilter = null;
+        saveState();
+        renderHome();
+      });
+    }
   }
 
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
     const allTrades = (state.trades || []);
     const showingOpen = state.homePortfolioView === 'open';
-    const sourceTrades = showingOpen ? openTrades : allTrades;
+    const filterIso = state.homeCalendarFilter || null;
+    let sourceTrades = showingOpen ? openTrades : allTrades;
+    if (filterIso) {
+      // Calendar day filter — match either entry date or exit date.
+      sourceTrades = sourceTrades.filter(t => (t.exit_date === filterIso) || (t.date === filterIso));
+    }
     const toggle = document.getElementById('home-portfolio-toggle');
     if (toggle) {
       toggle.textContent = showingOpen ? 'Recent activity' : `Open positions (${openTrades.length})`;
@@ -290,12 +340,45 @@ export function renderHome() {
         return bTime - aTime;
       })
       .slice(0, 8);
+    // Filter banner — shows the active day filter and a reset button.
+    const filterBanner = filterIso ? `
+      <div class="home-portfolio-filter">
+        <span>Filtered to <strong>${new Date(filterIso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</strong> · ${sourceTrades.length} trade${sourceTrades.length === 1 ? '' : 's'}</span>
+        <button type="button" data-cal-clear="1" class="home-cal-clear">Show all trades</button>
+      </div>` : '';
     if (listTrades.length === 0) {
-      empty.innerHTML = showingOpen
-        ? `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No open positions.</em><strong>Review recent activity</strong></div></div>`
-        : `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
+      // Three empty-state branches: filtered (no results), open-only (no positions),
+      // or fully empty trade log (offer demo data).
+      if (filterIso) {
+        empty.innerHTML = `${filterBanner}<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No trades on this day.</em><strong>Pick another day on the calendar</strong></div></div>`;
+      } else if (showingOpen) {
+        empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No open positions.</em><strong>Review recent activity</strong></div></div>`;
+      } else if (allTrades.length === 0) {
+        empty.innerHTML = `
+          <div class="home-activity-empty">
+            <div>
+              <div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div>
+              <em>No trades logged yet.</em>
+              <strong style="margin-bottom: 12px;">Start with a real trade or load sample data</strong>
+              <button type="button" class="btn-secondary" data-load-demo="1" style="margin-top: 6px;">Load Demo Data</button>
+              <div style="font-size: 11px; color: var(--ink-4); margin-top: 8px;">Generates 30 realistic trades for testing.</div>
+            </div>
+          </div>`;
+      } else {
+        empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>Your active session is empty.</em><strong>Launch Alpha Wizard</strong></div></div>`;
+      }
+      // Wire any clear-filter or load-demo buttons in this branch.
+      const clearInBanner = empty.querySelector('[data-cal-clear]');
+      if (clearInBanner) clearInBanner.addEventListener('click', e => {
+        e.stopPropagation();
+        state.homeCalendarFilter = null;
+        saveState();
+        renderHome();
+      });
+      const demoBtn = empty.querySelector('[data-load-demo]');
+      if (demoBtn) demoBtn.addEventListener('click', () => window.loadDemoData && window.loadDemoData());
     } else {
-      empty.innerHTML = listTrades.map(t => {
+      empty.innerHTML = filterBanner + listTrades.map(t => {
         const pl = calcPL(t);
         const r = window.calcR(t);
         const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
@@ -319,9 +402,16 @@ export function renderHome() {
           </button>
         `;
       }).join('');
-      empty.insertAdjacentHTML('beforeend', !showingOpen && listTrades.length < allTrades.length
+      empty.insertAdjacentHTML('beforeend', !showingOpen && !filterIso && listTrades.length < allTrades.length
         ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); window.setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${allTrades.length} trades</span></button>`
         : '');
+      const clearInBanner = empty.querySelector('[data-cal-clear]');
+      if (clearInBanner) clearInBanner.addEventListener('click', e => {
+        e.stopPropagation();
+        state.homeCalendarFilter = null;
+        saveState();
+        renderHome();
+      });
     }
   }
 }

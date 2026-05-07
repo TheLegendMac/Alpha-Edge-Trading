@@ -173,7 +173,10 @@ function tfIntradayStep1() {
       <div class="trade-section-body" style="padding-top: 4px;">
         <div style="display:flex; gap:8px; align-items:stretch;">
           <textarea id="tf-i-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
-          <button type="button" id="tf-i-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button type="button" id="tf-i-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+            <button type="button" id="tf-i-demo-fill" class="trade-template-btn" style="white-space:nowrap; opacity:0.85;" title="Dev utility: fill all intraday fields with realistic random data">Demo fill</button>
+          </div>
         </div>
         <div id="tf-i-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
       </div>
@@ -235,6 +238,10 @@ function tfMountIntradayStep1() {
   }
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
+  }
+  const demoBtn = document.getElementById('tf-i-demo-fill');
+  if (demoBtn) {
+    demoBtn.addEventListener('click', () => window.tfDemoFillIntraday());
   }
 
   // Setup pattern — auto-align direction with bias on first pick.
@@ -643,6 +650,13 @@ function tfIntradayStep4() {
         </div>
       </div>
     </div>
+
+    ${typeof window.buildTradeFlowEdgeIntel === 'function' ? window.buildTradeFlowEdgeIntel({
+      mode: 'intraday',
+      setup: it.setup,
+      direction: it.direction,
+      instrument: it.instrument,
+    }) : ''}
   `;
 }
 
@@ -700,6 +714,55 @@ function tfMountIntradayStep4() {
   }
 }
 
+// Dev utility — populate the intraday flow with realistic random data so
+// the rest of the UI can be exercised without typing every field.
+function tfDemoFillIntraday() {
+  const tickers = ['SPY','QQQ','AAPL','TSLA','NVDA','AMD','META','MSFT'];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const rand = (min, max, dec = 2) => +(min + Math.random() * (max - min)).toFixed(dec);
+  const setupDef = pick(TRADE_INTRADAY_SETUPS);
+  const dir = setupDef.bias === 'either' ? (Math.random() < 0.5 ? 'long' : 'short') : setupDef.bias;
+  const isOptions = Math.random() < 0.7;
+  if (!state.intraday) state.intraday = newIntradayTicket();
+  const it = state.intraday;
+  it.ticker = pick(tickers);
+  it.setup = setupDef.id;
+  it.direction = dir;
+  it.instrument = isOptions ? 'options' : 'stocks';
+  it.structure = isOptions ? 'options' : 'stocks';
+  if (isOptions) {
+    const mid = rand(2.5, 7.5, 2);
+    const half = +(mid * rand(0.006, 0.022, 3) / 2).toFixed(2);
+    it.bid = +(mid - half).toFixed(2);
+    it.ask = +(mid + half).toFixed(2);
+    it.mid = mid;
+    it.entry = mid;
+    it.stop = +(mid * 0.55).toFixed(2);
+    it.target = +(mid * 1.6).toFixed(2);
+  } else {
+    const px = rand(80, 480, 2);
+    it.entry = px;
+    it.stop = +(px * (dir === 'long' ? 0.985 : 1.015)).toFixed(2);
+    it.target = +(px * (dir === 'long' ? 1.03 : 0.97)).toFixed(2);
+  }
+  if (setupDef.isOrb) {
+    const center = it.entry;
+    const rng = rand(0.5, 4, 2);
+    it.orHi = +(center + rng/2).toFixed(2);
+    it.orLo = +(center - rng/2).toFixed(2);
+    it.orRng = rng;
+    it.orbType = pick(['5','15','30']);
+  }
+  it.confluence = dir === 'long' ? 'long-bias' : 'short-bias';
+  it.breadth = dir === 'long' ? 'up' : 'down';
+  it.vwapValue = rand(80, 480, 2);
+  window.tfDeriveIntradaySpread();
+  saveState();
+  if (typeof window.toast === 'function') window.toast('Demo intraday filled');
+  window.renderTrade();
+}
+
+window.tfDemoFillIntraday = tfDemoFillIntraday;
 window.tfFindIntradaySetup = tfFindIntradaySetup;
 window.tfParseHumanNumber = tfParseHumanNumber;
 window.tfReadKeyNumber = tfReadKeyNumber;

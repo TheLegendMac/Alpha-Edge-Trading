@@ -115,12 +115,28 @@ function tfRenderStepper() {
     });
   });
   if (mob) {
-    const numEl = document.getElementById('trade-stepper-mobile-num');
-    const nameEl = document.getElementById('trade-stepper-mobile-name');
-    const progEl = document.getElementById('trade-stepper-mobile-progress');
-    if (numEl) numEl.textContent = `Step ${cur} of ${names.length}`;
-    if (nameEl) nameEl.textContent = names[cur - 1] || '';
-    if (progEl) progEl.textContent = `${compl.filter(Boolean).length} of ${names.length}`;
+    // Mobile stepper — mirror desktop's clickable step pills in compact form
+    // so the user can skip between steps on mobile too. Replaces the older
+    // static "Step N · Name · count done" text-only readout.
+    const pillsHtml = names.map((n, i) => {
+      const idx = i + 1;
+      const isComplete = compl[i];
+      const isActive = idx === cur;
+      const isLocked = !isActive && !isComplete && !compl.slice(0, i).every(Boolean);
+      const cls = isComplete ? 'complete' : isActive ? 'active' : isLocked ? 'locked' : '';
+      const inner = isComplete ? '✓' : idx;
+      return `<button class="trade-step-mobile-pill ${cls}" data-trade-step-mobile="${idx}" type="button" aria-label="Step ${idx}: ${n}${isComplete ? ' (complete)' : isActive ? ' (current)' : ''}">
+        <span class="trade-step-mobile-node">${inner}</span>
+        <span class="trade-step-mobile-label">${n}</span>
+      </button>`;
+    }).join('');
+    mob.innerHTML = pillsHtml;
+    mob.querySelectorAll('[data-trade-step-mobile]').forEach(el => {
+      el.addEventListener('click', () => {
+        const target = parseInt(el.dataset.tradeStepMobile, 10);
+        if (target && target !== cur) window.tfGoToStep(target);
+      });
+    });
   }
 }
 
