@@ -158,10 +158,11 @@
   border: 0;
   color: var(--ink-3);
   font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  padding: 8px 18px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  min-height: 32px;
+  padding: 7px 14px;
   border-radius: 4px;
   transition: color .15s, background .15s;
   cursor: pointer;
@@ -177,9 +178,13 @@
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ink-3);
-  font-family: var(--body);
-  font-size: 12px;
-  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-height: 32px;
+  padding: 7px 11px;
   border-radius: var(--r-md);
   transition: color .15s, border-color .15s;
   cursor: pointer;
@@ -701,14 +706,15 @@
   gap: 8px;
 }
 #panel-trade .trade-direction-btn {
-  padding: 14px;
+  min-height: 40px;
+  padding: 10px 12px;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   color: var(--ink);
-  font-family: var(--body);
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1087,9 +1093,13 @@
   z-index: 20;
 }
 #panel-trade .trade-action-btn {
-  padding: 12px 22px;
-  font-size: 14px;
-  font-weight: 700;
+  min-height: 40px;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   border-radius: var(--r-md);
   display: inline-flex;
   align-items: center;
@@ -1101,8 +1111,8 @@
   border: 0;
   color: var(--bg);
   box-shadow: 0 0 18px var(--green-glow);
-  font-family: var(--display);
-  letter-spacing: 0.02em;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
 }
 #panel-trade .trade-action-btn.go:hover { background: var(--green-bright); }
 #panel-trade .trade-action-btn.go:disabled { background: var(--bg-card-2); color: var(--ink-4); box-shadow: none; }
@@ -1115,7 +1125,7 @@
   text-align: right;
   max-width: 280px;
 }
-#panel-trade .trade-action-chevron { font-size: 18px; line-height: 1; }
+#panel-trade .trade-action-chevron { font-size: 14px; line-height: 1; }
 
 /* templates dropdown for thesis */
 /* ---- ThinkScript-aligned chips, bias tags, smart-paste ---- */
@@ -1380,8 +1390,11 @@
   background: var(--bg-elev);
   border: 1px solid var(--line);
   color: var(--ink-2);
-  font-family: var(--body);
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
@@ -1503,16 +1516,15 @@
   #panel-trade .trade-input { font-size: 13px; padding: 9px 11px; }
   #panel-trade .trade-input-row { grid-template-columns: 1fr; gap: 6px; }
   #panel-trade .trade-bracket { align-self: start; margin-bottom: 0; margin-top: 4px; padding: 4px 9px; font-size: 9px; }
-  #panel-trade .trade-direction-btn { padding: 12px; font-size: 12px; }
+  #panel-trade .trade-direction-btn { padding: 10px 12px; font-size: 11px; }
   #panel-trade .trade-output { padding: 12px 14px; }
   #panel-trade .trade-output-main { font-size: 14px; }
   #panel-trade .trade-output-rationale { font-size: 11px; }
   #panel-trade .trade-templates { padding: 6px 8px; gap: 6px; }
   #panel-trade .trade-template-btn { padding: 5px 9px; font-size: 10px; }
   #panel-trade .trade-actions { margin: 16px -12px 0; padding: 10px 12px; gap: 8px; }
-  #panel-trade .trade-action-btn { padding: 11px 16px; font-size: 13px; }
+  #panel-trade .trade-action-btn { padding: 10px 14px; font-size: 12px; }
 }
 @media (min-width: 761px) {
   #panel-trade .trade-stepper-mobile { display: none; }
 }
-

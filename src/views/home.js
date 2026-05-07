@@ -247,7 +247,7 @@ export function renderHome() {
           <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous 2 weeks">‹</button>
           <span class="home-cal-month" style="font-size: 12px;">${rangeLabel}</span>
           <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next 2 weeks">›</button>
-          <button type="button" data-cal-today="1" title="Reset to current week" style="background:none; border:none; color:var(--ink-4); font-size:16px; cursor:pointer; margin-left:4px; line-height:1; display:flex; align-items:center;">↻</button>
+          <button type="button" class="home-cal-today" data-cal-today="1" title="Reset to current week" aria-label="Reset calendar to current week">↻</button>
         </div>`;
     }
 

@@ -59,8 +59,18 @@ select.input-field {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
+}
+.btn-primary svg,
+.btn-danger svg,
+.btn-secondary svg,
+.btn-ghost svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 .btn-primary {
   background: var(--cyan);
@@ -95,15 +105,28 @@ select.input-field {
   color: var(--ink-2);
   border: 1px solid var(--line-soft);
   padding: 10px 16px;
+  min-height: 40px;
   font-size: 12px;
   font-weight: 600;
   border-radius: var(--r-md);
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
   transition: all 0.15s;
 }
 .btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+.btn-compact {
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 11px;
+}
 .btn-secondary.home-icon-action {
   width: 42px;
   height: 42px;
@@ -227,10 +250,27 @@ select.input-field {
   background: transparent;
   border: 1px solid transparent;
   color: var(--ink-3);
-  padding: 7px 12px;
+  padding: 8px 12px;
+  min-height: 40px;
   border-radius: var(--r-sm);
   cursor: pointer;
   font-family: var(--mono);
   font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.btn-ghost:hover { color: var(--ink); }
+.btn-ghost:hover { color: var(--ink); background: rgba(255,255,255,0.025); border-color: var(--line); }
+.btn-ghost.btn-compact,
+.btn-primary.btn-compact,
+.btn-danger.btn-compact,
+.btn-secondary.btn-compact {
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 11px;
+}

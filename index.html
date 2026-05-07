@@ -284,7 +284,7 @@
         <h2 style="margin: 0; font-family: var(--display); font-size: 22px;">Reference & Cheat Sheets</h2>
         <p style="margin: 4px 0 0; color: var(--ink-3); font-size: 13px;">When X happens, do Y. Skim before any trade. Print Section A &amp; B and tape them next to your monitor.</p>
       </div>
-      <button class="btn-secondary" onclick="window.print()" style="padding: 8px 14px;">🖨 Print this page</button>
+      <button class="btn-secondary btn-compact" onclick="window.print()">Print this page</button>
     </div>
 
     <div class="ref-grid">
@@ -904,9 +904,8 @@ STRENGTH: 3/3</pre>
             <div class="pos-notes-head">
               <div class="pos-section-label" style="margin-bottom:0;">Visual Playbook</div>
               <div class="pos-notes-actions">
-                <button type="button" class="pos-paste-btn" id="pos-paste-img-btn">
+                <button type="button" class="pos-paste-btn" id="pos-paste-img-btn" title="Paste image" aria-label="Paste image">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                  <span id="pos-paste-img-label">Paste Image</span>
                 </button>
               </div>
             </div>
@@ -1060,7 +1059,7 @@ STRENGTH: 3/3</pre>
         <div class="settings-section" style="border-top: 1px solid rgba(239,68,68,0.25); padding-top: 20px;">
           <div class="settings-section-title" style="color: var(--red-bright);">⚠ Danger zone</div>
           <div class="settings-section-desc">Permanently delete all trades, sector ratings, and session data. Settings are preserved. This cannot be undone.</div>
-          <button class="btn-danger" id="btn-clear-all-data" style="letter-spacing:0.04em;">Clear all trades &amp; data</button>
+          <button class="btn-danger" id="btn-clear-all-data">Clear all trades &amp; data</button>
         </div>
     </div>
     <div class="modal-footer">

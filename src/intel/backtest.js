@@ -30,8 +30,8 @@ function buildBacktestCard(help) {
     <div class="stats-snapshot-head">
       <div class="home-card-title" style="margin: 0;">Backtest Reports (TOS Import)${help('Import a ThinkorSwim strategy backtest report. Stored locally so you can compare live results to the historical study.')}</div>
       <div style="display:flex; gap:8px;">
-        <button class="btn-secondary" id="btn-import-backtest-file" type="button" style="font-size:11px;">Import file</button>
-        <button class="btn-secondary" id="btn-import-backtest-paste" type="button" style="font-size:11px;">Paste text</button>
+        <button class="btn-secondary btn-compact" id="btn-import-backtest-file" type="button">Import file</button>
+        <button class="btn-secondary btn-compact" id="btn-import-backtest-paste" type="button">Paste text</button>
         <input type="file" id="backtest-file-input" accept=".csv,.txt,.tsv" style="display:none" />
       </div>
     </div>

@@ -306,19 +306,20 @@ function _renderExecLog() {
 function _renderPlaybookImage() {
   const drop = document.getElementById('pos-playbook-drop');
   const btn = document.getElementById('pos-paste-img-btn');
-  const label = document.getElementById('pos-paste-img-label');
   if (POS.playbookImage) {
     drop.classList.add('has-image');
     drop.innerHTML = `<img src="${POS.playbookImage}" alt="Playbook screenshot" />`;
     btn.classList.add('remove');
-    label.textContent = 'Remove Image';
+    btn.title = 'Remove image';
+    btn.setAttribute('aria-label', 'Remove image');
   } else {
     drop.classList.remove('has-image');
     drop.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <div>Paste (Ctrl+V) Screenshot</div>`;
     btn.classList.remove('remove');
-    label.textContent = 'Paste Image';
+    btn.title = 'Paste image';
+    btn.setAttribute('aria-label', 'Paste image');
   }
 }
 

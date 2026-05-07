@@ -69,8 +69,8 @@ function showStaleBackupNudge(daysOld) {
         <div style="font-weight: 600; color: var(--ink); margin-bottom: 4px;">Backup is ${daysOld} days old</div>
         <div style="color: var(--ink-3); margin-bottom: 8px; line-height: 1.4;">Cloud sync is great but a local export is cheap insurance. Save one now?</div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-secondary" id="stale-backup-export" style="padding: 4px 10px; font-size: 11px;">Export now</button>
-          <button class="btn-ghost" id="stale-backup-dismiss" style="padding: 4px 10px; font-size: 11px;">Dismiss</button>
+          <button class="btn-secondary btn-compact" id="stale-backup-export">Export now</button>
+          <button class="btn-ghost btn-compact" id="stale-backup-dismiss">Dismiss</button>
         </div>
       </div>
     </div>
