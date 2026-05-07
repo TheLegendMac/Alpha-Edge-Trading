@@ -24,6 +24,108 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Cloud sync auth modal is injected by sync/auth-modal.js so it does not bloat
+   the initial HTML shell. */
+.auth-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(7,11,16,0.92);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.auth-modal-card {
+  background: #0c1117;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.auth-modal-head {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.auth-modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.auth-modal-subtitle {
+  font-size: 13px;
+  color: #8b949e;
+}
+.auth-field {
+  margin-bottom: 14px;
+}
+.auth-field label {
+  display: block;
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.auth-field input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #e6edf3;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.auth-error {
+  display: none;
+  padding: 10px 12px;
+  background: rgba(239,68,68,0.1);
+  border-left: 3px solid #ef4444;
+  border-radius: 4px;
+  color: #ffa198;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+.auth-actions {
+  display: flex;
+  gap: 10px;
+}
+.auth-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.auth-primary {
+  background: #10b981;
+  color: #0c1117;
+  border: none;
+}
+.auth-secondary {
+  background: transparent;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+}
+.auth-skip-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #30363d;
+  text-align: center;
+}
+.auth-skip-row button {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+}
 .modal-header {
   padding: 20px 24px;
   border-bottom: 1px solid var(--line);
@@ -799,4 +901,3 @@ textarea.input-field {
   min-height: 60px;
   line-height: 1.5;
 }
-

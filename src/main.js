@@ -20,10 +20,12 @@ import '../styles/print.css';
 import './config/constants.js';
 import './state/store.js';
 import './state/persistence.js';
+import './dom/html.js';
 
 // ---------- Models ----------
 import './models/formatters.js';
 import './models/trade.js';
+import './models/trade-index.js';
 
 // ---------- Sync ----------
 import './sync/merge.js';
@@ -40,6 +42,8 @@ import './intel/rolling.js';
 import './intel/alpha.js';
 import './intel/clt-card.js';
 import './intel/backtest.js';
+import './intel/setup-scorecards.js';
+import './intel/weekly-report.js';
 
 // ---------- Views ----------
 import './views/home.js';
@@ -146,6 +150,7 @@ function init() {
   document.getElementById('btn-add-test-trades')?.addEventListener('click', window.addTestTrades);
   document.getElementById('btn-export')?.addEventListener('click', window.exportCSV);
   document.getElementById('btn-export-json')?.addEventListener('click', window.exportJSON);
+  document.getElementById('btn-weekly-report')?.addEventListener('click', window.exportWeeklyReport);
   document.getElementById('btn-import-json')?.addEventListener('click', () => document.getElementById('import-json-file')?.click());
   document.getElementById('import-json-file')?.addEventListener('change', e => {
     if (e.target.files[0]) window.importJSON(e.target.files[0]);
@@ -240,6 +245,7 @@ function init() {
   }
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
+  if (typeof window.ensureAuthModal === 'function') window.ensureAuthModal();
   document.getElementById('auth-signin-btn')?.addEventListener('click', window.handleSignIn);
   document.getElementById('auth-signup-btn')?.addEventListener('click', window.handleSignUp);
   document.getElementById('auth-skip-btn')?.addEventListener('click', window.handleSkipAuth);

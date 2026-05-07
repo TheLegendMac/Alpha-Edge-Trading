@@ -10,7 +10,38 @@ import {
   doPush,
 } from './supabase.js';
 
+export function ensureAuthModal() {
+  if (document.getElementById('auth-modal')) return;
+  document.body.insertAdjacentHTML('afterbegin', `
+    <div id="auth-modal" class="auth-modal-backdrop">
+      <div class="auth-modal-card">
+        <div class="auth-modal-head">
+          <div class="auth-modal-title">Alpha Edge Trading</div>
+          <div class="auth-modal-subtitle">Sign in to sync across devices</div>
+        </div>
+        <div class="auth-field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" />
+        </div>
+        <div class="auth-field">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" />
+        </div>
+        <div id="auth-error" class="auth-error"></div>
+        <div class="auth-actions">
+          <button id="auth-signin-btn" class="auth-primary" type="button">Sign In</button>
+          <button id="auth-signup-btn" class="auth-secondary" type="button">Sign Up</button>
+        </div>
+        <div class="auth-skip-row">
+          <button id="auth-skip-btn" type="button">Continue without sync (local-only)</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
 export function showAuthModal() {
+  ensureAuthModal();
   const modal = document.getElementById('auth-modal');
   if (modal) modal.style.display = 'flex';
 }
@@ -21,6 +52,7 @@ export function hideAuthModal() {
 }
 
 export function showAuthError(msg) {
+  ensureAuthModal();
   const el = document.getElementById('auth-error');
   if (!el) return;
   el.textContent = msg;
@@ -37,6 +69,7 @@ export async function handleSignIn() {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   if (!email || !password) return showAuthError('Email and password required.');
+  if (!SYNC.client && !(await initSupabase())) return showAuthError('Cloud sync not configured.');
   if (!SYNC.client) return showAuthError('Cloud sync not configured.');
   try {
     const { data, error } = await SYNC.client.auth.signInWithPassword({ email, password });
@@ -57,6 +90,7 @@ export async function handleSignUp() {
   const password = document.getElementById('auth-password').value;
   if (!email || !password) return showAuthError('Email and password required.');
   if (password.length < 6) return showAuthError('Password must be at least 6 characters.');
+  if (!SYNC.client && !(await initSupabase())) return showAuthError('Cloud sync not configured.');
   if (!SYNC.client) return showAuthError('Cloud sync not configured.');
   try {
     const { data, error } = await SYNC.client.auth.signUp({ email, password });
@@ -83,8 +117,8 @@ export function handleSkipAuth() {
 }
 
 // Sync pill menu — tapped from the cmdbar.
-export function showSyncMenu() {
-  if (!SYNC.enabled) {
+export async function showSyncMenu() {
+  if (!SYNC.enabled && !(await initSupabase())) {
     alert('Cloud sync is not configured.\n\nEdit the SUPABASE_CONFIG block at the top of Cockpit.html and add your project URL + anon key.');
     return;
   }
@@ -139,7 +173,12 @@ export async function manualSupabaseRefresh() {
 
 // Bootstrap auth flow on page load. Called from init() in legacy.js.
 export async function bootstrapAuth() {
-  if (!initSupabase()) return;  // No config — stay local-only
+  const skip = localStorage.getItem('mac_cockpit_skip_auth') === 'true';
+  if (skip) {
+    setSyncStatus('local', 'Local only');
+    return;
+  }
+  if (!(await initSupabase())) return;  // No config — stay local-only
   try {
     const { data } = await SYNC.client.auth.getSession();
     if (data.session) {
@@ -151,16 +190,12 @@ export async function bootstrapAuth() {
   } catch (e) {
     console.warn('Session check failed:', e);
   }
-  const skip = localStorage.getItem('mac_cockpit_skip_auth') === 'true';
-  if (skip) {
-    setSyncStatus('local', 'Local only');
-  } else {
-    showAuthModal();
-  }
+  showAuthModal();
 }
 
 // Bridge to legacy.js.
 window.showAuthModal = showAuthModal;
+window.ensureAuthModal = ensureAuthModal;
 window.hideAuthModal = hideAuthModal;
 window.showAuthError = showAuthError;
 window.clearAuthError = clearAuthError;

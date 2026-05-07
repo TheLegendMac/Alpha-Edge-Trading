@@ -13,6 +13,8 @@ import {
 } from '../models/trade.js';
 import { TRADE_INTRADAY_SETUPS, TRADE_CONFLUENCE_OPTIONS } from '../config/constants.js';
 import { computeRollingPL } from './rolling.js';
+import { buildTradeIndex } from '../models/trade-index.js';
+import { buildSetupScorecardsHtml } from './setup-scorecards.js';
 
 function alphaEsc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
@@ -702,7 +704,8 @@ function renderLogStats() {
   const help = text => `<span class="stat-help" title="${text}">?</span>`;
   const filter = state.logModeFilter || 'all';
   const setupFilter = state.logSetupFilter || '';
-  const modeTrades = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
+  const index = buildTradeIndex(state.trades || []);
+  const modeTrades = filter === 'all' ? index.all : index.all.filter(t => (t.mode || 'swing') === filter);
   const trades = setupFilter ? modeTrades.filter(t => (t.setup || '—') === setupFilter) : modeTrades;
   const open   = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => isClosedTrade(t));
@@ -867,10 +870,9 @@ function renderLogStats() {
     const wr  = Math.round(s.wins / s.n * 100);
     const avgRv = s.totalR / s.n;
     const isActive = setupFilter === name;
-    const encodedName = encodeURIComponent(name).replace(/'/g, '%27');
     return `
-      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" onclick="setLogSetupFilter(decodeURIComponent('${encodedName}'))">
-        <div class="bar-row-label">${name}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R avg</span></div>
+      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" data-setup-filter="${alphaEsc(name)}">
+        <div class="bar-row-label">${alphaEsc(name)}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R avg</span></div>
         <div class="bar-wrap"><div class="bar-fill ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${Math.max(4, Math.abs(s.pl) / maxSetupPL * 100).toFixed(0)}%"></div></div>
         <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
       </button>`;
@@ -899,6 +901,8 @@ function renderLogStats() {
         ${buildAlphaEdgeCard(closedWithPL, help)}
 
         ${cltHtml}
+
+        ${buildSetupScorecardsHtml(modeTrades)}
 
         <div class="home-row stats-card-row">
           <div class="home-card">
@@ -937,6 +941,14 @@ function renderLogStats() {
       state.statsExpanded = !state.statsExpanded;
       window.saveState && window.saveState();
       renderLogStats();
+    });
+  }
+  if (container && container.dataset.setupFilterWired !== '1') {
+    container.dataset.setupFilterWired = '1';
+    container.addEventListener('click', e => {
+      const row = e.target.closest('[data-setup-filter]');
+      if (!row) return;
+      setLogSetupFilter(row.dataset.setupFilter);
     });
   }
 }

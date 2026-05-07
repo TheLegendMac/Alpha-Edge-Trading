@@ -13,6 +13,8 @@ import {
 } from '../models/trade.js';
 import { formatDate } from '../models/formatters.js';
 import { saveState } from '../state/persistence.js';
+import { buildTradeIndex, filterLogTrades } from '../models/trade-index.js';
+import { esc, attr } from '../dom/html.js';
 
 function setLogSetupFilter(setup) {
   state.logSetupFilter = setup || '';
@@ -32,16 +34,15 @@ export function renderLogTable() {
   const filter = state.logModeFilter || 'all';
   const setupFilter = state.logSetupFilter || '';
   const search = (state.logSearch || '').trim().toLowerCase();
-  const modeFiltered = filter === 'all' ? state.trades : state.trades.filter(t => (t.mode || 'swing') === filter);
-  const setupFiltered = setupFilter ? modeFiltered.filter(t => (t.setup || '—') === setupFilter) : modeFiltered;
-  const filtered = search
-    ? setupFiltered.filter(t =>
-        (t.ticker || '').toLowerCase().includes(search) ||
-        (t.setup || '').toLowerCase().includes(search) ||
-        (t.direction || '').toLowerCase().includes(search) ||
-        (t.mode || '').toLowerCase().includes(search) ||
-        (t.status || '').toLowerCase().includes(search))
-    : setupFiltered;
+  const tradeIndex = buildTradeIndex(state.trades || []);
+  const filtered = filterLogTrades(tradeIndex, { mode: filter, setup: setupFilter, search });
+  if (container && container.dataset.logWired !== '1') {
+    container.dataset.logWired = '1';
+    container.addEventListener('click', e => {
+      const row = e.target.closest('[data-edit-trade]');
+      if (row) window.editTrade(row.dataset.editTrade);
+    });
+  }
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
@@ -84,21 +85,21 @@ export function renderLogTable() {
           ? 'risk open'
           : `${formatR(r)}${processLabel ? ` · ${processLabel}` : ''}`;
         return `
-          <button class="home-trade-row log-trade-row" type="button" onclick="editTrade('${t.id}')">
-            <span class="home-trade-stripe ${statusClass}"></span>
+          <button class="home-trade-row log-trade-row" type="button" data-edit-trade="${attr(t.id)}">
+            <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
-              <span class="home-trade-ticker">${t.ticker || '—'} <span class="status ${t.status}" style="font-size:9px; padding:2px 6px;">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · ${mode} · ${t.direction || '—'}</span>
+              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(t.status)}" style="font-size:9px; padding:2px 6px;">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(mode)} · ${esc(t.direction || '—')}</span>
             </span>
             <span class="home-trade-setup">
-              ${t.setup || 'No setup'}
+              ${esc(t.setup || 'No setup')}
               <span class="home-trade-detail">Entry $${entry.toFixed(2)} · Exit ${exit !== null ? '$' + exit.toFixed(2) : '—'} · ${t.contracts || 0} ${sizeUnit}</span>
             </span>
             <span class="log-trade-risk">
               ${formatR(r)}
               <span class="home-trade-detail">Risk $${Math.round(risk)}</span>
             </span>
-            <span class="home-trade-value ${statusClass}">
+            <span class="home-trade-value ${attr(statusClass)}">
               ${valueText}
               <span class="home-trade-detail">${valueDetail}</span>
             </span>

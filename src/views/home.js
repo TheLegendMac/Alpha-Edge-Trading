@@ -11,6 +11,8 @@ import {
 import { formatDate, todayISO } from '../models/formatters.js';
 import { computeRollingPL } from '../intel/rolling.js';
 import { saveState } from '../state/persistence.js';
+import { buildTradeIndex } from '../models/trade-index.js';
+import { esc, attr } from '../dom/html.js';
 
 function renderUniversalSidebar() {
   // Stable function name other modules can call without coupling.
@@ -21,14 +23,15 @@ function renderUniversalSidebar() {
 
 export function renderHome() {
   const today = todayISO();
-  const closed = (state.trades || []).filter(t => isClosedTrade(t));
-  const todayClosed = closed.filter(t => (t.exit_date || t.date) === today);
+  const tradeIndex = buildTradeIndex(state.trades || []);
+  const closed = tradeIndex.closed;
+  const todayClosed = tradeIndex.byExitDate.get(today) || [];
   const todayPL = todayClosed.reduce((s, t) => s + (calcPL(t) || 0), 0);
   const todayR = todayClosed.reduce((s, t) => s + (window.calcR(t) || 0), 0);
   const wins = closed.filter(t => (calcPL(t) || 0) > 0);
   const losses = closed.filter(t => (calcPL(t) || 0) < 0);
   const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
-  const openTrades = (state.trades || []).filter(t => t.status === 'open');
+  const openTrades = tradeIndex.open;
   const maxPositions = state.settings.maxPositions || 0;
   const positionSlotsLeft = Math.max(0, maxPositions - openTrades.length);
   const nextRisk = Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
@@ -255,7 +258,7 @@ export function renderHome() {
       }
       const d = new Date(cal.year, cal.month, dayNum);
       const iso = isoLocal(d);
-      const dayTrades = closed.filter(t => (t.exit_date || t.date) === iso);
+      const dayTrades = tradeIndex.byExitDate.get(iso) || [];
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
       totalPeriodPL += pl;
       const isFuture = iso > today;
@@ -270,7 +273,7 @@ export function renderHome() {
       } else {
         hoverText += `\nNo trades`;
       }
-      return `<button type="button" class="home-day ${cls}" data-cal-day="${iso}" title="${hoverText}"><span class="home-day-num">${dayNum}</span>${plLabel}</button>`;
+      return `<button type="button" class="home-day ${attr(cls)}" data-cal-day="${attr(iso)}" title="${attr(hoverText)}"><span class="home-day-num">${dayNum}</span>${plLabel}</button>`;
     }).join('');
 
     const summaryHtml = `
@@ -285,37 +288,7 @@ export function renderHome() {
 
     calendar.innerHTML = headerHtml + cellsHtml + summaryHtml;
 
-    // Wire month navigation arrows.
-    if (title) {
-      title.querySelectorAll('[data-cal-arrow]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const dir = btn.dataset.calArrow === 'next' ? 1 : -1;
-          const next = new Date(cal.year, cal.month + dir, 1);
-          state.homeCalendar = { year: next.getFullYear(), month: next.getMonth() };
-          saveState();
-          renderHome();
-        });
-      });
-    }
-    // Wire day cells — toggle filter on/off when a day is clicked.
-    calendar.querySelectorAll('[data-cal-day]').forEach(cell => {
-      cell.addEventListener('click', () => {
-        const iso = cell.dataset.calDay;
-        state.homeCalendarFilter = (state.homeCalendarFilter === iso) ? null : iso;
-        saveState();
-        renderHome();
-      });
-    });
-    // Wire the "Show all trades" reset button.
-    const clearBtn = calendar.querySelector('[data-cal-clear]');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        state.homeCalendarFilter = null;
-        saveState();
-        renderHome();
-      });
-    }
+    wireHomeCalendar(title, calendar);
   }
 
   const empty = document.getElementById('home-portfolio-empty');
@@ -326,20 +299,16 @@ export function renderHome() {
     let sourceTrades = showingOpen ? openTrades : allTrades;
     if (filterIso) {
       // Calendar day filter — match either entry date or exit date.
-      sourceTrades = sourceTrades.filter(t => (t.exit_date === filterIso) || (t.date === filterIso));
+      const daySet = new Set(tradeIndex.byAnyDate.get(filterIso) || []);
+      sourceTrades = sourceTrades.filter(t => daySet.has(t));
     }
     const toggle = document.getElementById('home-portfolio-toggle');
     if (toggle) {
       toggle.textContent = showingOpen ? 'Recent activity' : `Open positions (${openTrades.length})`;
       toggle.title = showingOpen ? 'Show recent activity' : 'Show open positions';
     }
-    const listTrades = [...sourceTrades]
-      .sort((a, b) => {
-        const aTime = new Date(a.updated_at || a.exit_date || a.date || 0).getTime();
-        const bTime = new Date(b.updated_at || b.exit_date || b.date || 0).getTime();
-        return bTime - aTime;
-      })
-      .slice(0, 8);
+    const sourceSet = new Set(sourceTrades);
+    const listTrades = tradeIndex.recent.filter(t => sourceSet.has(t)).slice(0, 8);
     // Filter banner — shows the active day filter and a reset button.
     const filterBanner = filterIso ? `
       <div class="home-portfolio-filter">
@@ -390,30 +359,92 @@ export function renderHome() {
           ? `${tradeQty(t) || 0} ${qtyUnit} @ $${Number(t.entry || 0).toFixed(2)}`
           : `${formatDate(t.exit_date || t.date)}${r !== null ? ` · ${r >= 0 ? '+' : '-'}${Math.abs(r).toFixed(2)}R` : ''}`;
         return `
-          <button class="home-trade-row" type="button" onclick="event.stopPropagation(); window.reviewTrade('${t.id}')">
-            <span class="home-trade-stripe ${statusClass}"></span>
+          <button class="home-trade-row" type="button" data-review-trade="${attr(t.id)}">
+            <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
-              <span class="home-trade-ticker">${t.ticker || '—'} <span class="status ${t.status}" style="font-size:9px; padding:2px 6px;">${t.status}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · ${t.mode || 'swing'} · ${t.direction || '—'}</span>
+              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(t.status)}" style="font-size:9px; padding:2px 6px;">${esc(t.status)}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(t.mode || 'swing')} · ${esc(t.direction || '—')}</span>
             </span>
-            <span class="home-trade-setup">${t.setup || 'No setup'}</span>
-            <span class="home-trade-value ${statusClass}">${valueText}<span class="home-trade-detail">${detailText}</span></span>
+            <span class="home-trade-setup">${esc(t.setup || 'No setup')}</span>
+            <span class="home-trade-value ${attr(statusClass)}">${esc(valueText)}<span class="home-trade-detail">${esc(detailText)}</span></span>
             <span class="home-trade-action">Review</span>
           </button>
         `;
       }).join('');
       empty.insertAdjacentHTML('beforeend', !showingOpen && !filterIso && listTrades.length < allTrades.length
-        ? `<button class="home-trade-row" type="button" onclick="event.stopPropagation(); window.setTab('log')" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${allTrades.length} trades</span></button>`
+        ? `<button class="home-trade-row" type="button" data-home-tab="log" style="grid-template-columns:1fr; justify-items:center;"><span class="home-trade-action">View all ${allTrades.length} trades</span></button>`
         : '');
-      const clearInBanner = empty.querySelector('[data-cal-clear]');
-      if (clearInBanner) clearInBanner.addEventListener('click', e => {
-        e.stopPropagation();
-        state.homeCalendarFilter = null;
-        saveState();
-        renderHome();
-      });
     }
+    wireHomeActivityList(empty);
   }
+}
+
+function clearCalendarFilter() {
+  state.homeCalendarFilter = null;
+  saveState();
+  renderHome();
+}
+
+function wireHomeCalendar(title, calendar) {
+  if (title && title.dataset.homeCalWired !== '1') {
+    title.dataset.homeCalWired = '1';
+    title.addEventListener('click', e => {
+      const btn = e.target.closest('[data-cal-arrow]');
+      if (!btn) return;
+      const cal = state.homeCalendar || { year: new Date().getFullYear(), month: new Date().getMonth() };
+      const dir = btn.dataset.calArrow === 'next' ? 1 : -1;
+      const next = new Date(cal.year, cal.month + dir, 1);
+      state.homeCalendar = { year: next.getFullYear(), month: next.getMonth() };
+      saveState();
+      renderHome();
+    });
+  }
+  if (calendar && calendar.dataset.homeCalWired !== '1') {
+    calendar.dataset.homeCalWired = '1';
+    calendar.addEventListener('click', e => {
+      const clear = e.target.closest('[data-cal-clear]');
+      if (clear) {
+        e.stopPropagation();
+        clearCalendarFilter();
+        return;
+      }
+      const cell = e.target.closest('[data-cal-day]');
+      if (!cell) return;
+      const iso = cell.dataset.calDay;
+      state.homeCalendarFilter = (state.homeCalendarFilter === iso) ? null : iso;
+      saveState();
+      renderHome();
+    });
+  }
+}
+
+function wireHomeActivityList(container) {
+  if (!container || container.dataset.homeActivityWired === '1') return;
+  container.dataset.homeActivityWired = '1';
+  container.addEventListener('click', e => {
+    const clear = e.target.closest('[data-cal-clear]');
+    if (clear) {
+      e.stopPropagation();
+      clearCalendarFilter();
+      return;
+    }
+    const demo = e.target.closest('[data-load-demo]');
+    if (demo) {
+      window.loadDemoData && window.loadDemoData();
+      return;
+    }
+    const review = e.target.closest('[data-review-trade]');
+    if (review) {
+      e.stopPropagation();
+      window.reviewTrade(review.dataset.reviewTrade);
+      return;
+    }
+    const tab = e.target.closest('[data-home-tab]');
+    if (tab) {
+      e.stopPropagation();
+      window.setTab(tab.dataset.homeTab);
+    }
+  });
 }
 
 function toggleHomePortfolioView() {

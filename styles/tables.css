@@ -266,3 +266,86 @@
   text-align: right;
 }
 
+/* Setup scorecards */
+.setup-scorecards-card {
+  margin: 0;
+}
+.setup-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.setup-scorecard {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 13px 14px;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.setup-scorecard:hover {
+  border-color: var(--cyan);
+  background: rgba(6, 212, 248, 0.05);
+  transform: translateY(-1px);
+}
+.setup-scorecard-top,
+.setup-scorecard-metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.setup-scorecard-name {
+  font-weight: 800;
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.setup-scorecard-grade {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 900;
+  border: 1px solid var(--line-soft);
+  color: var(--ink-2);
+  flex-shrink: 0;
+}
+.setup-scorecard.grade-a .setup-scorecard-grade { color: var(--green-bright); border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.08); }
+.setup-scorecard.grade-b .setup-scorecard-grade { color: var(--cyan); border-color: rgba(6,212,248,0.45); background: rgba(6,212,248,0.08); }
+.setup-scorecard.grade-c .setup-scorecard-grade { color: var(--amber-bright); border-color: rgba(245,158,11,0.45); background: rgba(245,158,11,0.08); }
+.setup-scorecard.grade-d .setup-scorecard-grade { color: var(--red-bright); border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.08); }
+.setup-scorecard-metrics {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.setup-scorecard-metrics span {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.035);
+}
+.setup-scorecard-read,
+.setup-scorecard-avoid {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.35;
+}
+.setup-scorecard-avoid {
+  color: var(--ink-4);
+  font-family: var(--mono);
+}

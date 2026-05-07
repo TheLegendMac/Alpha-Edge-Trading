@@ -25,6 +25,18 @@ export const SYNC = {
   PUSH_DEBOUNCE_MS: 1500, // wait this long after last save before pushing
 };
 
+let supabaseLoader = null;
+
+function quickHash(value) {
+  const str = typeof value === 'string' ? value : JSON.stringify(value);
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
 // Stable device ID for conflict resolution.
 export function getDeviceId() {
   let id = localStorage.getItem('mac_cockpit_device_id');
@@ -36,21 +48,25 @@ export function getDeviceId() {
 }
 SYNC.deviceId = getDeviceId();
 
-// Initialize Supabase client (called from init via bootstrapAuth).
-export function initSupabase() {
+async function loadSupabaseClientFactory() {
+  if (!supabaseLoader) {
+    supabaseLoader = import('@supabase/supabase-js').then(mod => mod.createClient);
+  }
+  return supabaseLoader;
+}
+
+// Initialize Supabase client lazily (called from auth actions / bootstrap).
+export async function initSupabase() {
   const cfg = window.SUPABASE_CONFIG;
   if (!cfg || !cfg.url || cfg.url.includes('YOUR-PROJECT') || !cfg.anonKey || cfg.anonKey.includes('YOUR-ANON-KEY')) {
     console.info('Supabase config missing — running in local-only mode.');
     setSyncStatus('local', 'No cloud sync configured');
     return false;
   }
-  if (!window.supabase || !window.supabase.createClient) {
-    console.warn('Supabase library failed to load.');
-    setSyncStatus('error', 'Library failed to load');
-    return false;
-  }
+  if (SYNC.client) return true;
   try {
-    SYNC.client = window.supabase.createClient(cfg.url, cfg.anonKey, {
+    const createClient = await loadSupabaseClientFactory();
+    SYNC.client = createClient(cfg.url, cfg.anonKey, {
       auth: { persistSession: true, autoRefreshToken: true, storageKey: 'mac-cockpit-auth' },
     });
     SYNC.enabled = true;
@@ -130,21 +146,28 @@ export async function doPush() {
     // Snapshot the state at this exact moment by deep-cloning before passing
     // to Supabase — eliminates state mutation between read and HTTP send.
     const snapshot = JSON.parse(JSON.stringify(state));
-    const { data, error } = await SYNC.client
-      .from('cockpit_state')
-      .upsert({
-        user_id: SYNC.user.id,
-        state_json: snapshot,
-        device_id: SYNC.deviceId,
-      }, { onConflict: 'user_id' })
-      .select();
-    if (error) throw error;
-    if (data && data[0]) {
-      const returnedTrades = (data[0].state_json?.trades || []).length;
-      console.log('[sync push] success — server returned', returnedTrades, 'trades in row');
-      if (returnedTrades !== tradeCount) {
-        console.warn('[sync push] MISMATCH: pushed', tradeCount, 'trades but server returned', returnedTrades);
+    const snapshotHash = quickHash(snapshot);
+    const lastSnapshotHash = localStorage.getItem('mac_cockpit_last_sync_hash');
+    if (snapshotHash !== lastSnapshotHash) {
+      const { data, error } = await SYNC.client
+        .from('cockpit_state')
+        .upsert({
+          user_id: SYNC.user.id,
+          state_json: snapshot,
+          device_id: SYNC.deviceId,
+        }, { onConflict: 'user_id' })
+        .select();
+      if (error) throw error;
+      localStorage.setItem('mac_cockpit_last_sync_hash', snapshotHash);
+      if (data && data[0]) {
+        const returnedTrades = (data[0].state_json?.trades || []).length;
+        console.log('[sync push] success — server returned', returnedTrades, 'trades in row');
+        if (returnedTrades !== tradeCount) {
+          console.warn('[sync push] MISMATCH: pushed', tradeCount, 'trades but server returned', returnedTrades);
+        }
       }
+    } else {
+      console.log('[sync push] skipped cockpit_state upsert — no state changes');
     }
     await syncTradesTableMirror(snapshot);
     SYNC.lastSyncAt = Date.now();
@@ -164,8 +187,15 @@ export async function syncTradesTableMirror(snapshot) {
   if (!SYNC.enabled || !SYNC.user) return;
   const trades = snapshot.trades || [];
   try {
-    if (trades.length > 0) {
-      const rows = trades.map(t => ({
+    const knownHashes = JSON.parse(localStorage.getItem('mac_cockpit_trade_sync_hashes') || '{}');
+    const currentHashes = {};
+    const changedTrades = trades.filter(t => {
+      const hash = quickHash(t);
+      currentHashes[t.id] = hash;
+      return knownHashes[t.id] !== hash;
+    });
+    if (changedTrades.length > 0) {
+      const rows = changedTrades.map(t => ({
         id: t.id,
         user_id: SYNC.user.id,
         mode: t.mode || 'swing',
@@ -186,7 +216,7 @@ export async function syncTradesTableMirror(snapshot) {
         .from('trades')
         .upsert(rows, { onConflict: 'id' });
       if (error) {
-        const minimalRows = trades.map(t => ({
+        const minimalRows = changedTrades.map(t => ({
           id: t.id,
           user_id: SYNC.user.id,
           trade_json: t,
@@ -197,7 +227,7 @@ export async function syncTradesTableMirror(snapshot) {
           .upsert(minimalRows, { onConflict: 'id' });
         if (minimalError) throw minimalError;
       }
-      console.log('[sync trades mirror] upserted', rows.length, 'trade rows');
+      console.log('[sync trades mirror] upserted', rows.length, 'changed trade rows');
     }
 
     const deletedIds = Object.keys(snapshot.deletedTradeIds || {});
@@ -210,6 +240,8 @@ export async function syncTradesTableMirror(snapshot) {
       if (error) throw error;
       console.log('[sync trades mirror] deleted', deletedIds.length, 'trade rows');
     }
+    deletedIds.forEach(id => delete currentHashes[id]);
+    localStorage.setItem('mac_cockpit_trade_sync_hashes', JSON.stringify(currentHashes));
   } catch (e) {
     console.warn('[sync trades mirror] skipped. Create an optional trades table to enable row-by-row trade viewing.', e);
   }
