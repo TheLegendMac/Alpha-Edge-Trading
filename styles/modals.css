@@ -159,11 +159,35 @@
 .modal-footer {
   padding: 16px 24px;
   border-top: 1px solid var(--line);
-  display: flex; justify-content: flex-end; gap: 10px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* ============ TRADE MODAL — TWO-MODE STRUCTURE ============ */
-.modal.modal-trade { max-width: 720px; }
+.modal.modal-trade {
+  max-width: 720px;
+  width: min(720px, calc(100vw - 24px));
+}
+.form-grid,
+.settings-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+.form-grid .full,
+.settings-row .full {
+  grid-column: 1 / -1;
+}
+.modal-trade .input-field {
+  min-width: 0;
+}
+.modal-trade textarea.input-field {
+  min-height: 82px;
+  resize: vertical;
+}
 
 .modal-tabs {
   display: grid;
@@ -230,6 +254,108 @@
   font-size: 11px;
   color: var(--ink-3);
   line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .modal-backdrop {
+    padding: 10px;
+    align-items: stretch;
+  }
+  .modal {
+    max-height: calc(100vh - 20px);
+  }
+  .modal.modal-trade {
+    width: 100%;
+    max-width: none;
+  }
+  .modal-header {
+    padding: 14px 16px;
+    align-items: flex-start;
+  }
+  .modal-title {
+    font-size: 18px;
+  }
+  .modal-subtitle {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+  .form-grid,
+  .settings-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .modal-trade .input-field {
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .modal-trade textarea.input-field {
+    min-height: 76px;
+  }
+  .modal-footer {
+    padding: 12px 16px;
+    justify-content: stretch;
+  }
+  .modal-footer > div[style*="flex"] {
+    display: none;
+  }
+  .modal-footer .btn-primary,
+  .modal-footer .btn-danger,
+  .modal-footer .btn-ghost {
+    flex: 1 1 140px;
+    min-height: 42px;
+    white-space: nowrap;
+  }
+  #btn-delete-trade {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .flow-instrument-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .flow-instrument-pills {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+  .flow-instrument-pill {
+    min-width: 0;
+    padding: 9px 10px;
+  }
+  .flow-instrument-pill-detail {
+    display: none;
+  }
+  .modal-pane-hint {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .modal-backdrop {
+    padding: 0;
+  }
+  .modal {
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .modal-header {
+    padding: 12px 14px;
+  }
+  .modal-body {
+    padding: 14px;
+  }
+  .modal-footer {
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  }
+  .modal-footer .btn-primary,
+  .modal-footer .btn-ghost {
+    flex-basis: 100%;
+  }
 }
 
 /* Read-only entry summary — top of Review pane */
