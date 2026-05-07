@@ -569,7 +569,12 @@
 .grade-btn.selected[data-grade="broken"] span { color: rgba(255,255,255,0.72); }
 
 /* ============ POSITION EDITOR MODAL — simplified Execution Manager + Journal ============ */
-.modal.modal-position { max-width: 1080px; padding: 0; }
+.modal.modal-position {
+  max-width: 1080px;
+  width: min(1080px, calc(100vw - 32px));
+  padding: 0;
+  overflow-x: hidden;
+}
 .pos-modal-header {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 22px 26px 18px;
@@ -628,17 +633,16 @@
 
 .pos-unified-layout {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
   gap: 24px;
   padding: 18px 26px 26px;
-}
-@media (max-width: 900px) {
-  .pos-unified-layout { grid-template-columns: 1fr; }
+  min-width: 0;
 }
 .pos-stack {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-width: 0;
 }
 .pos-tab {
   background: none; border: none;
@@ -663,13 +667,19 @@
   height: 2px; background: var(--cyan);
 }
 .pos-tab[data-pos-tab="journal"].active::after { background: #b46cff; box-shadow: 0 0 12px rgba(180,108,255,0.6); }
-.pos-pane { display: block !important; padding: 0; animation: none; }
+.pos-pane {
+  display: block !important;
+  padding: 0;
+  animation: none;
+  min-width: 0;
+}
 
 .pos-card {
   background: rgba(255,255,255,0.02);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 18px 18px;
+  min-width: 0;
 }
 .pos-card-title {
   font-family: var(--mono);
@@ -747,7 +757,7 @@
 
 .pos-input-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -789,6 +799,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 18px;
+  min-width: 0;
 }
 .pos-exec-log-title {
   font-family: var(--mono);
@@ -800,11 +811,16 @@
   display: flex; align-items: center; gap: 8px;
 }
 .pos-exec-log-title svg { width: 14px; height: 14px; color: var(--ink-3); }
+#pos-exec-log-body {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .pos-exec-table {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--mono);
   font-size: 12px;
+  table-layout: fixed;
 }
 .pos-exec-table th {
   text-align: left;
@@ -821,6 +837,7 @@
   padding: 11px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   color: var(--ink-2);
+  overflow-wrap: anywhere;
 }
 .pos-exec-table tr:last-child td { border-bottom: none; }
 .pos-exec-table .pl-pos { color: var(--green-bright); font-weight: 700; }
@@ -834,6 +851,8 @@
   background: rgba(255,255,255,0.06);
   color: var(--ink-2);
   text-transform: uppercase;
+  max-width: 100%;
+  white-space: normal;
 }
 .pos-exec-del-btn {
   background: none; border: none;
@@ -970,6 +989,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .btn-save-update {
@@ -990,4 +1010,74 @@
 .btn-save-update:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(6, 212, 248, 0.25);
+}
+
+@media (max-width: 1180px) {
+  .modal.modal-position {
+    width: min(760px, calc(100vw - 24px));
+  }
+  .pos-unified-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .modal.modal-position {
+    width: 100%;
+  }
+  .pos-modal-header {
+    padding: 14px 16px;
+    flex-direction: column;
+  }
+  .pos-modal-head-right {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pos-pnl-block {
+    text-align: left;
+  }
+  .pos-unified-layout {
+    padding: 14px 16px 18px;
+    gap: 16px;
+  }
+  .pos-card,
+  .pos-exec-log {
+    padding: 14px;
+  }
+  .pos-stat-row {
+    align-items: flex-start;
+  }
+  .pos-stat-value {
+    font-size: 26px;
+  }
+  .pos-input-row {
+    grid-template-columns: 1fr;
+  }
+  .pos-exec-table {
+    min-width: 520px;
+  }
+  .pos-modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .pos-modal-footer > div[style*="flex"] {
+    display: none;
+  }
+  .pos-modal-footer .btn-danger,
+  .pos-modal-footer .btn-ghost,
+  .pos-modal-footer .btn-save-update {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .pos-quick-row {
+    grid-template-columns: 1fr;
+  }
+  .pos-modal-footer .btn-danger,
+  .pos-modal-footer .btn-ghost,
+  .pos-modal-footer .btn-save-update {
+    flex-basis: 100%;
+  }
 }
