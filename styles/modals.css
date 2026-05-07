@@ -1147,32 +1147,10 @@
   flex-wrap: wrap;
 }
 
-.btn-save-update {
-  appearance: none;
-  background: var(--cyan);
-  color: var(--bg);
-  border: 0;
-  border-radius: var(--r-md);
-  padding: 10px 16px;
-  min-height: 40px;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  box-shadow: 0 0 18px rgba(6, 212, 248, 0.22);
-  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
-}
-
-.btn-save-update:hover {
-  background: #67e8f9;
-  transform: translateY(-1px);
-  box-shadow: 0 0 24px rgba(6, 212, 248, 0.32);
+.pos-save-btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 
 @media (max-width: 1180px) {
@@ -1228,7 +1206,7 @@
   }
   .pos-modal-footer .btn-danger,
   .pos-modal-footer .btn-ghost,
-  .pos-modal-footer .btn-save-update {
+  .pos-modal-footer .pos-save-btn {
     flex: 1 1 140px;
     justify-content: center;
   }
@@ -1240,7 +1218,7 @@
   }
   .pos-modal-footer .btn-danger,
   .pos-modal-footer .btn-ghost,
-  .pos-modal-footer .btn-save-update {
+  .pos-modal-footer .pos-save-btn {
     flex-basis: 100%;
   }
 }
