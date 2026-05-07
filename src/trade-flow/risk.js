@@ -2,6 +2,7 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
+import { createChart } from 'lightweight-charts';
 
 function tfMoneyText(value) {
   const n = Number(value);
@@ -164,6 +165,7 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
         <div class="tf-risk-profile-title">${title}</div>
         <div class="tf-risk-profile-meta">1R = ${window.tfAbsMoneyText(riskUnit)} · stop risk ${window.tfAbsMoneyText(loss)} · ${q} ${unitLabel}${q === 1 ? '' : 's'} · ${displayR.toFixed(2)}R target</div>
       </div>
+      <div class="tf-risk-chart-container" style="height: 160px; margin-bottom: 12px; position: relative;"></div>
       <div class="tf-risk-rail">
         <div class="tf-risk-zone loss" style="width:${lossPct.toFixed(2)}%;">
           <div><strong>-1R</strong><span>-${window.tfAbsMoneyText(loss, 2)}</span></div>
@@ -194,6 +196,51 @@ function tfRiskArgsFromProfile(profile, moonshotR) {
   };
 }
 
+function tfRenderRiskChart(profile, moonshotR) {
+  const container = profile.querySelector('.tf-risk-chart-container');
+  if (!container) return;
+  const args = window.tfRiskArgsFromProfile(profile, moonshotR);
+  if (!args) return;
+  
+  if (!container.chartInstance) {
+    container.innerHTML = '';
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 160,
+      layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#8b949e' },
+      grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(139, 148, 158, 0.1)' } },
+      timeScale: { visible: false },
+      handleScroll: false,
+      handleScale: false,
+    });
+    const lineSeries = chart.addLineSeries({ color: 'transparent', crosshairMarkerVisible: false });
+    container.chartInstance = chart;
+    container.lineSeries = lineSeries;
+  }
+  
+  const { chartInstance: chart, lineSeries } = container;
+  const e = args.entry, s = args.stop, t = args.target;
+  const dist = Math.abs(e - s);
+  const dir = t >= e ? 1 : -1;
+  const moon = e + dir * dist * args.moonshotR;
+  
+  const min = Math.min(e, s, t, moon);
+  const max = Math.max(e, s, t, moon);
+  lineSeries.setData([
+    { time: '2023-01-01', value: min - dist*0.5 },
+    { time: '2023-01-02', value: max + dist*0.5 }
+  ]);
+  
+  if (container.priceLines) container.priceLines.forEach(pl => lineSeries.removePriceLine(pl));
+  container.priceLines = [
+    lineSeries.createPriceLine({ price: e, color: '#3fb950', lineWidth: 2, lineStyle: 0, title: 'Entry' }),
+    lineSeries.createPriceLine({ price: s, color: '#f85149', lineWidth: 2, lineStyle: 2, title: 'Stop' }),
+    lineSeries.createPriceLine({ price: t, color: '#2ea043', lineWidth: 2, lineStyle: 2, title: 'Target' }),
+    lineSeries.createPriceLine({ price: moon, color: '#a371f7', lineWidth: 2, lineStyle: 3, title: 'Moon' })
+  ];
+  chart.timeScale().fitContent();
+}
+
 function tfRefreshMoonshotProfile(profile, moonshotR) {
   if (!profile) return;
   const value = profile.querySelector('[data-tf-moonshot-value]');
@@ -201,12 +248,19 @@ function tfRefreshMoonshotProfile(profile, moonshotR) {
   const tableWrap = profile.querySelector('[data-tf-risk-table-wrap]');
   const args = window.tfRiskArgsFromProfile(profile, moonshotR);
   if (tableWrap && args) tableWrap.innerHTML = window.tfRenderRiskTableHtml(args);
+  window.tfRenderRiskChart(profile, moonshotR);
 }
 
 function tfBindMoonshotSliders() {
   document.querySelectorAll('#panel-trade [data-tf-moonshot-slider]').forEach(slider => {
     if (slider.dataset.tfMoonshotBound === '1') return;
     slider.dataset.tfMoonshotBound = '1';
+    
+    const profile = slider.closest('.tf-risk-profile');
+    if (profile) {
+      window.tfRenderRiskChart(profile, window.tfClampMoonshotR(slider.value));
+    }
+
     slider.addEventListener('input', e => {
       const next = window.tfClampMoonshotR(e.target.value);
       if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
@@ -236,5 +290,6 @@ window.tfRiskLevelRows = tfRiskLevelRows;
 window.tfRenderRiskTableHtml = tfRenderRiskTableHtml;
 window.tfRenderRiskProfileHtml = tfRenderRiskProfileHtml;
 window.tfRiskArgsFromProfile = tfRiskArgsFromProfile;
+window.tfRenderRiskChart = tfRenderRiskChart;
 window.tfRefreshMoonshotProfile = tfRefreshMoonshotProfile;
 window.tfBindMoonshotSliders = tfBindMoonshotSliders;

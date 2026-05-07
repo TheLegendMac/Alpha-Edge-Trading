@@ -43,6 +43,8 @@ import './intel/alpha.js';
 import './intel/clt-card.js';
 import './intel/backtest.js';
 import './intel/setup-scorecards.js';
+import './intel/ticker-dashboard.js';
+import './intel/setup-playbook.js';
 import './intel/weekly-report.js';
 
 // ---------- Views ----------
