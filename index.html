@@ -797,8 +797,8 @@ STRENGTH: 3/3</pre>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="pos-tabs" id="pos-tabs">
+    <!-- Tabs (Hidden by CSS, preserved so JS doesn't error) -->
+    <div class="pos-tabs" id="pos-tabs" style="display: none;">
       <button type="button" class="pos-tab active" data-pos-tab="exec">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
@@ -813,9 +813,10 @@ STRENGTH: 3/3</pre>
       </button>
     </div>
 
+    <div class="pos-unified-layout">
     <!-- ===== EXECUTION MANAGER PANE ===== -->
     <div class="pos-pane active" data-pos-pane="exec">
-      <div class="pos-grid-2">
+      <div class="pos-stack">
         <div class="pos-card">
           <div class="pos-card-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l3-3 4 4 5-5"/></svg>
@@ -866,7 +867,7 @@ STRENGTH: 3/3</pre>
 
     <!-- ===== JOURNAL & PLAYBOOK PANE ===== -->
     <div class="pos-pane" data-pos-pane="journal">
-      <div class="pos-grid-2">
+      <div class="pos-stack" style="height: 100%;">
         <div>
           <div class="pos-section-label">Outcome Tags</div>
           <div class="pos-tag-group" id="pos-tag-group">
@@ -877,40 +878,45 @@ STRENGTH: 3/3</pre>
             <button type="button" class="pos-tag" data-tag="premature_exit">Premature Exit</button>
             <button type="button" class="pos-tag" data-tag="fomo_entry">FOMO Entry</button>
           </div>
-
-          <div class="pos-notes-head">
-            <div class="pos-section-label" style="margin-bottom:0;">Analysis Notes</div>
-            <div class="pos-notes-actions">
-              <button type="button" class="pos-notes-btn" id="pos-dictate-btn" title="Voice-to-text">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                Dictate
-              </button>
-              <button type="button" class="pos-notes-btn refine" id="pos-refine-btn" title="Clean up notes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l1.5 4.5L11 9l-4.5 1.5L5 15l-1.5-4.5L-1 9l4.5-1.5L5 3z" transform="translate(3 0)"/><path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/></svg>
-                Refine
-              </button>
-            </div>
-          </div>
-          <textarea id="pos-notes" class="pos-notes-area" placeholder="Review: plan vs execution, exit reason, lesson"></textarea>
         </div>
 
-        <div>
-          <div class="pos-notes-head">
-            <div class="pos-section-label" style="margin-bottom:0;">Visual Playbook</div>
-            <div class="pos-notes-actions">
-              <button type="button" class="pos-paste-btn" id="pos-paste-img-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                Paste Image
-              </button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; flex: 1;">
+          <div style="display: flex; flex-direction: column;">
+            <div class="pos-notes-head">
+              <div class="pos-section-label" style="margin-bottom:0;">Analysis Notes</div>
+              <div class="pos-notes-actions">
+                <button type="button" class="pos-notes-btn" id="pos-dictate-btn" title="Voice-to-text">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  Dictate
+                </button>
+                <button type="button" class="pos-notes-btn refine" id="pos-refine-btn" title="Clean up notes">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l1.5 4.5L11 9l-4.5 1.5L5 15l-1.5-4.5L-1 9l4.5-1.5L5 3z" transform="translate(3 0)"/><path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/></svg>
+                  Refine
+                </button>
+              </div>
             </div>
+            <textarea id="pos-notes" class="pos-notes-area" style="flex: 1; min-height: 220px;" placeholder="Review: plan vs execution, exit reason, lesson"></textarea>
           </div>
-          <div class="pos-playbook-drop" id="pos-playbook-drop" tabindex="0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <div>Paste (Ctrl+V) Screenshot</div>
+
+          <div style="display: flex; flex-direction: column;">
+            <div class="pos-notes-head">
+              <div class="pos-section-label" style="margin-bottom:0;">Visual Playbook</div>
+              <div class="pos-notes-actions">
+                <button type="button" class="pos-paste-btn" id="pos-paste-img-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  Paste Image
+                </button>
+              </div>
+            </div>
+            <div class="pos-playbook-drop" id="pos-playbook-drop" tabindex="0" style="flex: 1;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <div>Paste (Ctrl+V) Screenshot</div>
+            </div>
+            <input type="file" id="pos-playbook-file" accept="image/*" style="display:none" />
           </div>
-          <input type="file" id="pos-playbook-file" accept="image/*" style="display:none" />
         </div>
       </div>
+    </div>
     </div>
 
     <div class="pos-modal-footer">
