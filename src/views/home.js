@@ -454,8 +454,15 @@ function wireHomeActivityList(container) {
   });
 }
 
+function toggleHomePortfolioView() {
+  state.homePortfolioView = state.homePortfolioView === 'open' ? 'all' : 'open';
+  saveState();
+  renderHome();
+}
+
 window.renderUniversalSidebar = renderUniversalSidebar;
 window.renderHome = renderHome;
 window.clearCalendarFilter = clearCalendarFilter;
 window.wireHomeCalendar = wireHomeCalendar;
 window.wireHomeActivityList = wireHomeActivityList;
+window.toggleHomePortfolioView = toggleHomePortfolioView;
