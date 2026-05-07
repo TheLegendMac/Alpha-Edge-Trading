@@ -161,7 +161,7 @@ function tfIntradayStep1() {
   // ENTRY/STOP/TARGET, BREADTH/CONFLUENCE, setup name). Pasting (Cmd+V)
   // applies immediately; manual click works too.
   const smartPaste = `
-    <div class="trade-section" style="border-color: var(--cyan-dim);">
+    <div class="trade-section tf-smart-paste-section" id="tf-i-paste-panel" hidden>
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
@@ -175,7 +175,6 @@ function tfIntradayStep1() {
           <textarea id="tf-i-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
           <div style="display:flex; flex-direction:column; gap:6px;">
             <button type="button" id="tf-i-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
-            <button type="button" id="tf-i-demo-fill" class="trade-template-btn" style="white-space:nowrap; opacity:0.85;" title="Dev utility: fill all intraday fields with realistic random data">Demo fill</button>
           </div>
         </div>
         <div id="tf-i-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
@@ -239,11 +238,6 @@ function tfMountIntradayStep1() {
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
   }
-  const demoBtn = document.getElementById('tf-i-demo-fill');
-  if (demoBtn) {
-    demoBtn.addEventListener('click', () => window.tfDemoFillIntraday());
-  }
-
   // Setup pattern — auto-align direction with bias on first pick.
   document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
     b.addEventListener('click', () => {

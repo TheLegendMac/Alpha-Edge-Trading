@@ -306,12 +306,14 @@ function _renderExecLog() {
 function _renderPlaybookImage() {
   const drop = document.getElementById('pos-playbook-drop');
   const btn = document.getElementById('pos-paste-img-btn');
+  const label = document.getElementById('pos-paste-img-label');
   if (POS.playbookImage) {
     drop.classList.add('has-image');
     drop.innerHTML = `<img src="${POS.playbookImage}" alt="Playbook screenshot" />`;
     btn.classList.add('remove');
     btn.title = 'Remove image';
     btn.setAttribute('aria-label', 'Remove image');
+    if (label) label.textContent = 'Remove';
   } else {
     drop.classList.remove('has-image');
     drop.innerHTML = `
@@ -320,6 +322,7 @@ function _renderPlaybookImage() {
     btn.classList.remove('remove');
     btn.title = 'Paste image';
     btn.setAttribute('aria-label', 'Paste image');
+    if (label) label.textContent = 'Paste';
   }
 }
 

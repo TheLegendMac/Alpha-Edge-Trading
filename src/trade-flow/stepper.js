@@ -254,6 +254,32 @@ function tfSetMode(mode) {
   window.renderTrade();
 }
 
+function tfFocusSmartPaste() {
+  const mode = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const focusPaste = () => {
+    const id = mode === 'intraday' ? 'tf-i-paste' : 'tf-s-paste';
+    const panelId = mode === 'intraday' ? 'tf-i-paste-panel' : 'tf-s-paste-panel';
+    const panel = document.getElementById(panelId);
+    if (panel) panel.hidden = false;
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    requestAnimationFrame(() => {
+      try { input.focus({ preventScroll: true }); } catch (_) {}
+    });
+  };
+
+  if (mode === 'swing' && (state.tradeFlow.step || 1) !== 1) {
+    state.tradeFlow.step = 1;
+    saveState();
+    window.renderTrade();
+    requestAnimationFrame(focusPaste);
+    return;
+  }
+
+  focusPaste();
+}
+
 function tfReset() {
   if (!confirm('Clear all current analysis fields? Trade log is unchanged.')) return;
   const m = state.tradeFlow.mode;
@@ -614,6 +640,7 @@ function tfBindTradePanelStaticOnce() {
   });
 
   document.getElementById('trade-reset-btn')?.addEventListener('click', () => window.tfReset());
+  document.getElementById('trade-smart-paste-btn')?.addEventListener('click', () => window.tfFocusSmartPaste());
 
   document.getElementById('trade-back-btn')?.addEventListener('click', () => {
     const cur = (state.tradeFlow && state.tradeFlow.step) || 1;
@@ -661,6 +688,7 @@ window.tfRenderHeader = tfRenderHeader;
 window.tfRenderActions = tfRenderActions;
 window.tfGoToStep = tfGoToStep;
 window.tfSetMode = tfSetMode;
+window.tfFocusSmartPaste = tfFocusSmartPaste;
 window.tfReset = tfReset;
 window.tfStepBody = tfStepBody;
 window.tfMountStep = tfMountStep;

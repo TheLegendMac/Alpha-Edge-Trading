@@ -133,7 +133,7 @@ function tfSwingStep2() {
   // already understands the swing alert format. After apply, the mount
   // handler jumps the user as far ahead as the data lets it.
   const smartPaste = `
-    <div class="trade-section" style="border-color: var(--cyan-dim);">
+    <div class="trade-section tf-smart-paste-section" id="tf-s-paste-panel" hidden>
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
@@ -147,7 +147,6 @@ function tfSwingStep2() {
           <textarea id="tf-s-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
           <div style="display:flex; flex-direction:column; gap:6px;">
             <button type="button" id="tf-s-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
-            <button type="button" id="tf-s-demo-fill" class="trade-template-btn" style="white-space:nowrap; opacity:0.85;" title="Dev utility: fill all swing fields with realistic random data">Demo fill</button>
           </div>
         </div>
         <div id="tf-s-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
@@ -254,11 +253,6 @@ function tfMountSwingStep2() {
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
   }
-  const demoBtn = document.getElementById('tf-s-demo-fill');
-  if (demoBtn) {
-    demoBtn.addEventListener('click', () => window.tfDemoFillSwing());
-  }
-
   const sa = document.getElementById('tf-sa-quant');
   if (sa) {
     sa.addEventListener('input', e => {

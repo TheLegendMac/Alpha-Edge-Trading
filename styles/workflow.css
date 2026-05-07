@@ -173,7 +173,7 @@
   color: var(--bg);
   box-shadow: 0 0 0 1px var(--cyan), 0 4px 14px rgba(6,212,248,0.18);
 }
-#panel-trade .trade-header-actions { display: flex; gap: 6px; }
+#panel-trade .trade-header-actions { display: flex; gap: 6px; align-items: center; }
 #panel-trade .trade-header-btn {
   background: transparent;
   border: 1px solid var(--line);
@@ -190,6 +190,25 @@
   cursor: pointer;
 }
 #panel-trade .trade-header-btn:hover { color: var(--ink); border-color: var(--ink-4); }
+#panel-trade .trade-smart-paste-btn {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+  background: rgba(6,212,248,0.04);
+}
+#panel-trade .trade-smart-paste-btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+#panel-trade .trade-smart-paste-btn:hover {
+  color: var(--bg);
+  border-color: var(--cyan);
+  background: var(--cyan);
+}
 
 /* stepper */
 #panel-trade .trade-stepper {
@@ -1207,6 +1226,9 @@
 }
 #panel-trade .tf-paste-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.04); }
 #panel-trade .tf-paste-icon { font-size: 13px; line-height: 1; }
+#panel-trade .tf-smart-paste-section {
+  border-color: var(--cyan-dim);
+}
 #panel-trade .tf-paste-wrap {
   margin-bottom: 12px;
   padding: 10px 12px;
