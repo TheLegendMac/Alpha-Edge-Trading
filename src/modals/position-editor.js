@@ -450,3 +450,4 @@ window._delExec = _delExec;
 window._toggleTag = _toggleTag;
 window._savePositionEditor = _savePositionEditor;
 window._deletePositionEditor = _deletePositionEditor;
+window._wirePositionEditor = _wirePositionEditor;
