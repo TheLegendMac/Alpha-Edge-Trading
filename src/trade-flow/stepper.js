@@ -576,6 +576,54 @@ function tfLogIntradayDirect() {
   });
 }
 
+// One-time wiring for the static buttons inside #panel-trade. The header,
+// stepper, and step body all re-render through renderTrade(), but these
+// controls live in the static markup so they only need to be bound once.
+function tfBindTradePanelStaticOnce() {
+  const panel = document.getElementById('panel-trade');
+  if (!panel || panel.dataset.tfStaticBound === '1') return;
+  panel.dataset.tfStaticBound = '1';
+
+  panel.querySelectorAll('[data-trade-mode]').forEach(b => {
+    b.addEventListener('click', () => window.tfSetMode(b.dataset.tradeMode));
+  });
+
+  document.getElementById('trade-reset-btn')?.addEventListener('click', () => window.tfReset());
+
+  document.getElementById('trade-back-btn')?.addEventListener('click', () => {
+    const cur = (state.tradeFlow && state.tradeFlow.step) || 1;
+    if (window.tfIsSingleScreen() || cur <= 1) {
+      if (typeof window.setTab === 'function') window.setTab('home');
+    } else {
+      window.tfGoToStep(cur - 1);
+    }
+  });
+
+  document.getElementById('trade-continue-btn')?.addEventListener('click', () => window.tfContinue());
+
+  document.getElementById('trade-summary-status-cell')?.addEventListener('click', e => {
+    const cell = e.currentTarget;
+    if (!cell.classList.contains('clickable')) return;
+    const step = parseInt(cell.dataset.tfStatusStep, 10);
+    if (step) window.tfGoToStep(step);
+  });
+}
+
+// Top-level orchestrator: header + stepper + step body + actions, plus the
+// step-body mount that wires every dynamic input. Every state mutation in the
+// trade flow funnels back through here.
+function renderTrade() {
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  tfBindTradePanelStaticOnce();
+  const step = state.tradeFlow.step || 1;
+  window.tfRenderHeader();
+  window.tfRenderStepper();
+  const body = document.getElementById('trade-body');
+  if (body) body.innerHTML = window.tfStepBody(step);
+  window.tfMountStep(step);
+  window.tfRenderActions();
+}
+
 // setTab → kept in legacy.js (Phase 11 will move it to src/tabs.js)
 
 window.tfStepCount = tfStepCount;
@@ -598,3 +646,4 @@ window.tfShowConfirm = tfShowConfirm;
 window.tfLogSwingDirect = tfLogSwingDirect;
 window.tfLogSwingFinalize = tfLogSwingFinalize;
 window.tfLogIntradayDirect = tfLogIntradayDirect;
+window.renderTrade = renderTrade;
