@@ -243,10 +243,11 @@ export function renderHome() {
       const formatOpts = { month: 'short', day: 'numeric' };
       const rangeLabel = `${startSun.toLocaleDateString('en-US', formatOpts)} – ${currentSat.toLocaleDateString('en-US', formatOpts)}`;
       title.innerHTML = `
-        <div class="home-calendar-nav">
+        <div class="home-calendar-nav" style="display: flex; align-items: center;">
           <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous 2 weeks">‹</button>
           <span class="home-cal-month" style="font-size: 12px;">${rangeLabel}</span>
           <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next 2 weeks">›</button>
+          <button type="button" data-cal-today="1" title="Reset to current week" style="background:none; border:none; color:var(--ink-4); font-size:16px; cursor:pointer; margin-left:4px; line-height:1; display:flex; align-items:center;">↻</button>
         </div>`;
     }
 
@@ -389,6 +390,14 @@ function wireHomeCalendar(title, calendar) {
   if (title && title.dataset.homeCalWired !== '1') {
     title.dataset.homeCalWired = '1';
     title.addEventListener('click', e => {
+      const todayBtn = e.target.closest('[data-cal-today]');
+      if (todayBtn) {
+        state.homeCalendarOffset = 0;
+        saveState();
+        renderHome();
+        return;
+      }
+
       const btn = e.target.closest('[data-cal-arrow]');
       if (!btn) return;
           const offset = typeof state.homeCalendarOffset === 'number' ? state.homeCalendarOffset : 0;
