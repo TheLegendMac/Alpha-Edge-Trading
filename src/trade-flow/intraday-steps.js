@@ -495,80 +495,89 @@ function tfIntradayStep4() {
   const total  = checks.length;
   const allGreen = passed === total;
 
-  const rows = checks.map(c => `
-    <button type="button" class="trade-row ${c.ok ? 'checked' : 'fail'}" data-tf-jump="${c.step}">
-      <span class="trade-row-check">${c.ok ? '✓' : ''}</span>
+  // Guardrails — compact pill row when ready, expanded list of failing rows
+  // when not. Passing rows still appear as small badges so the user can see
+  // what was checked, but only the failing rows get the full button treatment.
+  const passingPills = checks.filter(c => c.ok).map(c => `
+    <span class="trade-bracket low" style="font-size: 10px; padding: 4px 8px;">✓ ${c.name}</span>
+  `).join('');
+  const failingRows = checks.filter(c => !c.ok).map(c => `
+    <button type="button" class="trade-row fail" data-tf-jump="${c.step}">
+      <span class="trade-row-check"></span>
       <span class="trade-row-main">
         <span class="trade-row-name">${c.name}</span>
         <span class="trade-row-help">${c.rule}${c.key === 'window' && !inWin ? ` <span data-tf-i-tov style="margin-left:6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--cyan); font-family: var(--mono); font-size: 10px;">${tov ? 'Override on — turn off' : 'Override (paper)'}</span>` : ''}</span>
       </span>
-      <span class="trade-row-pill">${c.ok ? 'PASS' : 'FAIL'}</span>
+      <span class="trade-row-pill">FIX</span>
     </button>`).join('');
 
   const banner = allGreen
-    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);">
-         <div class="trade-output-title">Cleared</div>
-         <div class="trade-output-main">Ready to log</div>
-         <div class="trade-output-rationale">Place the bracket in TOS, then use GO.</div>
+    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 70%); padding: 12px 14px;">
+         <div class="trade-output-main" style="font-size: 14px;">All clear · ready to send</div>
+         <div class="trade-output-rationale" style="font-size: 12px; margin-top: 2px;">Place the bracket in TOS, then GO.</div>
        </div>`
-    : `<div class="trade-output">
-         <div class="trade-output-title">${total - passed} guardrail${total - passed === 1 ? '' : 's'} blocking</div>
-         <div class="trade-output-main">${passed} of ${total} passed</div>
-         <div class="trade-output-rationale">Click a failing row to jump to the field that fixes it.</div>
+    : `<div class="trade-output" style="padding: 12px 14px;">
+         <div class="trade-output-main" style="font-size: 14px;">${total - passed} blocking · ${passed}/${total} passed</div>
+         <div class="trade-output-rationale" style="font-size: 12px; margin-top: 2px;">Tap a row to jump to the field that fixes it.</div>
        </div>`;
 
-  // Context chips — confluence + breadth. Both clear-able by clicking the
-  // selected chip again (toggle off).
+  // Context chips — confluence + breadth in a single condensed row. The
+  // labels for confluence are long enough that we keep two visual rows on
+  // narrow widths via flex-wrap.
   const confChips = TRADE_CONFLUENCE_OPTIONS.map(c => `
     <button type="button" class="tf-chip ${it.confluence === c.id ? 'selected ' + (c.bias || 'neutral') : ''}" data-tf-i-conf="${c.id}">${c.label}</button>
   `).join('');
   const breadthChips = TRADE_BREADTH_OPTIONS.map(b => `
     <button type="button" class="tf-chip ${it.breadth === b.id ? 'selected ' + (b.id === 'up' ? 'long' : b.id === 'down' ? 'short' : 'neutral') : ''}" data-tf-i-breadth="${b.id}">${b.label}</button>
   `).join('');
+  const hasContext = it.confluence || it.breadth || it.vwapValue || it.notes;
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Context notes</div>
-          <div class="trade-section-subtitle">Optional chart context. Only conflicting confluence blocks GO.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Guardrails</div>
+          <div class="trade-section-subtitle">${allGreen ? 'Setup bias, spread, time window, and loss budget all clear.' : 'Tap any failing check to jump to the field that fixes it.'}</div>
         </div>
+        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of ${total}</div>
       </div>
       <div class="trade-section-body">
-        <div class="tf-chip-row">
-          <span class="tf-chip-row-label">Confluence:</span>
-          ${confChips}
-        </div>
-        <div class="tf-chip-row" style="margin-top:8px;">
-          <span class="tf-chip-row-label">Breadth:</span>
-          ${breadthChips}
-        </div>
-        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
-          <div>
-            <label class="input-label">VWAP value (optional)</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="VWAP value from label" />
-          </div>
-        </div>
-        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:12px;">
-          <div>
-            <label class="input-label">Trigger / invalidation notes (optional)</label>
-            <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="Execution note: trigger, invalidation, context">${it.notes || ''}</textarea>
-          </div>
-        </div>
+        ${banner}
+        ${failingRows ? `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">${failingRows}</div>` : ''}
+        ${passingPills ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:${failingRows ? '12px' : '12px'};">${passingPills}</div>` : ''}
       </div>
     </div>
 
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Guardrails</div>
-          <div class="trade-section-subtitle">Fast pass/fail check from setup bias, spread, time window, and loss budget.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Context (optional)</div>
+          <div class="trade-section-subtitle">${hasContext ? 'Captured to the trade log — only conflicting confluence blocks GO.' : 'Optional. Add chart context if it helps the journal.'}</div>
         </div>
-        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of ${total} passed</div>
       </div>
       <div class="trade-section-body">
-        ${banner}
-        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">${rows}</div>
+        <div class="tf-chip-row" style="row-gap:6px;">
+          <span class="tf-chip-row-label">Confluence:</span>
+          ${confChips}
+        </div>
+        <div class="tf-chip-row" style="margin-top:8px; row-gap:6px;">
+          <span class="tf-chip-row-label">Breadth:</span>
+          ${breadthChips}
+        </div>
+        <div class="trade-section-grid-2" style="margin-top:12px;">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">VWAP value</label>
+              <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="From VWAP label" />
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Trigger / invalidation</label>
+              <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="Trigger, invalidation, context">${it.notes || ''}</textarea>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;

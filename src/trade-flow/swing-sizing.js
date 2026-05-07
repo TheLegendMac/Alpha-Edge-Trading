@@ -172,6 +172,7 @@ function tfSetSwingStructure(structure) {
   state.structure = s;
   state.instrument = s === 'stocks' ? 'stocks' : 'options';
   saveState();
+  window.tfRefreshAll();
 }
 
 function tfSetSwingInstrument(instrument) {

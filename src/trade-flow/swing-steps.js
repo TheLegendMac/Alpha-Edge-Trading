@@ -409,8 +409,11 @@ function tfMountSwingStep3() {
   }
 }
 
-// ----- Swing step 3 — Execute -----
-// Goal: review at-a-glance, place the order in TOS, then log.
+// ----- Swing step 4 — Final review & send -----
+// Confident "send it" screen. Top card replays the computed plan (size,
+// risk, stop, target). Mid card pairs thesis + pre-mortem with templates.
+// Bottom card is a single-line TOS order reminder. The GO button at the
+// bottom of the panel handles the actual log/confirm.
 
 function tfSwingStep4() {
   const isOptions = state.instrument !== 'stocks';
@@ -422,65 +425,115 @@ function tfSwingStep4() {
   const st = window.tfComputeStatus();
   const ready = st.tone === 'ready';
 
+  // Recompute the same numbers tfLogSwingDirect uses, so the preview matches
+  // exactly what's about to be logged.
   const settings = state.settings || DEFAULT_SETTINGS;
-  const premium = state.premium;
-  const stopPrice = (premium > 0) ? (premium * (1 - (settings.stopPct || 50)/100)).toFixed(2) : '—';
-  const targetPrice = (premium > 0) ? (premium * (1 + (settings.targetPct || 50)/100)).toFixed(2) : '—';
-  const orderSteps = isOptions ? `
-          <li>Open option chain in TOS (Trade tab → ${state.ticker || 'ticker'} → Option Chain).</li>
-          <li>Right-click the contract → Buy → With OCO Bracket.</li>
-          <li>Entry limit ≈ $${premium ? premium.toFixed(2) : '—'} · target +${settings.targetPct || 50}% ($${targetPrice}) · stop ${settings.stopPct || 50}% ($${stopPrice}).</li>
-          <li>Submit in TOS, then click GO below to log the thesis.</li>`
-    : `
-          <li>Open the order ticket in TOS for ${state.ticker || 'ticker'}.</li>
-          <li>Buy the share size from the sizing card.</li>
-          <li>Set your planned stop and target in TOS.</li>
-          <li>Submit in TOS, then click GO below to log the thesis.</li>`;
+  const account = settings.account || 10000;
+  const premium = Number(state.premium);
+  const atr = Number(state.atr);
+  const upx = Number(state.underlyingPrice);
+  let riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskDollars = Math.round(account * riskPct);
 
-  const templateBtns = tpl ? `
-    <div class="trade-templates">
-      <span class="trade-templates-label">Templates for ${state.selectedSetup}:</span>
-      <button type="button" class="trade-template-btn" data-tf-tpl="reset">Reset to template</button>
-      <button type="button" class="trade-template-btn" data-tf-tpl="clear">Clear both</button>
-    </div>` : `
-    <div class="trade-templates">
-      <span class="trade-templates-label" style="color: var(--ink-4);">Pick a setup in step 1 to enable templates.</span>
-    </div>`;
+  let qty = null, premiumStop = null, premiumTarget = null, underlyingStop = null;
+  if (premium > 0) {
+    if (isOptions) {
+      const stopFraction = (settings.stopPct || 50) / 100;
+      const targetFraction = (settings.targetPct || 50) / 100;
+      const maxLossPerContract = premium * stopFraction * 100;
+      qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+      premiumStop = +(premium * (1 - stopFraction)).toFixed(2);
+      premiumTarget = +(premium * (1 + targetFraction)).toFixed(2);
+      if (atr > 0 && upx > 0) {
+        const dist = atr * 1.5;
+        underlyingStop = +(state.direction === 'short' ? upx + dist : upx - dist).toFixed(2);
+      }
+    } else {
+      const stopPct = (settings.stopPct || 5) / 100;
+      const targetPct = (settings.targetPct || 50) / 100;
+      const maxLossPerShare = premium * stopPct;
+      qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+      premiumStop = +(state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct)).toFixed(2);
+      premiumTarget = +(state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct)).toFixed(2);
+    }
+  }
+
+  const ticker = (state.ticker || '').toUpperCase() || '—';
+  const setupLabel = state.selectedSetup || '—';
+  const dirRaw = state.direction || '';
+  const dirLabel = dirRaw === 'short' ? 'SHORT' : dirRaw === 'long' ? 'LONG' : '—';
+  const dirClass = dirRaw === 'short' ? 'short' : 'long';
+  const sizeUnit = isOptions ? (qty === 1 ? 'contract' : 'contracts') : (qty === 1 ? 'share' : 'shares');
+  const fmtDollar = v => (v === null || v === undefined || !Number.isFinite(Number(v))) ? '—' : `$${Number(v).toFixed(2)}`;
+
+  const summaryStripe = ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 70%);' : '';
+  const summaryStatusBadge = ready
+    ? `<span class="status open" style="background: var(--green-bg); color: var(--green-bright); border-color: var(--green-dim); font-size: 10px;">READY</span>`
+    : `<span class="status loss" style="font-size: 10px;">${st.reason ? 'BLOCKED' : '—'}</span>`;
+
+  const stopCells = isOptions ? `
+    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop (premium)</span><span class="trade-output-cell-value">${fmtDollar(premiumStop)}</span></div>
+    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop (underlying)</span><span class="trade-output-cell-value">${fmtDollar(underlyingStop)}</span></div>
+    <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${fmtDollar(premiumTarget)}</span></div>
+  ` : `
+    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">${fmtDollar(premiumStop)}</span></div>
+    <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${fmtDollar(premiumTarget)}</span></div>
+  `;
+
+  const templateChip = tpl ? `
+    <div class="trade-templates" style="border:0; padding:0; margin:0; background:transparent;">
+      <button type="button" class="trade-template-btn" data-tf-tpl="reset">Use template</button>
+      <button type="button" class="trade-template-btn" data-tf-tpl="clear">Clear</button>
+    </div>` : '';
+
+  const tosLine = isOptions
+    ? `TOS → Trade → <strong>${ticker}</strong> → Option Chain → right-click contract → <strong>Buy with OCO Bracket</strong>${qty ? ` · ${qty} ${sizeUnit}` : ''} · entry ${fmtDollar(premium)} · stop ${fmtDollar(premiumStop)} · target ${fmtDollar(premiumTarget)}`
+    : `TOS → Trade → <strong>${ticker}</strong>${qty ? ` · Buy ${qty} ${sizeUnit}` : ''} · entry ${fmtDollar(premium)} · stop ${fmtDollar(premiumStop)} · target ${fmtDollar(premiumTarget)}`;
 
   return `
-    <div class="trade-section">
+    <div class="trade-section" style="${summaryStripe}">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Place the order in TOS</div>
-          <div class="trade-section-subtitle">Use the OCO bracket so target and stop fire automatically.</div>
+          <div class="trade-section-title" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; letter-spacing:0;">
+            <span style="font-family: var(--mono); font-size: 18px; letter-spacing: 0.06em;">${ticker}</span>
+            <span class="status ${dirClass}" style="font-size: 10px;">${dirLabel}</span>
+            <span style="color: var(--ink-3); font-weight: 400; font-size: 13px;">${setupLabel}</span>
+          </div>
+          <div class="trade-section-subtitle">${ready ? 'Numbers below match what will be logged. Place the order, then GO.' : (st.reason || 'Resolve the missing fields and come back.')}</div>
         </div>
+        <div class="trade-section-counter ${ready ? 'complete' : ''}">${summaryStatusBadge}</div>
       </div>
       <div class="trade-section-body">
-        <ol style="margin: 0 0 0 16px; padding: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7;">
-          ${orderSteps}
-        </ol>
+        <div class="trade-output-grid">
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Entry ${isOptions ? 'premium' : 'price'}</span><span class="trade-output-cell-value">${fmtDollar(premium)}</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${qty ? `${qty} ${sizeUnit}` : '—'}</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Risk</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
+          ${stopCells}
+        </div>
       </div>
     </div>
 
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Thesis &amp; pre-mortem</div>
-          <div class="trade-section-subtitle">Saved to the trade log. One sentence each is enough.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Thesis &amp; pre-mortem</div>
+          <div class="trade-section-subtitle">Saved with the trade. One sentence each is enough.</div>
         </div>
+        ${templateChip}
       </div>
       <div class="trade-section-body">
-        ${templateBtns}
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Thesis — why is this trade on?</label>
+              <label class="input-label">Why is this on?</label>
               <textarea class="trade-textarea" id="tf-thesis" rows="3" placeholder="${thesisPh.replace(/"/g, '&quot;')}">${thesis}</textarea>
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Pre-mortem — if it loses, why?</label>
+              <label class="input-label">If it loses, why?</label>
               <textarea class="trade-textarea" id="tf-premortem" rows="3" placeholder="${preMortemPh.replace(/"/g, '&quot;')}">${preMortem}</textarea>
             </div>
           </div>
@@ -490,13 +543,14 @@ function tfSwingStep4() {
 
     <div class="trade-section">
       <div class="trade-section-head">
-        <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Final check</div>
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Place the order</div>
+          <div class="trade-section-subtitle">OCO bracket so target and stop fire automatically. Then hit GO.</div>
+        </div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-output" style="${ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
-          <div class="trade-output-title">Status</div>
-          <div class="trade-output-main">${ready ? 'Ready to log' : st.reason}</div>
-          <div class="trade-output-rationale">${ready ? 'Hit GO below — confirm dialog will summarize, then log.' : 'Status pill at the top jumps you to the failing step.'}</div>
+        <div class="trade-output" style="background: var(--bg-2);">
+          <div class="trade-output-rationale" style="font-size:13px; line-height:1.7;">${tosLine}</div>
         </div>
       </div>
     </div>
