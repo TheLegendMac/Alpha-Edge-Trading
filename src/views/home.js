@@ -429,4 +429,24 @@ function wireHomeActivityList(container) {
     }
     const demo = e.target.closest('[data-load-demo]');
     if (demo) {
-      window.loadDemoData 
+      if (typeof window.loadDemoData === 'function') window.loadDemoData();
+      return;
+    }
+    const review = e.target.closest('[data-review-trade]');
+    if (review) {
+      if (typeof window.reviewTrade === 'function') window.reviewTrade(review.dataset.reviewTrade);
+      return;
+    }
+    const logTab = e.target.closest('[data-home-tab="log"]');
+    if (logTab) {
+      if (typeof window.setTab === 'function') window.setTab('log');
+      return;
+    }
+  });
+}
+
+window.renderUniversalSidebar = renderUniversalSidebar;
+window.renderHome = renderHome;
+window.clearCalendarFilter = clearCalendarFilter;
+window.wireHomeCalendar = wireHomeCalendar;
+window.wireHomeActivityList = wireHomeActivityList;

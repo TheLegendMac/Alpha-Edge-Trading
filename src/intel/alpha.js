@@ -980,6 +980,3 @@ window.buildAlphaHighlightBullets = buildAlphaHighlightBullets;
 window.buildAlphaEdgeCard = buildAlphaEdgeCard;
 window.buildAlphaIntel = buildAlphaIntel;
 window.buildTradeFlowEdgeIntel = buildTradeFlowEdgeIntel;
-// renderLogStats was inadvertently captured by the alpha extraction; will move to
-// src/views/log.js in Phase 8. Exposed on window so legacy.js callers keep working.
-window.renderLogStats = renderLogStats;
