@@ -156,7 +156,31 @@ function tfIntradayStep1() {
       `).join('')}
     </div>` : '';
 
+  // Smart paste — top of the flow. The parser already understands the
+  // ThinkScript alert format (TICKER, OR_HI/OR_LO/RNG, VWAP, BID/ASK,
+  // ENTRY/STOP/TARGET, BREADTH/CONFLUENCE, setup name). Pasting (Cmd+V)
+  // applies immediately; manual click works too.
+  const smartPaste = `
+    <div class="trade-section" style="border-color: var(--cyan-dim);">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
+            <span style="color: var(--cyan); font-size: 16px;">⚡</span> Smart paste
+          </div>
+          <div class="trade-section-subtitle">Paste your TOS alert text — auto-fills setup, OR levels, bid/ask, entry/stop/target. Cmd+V into the box.</div>
+        </div>
+      </div>
+      <div class="trade-section-body" style="padding-top: 4px;">
+        <div style="display:flex; gap:8px; align-items:stretch;">
+          <textarea id="tf-i-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
+          <button type="button" id="tf-i-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+        </div>
+        <div id="tf-i-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
+      </div>
+    </div>`;
+
   return `
+    ${smartPaste}
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
@@ -174,6 +198,45 @@ function tfIntradayStep1() {
 }
 
 function tfMountIntradayStep1() {
+  // Smart paste — applies on Cmd+V (paste event) or click of Apply button.
+  // Counts only the meaningful keys (skips containers like `liquidity` /
+  // `gates`) so the user gets a truthful "filled N fields" toast.
+  const pasteEl = document.getElementById('tf-i-paste');
+  const pasteBtn = document.getElementById('tf-i-paste-apply');
+  const resultEl = document.getElementById('tf-i-paste-result');
+  const applyPaste = (text) => {
+    const raw = (text || '').trim();
+    if (!raw) {
+      if (resultEl) resultEl.textContent = '';
+      return;
+    }
+    const parsed = window.tfParseIntradayPaste(raw) || {};
+    const isFilled = (v) => v !== undefined && v !== null && v !== '';
+    const meaningful = Object.entries(parsed).filter(([k, v]) => isFilled(v) && typeof v !== 'object');
+    if (!meaningful.length) {
+      if (resultEl) {
+        resultEl.style.color = 'var(--amber)';
+        resultEl.textContent = 'No recognized labels found.';
+      }
+      return;
+    }
+    window.tfApplyIntradayPaste(parsed);
+    if (pasteEl) pasteEl.value = '';
+    if (resultEl) {
+      resultEl.style.color = 'var(--cyan)';
+      resultEl.textContent = `Filled ${meaningful.length} field${meaningful.length === 1 ? '' : 's'}.`;
+    }
+    window.tfRefreshAll();
+  };
+  if (pasteEl) {
+    // The paste event fires before the textarea's value updates, so read on
+    // the next tick.
+    pasteEl.addEventListener('paste', () => setTimeout(() => applyPaste(pasteEl.value), 30));
+  }
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
+  }
+
   // Setup pattern — auto-align direction with bias on first pick.
   document.querySelectorAll('#panel-trade [data-tf-i-setup]').forEach(b => {
     b.addEventListener('click', () => {
@@ -216,21 +279,25 @@ function tfIntradayStep2() {
 
   const setupDef = window.tfFindIntradaySetup(it.setup);
   const isOrb = !!(setupDef && setupDef.isOrb);
-  const orFilledN = [filled(it.orHi), filled(it.orLo), filled(it.orRng)].filter(Boolean).length;
+  const orFilledN = [filled(it.orHi), filled(it.orLo)].filter(Boolean).length;
+  const rngText = (filled(it.orHi) && filled(it.orLo) && Number(it.orHi) >= Number(it.orLo))
+    ? `RNG ${(+(Number(it.orHi) - Number(it.orLo)).toFixed(2))}`
+    : 'RNG —';
   const levelsLetter = isOptions ? 'B.' : 'A.';
   const orLetter = isOptions ? 'C.' : 'B.';
 
   // ORB section is optional ("bypass if not shown" — only present when an
   // ORB pattern is the picked setup, and even then the user can leave it
-  // empty without blocking GO).
+  // empty without blocking GO). RNG auto-derives from HI − LO and renders
+  // as a read-only badge — one fewer field to type.
   const orSection = isOrb ? `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">${orLetter}</span> Opening Range levels</div>
-          <div class="trade-section-subtitle">From your ORB cloud alert: <code>OR_HI=… | OR_LO=… | RNG=…</code>. Optional — skip if you didn't note them.</div>
+          <div class="trade-section-subtitle">From your ORB cloud alert: <code>OR_HI=… | OR_LO=…</code>. Optional — RNG auto-derives.</div>
         </div>
-        <div class="trade-section-counter">${orFilledN} of 3 (optional)</div>
+        <div class="trade-section-counter">${orFilledN} of 2 (optional)</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
@@ -242,11 +309,9 @@ function tfIntradayStep2() {
             <label class="input-label">OR_LO $</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="OR_LO from TOS alert" />
           </div></div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">RNG $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orRng" value="${inputValue('orRng')}" placeholder="RNG auto-fills from OR_HI/OR_LO" />
-            <div class="input-help">Auto-fills as <code>OR_HI − OR_LO</code> if you leave it empty.</div>
-          </div></div>
+        </div>
+        <div style="margin-top:10px;">
+          <span class="trade-bracket low" style="font-size: 11px; padding: 5px 10px;" id="tf-i-orRng-readout">${rngText}</span>
         </div>
       </div>
     </div>` : '';
@@ -275,12 +340,9 @@ function tfIntradayStep2() {
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'Auto premium target' : 'Target price'}" />
           </div></div>
         </div>
-        <div id="tf-i-rmult">
-          <div class="trade-output" style="${rGood ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
-            <div class="trade-output-title">R-multiple</div>
-            <div class="trade-output-main">${rText}</div>
-            <div class="trade-output-rationale">Distance to target divided by distance to stop.</div>
-          </div>
+        <div id="tf-i-rmult" style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+          <span class="trade-bracket ${rGood ? 'high' : (r !== null && isFinite(r) ? 'mid' : 'low')}" style="font-size: 11px; padding: 5px 10px;">${rText}</span>
+          <span class="input-help" style="margin:0;">Reward / risk · target ÷ stop distance.</span>
         </div>
       </div>
     </div>
@@ -304,18 +366,20 @@ function tfMountIntradayStep2() {
         window.tfUpdateIntradayRMult();
         window.tfUpdateIntradaySizing();
       }
-      // Auto-derive RNG = OR_HI - OR_LO when both sides are filled and the
-      // user hasn't typed anything into the RNG field.
+      // RNG is derived (no input field) — recompute on every HI/LO edit.
+      // The readout badge below the inputs reflects the live value.
       if (key === 'orHi' || key === 'orLo') {
         const hi = Number(state.intraday.orHi);
         const lo = Number(state.intraday.orLo);
-        const rngTouched = (draft && draft.orRng !== undefined) || (state.intraday.orRng !== null && state.intraday.orRng !== undefined);
-        if (hi > 0 && lo > 0 && hi >= lo && !rngTouched) {
+        const readout = document.getElementById('tf-i-orRng-readout');
+        if (hi > 0 && lo > 0 && hi >= lo) {
           state.intraday.orRng = +(hi - lo).toFixed(2);
-          const rngEl = document.getElementById('tf-i-orRng');
-          if (rngEl) rngEl.value = state.intraday.orRng;
+          if (readout) readout.textContent = `RNG ${state.intraday.orRng}`;
           window.tfAutoFillIntradayStockFromOR();
           saveState();
+        } else {
+          state.intraday.orRng = null;
+          if (readout) readout.textContent = 'RNG —';
         }
       }
       if (key === 'orHi' || key === 'orLo' || key === 'orRng') {
@@ -337,7 +401,6 @@ function tfMountIntradayStep2() {
   wire('tf-i-target', 'target');
   wire('tf-i-orHi', 'orHi');
   wire('tf-i-orLo', 'orLo');
-  wire('tf-i-orRng', 'orRng');
 }
 
 // ----- Intraday plan — Size: options bid/ask spread or stock share count -----

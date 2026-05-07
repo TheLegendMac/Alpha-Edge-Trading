@@ -129,7 +129,30 @@ function tfSwingStep2() {
       Set a ticker in the header first — the SA factor-grade links need it.
     </p>` : '';
 
+  // Smart paste — at the top of step 1 only. Mirrors intraday: parser
+  // already understands the swing alert format. After apply, the mount
+  // handler jumps the user as far ahead as the data lets it.
+  const smartPaste = `
+    <div class="trade-section" style="border-color: var(--cyan-dim);">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
+            <span style="color: var(--cyan); font-size: 16px;">⚡</span> Smart paste
+          </div>
+          <div class="trade-section-subtitle">Paste your TOS/SA alert text — fills ticker, setup, IVR, ATR, premium, factor grades, liquidity. Cmd+V into the box.</div>
+        </div>
+      </div>
+      <div class="trade-section-body" style="padding-top: 4px;">
+        <div style="display:flex; gap:8px; align-items:stretch;">
+          <textarea id="tf-s-paste" rows="2" class="trade-textarea" style="flex:1; min-height: 56px;" placeholder="Paste alert text here — auto-applies on paste"></textarea>
+          <button type="button" id="tf-s-paste-apply" class="trade-template-btn" style="white-space:nowrap;">Apply</button>
+        </div>
+        <div id="tf-s-paste-result" class="input-help" style="margin-top:6px; min-height:14px;"></div>
+      </div>
+    </div>`;
+
   return `
+    ${smartPaste}
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
@@ -182,6 +205,53 @@ function tfSwingStep2() {
 }
 
 function tfMountSwingStep2() {
+  // Smart paste — mirror intraday. Apply on paste event or click. After
+  // apply, walk forward to the furthest step that's now complete so the
+  // user lands on the first step that still needs work.
+  const pasteEl = document.getElementById('tf-s-paste');
+  const pasteBtn = document.getElementById('tf-s-paste-apply');
+  const resultEl = document.getElementById('tf-s-paste-result');
+  const applyPaste = (text) => {
+    const raw = (text || '').trim();
+    if (!raw) {
+      if (resultEl) resultEl.textContent = '';
+      return;
+    }
+    const parsed = window.tfParseSwingPaste(raw) || {};
+    const isFilled = (v) => v !== undefined && v !== null && v !== '' && (typeof v !== 'object' || (v && Object.keys(v).length));
+    const meaningful = Object.entries(parsed).filter(([, v]) => isFilled(v));
+    if (!meaningful.length) {
+      if (resultEl) {
+        resultEl.style.color = 'var(--amber)';
+        resultEl.textContent = 'No recognized labels found.';
+      }
+      return;
+    }
+    window.tfApplySwingPaste(parsed);
+    // Walk forward: jump to the first incomplete step (cap at last step).
+    const compl = window.tfStepCompletion();
+    const max = window.tfStepCount();
+    let target = 1;
+    for (let i = 0; i < max; i++) {
+      if (compl[i]) target = i + 2; else break;
+    }
+    if (target > max) target = max;
+    state.tradeFlow.step = target;
+    saveState();
+    if (resultEl) {
+      resultEl.style.color = 'var(--cyan)';
+      resultEl.textContent = `Filled ${meaningful.length} field${meaningful.length === 1 ? '' : 's'} → step ${target}.`;
+    }
+    if (pasteEl) pasteEl.value = '';
+    window.renderTrade();
+  };
+  if (pasteEl) {
+    pasteEl.addEventListener('paste', () => setTimeout(() => applyPaste(pasteEl.value), 30));
+  }
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
+  }
+
   const sa = document.getElementById('tf-sa-quant');
   if (sa) {
     sa.addEventListener('input', e => {

@@ -164,6 +164,7 @@ function tfUpdateIntradaySizing() {
 }
 
 // Intraday R-multiple block — surgical update on entry/stop/target change.
+// Compact pill style matches the inline render in tfIntradayStep2.
 function tfUpdateIntradayRMult() {
   const el = document.getElementById('tf-i-rmult');
   if (!el) return;
@@ -173,12 +174,10 @@ function tfUpdateIntradayRMult() {
     : null;
   const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
   const rGood = r !== null && isFinite(r) && r >= 1.5;
+  const rOk = r !== null && isFinite(r);
   el.innerHTML = `
-    <div class="trade-output" style="${rGood ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 60%);' : ''}">
-      <div class="trade-output-title">R-multiple</div>
-      <div class="trade-output-main">${rText}</div>
-      <div class="trade-output-rationale">Distance to target divided by distance to stop.</div>
-    </div>`;
+    <span class="trade-bracket ${rGood ? 'high' : (rOk ? 'mid' : 'low')}" style="font-size: 11px; padding: 5px 10px;">${rText}</span>
+    <span class="input-help" style="margin:0;">Reward / risk · target ÷ stop distance.</span>`;
 }
 
 // Spread bracket for intraday — single word.
