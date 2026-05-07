@@ -224,25 +224,29 @@ export function renderHome() {
     return `${y}-${m}-${day}`;
   };
   if (calendar) {
-    // Full month view — lazy-default to the current month on first render.
-    if (!state.homeCalendar) {
-      const now = new Date();
-      state.homeCalendar = { year: now.getFullYear(), month: now.getMonth() };
+    // 2-week rolling view — lazy-default to 0 offset on first render.
+    if (typeof state.homeCalendarOffset !== 'number') {
+      state.homeCalendarOffset = 0;
     }
-    const cal = state.homeCalendar;
-    const monthFirst = new Date(cal.year, cal.month, 1);
-    const monthLast = new Date(cal.year, cal.month + 1, 0);
-    const startWeekday = monthFirst.getDay();
-    const daysInMonth = monthLast.getDate();
-    const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+    const offset = state.homeCalendarOffset;
+    const todayObj = new Date();
+    // Find Saturday of the current week
+    const currentSat = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate() + (6 - todayObj.getDay()));
+    // Apply offset (2 weeks = 14 days)
+    currentSat.setDate(currentSat.getDate() + (offset * 14));
+    // Start is 13 days before Saturday (previous week's Sunday)
+    const startSun = new Date(currentSat.getFullYear(), currentSat.getMonth(), currentSat.getDate() - 13);
+    
+    const totalCells = 14;
 
     if (title) {
-      const monthLabel = monthFirst.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const formatOpts = { month: 'short', day: 'numeric' };
+      const rangeLabel = `${startSun.toLocaleDateString('en-US', formatOpts)} – ${currentSat.toLocaleDateString('en-US', formatOpts)}`;
       title.innerHTML = `
         <div class="home-calendar-nav">
-          <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous month">‹</button>
-          <span class="home-cal-month">${monthLabel}</span>
-          <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next month">›</button>
+          <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous 2 weeks">‹</button>
+          <span class="home-cal-month" style="font-size: 12px;">${rangeLabel}</span>
+          <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next 2 weeks">›</button>
         </div>`;
     }
 
@@ -252,11 +256,7 @@ export function renderHome() {
     const filterIso = state.homeCalendarFilter || null;
 
     const cellsHtml = Array.from({ length: totalCells }, (_, i) => {
-      const dayNum = i - startWeekday + 1;
-      if (i < startWeekday || dayNum > daysInMonth) {
-        return `<div class="home-day home-day-blank" aria-hidden="true"></div>`;
-      }
-      const d = new Date(cal.year, cal.month, dayNum);
+      const d = new Date(startSun.getFullYear(), startSun.getMonth(), startSun.getDate() + i);
       const iso = isoLocal(d);
       const dayTrades = tradeIndex.byExitDate.get(iso) || [];
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
@@ -273,7 +273,7 @@ export function renderHome() {
       } else {
         hoverText += `\nNo trades`;
       }
-      return `<button type="button" class="home-day ${attr(cls)}" data-cal-day="${attr(iso)}" title="${attr(hoverText)}"><span class="home-day-num">${dayNum}</span>${plLabel}</button>`;
+      return `<button type="button" class="home-day ${attr(cls)}" data-cal-day="${attr(iso)}" title="${attr(hoverText)}"><span class="home-day-num">${d.getDate()}</span>${plLabel}</button>`;
     }).join('');
 
     const summaryHtml = `
@@ -283,7 +283,7 @@ export function renderHome() {
           <span><span class="dot red"></span> Loss</span>
           ${filterIso ? `<button type="button" class="home-cal-clear" data-cal-clear="1">Show all trades</button>` : ''}
         </div>
-        <div>Month P/L: <span style="color: ${totalPeriodPL >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'}; font-weight: 700;">${totalPeriodPL >= 0 ? '+$' : '-$'}${Math.abs(totalPeriodPL).toFixed(0)}</span></div>
+        <div>Period P/L: <span style="color: ${totalPeriodPL >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'}; font-weight: 700;">${totalPeriodPL >= 0 ? '+$' : '-$'}${Math.abs(totalPeriodPL).toFixed(0)}</span></div>
       </div>`;
 
     calendar.innerHTML = headerHtml + cellsHtml + summaryHtml;
@@ -391,10 +391,9 @@ function wireHomeCalendar(title, calendar) {
     title.addEventListener('click', e => {
       const btn = e.target.closest('[data-cal-arrow]');
       if (!btn) return;
-      const cal = state.homeCalendar || { year: new Date().getFullYear(), month: new Date().getMonth() };
+          const offset = typeof state.homeCalendarOffset === 'number' ? state.homeCalendarOffset : 0;
       const dir = btn.dataset.calArrow === 'next' ? 1 : -1;
-      const next = new Date(cal.year, cal.month + dir, 1);
-      state.homeCalendar = { year: next.getFullYear(), month: next.getMonth() };
+          state.homeCalendarOffset = offset + dir;
       saveState();
       renderHome();
     });
@@ -430,31 +429,4 @@ function wireHomeActivityList(container) {
     }
     const demo = e.target.closest('[data-load-demo]');
     if (demo) {
-      window.loadDemoData && window.loadDemoData();
-      return;
-    }
-    const review = e.target.closest('[data-review-trade]');
-    if (review) {
-      e.stopPropagation();
-      window.reviewTrade(review.dataset.reviewTrade);
-      return;
-    }
-    const tab = e.target.closest('[data-home-tab]');
-    if (tab) {
-      e.stopPropagation();
-      window.setTab(tab.dataset.homeTab);
-    }
-  });
-}
-
-function toggleHomePortfolioView() {
-  state.homePortfolioView = state.homePortfolioView === 'open' ? 'recent' : 'open';
-  saveState();
-  renderHome();
-}
-
-// ---------- Trade modal ----------
-
-window.renderHome = renderHome;
-window.renderUniversalSidebar = renderUniversalSidebar;
-window.toggleHomePortfolioView = toggleHomePortfolioView;
+      window.loadDemoData 
