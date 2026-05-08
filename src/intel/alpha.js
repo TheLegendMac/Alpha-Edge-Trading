@@ -742,8 +742,6 @@ function renderLogStats() {
   const totalPL    = closedWithPL.reduce((s, x) => s + x.pl, 0);
   const winRateNum = closed.length > 0 ? wins.length / closed.length * 100 : null;
   const winRateStr = winRateNum !== null ? winRateNum.toFixed(0) + '%' : '—';
-  const avgWin     = wins.length   ? wins.reduce((s, x) => s + x.pl, 0)   / wins.length   : 0;
-  const avgLoss    = losses.length ? losses.reduce((s, x) => s + x.pl, 0) / losses.length : 0;
   const grossWin   = wins.reduce((s, x) => s + x.pl, 0);
   const grossLoss  = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
   const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
@@ -762,8 +760,6 @@ function renderLogStats() {
   const biggestWin = wins.length ? Math.max(...wins.map(x => x.pl)) : 0;
   const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
 
-  // NEW: open exposure
-  const settings = state.settings || {};
   const openRisk = open.reduce((s, t) => {
     const fallback = window.tradeRiskDollars(t);
     return s + (Number(t.riskDollars) || fallback || 0);
