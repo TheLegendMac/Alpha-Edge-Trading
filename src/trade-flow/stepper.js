@@ -146,7 +146,7 @@ function tfBindHeaderScroll() {
   header.dataset.tfScrollBound = '1';
   const onScroll = () => {
     const y = window.scrollY || document.documentElement.scrollTop || 0;
-    header.classList.toggle('collapsed', y > 120);
+    header.classList.toggle('collapsed', y > 24);
   };
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
