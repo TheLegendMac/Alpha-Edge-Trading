@@ -84,24 +84,27 @@ function tfRenderIntradaySizingHtml() {
   const manualRisk = manualQty > 0 ? Math.round(manualQty * auto.stopDist * auto.mult) : null;
   const profileQty = manualQty > 0 ? manualQty : auto.qty;
   const qtyLine = manualQty > 0
-    ? `${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} in the override field · estimated risk $${manualRisk}`
-    : `Blank quantity logs the suggested ${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'}.`;
+    ? `${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} in the override field · estimated risk $${manualRisk}.`
+    : `Blank quantity is fine: GO logs the suggested ${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'}.`;
   const perUnit = auto.stopDist * auto.mult;
+  const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: profileQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">Risk unit size</div>
+      <div class="trade-output-title">Entry & risk unit</div>
       <div class="trade-output-main">${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'} suggested</div>
-      <div class="trade-output-rationale">${qtyLine}</div>
+      <div class="trade-output-rationale">Entry, stop, target, and quantity are tied to your $${auto.riskBudget} intraday risk unit. ${qtyLine}</div>
       <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">${window.tfMoneyText(it.entry)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">${window.tfMoneyText(it.stop)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${window.tfMoneyText(it.target)}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${auto.riskBudget}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / ${isOptions ? 'ct' : 'share'}</span><span class="trade-output-cell-value">$${perUnit.toFixed(isOptions ? 0 : 2)}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Suggested risk</span><span class="trade-output-cell-value">$${Math.round(auto.risk)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop distance</span><span class="trade-output-cell-value">${window.tfMoneyText(auto.stopDist)}</span></div>
       </div>
-      ${window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: profileQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget })}
+      ${profileHtml || '<div class="input-help" style="margin-top:10px;">Add a target to draw the visual risk profile.</div>'}
       <div class="trade-templates" style="margin-top:10px;">
-        <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Apply suggested size</button>
-        <span class="trade-templates-label">Writes ${auto.qty} to the ${isOptions ? 'contracts' : 'shares'} override.</span>
+        <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Use suggested size</button>
+        <span class="trade-templates-label">Optional. Leaving the override blank already uses this size.</span>
       </div>
     </div>`;
 }

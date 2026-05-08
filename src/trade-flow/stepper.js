@@ -290,6 +290,8 @@ function tfReset() {
     state.structure = 'options';
     state.instrument = 'options';
     state.ivr = null;
+    state.saProfitGrade = '';
+    state.saMomentumGrade = '';
     state.premium = null;
     state.atr = null;
     state.underlyingPrice = null;
@@ -330,9 +332,7 @@ function tfStepBody(step) {
       <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
       ${html}
     </div>`;
-  const planAndSize = window.tfIntradayInstrument() === 'stocks'
-    ? window.tfIntradayStep2() + window.tfIntradayStep3()
-    : window.tfIntradayStep3() + window.tfIntradayStep2();
+  const planAndSize = window.tfIntradayStep2() + window.tfIntradayStep3();
   return wrap(0, window.tfIntradayStep1())
        + wrap(1, planAndSize)
        + wrap(2, window.tfIntradayStep4());
@@ -428,7 +428,8 @@ function tfShowConfirm({ title = 'Confirm', okLabel = 'Confirm', bodyHtml = '', 
 function tfLogSwingDirect() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
-  const premium = Number(state.premium);
+  const reviewPlan = (typeof window.tfComputeSwingReviewPlan === 'function') ? window.tfComputeSwingReviewPlan() : null;
+  const premium = reviewPlan ? Number(reviewPlan.entry) : Number(state.premium);
   const atr = Number(state.atr);
   const upx = Number(state.underlyingPrice);
 
@@ -437,27 +438,30 @@ function tfLogSwingDirect() {
   let riskPct = (typeof getRiskPctForRegime === 'function')
     ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
   if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-  const riskDollars = settings.account * riskPct;
+  let riskDollars = settings.account * riskPct;
   const stopFraction = (settings.stopPct || 50) / 100;
   const targetFraction = (settings.targetPct || 50) / 100;
-  let contracts = 1;
+  let contracts = reviewPlan && reviewPlan.qty ? reviewPlan.qty : 1;
   let stopPrice = null;
   let targetPrice = null;
   let stopUnderlying = null;
+  let stopSell = null;
   if (isOptions) {
     const maxLossPerContract = premium * stopFraction * 100;
-    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
-    targetPrice = +(premium * (1 + targetFraction)).toFixed(2);
+    if (!reviewPlan || !reviewPlan.qty) contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+    stopSell = reviewPlan ? reviewPlan.stopSell : +(premium * (1 - stopFraction)).toFixed(2);
+    targetPrice = reviewPlan ? reviewPlan.limitSell : +(premium * (1 + targetFraction)).toFixed(2);
     if (atr > 0 && upx > 0) {
       const dist = atr * 1.5;
       stopUnderlying = +(state.direction === 'short' ? upx + dist : upx - dist).toFixed(2);
     }
   } else {
     const maxLossPerShare = premium * stopFraction;
-    contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
-    stopPrice = +(state.direction === 'short' ? premium * (1 + stopFraction) : premium * (1 - stopFraction)).toFixed(2);
-    targetPrice = +(state.direction === 'short' ? premium * (1 - targetFraction) : premium * (1 + targetFraction)).toFixed(2);
+    if (!reviewPlan || !reviewPlan.qty) contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+    stopPrice = reviewPlan ? reviewPlan.stopSell : +(state.direction === 'short' ? premium * (1 + stopFraction) : premium * (1 - stopFraction)).toFixed(2);
+    targetPrice = reviewPlan ? reviewPlan.limitSell : +(state.direction === 'short' ? premium * (1 - targetFraction) : premium * (1 + targetFraction)).toFixed(2);
   }
+  if (reviewPlan) riskDollars = reviewPlan.riskDollars;
 
   const ticker = (state.ticker || '').toUpperCase();
   const directionLabel = state.direction === 'short' ? 'Short' : 'Long';
@@ -486,6 +490,7 @@ function tfLogSwingDirect() {
       <div class="row"><span class="k">Direction</span><span>${esc(directionLabel)}</span></div>
       <div class="row"><span class="k">Size</span><span>${esc(sizeLine)}</span></div>
       <div class="row"><span class="k">Risk</span><span>$${Math.round(riskDollars)} (${esc(regimeText)})</span></div>
+      ${isOptions && stopSell ? `<div class="row"><span class="k">Stop sell</span><span>$${stopSell}</span></div>` : ''}
       ${stopPrice ? `<div class="row"><span class="k">Stop</span><span>$${stopPrice}</span></div>` : ''}
       ${targetPrice ? `<div class="row"><span class="k">Target</span><span>$${targetPrice}</span></div>` : ''}
       ${stopUnderlying ? `<div class="row"><span class="k">Underlying stop</span><span>$${stopUnderlying}</span></div>` : ''}
@@ -498,11 +503,11 @@ function tfLogSwingDirect() {
     title: `Log ${ticker} ${state.selectedSetup}?`,
     okLabel: 'Confirm & log',
     bodyHtml,
-    onConfirm: () => window.tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, targetPrice, stopUnderlying, riskDollars, regimeText }),
+    onConfirm: () => window.tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, stopSell, targetPrice, stopUnderlying, riskDollars, regimeText }),
   });
 }
 
-function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, targetPrice, stopUnderlying, riskDollars, regimeText }) {
+function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, stopSell, targetPrice, stopUnderlying, riskDollars, regimeText }) {
   const nowIso = new Date().toISOString();
   const liq = state.liquidity || {};
   const bid = Number(liq.bid);
@@ -521,6 +526,9 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     contracts,
     shares: isOptions ? null : contracts,
     ivr: (state.ivr === null || state.ivr === undefined) ? null : Number(state.ivr),
+    saQuant: (state.saQuant === null || state.saQuant === undefined) ? null : Number(state.saQuant),
+    saProfitGrade: state.saProfitGrade || null,
+    saMomentumGrade: state.saMomentumGrade || null,
     bid: isOptions ? (liq.bid ?? null) : null,
     ask: isOptions ? (liq.ask ?? null) : null,
     mid,
@@ -528,7 +536,8 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     regime: regimeText,
     thesis: state.tradeFlow.thesis || '',
     premortem: state.tradeFlow.preMortem || '',
-    stop: isOptions ? stopUnderlying : stopPrice,
+    stop: isOptions ? (stopSell || null) : stopPrice,
+    stopUnderlying: isOptions ? (stopUnderlying || null) : null,
     target: targetPrice,
     riskDollars,
     status: 'open',

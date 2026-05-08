@@ -109,13 +109,56 @@ function tfRiskLevelRows({ entry, stop, target, qty, mult = 1, riskUnitDollars =
     const dist = Math.abs((p - e) / e) * 100;
     return { label, price: p, dist, pnl, r, cls };
   };
+  const profitRows = [
+    make(targetLabel, t, 'target'),
+    make(`Moon shot (${window.tfFormatR(moonR)})`, e + direction * stopDist * moonR, 'moon'),
+  ].sort((a, b) => a.r - b.r);
   return [
     make('Stop loss', s, 'stop'),
     make('Entry', e, 'entry'),
-    make(targetLabel, t, 'target'),
-    make('Target 2 (2R)', e + direction * stopDist * 2, 'target'),
-    make(`Moon shot (${window.tfFormatR(moonR)})`, e + direction * stopDist * moonR, 'moon'),
+    ...profitRows,
   ];
+}
+
+function tfRiskRailHtml({ entry, stop, target, qty, mult = 1, moonshotR = null } = {}) {
+  const e = Number(entry);
+  const s = Number(stop);
+  const t = Number(target);
+  const q = Number(qty);
+  const m = Number(mult) || 1;
+  if (!(e > 0 && s > 0 && t > 0 && q > 0)) return '';
+  const stopDist = Math.abs(e - s);
+  if (!(stopDist > 0)) return '';
+  const direction = t >= e ? 1 : -1;
+  const loss = stopDist * q * m;
+  const reward = Math.abs(t - e) * q * m;
+  if (!(loss > 0 && reward > 0)) return '';
+  const targetR = reward / loss;
+  const moonR = window.tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? window.tfMoonshotR() : moonshotR);
+  const milestones = [
+    { cls: 'target', r: targetR, label: `${targetR.toFixed(2)}R`, pnl: reward },
+    { cls: 'moon', r: moonR, label: window.tfFormatR(moonR), pnl: loss * moonR },
+  ].sort((a, b) => a.r - b.r);
+  const firstVisual = Math.max(0.45, Math.min(2.5, milestones[0].r || 1));
+  const secondVisual = Math.max(firstVisual + 0.65, Math.min(3.25, milestones[1].r || (milestones[0].r + 1)));
+  const secondExtraVisual = secondVisual - firstVisual;
+  const total = 1 + firstVisual + secondExtraVisual;
+  const lossPct = (1 / total) * 100;
+  const firstPct = (firstVisual / total) * 100;
+  const secondPct = Math.max(12, 100 - lossPct - firstPct);
+  return `
+    <div class="tf-risk-rail">
+      <div class="tf-risk-zone loss" style="width:${lossPct.toFixed(2)}%;">
+        <div><strong>-1R</strong><span>-${window.tfAbsMoneyText(loss, 2)}</span></div>
+      </div>
+      <div class="tf-risk-zone ${milestones[0].cls}" style="width:${firstPct.toFixed(2)}%;">
+        <div><strong>${milestones[0].label}</strong><span>${window.tfSignedMoneyText(milestones[0].pnl, 2)}</span></div>
+      </div>
+      <div class="tf-risk-zone ${milestones[1].cls}" style="width:${secondPct.toFixed(2)}%;">
+        <div><strong>${milestones[1].label}</strong><span>${window.tfSignedMoneyText(milestones[1].pnl, 2)}</span></div>
+      </div>
+      <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"></div>
+    </div>`;
 }
 
 function tfRenderRiskTableHtml(args = {}) {
@@ -151,12 +194,6 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
   const riskUnit = Number(riskUnitDollars) > 0 ? Number(riskUnitDollars) : loss;
   const rewardR = reward / loss;
   const displayR = Number.isFinite(rewardR) ? rewardR : 0;
-  const visualRewardR = Math.max(0.45, Math.min(2.5, displayR || 1));
-  const twoRVisual = Math.max(0.45, Math.min(1.35, Math.abs(2 - visualRewardR) || 0.65));
-  const total = 1 + visualRewardR + twoRVisual;
-  const lossPct = (1 / total) * 100;
-  const targetPct = (visualRewardR / total) * 100;
-  const twoPct = Math.max(12, 100 - lossPct - targetPct);
   const moonR = window.tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? window.tfMoonshotR() : moonshotR);
   return `
     <div class="tf-risk-profile" data-tf-risk-entry="${e}" data-tf-risk-stop="${s}" data-tf-risk-target="${t}" data-tf-risk-qty="${q}" data-tf-risk-mult="${m}" data-tf-risk-unit="${riskUnit}">
@@ -164,18 +201,7 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
         <div class="tf-risk-profile-title">${title}</div>
         <div class="tf-risk-profile-meta">1R = ${window.tfAbsMoneyText(riskUnit)} · stop risk ${window.tfAbsMoneyText(loss)} · ${q} ${unitLabel}${q === 1 ? '' : 's'} · ${displayR.toFixed(2)}R target</div>
       </div>
-      <div class="tf-risk-rail">
-        <div class="tf-risk-zone loss" style="width:${lossPct.toFixed(2)}%;">
-          <div><strong>-1R</strong><span>-${window.tfAbsMoneyText(loss, 2)}</span></div>
-        </div>
-        <div class="tf-risk-zone target" style="width:${targetPct.toFixed(2)}%;">
-          <div><strong>${displayR.toFixed(2)}R</strong><span>${window.tfSignedMoneyText(reward, 2)}</span></div>
-        </div>
-        <div class="tf-risk-zone two-r" style="width:${twoPct.toFixed(2)}%;">
-          <div><strong>2R</strong><span>${window.tfSignedMoneyText(loss * 2, 2)}</span></div>
-        </div>
-        <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"></div>
-      </div>
+      <div data-tf-risk-rail-wrap>${window.tfRiskRailHtml({ entry, stop, target, qty, mult, moonshotR: moonR })}</div>
       ${window.tfRenderMoonshotSliderHtml(moonR)}
       <div data-tf-risk-table-wrap>${window.tfRenderRiskTableHtml({ entry, stop, target, qty, mult, riskUnitDollars: riskUnit, moonshotR: moonR })}</div>
     </div>`;
@@ -198,8 +224,10 @@ function tfRefreshMoonshotProfile(profile, moonshotR) {
   if (!profile) return;
   const value = profile.querySelector('[data-tf-moonshot-value]');
   if (value) value.textContent = window.tfFormatR(moonshotR);
+  const railWrap = profile.querySelector('[data-tf-risk-rail-wrap]');
   const tableWrap = profile.querySelector('[data-tf-risk-table-wrap]');
   const args = window.tfRiskArgsFromProfile(profile, moonshotR);
+  if (railWrap && args) railWrap.innerHTML = window.tfRiskRailHtml(args);
   if (tableWrap && args) tableWrap.innerHTML = window.tfRenderRiskTableHtml(args);
 }
 
@@ -234,6 +262,7 @@ window.tfFormatR = tfFormatR;
 window.tfMoonshotR = tfMoonshotR;
 window.tfRenderMoonshotSliderHtml = tfRenderMoonshotSliderHtml;
 window.tfRiskLevelRows = tfRiskLevelRows;
+window.tfRiskRailHtml = tfRiskRailHtml;
 window.tfRenderRiskTableHtml = tfRenderRiskTableHtml;
 window.tfRenderRiskProfileHtml = tfRenderRiskProfileHtml;
 window.tfRiskArgsFromProfile = tfRiskArgsFromProfile;

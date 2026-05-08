@@ -201,6 +201,15 @@ function alphaFrictionBucket(t) {
   return 'High friction';
 }
 
+function alphaSaQuantBucket(t) {
+  const q = Number(t && t.saQuant);
+  if (!Number.isFinite(q) || q <= 0) return null;
+  if (q >= 4.5) return 'SA Strong Buy';
+  if (q >= 3.5) return 'SA Buy';
+  if (q >= 2.5) return 'SA Hold';
+  return 'SA Sell / Strong Sell';
+}
+
 function alphaSummarizeRows(label, rows) {
   const n = rows.length;
   const pl = rows.reduce((s, x) => s + x.pl, 0);
@@ -346,9 +355,11 @@ function buildAlphaEdgeCard(closedWithPL, help) {
   const vwapGroups = alphaGroupClosedRows(intraday, t => alphaVwapBucket(t));
   const timeGroups = alphaGroupClosedRows(intraday, t => alphaTimeBucket(t));
   const frictionGroups = alphaGroupClosedRows(intraday, t => alphaFrictionBucket(t));
+  const saQuantGroups = alphaGroupClosedRows(closedWithPL, t => alphaSaQuantBucket(t));
 
   const executionHtml = `
     ${alphaSection('Stock vs options edge', alphaRowsHtml(instrumentGroups, 'Log closed stock and option trades to compare which instrument is paying you.'))}
+    ${alphaSection('Seeking Alpha edge', alphaRowsHtml(saQuantGroups, 'Trades logged with SA Quant ratings will show whether SA quality is actually helping your P/L.'))}
     ${alphaSection('Spread drag', alphaRowsHtml(spreadGroups, 'Intraday option trades with bid/ask or spread data will show spread drag here.'))}
     ${alphaSection('Fill quality', alphaRowsHtml(fillGroups, 'Paste or enter bid/ask so entry can be compared against mid price.'))}
   `;
@@ -618,6 +629,20 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
   }
 
   // 2. Regime alignment.
+  const saBucket = alphaSaQuantBucket({ saQuant: state.saQuant });
+  if (mode === 'swing' && saBucket) {
+    const peers = closedWithPL.filter(x => alphaSaQuantBucket(x.trade) === saBucket);
+    if (peers.length >= 3) {
+      const avgR = peers.reduce((s, x) => s + x.r, 0) / peers.length;
+      const totalPL = peers.reduce((s, x) => s + x.pl, 0);
+      bullets.push({
+        tone: avgR >= 0 ? 'good' : 'bad', icon: 'SA',
+        text: `<strong>${saBucket} history:</strong> ${peers.length} prior trades, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg (${$(totalPL)}).`,
+      });
+    }
+  }
+
+  // 3. Regime alignment.
   const regime = state.regime || 'risk-on';
   if (regime === 'risk-off' && dirKey === 'long') {
     bullets.push({
@@ -636,7 +661,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
     });
   }
 
-  // 3. Rolling drawdown warning (kill switch).
+  // 4. Rolling drawdown warning (kill switch).
   const rolling = computeRollingPL();
   if (rolling.pct <= -7) {
     bullets.push({
@@ -650,7 +675,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
     });
   }
 
-  // 4. Friction (intraday-specific): spread + daily loss budget.
+  // 5. Friction (intraday-specific): spread + daily loss budget.
   if (mode === 'intraday') {
     const it = state.intraday || {};
     const settings = state.settings || {};

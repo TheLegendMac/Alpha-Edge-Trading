@@ -5,8 +5,11 @@ import { REGIME_DATA } from '../config/constants.js';
 import {
   isClosedTrade,
   calcPL,
+  tradeBias,
+  tradeMultiplier,
   tradeQty,
   tradeInstrument,
+  tradeRiskDollars,
 } from '../models/trade.js';
 import { formatDate, todayISO } from '../models/formatters.js';
 import { computeRollingPL } from '../intel/rolling.js';
@@ -20,6 +23,29 @@ function renderUniversalSidebar() {
   window.renderLogStats();
 }
 
+function openQty(t) {
+  const total = tradeQty(t);
+  const closed = Array.isArray(t.executions)
+    ? t.executions.reduce((sum, e) => sum + (Number(e.qty) || 0), 0)
+    : 0;
+  return Math.max(0, total - closed);
+}
+
+function openUnrealizedPL(t) {
+  const mark = Number(t.mark);
+  const entry = Number(t.entry);
+  const qty = openQty(t);
+  if (!Number.isFinite(mark) || !Number.isFinite(entry) || mark <= 0 || entry <= 0 || qty <= 0) return 0;
+  const sign = tradeInstrument(t) === 'stocks' && tradeBias(t) === 'bearish' ? -1 : 1;
+  return sign * (mark - entry) * tradeMultiplier(t) * qty;
+}
+
+function openRiskDollars(t) {
+  const risk = tradeRiskDollars(t);
+  const totalQty = tradeQty(t);
+  if (!(risk > 0) || !(totalQty > 0)) return risk || 0;
+  return risk * (openQty(t) / totalQty);
+}
 
 export function renderHome() {
   const today = todayISO();
@@ -32,13 +58,18 @@ export function renderHome() {
   const losses = closed.filter(t => (calcPL(t) || 0) < 0);
   const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
   const openTrades = tradeIndex.open;
+  const openUnrealized = openTrades.reduce((sum, t) => sum + openUnrealizedPL(t), 0);
+  const openUnrealizedR = openTrades.reduce((sum, t) => {
+    const risk = tradeRiskDollars(t);
+    return risk > 0 ? sum + (openUnrealizedPL(t) / risk) : sum;
+  }, 0);
+  const sessionPL = todayPL + openUnrealized;
+  const sessionR = todayR + openUnrealizedR;
   const maxPositions = state.settings.maxPositions || 0;
   const positionSlotsLeft = Math.max(0, maxPositions - openTrades.length);
   const nextRisk = Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
   const maxRiskDollars = Math.round((state.settings.account || 10000) * (state.settings.maxRiskPct || 10) / 100);
-  const openRisk = openTrades.reduce((sum, t) => {
-    return sum + (Number(t.riskDollars) || window.tradeRiskDollars(t) || 0);
-  }, 0);
+  const openRisk = openTrades.reduce((sum, t) => sum + openRiskDollars(t), 0);
   const riskBuffer = Math.max(0, Math.round(maxRiskDollars - openRisk));
   const riskBasedTradesLeft = nextRisk > 0 ? Math.floor(riskBuffer / nextRisk) : positionSlotsLeft;
   const tradesLeft = Math.max(0, Math.min(positionSlotsLeft, riskBasedTradesLeft));
@@ -48,7 +79,7 @@ export function renderHome() {
   const avoid = window.computeAvoidList();
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
   const positionsOk = openTrades.length < state.settings.maxPositions;
-  const riskOk = riskBuffer > nextRisk;
+  const riskOk = nextRisk > 0 && riskBuffer >= nextRisk;
   const rolling = computeRollingPL();
   const killActive = rolling.pct <= -7;
 
@@ -202,12 +233,14 @@ export function renderHome() {
   }
 
 
-  setText('home-session-pl', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(2)} <small>(${todayR >= 0 ? '+' : '-'}${Math.abs(todayR).toFixed(1)}R)</small>`);
+  setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(sessionPL).toFixed(2)} <small>(${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R)</small>`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
+  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
   setText('home-win-rate', `${winRate}%`);
   setText('home-trades-left', tradesLeft);
   setText('home-buffer', `$${riskBuffer}`);
   setText('home-next-risk', `$${nextRisk}`);
+  setText('home-risk-unit', `1R = $${nextRisk}`);
   setText('home-zone', tradesLeft > 1 ? 'Green Zone' : tradesLeft === 1 ? 'Caution' : 'Locked');
 
   const progress = document.getElementById('home-progress-fill');

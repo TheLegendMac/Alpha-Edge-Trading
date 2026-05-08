@@ -89,7 +89,7 @@
           <div class="home-session-value" id="home-session-pl">+$0.00 <small>(0.0R)</small></div>
           <div class="home-mini-stats">
             <div><div class="home-mini-label">Realized</div><div class="home-mini-value" id="home-realized">$0</div></div>
-            <div><div class="home-mini-label">Unrealized</div><div class="home-mini-value">$0</div></div>
+            <div><div class="home-mini-label">Unrealized</div><div class="home-mini-value" id="home-unrealized">$0</div></div>
             <div><div class="home-mini-label">Win Rate</div><div class="home-mini-value" id="home-win-rate">0%</div></div>
           </div>
         </div>
@@ -104,6 +104,7 @@
           <div class="home-buffer">
             <div><div class="home-mini-label">Total Buffer</div><div class="home-mini-value" id="home-buffer">$0</div></div>
             <div style="text-align:right;"><div class="home-mini-label">Next Trade Risk</div><div class="home-mini-value" id="home-next-risk">$0</div></div>
+            <div class="home-risk-unit" id="home-risk-unit">1R = $0</div>
             <div class="home-progress"><span id="home-progress-fill"></span></div>
           </div>
         </div>
@@ -844,6 +845,51 @@ STRENGTH: 3/3</pre>
           <div class="pos-mark-input-wrap">
             <label class="pos-mark-label" for="pos-mark">Mark Price ($)</label>
             <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="Current mark price" />
+          </div>
+        </div>
+
+        <div class="pos-card">
+          <div class="pos-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/></svg>
+            Trade Model
+          </div>
+          <div class="pos-model-grid">
+            <label class="pos-model-field">Ticker
+              <input type="text" id="pos-model-ticker" class="pos-num-input" maxlength="8" />
+            </label>
+            <label class="pos-model-field">Setup
+              <input type="text" id="pos-model-setup" class="pos-num-input" />
+            </label>
+            <label class="pos-model-field">Instrument
+              <select id="pos-model-instrument" class="pos-num-input">
+                <option value="options">Options</option>
+                <option value="stocks">Stock</option>
+              </select>
+            </label>
+            <label class="pos-model-field">Direction
+              <select id="pos-model-direction" class="pos-num-input">
+                <option value="Long">Long</option>
+                <option value="Short">Short</option>
+              </select>
+            </label>
+            <label class="pos-model-field">Entry
+              <input type="number" id="pos-model-entry" class="pos-num-input" step="0.01" min="0" />
+            </label>
+            <label class="pos-model-field">Quantity
+              <input type="number" id="pos-model-qty" class="pos-num-input" step="1" min="1" />
+            </label>
+            <label class="pos-model-field">Stop sell
+              <input type="number" id="pos-model-stop" class="pos-num-input" step="0.01" min="0" />
+            </label>
+            <label class="pos-model-field">Limit sell
+              <input type="number" id="pos-model-target" class="pos-num-input" step="0.01" min="0" />
+            </label>
+            <label class="pos-model-field">Risk $
+              <input type="number" id="pos-model-risk" class="pos-num-input" step="1" min="0" />
+            </label>
+            <label class="pos-model-field">SA Quant
+              <input type="number" id="pos-model-sa" class="pos-num-input" step="0.01" min="1" max="5" />
+            </label>
           </div>
         </div>
 

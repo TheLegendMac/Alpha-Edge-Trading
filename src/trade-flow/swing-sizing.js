@@ -12,11 +12,14 @@ function tfRenderSwingSizingHtml() {
   const account = settings.account || 10000;
   const deployed = window.tfCapitalDeployed();
   const available = Math.max(0, account - deployed);
-  const riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  const halfSize = state.selectedSetup === 'Edge Reversal';
+  if (halfSize) riskPct = riskPct / 2;
   const riskDollars = Math.round(available * riskPct);
   const deployedNote = deployed > 0
     ? ` Capital deployed in open positions $${Math.round(deployed).toLocaleString()} subtracted; available $${Math.round(available).toLocaleString()}.`
     : '';
+  const halfSizeNote = halfSize ? ' Edge Reversal is half size.' : '';
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
     const maxLossPerContract = premium * stopFraction * 100;
@@ -29,14 +32,17 @@ function tfRenderSwingSizingHtml() {
     const stopDollar = (atr > 0 && upx > 0) ? `${(state.direction === 'short' ? upx + atr * 1.5 : upx - atr * 1.5).toFixed(2)}` : '—';
     return `
       <div class="trade-output">
-        <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
+        <div class="trade-output-title">Entry & risk unit</div>
         <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
-        <div class="trade-output-rationale">Account $${account.toLocaleString()} × ${(riskPct * 100).toFixed(2)}% = $${riskDollars} risk per trade. Stop at ${(settings.stopPct || 50)}% of premium → max loss per contract $${maxLossPerContract.toFixed(0)}.${deployedNote}</div>
+        <div class="trade-output-rationale">Entry, stop, target, and size are tied to one risk unit. ${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
         <div class="trade-output-grid">
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Total premium</span><span class="trade-output-cell-value">$${Math.round(totalPremium)}</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Profit target</span><span class="trade-output-cell-value">$${target.toFixed(2)} / ct</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">$${premium.toFixed(2)} / ct</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${contracts} ct</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
           <div class="trade-output-cell"><span class="trade-output-cell-label">Premium stop</span><span class="trade-output-cell-value">$${stopPrem.toFixed(2)} / ct</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">$${target.toFixed(2)} / ct</span></div>
           <div class="trade-output-cell"><span class="trade-output-cell-label">Underlying stop</span><span class="trade-output-cell-value">$${stopDollar}</span></div>
+          <div class="trade-output-cell"><span class="trade-output-cell-label">Total premium</span><span class="trade-output-cell-value">$${Math.round(totalPremium)}</span></div>
         </div>
         ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
       </div>`;
@@ -49,9 +55,17 @@ function tfRenderSwingSizingHtml() {
   const targetPrice = state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct);
   return `
     <div class="trade-output">
-      <div class="trade-output-title">Sizing (regime: ${(state.regime || 'risk-on').toUpperCase()})</div>
+      <div class="trade-output-title">Entry & risk unit</div>
       <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
-      <div class="trade-output-rationale">Stop at ${(settings.stopPct || 5)}% of price → max loss per share $${maxLossPerShare.toFixed(2)}.${deployedNote}</div>
+      <div class="trade-output-rationale">Entry, stop, target, and share count are tied to one risk unit. ${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
+      <div class="trade-output-grid">
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">$${premium.toFixed(2)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${shares} shares</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">$${stopPrice.toFixed(2)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">$${targetPrice.toFixed(2)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / share</span><span class="trade-output-cell-value">$${maxLossPerShare.toFixed(2)}</span></div>
+      </div>
       ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
     </div>`;
 }

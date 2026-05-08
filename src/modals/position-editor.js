@@ -122,6 +122,85 @@ function _updateQtyInputForTrade(t) {
   document.getElementById('pos-open-qty-unit').textContent = unit;
 }
 
+function _setInputValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value ?? '';
+}
+
+function _readModelNumber(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const n = parseFloat(el.value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function _refreshPositionHeader(t) {
+  document.getElementById('pos-ticker').textContent = (t.ticker || '—').toUpperCase();
+  const sideEl = document.getElementById('pos-side-badge');
+  sideEl.textContent = _posSideLabel(t);
+  const isBearish = tradeBias(t) === 'bearish';
+  sideEl.classList.toggle('long', !isBearish);
+  sideEl.classList.toggle('short', isBearish);
+  document.getElementById('pos-entry').textContent = _fmtMoneyPlain(t.entry);
+  document.getElementById('pos-qty-total').textContent = tradeQty(t);
+  document.getElementById('pos-qty-unit').textContent = _posQtyUnit(t);
+  document.getElementById('pos-setup').textContent = _posSetupLabel(t);
+  _updateQtyInputForTrade(t);
+}
+
+function _populateTradeModel(t) {
+  _setInputValue('pos-model-ticker', (t.ticker || '').toUpperCase());
+  _setInputValue('pos-model-setup', t.setup || '');
+  _setInputValue('pos-model-instrument', tradeInstrument(t));
+  _setInputValue('pos-model-direction', tradeBias(t) === 'bearish' ? 'Short' : 'Long');
+  _setInputValue('pos-model-entry', t.entry ?? '');
+  _setInputValue('pos-model-qty', tradeQty(t) || '');
+  _setInputValue('pos-model-stop', t.stop ?? '');
+  _setInputValue('pos-model-target', t.target ?? '');
+  _setInputValue('pos-model-risk', t.riskDollars ?? '');
+  _setInputValue('pos-model-sa', t.saQuant ?? '');
+}
+
+function _applyTradeModelInputs(t) {
+  const ticker = (document.getElementById('pos-model-ticker')?.value || '').trim().toUpperCase();
+  const setup = (document.getElementById('pos-model-setup')?.value || '').trim();
+  const instrument = document.getElementById('pos-model-instrument')?.value === 'stocks' ? 'stocks' : 'options';
+  const direction = document.getElementById('pos-model-direction')?.value === 'Short' ? 'Short' : 'Long';
+  const qty = Math.max(0, parseInt(document.getElementById('pos-model-qty')?.value || '', 10) || 0);
+  const entry = _readModelNumber('pos-model-entry');
+  const stop = _readModelNumber('pos-model-stop');
+  const target = _readModelNumber('pos-model-target');
+  const risk = _readModelNumber('pos-model-risk');
+  const saQuant = _readModelNumber('pos-model-sa');
+
+  if (ticker) t.ticker = ticker;
+  t.setup = setup || t.setup || '';
+  t.instrument = instrument;
+  t.direction = direction;
+  t.bias = direction === 'Short' ? 'bearish' : 'bullish';
+  if (entry && entry > 0) t.entry = entry;
+  if (instrument === 'stocks') {
+    t.shares = qty || t.shares || t.contracts || 0;
+    t.contracts = null;
+  } else {
+    t.contracts = qty || t.contracts || t.shares || 0;
+    t.shares = null;
+  }
+  t.qty = null;
+  t.stop = stop && stop > 0 ? stop : null;
+  t.target = target && target > 0 ? target : null;
+  t.riskDollars = risk && risk > 0 ? risk : tradeRiskDollars(t);
+  t.saQuant = saQuant && saQuant >= 1 && saQuant <= 5 ? saQuant : null;
+  return t;
+}
+
+function _previewTradeModel() {
+  if (!POS.trade) return;
+  POS.trade = _applyTradeModelInputs({ ...POS.trade });
+  _refreshPositionHeader(POS.trade);
+  renderPositionEditor();
+}
+
 function _renderRiskProfile({ trade, realized, unrealized, total }) {
   const el = document.getElementById('pos-risk-profile');
   if (!el) return;
@@ -173,7 +252,8 @@ function _renderRiskProfile({ trade, realized, unrealized, total }) {
 
 function openPositionEditor(trade, tab = 'exec') {
   POS.id = trade.id;
-  POS.trade = trade;
+  POS.trade = { ...trade };
+  trade = POS.trade;
   // Hydrate executions from trade — back-compat: synth a single execution from t.exit if present
   if (Array.isArray(trade.executions) && trade.executions.length) {
     POS.executions = trade.executions.map(e => ({ ...e }));
@@ -194,19 +274,8 @@ function openPositionEditor(trade, tab = 'exec') {
   POS.notes = trade.lesson || trade.notes || '';
   POS.playbookImage = trade.playbook_image || null;
 
-  // Header
-  document.getElementById('pos-ticker').textContent = (trade.ticker || '—').toUpperCase();
-  const sideEl = document.getElementById('pos-side-badge');
-  sideEl.textContent = _posSideLabel(trade);
-  // Visual tone matches bias: bullish → green badge, bearish → red badge.
-  const isBearish = tradeBias(trade) === 'bearish';
-  sideEl.classList.toggle('long', !isBearish);
-  sideEl.classList.toggle('short', isBearish);
-  document.getElementById('pos-entry').textContent = _fmtMoneyPlain(trade.entry);
-  document.getElementById('pos-qty-total').textContent = tradeQty(trade);
-  document.getElementById('pos-qty-unit').textContent = _posQtyUnit(trade);
-  document.getElementById('pos-setup').textContent = _posSetupLabel(trade);
-  _updateQtyInputForTrade(trade);
+  _refreshPositionHeader(trade);
+  _populateTradeModel(trade);
 
   // Mark input
   const markInput = document.getElementById('pos-mark');
@@ -403,7 +472,12 @@ function _savePositionEditor() {
   if (tradeIdx < 0) { window.toast('Trade not found', true); return; }
 
   // Persist editor data back onto the trade.
-  const updated = { ...state.trades[tradeIdx] };
+  const updated = _applyTradeModelInputs({ ...state.trades[tradeIdx] });
+  const closedQty = POS.executions.reduce((s, e) => s + (Number(e.qty) || 0), 0);
+  if (tradeQty(updated) < closedQty) {
+    window.toast(`Model quantity cannot be below ${closedQty} already exited.`, true);
+    return;
+  }
   updated.executions = POS.executions.slice();
   updated.outcome_tags = POS.tags.slice();
   updated.notes = document.getElementById('pos-notes').value;
@@ -480,6 +554,10 @@ function _wirePositionEditor() {
     const v = parseFloat(e.target.value);
     POS.mark = isNaN(v) ? null : v;
     renderPositionEditor();
+  });
+  document.querySelectorAll('#modal-position [id^="pos-model-"]').forEach(el => {
+    el.addEventListener('input', _previewTradeModel);
+    el.addEventListener('change', _previewTradeModel);
   });
   // Quick scale
   document.querySelectorAll('.pos-quick-btn').forEach(b => b.addEventListener('click', () => _execScale(parseFloat(b.dataset.scale))));

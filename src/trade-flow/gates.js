@@ -17,8 +17,8 @@ function tfEvaluateGates() {
   const isOptions = state.instrument !== 'stocks';
   return {
     '01': state.saQuant !== null && state.saQuant !== undefined && state.saQuant >= 3.5,
-    '02': !!state.gateChecks['02'],
-    '03': !!state.gateChecks['03'],
+    '02': !!state.gateChecks['02'] || (typeof window.tfGradePasses === 'function' && window.tfGradePasses(state.saProfitGrade)),
+    '03': !!state.gateChecks['03'] || (typeof window.tfGradePasses === 'function' && window.tfGradePasses(state.saMomentumGrade)),
     '04': liqOk,
     '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= 8,
     '06': isOptions

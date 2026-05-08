@@ -114,30 +114,17 @@
   border-bottom: 1px solid var(--line);
   transition: padding 0.18s ease;
 }
-#panel-trade .trade-header.collapsed { padding: 10px 24px 8px; }
-#panel-trade .trade-header.collapsed .trade-header-top { margin-bottom: 8px; }
-#panel-trade .trade-header.collapsed .trade-stepper { padding: 4px 0 6px; }
+#panel-trade .trade-header.collapsed {
+  padding: 8px 24px 6px;
+  box-shadow: 0 14px 26px rgba(0,0,0,0.34);
+}
+#panel-trade .trade-header.collapsed .trade-header-top { margin-bottom: 6px; }
+#panel-trade .trade-header.collapsed .trade-stepper {
+  padding: 2px 0 4px;
+  margin-bottom: 0;
+}
 #panel-trade .trade-header.collapsed .trade-stepper-mobile { padding: 6px 10px; }
-#panel-trade .trade-header.collapsed .trade-summary-row {
-  grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
-}
-#panel-trade .trade-header.collapsed .trade-summary-cell {
-  padding: 8px 14px;
-  min-height: 0;
-}
-#panel-trade .trade-header.collapsed .trade-summary-cell:nth-child(2) { display: none; }
-#panel-trade .trade-header.collapsed .trade-summary-label,
-#panel-trade .trade-header.collapsed .summary-ticker-memory { display: none; }
-#panel-trade .trade-header.collapsed .summary-ticker-wrap { gap: 0; }
-#panel-trade .trade-header.collapsed .summary-ticker-input {
-  font-size: 18px;
-  padding: 0;
-  letter-spacing: 0.06em;
-  border-bottom: 0;
-}
-#panel-trade .trade-header.collapsed .summary-ticker-input:focus {
-  box-shadow: none;
-}
+#panel-trade .trade-header.collapsed .trade-summary-row { display: none; }
 #panel-trade .trade-header-top {
   display: flex;
   align-items: center;
@@ -512,6 +499,7 @@
   border-radius: var(--r-lg);
   margin-bottom: 16px;
   overflow: hidden;
+  scroll-margin-top: 180px;
 }
 #panel-trade .trade-section.muted {
   background: rgba(14, 17, 24, 0.55);
@@ -797,6 +785,36 @@
   border-color: var(--amber-dim);
 }
 
+#panel-trade .tf-sa-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+#panel-trade .tf-sa-links a,
+#panel-trade .tf-sa-links button {
+  appearance: none;
+  min-height: 30px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(6,212,248,0.05);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+#panel-trade .tf-sa-links a:hover,
+#panel-trade .tf-sa-links button:hover {
+  border-color: var(--cyan-dim);
+  background: rgba(6,212,248,0.10);
+  transform: translateY(-1px);
+}
+
 #panel-trade .trade-bracket {
   font-family: var(--mono);
   font-size: 10px;
@@ -950,7 +968,7 @@
   background: linear-gradient(90deg, rgba(16,185,129,0.10), rgba(16,185,129,0.05));
   box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
 }
-#panel-trade .tf-risk-zone.two-r {
+#panel-trade .tf-risk-zone.moon {
   background: rgba(16,185,129,0.08);
   box-shadow: inset 0 0 0 1px rgba(16,185,129,0.14);
 }
@@ -971,7 +989,7 @@
 }
 #panel-trade .tf-risk-zone.loss span { color: var(--red-bright); }
 #panel-trade .tf-risk-zone.target span { color: var(--green-bright); }
-#panel-trade .tf-risk-zone.two-r span { color: var(--green-bright); opacity: 0.86; }
+#panel-trade .tf-risk-zone.moon span { color: var(--green-bright); opacity: 0.86; }
 #panel-trade .tf-risk-entry-marker {
   position: absolute;
   top: 0;
@@ -1076,6 +1094,42 @@
   }
   #panel-trade .tf-risk-table-head { display: none; }
 }
+
+#panel-trade .tf-scenario-review {
+  border-color: rgba(6,212,248,0.28);
+}
+#panel-trade .tf-scenario-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+#panel-trade .tf-scenario-pill {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+#panel-trade .tf-scenario-pill span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+#panel-trade .tf-scenario-pill strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+#panel-trade .tf-scenario-pill.pos { border-color: var(--green-dim); background: var(--green-bg); }
+#panel-trade .tf-scenario-pill.pos strong { color: var(--green-bright); }
+#panel-trade .tf-scenario-pill.neg { border-color: var(--red-dim); background: var(--red-bg); }
+#panel-trade .tf-scenario-pill.neg strong { color: var(--red-bright); }
 
 /* gate row — visible rule */
 #panel-trade .trade-gate-rule {

@@ -12,6 +12,33 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes softPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-backdrop.show .modal,
+.home-card,
+#panel-trade .trade-section,
+.pos-card,
+.pos-exec-log {
+  animation: softPop 0.22s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+  .home-card:hover {
+    transform: none;
+  }
+}
+
 /* ============ HOME DASHBOARD ============ */
 .home-shell {
   max-width: 1180px;
@@ -31,7 +58,9 @@
   min-height: 118px;
   position: relative;
   overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
+.home-card:hover { transform: translateY(-2px); border-color: var(--line-soft); }
 .home-card.green {
   background: rgba(4, 28, 22, 0.78);
   border-color: rgba(63, 185, 80, 0.42);
@@ -191,6 +220,16 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+.home-risk-unit {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--cyan);
+  text-transform: uppercase;
 }
 .home-progress {
   grid-column: 1 / -1;

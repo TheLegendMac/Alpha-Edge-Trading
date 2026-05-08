@@ -110,6 +110,13 @@ function tfSwingStep2() {
   const passed = ['01','02','03','05'].filter(k => gates[k]).length;
   const ticker = state.ticker || '';
   const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
+  const saLinks = ticker ? `
+    <div class="tf-sa-links">
+      <a href="https://seekingalpha.com/symbol/${ticker}" target="_blank" rel="noopener noreferrer">SA summary</a>
+      <a href="https://seekingalpha.com/symbol/${ticker}/ratings/quant-ratings" target="_blank" rel="noopener noreferrer">Quant ratings</a>
+      <a href="https://seekingalpha.com/symbol/${ticker}/earnings" target="_blank" rel="noopener noreferrer">Earnings</a>
+      <button type="button" data-tf-copy-sa="${ticker}">Copy paste format</button>
+    </div>` : '';
 
   const gateRow = (k, name, rule, isManual) => {
     const ok = gates[k];
@@ -161,7 +168,7 @@ function tfSwingStep2() {
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality inputs</div>
           <div class="trade-section-subtitle">Pull these from Seeking Alpha. They drive the auto-passing gates below.</div>
         </div>
-        <div class="trade-section-counter ${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'complete' : ''}">${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? '2 set' : 'fill 2'}</div>
+        <div class="trade-section-counter ${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'complete' : ''}">${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'ready' : 'fill SA'}</div>
       </div>
       <div class="trade-section-body">
         ${noTickerWarn}
@@ -182,7 +189,24 @@ function tfSwingStep2() {
               <div class="input-help">Auto-passes Gate 05 when ≥ 8. Don't hold through earnings.</div>
             </div>
           </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Profitability grade</label>
+              <input type="text" maxlength="2" class="trade-input" id="tf-sa-profit"
+                placeholder="B-" value="${state.saProfitGrade ?? ''}" />
+              <div class="input-help">Auto-passes Gate 02 when B- or better.</div>
+            </div>
+          </div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">Momentum grade</label>
+              <input type="text" maxlength="2" class="trade-input" id="tf-sa-momentum"
+                placeholder="B-" value="${state.saMomentumGrade ?? ''}" />
+              <div class="input-help">Auto-passes Gate 03 when B- or better.</div>
+            </div>
+          </div>
         </div>
+        ${saLinks}
       </div>
     </div>
 
@@ -271,6 +295,36 @@ function tfMountSwingStep2() {
       window.tfRefreshHeaderOnly();
     });
   }
+  const wireGrade = (id, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', e => {
+      state[key] = String(e.target.value || '').trim().toUpperCase();
+      saveState();
+      window.tfRefreshHeaderOnly();
+      const gateKey = key === 'saProfitGrade' ? '02' : '03';
+      const row = document.querySelector(`#panel-trade [data-tf-gate="${gateKey}"]`);
+      if (row) {
+        const ok = window.tfEvaluateGates()[gateKey];
+        row.classList.toggle('checked', !!ok);
+        row.classList.toggle('fail', !ok);
+        const check = row.querySelector('.trade-row-check');
+        if (check) check.textContent = ok ? '✓' : '';
+        const pill = row.querySelector('.trade-row-pill');
+        if (pill) pill.textContent = ok ? 'PASS' : 'CLICK TO MARK';
+      }
+    });
+  };
+  wireGrade('tf-sa-profit', 'saProfitGrade');
+  wireGrade('tf-sa-momentum', 'saMomentumGrade');
+  document.querySelectorAll('#panel-trade [data-tf-copy-sa]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const symbol = btn.dataset.tfCopySa || (state.ticker || '').toUpperCase();
+      const text = `${symbol} SA: QUANT=${state.saQuant ?? ''} PROFIT=${state.saProfitGrade ?? ''} MOMENTUM=${state.saMomentumGrade ?? ''} EARNINGS=${state.daysToEarnings ?? ''}d`;
+      if (navigator.clipboard) navigator.clipboard.writeText(text);
+      if (typeof window.toast === 'function') window.toast('SA paste format copied');
+    });
+  });
   document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
     el.addEventListener('click', () => {
       const k = el.dataset.tfGate;
@@ -486,6 +540,153 @@ function tfMountSwingStep3() {
 // Bottom card is a single-line TOS order reminder. The GO button at the
 // bottom of the panel handles the actual log/confirm.
 
+function tfComputeSwingReviewPlan() {
+  const isOptions = state.instrument !== 'stocks';
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const account = settings.account || 10000;
+  const entry = Number(state.premium);
+  const atr = Number(state.atr);
+  const upx = Number(state.underlyingPrice);
+  let riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskBudget = Math.round(account * riskPct);
+  const direction = state.direction || 'long';
+  const mult = isOptions ? 100 : 1;
+  const stopFraction = ((settings.stopPct || (isOptions ? 50 : 5)) / 100);
+  const targetFraction = ((settings.targetPct || 50) / 100);
+
+  let defaultQty = null;
+  let defaultStopSell = null;
+  let defaultLimitSell = null;
+  let underlyingStop = null;
+
+  if (entry > 0) {
+    if (isOptions) {
+      const maxLossPerContract = entry * stopFraction * 100;
+      defaultQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, maxLossPerContract)));
+      defaultStopSell = +(entry * (1 - stopFraction)).toFixed(2);
+      defaultLimitSell = +(entry * (1 + targetFraction)).toFixed(2);
+      if (atr > 0 && upx > 0) {
+        const dist = atr * 1.5;
+        underlyingStop = +(direction === 'short' ? upx + dist : upx - dist).toFixed(2);
+      }
+    } else {
+      const maxLossPerShare = entry * stopFraction;
+      defaultQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, maxLossPerShare)));
+      defaultStopSell = +(direction === 'short' ? entry * (1 + stopFraction) : entry * (1 - stopFraction)).toFixed(2);
+      defaultLimitSell = +(direction === 'short' ? entry * (1 - targetFraction) : entry * (1 + targetFraction)).toFixed(2);
+    }
+  }
+
+  const scenario = (state.tradeFlow && state.tradeFlow.swingScenario) || {};
+  const valueOrDefault = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+  const qtyOrDefault = (value, fallback) => {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
+  const scenarioEntry = valueOrDefault(scenario.entry, entry);
+  const qty = qtyOrDefault(scenario.qty, defaultQty);
+  const stopSell = valueOrDefault(scenario.stopSell, defaultStopSell);
+  const limitSell = valueOrDefault(scenario.limitSell, defaultLimitSell);
+  const sign = !isOptions && direction === 'short' ? -1 : 1;
+  const stopPL = (scenarioEntry > 0 && stopSell > 0 && qty > 0)
+    ? sign * (stopSell - scenarioEntry) * mult * qty
+    : null;
+  const limitPL = (scenarioEntry > 0 && limitSell > 0 && qty > 0)
+    ? sign * (limitSell - scenarioEntry) * mult * qty
+    : null;
+  const riskDollars = stopPL !== null && stopPL < 0 ? Math.round(Math.abs(stopPL)) : riskBudget;
+  const gainR = limitPL !== null && riskDollars > 0 ? limitPL / riskDollars : null;
+  const lossR = stopPL !== null && riskDollars > 0 ? stopPL / riskDollars : null;
+
+  return {
+    isOptions,
+    entry: scenarioEntry,
+    defaultEntry: entry,
+    qty,
+    defaultQty,
+    stopSell,
+    defaultStopSell,
+    limitSell,
+    defaultLimitSell,
+    underlyingStop,
+    riskBudget,
+    riskDollars,
+    stopPL,
+    limitPL,
+    lossR,
+    gainR,
+    mult,
+  };
+}
+
+function tfSwingScenarioReviewHtml(plan) {
+  const fmtDollar = v => (v === null || v === undefined || !Number.isFinite(Number(v))) ? '—' : `$${Number(v).toFixed(2)}`;
+  const fmtMoney = v => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return '—';
+    return `${n >= 0 ? '+$' : '-$'}${Math.abs(n).toFixed(2)}`;
+  };
+  const fmtR = v => Number.isFinite(Number(v)) ? `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}R` : '—';
+  const unit = plan.isOptions ? 'contracts' : 'shares';
+  const stopLabel = plan.isOptions ? 'Stop-loss sell price' : 'Stop-loss price';
+  const limitLabel = plan.isOptions ? 'Limit sell price' : 'Limit price';
+  return `
+    <div class="trade-section tf-scenario-review">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Scenario check</div>
+          <div class="trade-section-subtitle">Exact sell prices for the bracket. Adjust these to test the gain/loss before GO.</div>
+        </div>
+        <button type="button" class="trade-template-btn" id="tf-s-review-reset">Reset</button>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Entry price</label>
+            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="entry" value="${plan.entry || ''}" placeholder="${fmtDollar(plan.defaultEntry)}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Quantity (${unit})</label>
+            <input type="number" min="1" step="1" class="trade-input" data-tf-s-review="qty" value="${plan.qty || ''}" placeholder="${plan.defaultQty || '—'}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">${stopLabel}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="stopSell" value="${plan.stopSell || ''}" placeholder="${fmtDollar(plan.defaultStopSell)}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">${limitLabel}</label>
+            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="limitSell" value="${plan.limitSell || ''}" placeholder="${fmtDollar(plan.defaultLimitSell)}" />
+          </div></div>
+        </div>
+        <div class="tf-scenario-result" id="tf-s-review-result">
+          <div class="tf-scenario-pill neg"><span>Potential loss</span><strong data-tf-s-review-loss>${fmtMoney(plan.stopPL)} · ${fmtR(plan.lossR)}</strong></div>
+          <div class="tf-scenario-pill pos"><span>Potential gain</span><strong data-tf-s-review-gain>${fmtMoney(plan.limitPL)} · ${fmtR(plan.gainR)}</strong></div>
+          ${plan.isOptions ? `<div class="tf-scenario-pill"><span>Underlying stop</span><strong data-tf-s-review-underlying>${fmtDollar(plan.underlyingStop)}</strong></div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function tfUpdateSwingScenarioReview() {
+  const plan = window.tfComputeSwingReviewPlan();
+  const fmtMoney = v => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return '—';
+    return `${n >= 0 ? '+$' : '-$'}${Math.abs(n).toFixed(2)}`;
+  };
+  const fmtR = v => Number.isFinite(Number(v)) ? `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}R` : '—';
+  const loss = document.querySelector('[data-tf-s-review-loss]');
+  const gain = document.querySelector('[data-tf-s-review-gain]');
+  if (loss) loss.textContent = `${fmtMoney(plan.stopPL)} · ${fmtR(plan.lossR)}`;
+  if (gain) gain.textContent = `${fmtMoney(plan.limitPL)} · ${fmtR(plan.gainR)}`;
+}
+
 function tfSwingStep4() {
   const isOptions = state.instrument !== 'stocks';
   const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
@@ -496,40 +697,13 @@ function tfSwingStep4() {
   const st = window.tfComputeStatus();
   const ready = st.tone === 'ready';
 
-  // Recompute the same numbers tfLogSwingDirect uses, so the preview matches
-  // exactly what's about to be logged.
-  const settings = state.settings || DEFAULT_SETTINGS;
-  const account = settings.account || 10000;
-  const premium = Number(state.premium);
-  const atr = Number(state.atr);
-  const upx = Number(state.underlyingPrice);
-  let riskPct = (typeof getRiskPctForRegime === 'function')
-    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
-  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-  const riskDollars = Math.round(account * riskPct);
-
-  let qty = null, premiumStop = null, premiumTarget = null, underlyingStop = null;
-  if (premium > 0) {
-    if (isOptions) {
-      const stopFraction = (settings.stopPct || 50) / 100;
-      const targetFraction = (settings.targetPct || 50) / 100;
-      const maxLossPerContract = premium * stopFraction * 100;
-      qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
-      premiumStop = +(premium * (1 - stopFraction)).toFixed(2);
-      premiumTarget = +(premium * (1 + targetFraction)).toFixed(2);
-      if (atr > 0 && upx > 0) {
-        const dist = atr * 1.5;
-        underlyingStop = +(state.direction === 'short' ? upx + dist : upx - dist).toFixed(2);
-      }
-    } else {
-      const stopPct = (settings.stopPct || 5) / 100;
-      const targetPct = (settings.targetPct || 50) / 100;
-      const maxLossPerShare = premium * stopPct;
-      qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
-      premiumStop = +(state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct)).toFixed(2);
-      premiumTarget = +(state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct)).toFixed(2);
-    }
-  }
+  const plan = window.tfComputeSwingReviewPlan();
+  const premium = plan.entry;
+  const qty = plan.qty;
+  const premiumStop = plan.stopSell;
+  const premiumTarget = plan.limitSell;
+  const underlyingStop = plan.underlyingStop;
+  const riskDollars = plan.riskDollars;
 
   const ticker = (state.ticker || '').toUpperCase() || '—';
   const setupLabel = state.selectedSetup || '—';
@@ -586,6 +760,8 @@ function tfSwingStep4() {
       </div>
     </div>
 
+    ${window.tfSwingScenarioReviewHtml(plan)}
+
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
@@ -640,6 +816,24 @@ function tfMountSwingStep4() {
   const p = document.getElementById('tf-premortem');
   if (t) t.addEventListener('input', e => { state.tradeFlow.thesis = e.target.value; saveState(); });
   if (p) p.addEventListener('input', e => { state.tradeFlow.preMortem = e.target.value; saveState(); });
+
+  document.querySelectorAll('#panel-trade [data-tf-s-review]').forEach(el => {
+    el.addEventListener('input', e => {
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      if (!state.tradeFlow.swingScenario) state.tradeFlow.swingScenario = {};
+      state.tradeFlow.swingScenario[e.target.dataset.tfSReview] = e.target.value;
+      saveState();
+      window.tfUpdateSwingScenarioReview();
+    });
+  });
+  const resetScenario = document.getElementById('tf-s-review-reset');
+  if (resetScenario) {
+    resetScenario.addEventListener('click', () => {
+      if (state.tradeFlow) state.tradeFlow.swingScenario = {};
+      saveState();
+      window.renderTrade();
+    });
+  }
 
   document.querySelectorAll('#panel-trade [data-tf-tpl]').forEach(b => {
     b.addEventListener('click', () => {
@@ -739,8 +933,14 @@ function tfParseSwingPaste(text) {
 
   const prof = raw.match(/\b(?:PROFITABILITY|PROFIT)\s*(?:=|:)\s*([A-F][+-]?)\b/i);
   const momo = raw.match(/\b(?:MOMENTUM|MOMO)\s*(?:=|:)\s*([A-F][+-]?)\b/i);
-  if (prof && window.tfGradePasses(prof[1])) out.gates['02'] = true;
-  if (momo && window.tfGradePasses(momo[1])) out.gates['03'] = true;
+  if (prof) {
+    out.saProfitGrade = prof[1].toUpperCase();
+    if (window.tfGradePasses(prof[1])) out.gates['02'] = true;
+  }
+  if (momo) {
+    out.saMomentumGrade = momo[1].toUpperCase();
+    if (window.tfGradePasses(momo[1])) out.gates['03'] = true;
+  }
 
   return out;
 }
@@ -755,7 +955,7 @@ function tfApplySwingPaste(parsed) {
   if (parsed.direction) state.direction = parsed.direction;
   if (parsed.setup) state.selectedSetup = parsed.setup;
   if (parsed.regime) state.regime = parsed.regime;
-  ['ivr', 'atr', 'underlyingPrice', 'premium', 'saQuant', 'daysToEarnings'].forEach(k => {
+  ['ivr', 'atr', 'underlyingPrice', 'premium', 'saQuant', 'daysToEarnings', 'saProfitGrade', 'saMomentumGrade'].forEach(k => {
     if (parsed[k] !== undefined && parsed[k] !== null) state[k] = parsed[k];
   });
   if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
@@ -824,6 +1024,9 @@ function tfDemoFillSwing() {
 }
 
 window.tfDemoFillSwing = tfDemoFillSwing;
+window.tfComputeSwingReviewPlan = tfComputeSwingReviewPlan;
+window.tfSwingScenarioReviewHtml = tfSwingScenarioReviewHtml;
+window.tfUpdateSwingScenarioReview = tfUpdateSwingScenarioReview;
 window.tfSwingStep1 = tfSwingStep1;
 window.tfMountSwingStep1 = tfMountSwingStep1;
 window.tfSwingContractSpecHtml = tfSwingContractSpecHtml;
