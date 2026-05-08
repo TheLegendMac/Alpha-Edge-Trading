@@ -749,6 +749,18 @@ function renderLogStats() {
   const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
   const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
+  const avgHoldDays = (() => {
+    const holds = closed.map(t => {
+      const start = t.date ? new Date(`${t.date}T12:00:00`) : null;
+      const end = (t.exit_date || t.date) ? new Date(`${t.exit_date || t.date}T12:00:00`) : null;
+      if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+      return Math.max(0, Math.round((end - start) / (24 * 60 * 60 * 1000)));
+    }).filter(v => v !== null);
+    return holds.length ? holds.reduce((s, v) => s + v, 0) / holds.length : 0;
+  })();
+  const riskToMakeOne = grossWin > 0 ? grossLoss / grossWin : 0;
+  const biggestWin = wins.length ? Math.max(...wins.map(x => x.pl)) : 0;
+  const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
 
   // NEW: open exposure
   const settings = state.settings || {};
@@ -853,6 +865,79 @@ function renderLogStats() {
       ${c.sub ? `<div class="sms-sub">${c.sub}</div>` : ''}
     </div>`).join('');
 
+  const modeLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
+  const filterLabel = setupFilter ? `${modeLabel} · ${setupFilter}` : modeLabel;
+  const legacyCards = [
+    {
+      label: 'Win Rate',
+      cls: winRateNum !== null && winRateNum >= 50 ? 'pos' : 'amber',
+      value: winRateNum !== null ? `${winRateNum.toFixed(2)}%` : '0.00%',
+      detail: winRateNum !== null ? `${wins.length}W / ${losses.length}L` : 'No closed trades',
+    },
+    {
+      label: 'Profit Factor',
+      cls: 'cyan',
+      value: profitFactor,
+      detail: grossLoss > 0 ? `$${grossWin.toFixed(0)} wins / $${grossLoss.toFixed(0)} losses` : (grossWin > 0 ? 'No losses yet' : 'No closed P/L'),
+    },
+    {
+      label: 'Avg Hold',
+      cls: 'neutral',
+      value: avgHoldDays.toFixed(1),
+      detail: 'days',
+    },
+    {
+      label: 'Trades',
+      cls: 'neutral',
+      value: String(trades.length),
+      detail: `${closed.length} closed / ${open.length} open`,
+    },
+    {
+      label: 'Risk $1 To Make',
+      cls: 'gold',
+      value: `$${riskToMakeOne.toFixed(2)}`,
+      detail: 'gross loss per $1 gross win',
+    },
+    {
+      label: 'Biggest Win',
+      cls: 'pos',
+      value: `+$${Math.abs(biggestWin).toFixed(2)}`,
+      detail: wins.length ? 'best closed trade' : 'No winning trade yet',
+    },
+    {
+      label: 'Biggest Loss',
+      cls: 'neg',
+      value: `-$${Math.abs(biggestLoss).toFixed(2)}`,
+      detail: losses.length ? 'largest closed loss' : 'No losing trade yet',
+    },
+  ];
+  const legacyStatsHtml = `
+    <section class="legacy-stat-panel" aria-label="At-a-glance stats">
+      <div class="legacy-stat-head">
+        <div>
+          <div class="legacy-stat-title">At-a-Glance</div>
+          <div class="legacy-stat-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed</div>
+        </div>
+        <button type="button" class="legacy-stat-export" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12"/>
+            <path d="m7 10 5 5 5-5"/>
+            <path d="M5 21h14"/>
+          </svg>
+          <span>Export CSV</span>
+        </button>
+      </div>
+      <div class="legacy-stat-grid">
+        ${legacyCards.map(c => `
+          <div class="legacy-stat-card ${c.cls}">
+            <div class="legacy-stat-label">${c.label}</div>
+            <div class="legacy-stat-value">${c.value}</div>
+            <div class="legacy-stat-detail">${c.detail}</div>
+          </div>
+        `).join('')}
+      </div>
+    </section>`;
+
   // ── Exit discipline panel ──────────────────────────────────
   const exitDefs = [
     { key: 'target',       label: 'Hit target',      color: 'pos' },
@@ -905,8 +990,6 @@ function renderLogStats() {
     : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
 
   // ── Assemble ──────────────────────────────────────────────
-  const modeLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
-  const filterLabel = setupFilter ? `${modeLabel} · ${setupFilter}` : modeLabel;
   const clearSetupHtml = setupFilter
     ? `<button class="stats-filter-clear" type="button" onclick="clearLogSetupFilter()">Clear setup</button>`
     : '';
@@ -916,9 +999,8 @@ function renderLogStats() {
   // ── TOS Backtest import panel ──────────────────────────────
   const backtestHtml = window.buildBacktestCard(help);
 
-  // Expand/collapse: top of page shows just Edge Intel + 8 stat cards.
-  // Detailed analytics (setup performance, exit discipline, full Mean
-  // Convergence card, edge card, backtest) live behind a "View More" toggle.
+  // Expand/collapse: top of page shows Edge Intel + one concise At-a-Glance
+  // panel. Detailed analytics live behind the toggle.
   const expanded = !!state.statsExpanded;
   const expandLabel = expanded ? 'Hide detailed analytics ▴' : 'View detailed analytics ▾';
   const detailsBlock = expanded ? `
@@ -926,6 +1008,14 @@ function renderLogStats() {
         ${buildAlphaEdgeCard(closedWithPL, help)}
 
         ${cltHtml}
+
+        <div class="home-card">
+          <div class="stats-snapshot-head">
+            <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Eight prioritized indicators — Expectancy and Mean Convergence first, then ratio and exposure metrics.')}</div>
+            <div class="stats-snapshot-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
+          </div>
+          <div class="sms-grid sms-grid--cards">${smsCells}</div>
+        </div>
 
         ${buildSetupScorecardsHtml(modeTrades)}
 
@@ -947,14 +1037,9 @@ function renderLogStats() {
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
       ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
 
-      <div class="home-card">
-        <div class="stats-snapshot-head">
-          <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Eight prioritized indicators — Expectancy and Mean Convergence first, then ratio and exposure metrics.')}</div>
-          <div class="stats-snapshot-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
-        </div>
-        <div class="sms-grid sms-grid--cards">${smsCells}</div>
-        <button type="button" id="stats-expand-btn" class="stats-expand-btn">${expandLabel}</button>
-      </div>
+      ${legacyStatsHtml}
+
+      <button type="button" id="stats-expand-btn" class="stats-expand-btn">${expandLabel}</button>
 
       ${detailsBlock}
     </div>
@@ -1005,3 +1090,4 @@ window.buildAlphaHighlightBullets = buildAlphaHighlightBullets;
 window.buildAlphaEdgeCard = buildAlphaEdgeCard;
 window.buildAlphaIntel = buildAlphaIntel;
 window.buildTradeFlowEdgeIntel = buildTradeFlowEdgeIntel;
+window.renderLogStats = renderLogStats;
