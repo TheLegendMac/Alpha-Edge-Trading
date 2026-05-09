@@ -1,5 +1,6 @@
 // Toast notification — small bottom-right popup.
 
+let toastTimer;
 function toast(msg, isError) {
   const t = document.getElementById('toast');
   t.textContent = msg;

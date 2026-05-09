@@ -86,42 +86,46 @@ export function renderHome() {
   // Money formatter — keeps lines compact and consistent.
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
+<<<<<<< HEAD
   // Headline — concise, action-first. Priority: kill switch > caps > regime > all-clear.
   // Hero version: split into a leading phrase + an accent word (matches design layout).
+=======
+  // Headline — short punchy phrase for the hero h1. Details go in sub-text.
+>>>>>>> claude-recovery
   let regimeHeadline, headlineTone = '';
   let heroLead = 'Cleared to ', heroAccent = 'trade.', heroStatus = 'STATUS · LIVE';
   if (killActive) {
-    regimeHeadline = `Kill switch on. Last ${rolling.days}d down ${Math.abs(rolling.pct).toFixed(1)}%. Pause.`;
+    regimeHeadline = `Don't trade.`;
     headlineTone = 'risk-off';
     heroLead = `Don't trade. Last ${rolling.days}d down `;
     heroAccent = `${Math.abs(rolling.pct).toFixed(1)}%.`;
     heroStatus = 'KILL SWITCH · ACTIVE';
   } else if (!positionsOk) {
-    regimeHeadline = `Position cap full (${openTrades.length}/${state.settings.maxPositions}). Close one to open another.`;
+    regimeHeadline = `Position cap full.`;
     headlineTone = 'neutral';
     heroLead = `Position cap full. `;
     heroAccent = `Close one.`;
     heroStatus = 'CAP · LOCKED';
   } else if (!riskOk) {
-    regimeHeadline = `Risk buffer thin. Next trade would push past the ${state.settings.maxRiskPct}% cap.`;
+    regimeHeadline = `Buffer thin.`;
     headlineTone = 'neutral';
     heroLead = `Buffer thin. Next trade clips the `;
     heroAccent = `${state.settings.maxRiskPct}% cap.`;
     heroStatus = 'BUFFER · WATCH';
   } else if (state.regime === 'risk-off') {
-    regimeHeadline = `Risk-off tape. Longs blocked. Puts on Avoid sectors only, half size.`;
+    regimeHeadline = `Risk-off.`;
     headlineTone = 'risk-off';
     heroLead = `Defensive. Puts on `;
     heroAccent = `Avoid sectors.`;
     heroStatus = 'RISK OFF · DEFENSIVE';
   } else if (state.regime === 'neutral') {
-    regimeHeadline = `Neutral tape. Half size both ways. Wait for clean confirmation.`;
+    regimeHeadline = `Neutral tape.`;
     headlineTone = 'neutral';
     heroLead = `Half size. `;
     heroAccent = `Wait for confirmation.`;
     heroStatus = 'NEUTRAL · HALF SIZE';
   } else {
-    regimeHeadline = `Cleared to trade. ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left, $${nextRisk} per trade.`;
+    regimeHeadline = `Cleared to trade.`;
     headlineTone = '';
     heroLead = `Cleared to `;
     heroAccent = `trade.`;
@@ -227,7 +231,11 @@ export function renderHome() {
     if (el) el.innerHTML = text;
   };
 
-  setText('home-intel-text', scoreText);
+  // home-intel-text is now the hero sub-paragraph — show slots + risk summary.
+  const subText = killActive
+    ? `Last ${rolling.days}d: ${$(rolling.totalPL)} · stop trading until rolling P/L above −7%.`
+    : `${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk} · buffer $${riskBuffer} of $${maxRiskDollars}`;
+  setText('home-intel-text', subText);
 
   // ========== HERO ==========
   const heroKicker = document.getElementById('home-hero-kicker');
@@ -262,9 +270,7 @@ export function renderHome() {
   const headlineEl = document.getElementById('home-intel-headline');
   if (headlineEl) {
     headlineEl.textContent = regimeHeadline;
-    // Headline class reflects ACTION priority (kill switch / cap > regime),
-    // not just regime. Falls back to '' = green.
-    headlineEl.className = `home-intel-headline ${state._homeHeadlineClass || ''}`;
+    headlineEl.className = `home-hero-headline home-intel-headline ${state._homeHeadlineClass || ''}`;
   }
   const pointsEl = document.getElementById('home-intel-points');
   if (pointsEl) {
@@ -291,6 +297,7 @@ export function renderHome() {
   }
   setText('home-session-sub', `${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R · realized ${todayPL >= 0 ? '$' : '-$'}${Math.abs(Math.round(todayPL))} · open ${openUnrealized >= 0 ? '$' : '-$'}${Math.abs(Math.round(openUnrealized))}`);
 
+<<<<<<< HEAD
   setText('home-win-rate', `${winRate}%`);
   setText('home-win-rate-sub', `${wins.length} / ${closed.length} closed`);
 
@@ -309,8 +316,45 @@ export function renderHome() {
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
   setText('home-next-risk', `$${nextRisk}`);
+=======
+  // New stat card IDs
+  setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`);
+  setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
+  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
+  setText('home-win-rate', winRate > 0 ? `${winRate}%` : '—');
+  const wrSub = document.getElementById('home-win-rate-sub');
+  if (wrSub) wrSub.textContent = closed.length ? `${wins.length} / ${closed.length} closed` : 'all time';
+  setText('home-trades-left', tradesLeft > 0 ? String(tradesLeft) : '0');
+  const zoneSub = document.getElementById('home-zone');
+  if (zoneSub) zoneSub.textContent = `of ${maxPositions} max`;
+  setText('home-buffer', `$${riskBuffer.toLocaleString()}`);
+>>>>>>> claude-recovery
   setText('home-risk-unit', `1R = $${nextRisk}`);
-  setText('home-zone', tradesLeft > 1 ? 'Green Zone' : tradesLeft === 1 ? 'Caution' : 'Locked');
+
+  // Status dot colour mirrors headline tone
+  const dot = document.getElementById('home-status-dot');
+  if (dot) {
+    dot.style.background = killActive ? 'var(--red-bright)'
+      : state.regime === 'neutral' ? 'var(--amber-bright)'
+      : 'var(--green-bright)';
+    dot.style.boxShadow = `0 0 8px ${dot.style.background}`;
+  }
+
+  // Intel card background tone
+  const intelCard = document.getElementById('home-intel-card');
+  if (intelCard) intelCard.classList.toggle('risk-off', killActive || state.regime === 'risk-off');
+
+  // Open book meta line
+  const meta = document.getElementById('home-openbook-meta');
+  if (meta) meta.textContent = openTrades.length
+    ? `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} · risk $${Math.round(openRisk)} / $${maxRiskDollars}`
+    : '';
+
+  // Legacy compat: keep hidden fields so nothing crashes
+  const legacyNextRisk = document.getElementById('home-next-risk');
+  if (legacyNextRisk) legacyNextRisk.setAttribute('data-value', nextRisk);
+  const legacyProgress = document.getElementById('home-progress-fill');
+  if (legacyProgress) legacyProgress.setAttribute('data-pct', Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100)));
 
   const progress = document.getElementById('home-progress-fill');
   if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
@@ -454,23 +498,40 @@ export function renderHome() {
         const pl = calcPL(t);
         const r = window.calcR(t);
         const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
-        const valueText = t.status === 'open'
-          ? `Risk $${Math.round(Number(t.riskDollars) || window.tradeRiskDollars(t) || 0)}`
-          : `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}`;
+        const mode = t.mode || 'swing';
         const qtyUnit = tradeInstrument(t) === 'stocks' ? 'sh' : 'ctr';
-        const detailText = t.status === 'open'
-          ? `${tradeQty(t) || 0} ${qtyUnit} @ $${Number(t.entry || 0).toFixed(2)}`
-          : `${formatDate(t.exit_date || t.date)}${r !== null ? ` · ${r >= 0 ? '+' : '-'}${Math.abs(r).toFixed(2)}R` : ''}`;
+        const entry = Number(t.entry || 0);
+        const mark  = Number(t.mark  || 0);
+        const risk  = Math.round(Number(t.riskDollars) || window.tradeRiskDollars(t) || 0);
+        const qtyStr = `${tradeQty(t) || 0} ${qtyUnit} @ $${entry.toFixed(2)}`;
+        const markStr = mark > 0 ? `mark $${mark.toFixed(2)}` : '';
+        const plStr = t.status === 'open'
+          ? (mark > 0 ? `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}` : `risk $${risk}`)
+          : `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}`;
+        const rStr = r !== null && Number.isFinite(r)
+          ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`
+          : (t.status === 'open' ? 'open' : '—');
         return `
           <button class="home-trade-row" type="button" data-review-trade="${attr(t.id)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
-              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(t.status)}" style="font-size:9px; padding:2px 6px;">${esc(t.status)}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(t.mode || 'swing')} · ${esc(t.direction || '—')}</span>
+              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(t.direction || '—')}</span>
             </span>
-            <span class="home-trade-setup">${esc(t.setup || 'No setup')}</span>
-            <span class="home-trade-value ${attr(statusClass)}">${esc(valueText)}<span class="home-trade-detail">${esc(detailText)}</span></span>
-            <span class="home-trade-action">Review</span>
+            <span class="home-trade-mode ${attr(mode)}">${esc(mode)}</span>
+            <span class="home-trade-setup">
+              ${esc(t.setup || 'No setup')}
+              <span class="home-trade-detail">${esc(qtyStr)}</span>
+            </span>
+            <span class="home-trade-value ${attr(statusClass)}">
+              ${esc(plStr)}
+              <span class="home-trade-detail">${esc(rStr)}${markStr ? ' · ' + esc(markStr) : ''}</span>
+            </span>
+            <span class="home-trade-open-dot" style="${t.status !== 'open' ? 'display:none' : ''}">
+              <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--cyan);"></span>
+              open
+            </span>
+            <span class="home-trade-action">Review →</span>
           </button>
         `;
       }).join('');

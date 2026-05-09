@@ -5,7 +5,6 @@ import { state } from './state/store.js';
 import { saveState } from './state/persistence.js';
 import { renderRegime } from './market/regime.js';
 import { renderHome } from './views/home.js';
-import { renderSectors } from './views/sunday.js';
 import { renderReference } from './views/reference.js';
 import { renderLogTable } from './views/log.js';
 import { renderStats } from './views/stats.js';
@@ -22,15 +21,19 @@ export function setTab(name) {
   renderRegime();
   // Refresh dynamic content when navigating.
   if (name === 'home') renderHome();
-  if (name === 'sunday') renderSectors();
   if (name === 'reference') renderReference();
   if (name === 'log') {
-    // renderLogStats currently lives at the bottom of intel/alpha.js — reach via window.
     if (typeof window.renderLogStats === 'function') window.renderLogStats();
     if (typeof window.renderLogHero === 'function') window.renderLogHero();
     renderLogTable();
   }
+<<<<<<< HEAD
   if (name === 'stats') renderStats();
+=======
+  if (name === 'stats') {
+    if (typeof window.renderStats === 'function') window.renderStats();
+  }
+>>>>>>> claude-recovery
   if (name === 'trade' && typeof window.renderTrade === 'function') window.renderTrade();
 }
 

@@ -105,16 +105,36 @@ function on(id, event, handler) {
 function init() {
   loadState();
 
+  // Wire inline nav tab buttons in the command bar.
+  document.querySelectorAll('.cmdbar-nav .tab').forEach(btn => {
+    btn.addEventListener('click', () => setTab(btn.dataset.tab));
+  });
+
   // Wire the home actions early. If a later optional renderer fails, these
   // buttons still work and the user can navigate out of the bad state.
   on('home-portfolio-toggle', 'click', window.toggleHomePortfolioView);
   on('btn-home-new-analysis', 'click', () => setTab('trade'));
-  on('btn-home-log', 'click', () => setTab('log'));
   on('brand-home', 'click', () => setTab('home'));
 
+<<<<<<< HEAD
   // Top-level command-bar nav tabs.
   document.querySelectorAll('.cmdbar-nav-tab').forEach(btn => {
     btn.addEventListener('click', () => setTab(btn.dataset.cmdbarTab));
+=======
+  // Log filter strip — mode tab buttons.
+  document.getElementById('log-mode-tabs')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-log-mode]');
+    if (!btn) return;
+    state.logModeFilter = btn.dataset.logMode === 'all' ? '' : btn.dataset.logMode;
+    document.querySelectorAll('.log-mode-tab').forEach(b => b.classList.toggle('active', b.dataset.logMode === btn.dataset.logMode));
+    if (typeof window.renderLogStats === 'function') window.renderLogStats();
+    if (typeof window.renderLogTable === 'function') window.renderLogTable();
+  });
+
+  // Settings ⌘K button opens settings.
+  document.getElementById('btn-settings')?.addEventListener('click', () => {
+    if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+>>>>>>> claude-recovery
   });
 
   // Context panel — regime cluster click opens the two-in-one panel.
@@ -242,11 +262,11 @@ function init() {
   document.querySelectorAll('.checklist-item').forEach(el => {
     el.addEventListener('click', () => window.toggleSunday(el));
   });
-  document.getElementById('btn-reset-sunday').addEventListener('click', () => {
+  document.getElementById('btn-reset-sunday')?.addEventListener('click', () => {
     if (confirm('Reset Sunday checklist for next week?')) {
       state.sundayChecks = {};
       window.saveState();
-      window.renderSunday();
+      if (typeof window.renderSunday === 'function') window.renderSunday();
       window.toast('Sunday checklist reset');
     }
   });
@@ -267,9 +287,13 @@ function init() {
   runSafe('renderSectorStatusMini', window.renderSectorStatusMini);
 
   // Restore last-active mode.
+<<<<<<< HEAD
   if (state.activeMode && ['home','sunday','log','reference','trade','stats'].includes(state.activeMode)) {
+=======
+  if (state.activeMode && ['home','log','stats','reference','trade'].includes(state.activeMode)) {
+>>>>>>> claude-recovery
     runSafe('restoreTab', () => setTab(state.activeMode));
-  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
+  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday' || state.activeMode === 'sunday') {
     runSafe('restoreTradeTab', () => setTab('trade'));
   }
 
