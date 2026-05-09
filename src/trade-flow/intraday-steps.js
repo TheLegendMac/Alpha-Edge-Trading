@@ -70,9 +70,15 @@ function tfParseIntradayPaste(text) {
   const mVwap = text && text.match(/\bVWAP\s*[=:]\s*([0-9.]+)/i);
   if (mVwap) out.vwapValue = parseFloat(mVwap[1]);
 
-  // Ticker — explicit "TICKER=SPY" or "SYM=SPY" key.
-  const mTk = text && text.match(/(?:TICKER|SYMBOL|SYM)\s*[=:]\s*([A-Z]{1,6})/i);
-  if (mTk) out.ticker = mTk[1].toUpperCase();
+  // Ticker — explicit "TICKER=SPY" or "SYM=SPY" key. Handles TOS option formats and weird spacing.
+  const mTk = text && text.match(/(?:TICKER|SYMBOL|SYM)\s*[=:]\s*([A-Z0-9.\s]+?)(?=\s*\||\s+[A-Z]+[=:]|$)/i);
+  if (mTk) {
+    let clean = mTk[1].replace(/\s+/g, '').toUpperCase();
+    // If it's a TOS option ticker (e.g. .SPY260511C743), extract the base symbol
+    const optMatch = clean.match(/^\.?([A-Z]+)\d/);
+    if (optMatch) clean = optMatch[1];
+    out.ticker = clean.slice(0, 6);
+  }
 
   if (/\b(STOCK|SHARES?)\b/i.test(text || '')) out.instrument = 'stocks';
   if (/\b(OPTION|OPTIONS|CALL|PUT|CONTRACTS?)\b/i.test(text || '')) out.instrument = 'options';

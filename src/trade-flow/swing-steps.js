@@ -876,11 +876,18 @@ function tfParseSwingPaste(text) {
   const raw = text || '';
   const upper = raw.toUpperCase();
 
-  const explicitTicker = raw.match(/\b(?:TICKER|SYMBOL|SYM)\s*(?:=|:)\s*([A-Z]{1,6})\b/i);
+  const explicitTicker = raw.match(/(?:TICKER|SYMBOL|SYM)\s*(?:=|:)\s*([A-Z0-9.\s]+?)(?=\s*\||\s+[A-Z]+[=:]|$)/i);
   const firstToken = raw.trim().match(/^([A-Z]{1,6})(?=\s|$)/);
   const skipFirst = /^(REGIME|FIRE|IVR|RSMK|RVOL|STACK|SETUP|SA|LIQ)$/i;
-  if (explicitTicker) out.ticker = explicitTicker[1].toUpperCase();
-  else if (firstToken && !skipFirst.test(firstToken[1])) out.ticker = firstToken[1].toUpperCase();
+  
+  if (explicitTicker) {
+    let clean = explicitTicker[1].replace(/\s+/g, '').toUpperCase();
+    const optMatch = clean.match(/^\.?([A-Z]+)\d/);
+    if (optMatch) clean = optMatch[1];
+    out.ticker = clean.slice(0, 6);
+  } else if (firstToken && !skipFirst.test(firstToken[1])) {
+    out.ticker = firstToken[1].toUpperCase();
+  }
 
   if (/\b(STOCK|SHARES?)\b/.test(upper)) out.instrument = 'stocks';
   if (/\b(OPTION|OPTIONS|CALL|PUT|CONTRACTS?)\b/.test(upper)) out.instrument = 'options';
