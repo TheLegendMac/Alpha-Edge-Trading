@@ -631,6 +631,17 @@ function _wirePositionEditor() {
   // Save / delete
   document.getElementById('pos-save-btn').addEventListener('click', _savePositionEditor);
   document.getElementById('pos-delete-btn').addEventListener('click', _deletePositionEditor);
+  // Open full Edit Trade overlay
+  const editTradeBtn = document.getElementById('pos-open-edit-trade-btn');
+  if (editTradeBtn) {
+    editTradeBtn.addEventListener('click', () => {
+      const tradeId = POS.trade?.id;
+      if (tradeId && typeof window.openEditTrade === 'function') {
+        closePositionEditor();
+        window.openEditTrade(tradeId);
+      }
+    });
+  }
   // Refine — light cleanup pass: trim, collapse newlines, sentence-case first letter
   document.getElementById('pos-refine-btn').addEventListener('click', () => {
     const ta = document.getElementById('pos-notes');

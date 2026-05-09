@@ -55,6 +55,7 @@ import './views/sunday.js';
 import './views/reference.js';
 import './views/settings.js';
 import './views/stats.js';
+import './views/edit-trade.js';
 
 // ---------- Modals ----------
 import './modals/toast.js';

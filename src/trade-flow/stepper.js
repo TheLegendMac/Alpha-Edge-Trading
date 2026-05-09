@@ -175,7 +175,7 @@ function tfRenderRail() {
               ? `background:var(--green-bright);border-color:var(--green-bright);color:#0a0e1a;font-weight:800;`
               : `background:transparent;border-color:rgba(148,163,184,0.22);color:rgba(148,163,184,0.45);`;
           const labelStyle = active
-            ? `color:var(--ink-1);font-weight:700;font-size:13px;`
+            ? `color:${accentColor};font-weight:700;font-size:13px;`
             : done ? `color:#94a3b8;` : `color:rgba(148,163,184,0.45);`;
           return `<button class="trade-rail-step${active ? ' active' : done ? ' done' : locked ? ' locked' : ''}"
                     type="button" data-rail-step="${idx}">
