@@ -1,53 +1,75 @@
-// Reference tab — sizing rules + position caps cards.
+// Reference tab — regime sizing cards, position caps, IV-rank playbook.
 
 import { state } from '../state/store.js';
 
 export function renderReference() {
   const s = state.settings;
-  const account = s.account;
+  const account = s.account || 10000;
+  const fmt = pct => (pct || 0).toFixed(2).replace(/\.?0+$/, '') + '%';
 
-  // Regime sizing card
+  // Update hero account label
+  const acctLabel = document.getElementById('ref-account-label');
+  if (acctLabel) acctLabel.textContent = `ACCOUNT $${account.toLocaleString()}`;
+
+  // ── Regime sizing 3 cards ────────────────────────────────
   const sizing = document.getElementById('ref-sizing-content');
   if (sizing) {
-    const fmt = pct => pct.toFixed(2).replace(/\.?0+$/, '') + '%';
-    sizing.innerHTML = `
-      <div class="regime-info-card on">
-        <div class="regime-info-label on">🟢 RISK-ON</div>
-        <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">
-          Long full size <strong>${fmt(s.riskOn)}</strong> per trade<br/>
-          ($${(account * s.riskOn / 100).toFixed(0)} risk dollars)<br/>
-          Short blocked
-        </div>
-      </div>
-      <div class="regime-info-card neut">
-        <div class="regime-info-label neut">🟡 NEUTRAL</div>
-        <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">
-          Reduced size <strong>${fmt(s.riskNeutral)}</strong> per trade<br/>
-          ($${(account * s.riskNeutral / 100).toFixed(0)} risk dollars)<br/>
-          Both directions allowed
-        </div>
-      </div>
-      <div class="regime-info-card off">
-        <div class="regime-info-label off">🔴 RISK-OFF</div>
-        <div style="font-size: 12px; color: var(--ink-2); line-height: 1.5;">
-          Defensive size <strong>${fmt(s.riskOff)}</strong> per trade<br/>
-          ($${(account * s.riskOff / 100).toFixed(0)} risk dollars)<br/>
-          Long blocked, puts only
-        </div>
-      </div>
-    `;
+    const regimes = [
+      {
+        cls: 'on', emoji: '🟢', name: 'RISK-ON',
+        pct: s.riskOn, dir: 'Long full size · short blocked.',
+        context: 'In form · rolling > +5% · sectors leaning.',
+      },
+      {
+        cls: 'neut', emoji: '🟡', name: 'NEUTRAL',
+        pct: s.riskNeutral, dir: 'Reduced size · both directions · debit spreads preferred.',
+        context: 'Choppy regime · mixed sector ratings.',
+      },
+      {
+        cls: 'off', emoji: '🔴', name: 'RISK-OFF',
+        pct: s.riskOff, dir: 'Quarter size · long blocked · puts only on weak sectors.',
+        context: 'Rolling < −7% · kill switch · re-rate to exit.',
+      },
+    ];
+    sizing.innerHTML = regimes.map(r => {
+      const dollars = Math.round(account * (r.pct || 0) / 100);
+      return `
+        <div class="ref-regime-card ${r.cls}">
+          <div class="ref-regime-top">
+            <span class="ref-regime-emoji">${r.emoji}</span>
+            <span class="ref-regime-name">${r.name}</span>
+          </div>
+          <div class="ref-regime-pct-row">
+            <span class="ref-regime-pct">${fmt(r.pct || 0)}</span>
+            <span class="ref-regime-unit">per trade</span>
+          </div>
+          <div class="ref-regime-dollar-box">
+            <span class="ref-regime-dollar-label">1R</span>
+            <span>$${dollars.toLocaleString()}</span>
+          </div>
+          <div class="ref-regime-detail">${r.dir}</div>
+          <div class="ref-regime-context">${r.context}</div>
+        </div>`;
+    }).join('');
   }
 
-  // Caps card
+  // ── Caps list ────────────────────────────────────────────
   const caps = document.getElementById('ref-caps-list');
   if (caps) {
-    caps.innerHTML = `
-      <li><span class="ref-key amber">max ${s.maxPositions}</span><span class="ref-val">Concurrent positions</span></li>
-      <li><span class="ref-key amber">max ${s.maxPremiumPct}%</span><span class="ref-val">Total premium deployed ($${(account * s.maxPremiumPct / 100).toFixed(0)})</span></li>
-      <li><span class="ref-key amber">max ${s.maxRiskPct}%</span><span class="ref-val">Total at risk ($${(account * s.maxRiskPct / 100).toFixed(0)})</span></li>
-      <li><span class="ref-key amber">${s.stopPct}%</span><span class="ref-val">Stop loss as % of premium paid</span></li>
-      <li><span class="ref-key green">+${s.targetPct}%</span><span class="ref-val">Profit target as % of premium gain</span></li>
-    `;
+    const rows = [
+      { key: `max ${s.maxPositions}`,    keyClass: 'amber', val: 'Concurrent positions',     detail: 'Across both swing and intraday combined.' },
+      { key: `max ${s.maxPremiumPct}%`,  keyClass: 'amber', val: 'Total premium deployed',   detail: `$${Math.round(account * (s.maxPremiumPct || 0) / 100).toLocaleString()} cap on capital tied up.` },
+      { key: `max ${s.maxRiskPct}%`,     keyClass: 'amber', val: 'Total at risk',            detail: `$${Math.round(account * (s.maxRiskPct || 0) / 100).toLocaleString()} ceiling across all open trades.` },
+      { key: `${s.stopPct}%`,            keyClass: 'amber', val: 'Stop loss · premium paid', detail: 'Hard cut on options; equities use technical stop.' },
+      { key: `+${s.targetPct}%`,         keyClass: 'green', val: 'Profit target',            detail: 'Default exit — adjust per setup playbook.' },
+      { key: '15:55',                    keyClass: 'cyan',  val: 'Intraday cut time',        detail: 'Hard close · no holding intraday positions overnight.' },
+    ];
+    caps.innerHTML = rows.map((r, i) => `
+      <li>
+        <span class="ref-key ${r.keyClass}">${r.key}</span>
+        <div class="ref-val">${r.val}<span>${r.detail}</span></div>
+        <span class="ref-caps-rule-num">RULE ${String(i + 1).padStart(2, '0')}</span>
+      </li>`).join('');
   }
 }
 

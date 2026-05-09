@@ -726,6 +726,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
 
 function renderLogStats() {
   const container = document.getElementById('log-stats');
+  if (!container) return;
   const help = text => `<span class="stat-help" title="${text}">?</span>`;
   const filter = state.logModeFilter || 'all';
   const setupFilter = state.logSetupFilter || '';
@@ -985,71 +986,60 @@ function renderLogStats() {
   }).join('')
     : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
 
-  // ── Assemble ──────────────────────────────────────────────
-  const clearSetupHtml = setupFilter
-    ? `<button class="stats-filter-clear" type="button" onclick="clearLogSetupFilter()">Clear setup</button>`
-    : '';
-  // ── CLT (Mean Convergence) panel ───────────────────────────
-  const cltHtml = window.buildCltCard(closedWithPL, help);
+  // ── Grade quality (Process stat) ──────────────────────────
+  const gradeCounts = { A: 0, B: 0, C: 0, D: 0 };
+  closed.forEach(t => { const g = (t.grade || '').toUpperCase(); if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
+  const totalGraded = gradeCounts.A + gradeCounts.B + gradeCounts.C + gradeCounts.D;
+  const aPct = totalGraded ? Math.round(gradeCounts.A / totalGraded * 100) : null;
+  const processValue = aPct !== null ? `A · ${aPct}%` : '—';
+  const processSubParts = [gradeCounts.A && `${gradeCounts.A}A`, gradeCounts.B && `${gradeCounts.B}B`, gradeCounts.C && `${gradeCounts.C}C`].filter(Boolean);
+  const processSub = processSubParts.length ? processSubParts.join(' · ') : 'no graded trades';
 
-  // ── TOS Backtest import panel ──────────────────────────────
-  const backtestHtml = window.buildBacktestCard(help);
+  // ── Avg win / avg loss in R ────────────────────────────────
+  const avgWinRStr  = wins.length   ? `${avgWinR  >= 0 ? '+' : ''}${avgWinR.toFixed(2)}R`  : '—';
+  const avgLossRStr = losses.length ? `${avgLossR >= 0 ? '+' : ''}${avgLossR.toFixed(2)}R` : '—';
 
-  // Expand/collapse: top of page shows Edge Intel + one concise At-a-Glance
-  // panel. Detailed analytics live behind the toggle.
-  const expanded = !!state.statsExpanded;
-  const expandLabel = expanded ? 'Hide detailed analytics ▴' : 'View detailed analytics ▾';
-  const detailsBlock = expanded ? `
-      <div class="stats-details">
-        ${buildAlphaEdgeCard(closedWithPL, help)}
+  // ── Hero heading ───────────────────────────────────────────
+  const totalPLStr = (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const heroModeLabel = (state.logModeFilter || 'all') === 'all' ? 'ALL' : (state.logModeFilter || '').toUpperCase();
+  const heroPeriodLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
-        ${cltHtml}
-
-        <div class="home-card">
-          <div class="stats-snapshot-head">
-            <div class="home-card-title" style="margin: 0;">Stats Snapshot${help('Eight prioritized indicators — Expectancy and Mean Convergence first, then ratio and exposure metrics.')}</div>
-            <div class="stats-snapshot-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed · ${open.length} open${clearSetupHtml}</div>
-          </div>
-          <div class="sms-grid sms-grid--cards">${smsCells}</div>
-        </div>
-
-        ${buildSetupScorecardsHtml(modeTrades)}
-
-        <div class="home-row stats-card-row">
-          <div class="home-card">
-            <div class="home-card-title">Setup Performance${help('Shows which setups are producing or losing money, including win rate and average R by setup.')}</div>
-            ${setupHtml}
-          </div>
-          <div class="home-card">
-            <div class="home-card-title">Exit Discipline${help('Shows where exits are happening and how much P/L each exit reason contributes.')}</div>
-            ${exitHtml}
-          </div>
-        </div>
-
-        ${backtestHtml}
-      </div>` : '';
+  // ── 5-card stat strip ─────────────────────────────────────
+  const fiveCards = [
+    { label: 'Net P/L',  value: totalPLStr, sub: `${closed.length} closed · ${open.length} open`, cls: totalPL >= 0 ? 'pos' : 'neg' },
+    { label: 'Win rate', value: winRateStr, sub: `${wins.length}W / ${losses.length}L closed`, cls: winRateNum !== null && winRateNum >= 50 ? '' : '' },
+    { label: 'Avg win',  value: avgWinRStr,  sub: `${wins.length} trades`,  cls: 'pos' },
+    { label: 'Avg loss', value: avgLossRStr, sub: `${losses.length} trades`, cls: 'neg' },
+    { label: 'Process',  value: processValue, sub: processSub, cls: '' },
+  ].map(c => `
+    <div class="log-stat-card">
+      <div class="log-stat-label">${c.label}</div>
+      <div class="log-stat-value ${c.cls}">${c.value}</div>
+      <div class="log-stat-sub">${c.sub}</div>
+    </div>`).join('');
 
   container.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-      ${buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades)}
-
-      ${legacyStatsHtml}
-
-      <button type="button" id="stats-expand-btn" class="stats-expand-btn">${expandLabel}</button>
-
-      ${detailsBlock}
+    <div class="log-hero">
+      <div class="log-hero-left">
+        <div class="log-hero-eyebrow">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
+          TRADE LOG · ${heroPeriodLabel}${setupFilter ? ' · ' + alphaEsc(setupFilter) : ''}
+        </div>
+        <h1 class="log-hero-heading">${trades.length} trades · <span style="color:var(--${totalPL >= 0 ? 'green-bright' : 'red-bright'})">${totalPLStr}</span></h1>
+        <p class="log-hero-sub">
+          <strong>${wins.length} wins / ${losses.length} losses</strong> closed ·
+          <strong>${open.length} open</strong> · ${heroModeLabel} · sorted newest first.
+        </p>
+      </div>
+      <div class="log-hero-actions">
+        <button class="btn-secondary" style="font-family:var(--mono);font-size:10px;letter-spacing:0.12em;" onclick="exportCSV()">EXPORT CSV</button>
+        <button class="btn-primary" style="font-family:var(--mono);font-size:10px;letter-spacing:0.12em;" onclick="openTradeModal()">+ ADD TRADE</button>
+      </div>
     </div>
+    <div class="log-stat-strip">${fiveCards}</div>
   `;
 
-  const expandBtn = document.getElementById('stats-expand-btn');
-  if (expandBtn) {
-    expandBtn.addEventListener('click', () => {
-      state.statsExpanded = !state.statsExpanded;
-      window.saveState && window.saveState();
-      renderLogStats();
-    });
-  }
-  if (container && container.dataset.setupFilterWired !== '1') {
+  if (container.dataset.setupFilterWired !== '1') {
     container.dataset.setupFilterWired = '1';
     container.addEventListener('click', e => {
       const row = e.target.closest('[data-setup-filter]');
@@ -1058,6 +1048,36 @@ function renderLogStats() {
     });
   }
 }
+
+// Expose computed stats for the Stats tab to consume.
+function buildLogStatsData() {
+  const index = buildTradeIndex(state.trades || []);
+  const closed = index.all.filter(t => isClosedTrade(t));
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const wins   = closedWithPL.filter(x => x.pl > 0);
+  const losses = closedWithPL.filter(x => x.pl < 0);
+  const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
+  const winRateNum = closed.length ? wins.length / closed.length * 100 : null;
+  const grossWin = wins.reduce((s, x) => s + x.pl, 0);
+  const grossLoss = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
+  const profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? Infinity : null);
+  const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
+  const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
+  const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
+  const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
+  const setupMap = {};
+  closed.forEach(t => {
+    const k = t.setup || '—';
+    if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0, mode: t.mode || 'swing' };
+    const pl = calcPL(t) || 0;
+    setupMap[k].n++;
+    if (pl > 0) setupMap[k].wins++;
+    setupMap[k].pl += pl;
+    setupMap[k].totalR += window.calcR(t) || 0;
+  });
+  return { closed, closedWithPL, wins, losses, totalPL, winRateNum, grossWin, grossLoss, profitFactor, expectancy, avgR, avgWinR, avgLossR, setupMap };
+}
+window.buildLogStatsData = buildLogStatsData;
 
 // Bridge to legacy.js.
 window.alphaEsc = alphaEsc;

@@ -1,7 +1,7 @@
-/* ============ COMMAND BAR — unified nav + regime ============ */
+/* ============ COMMAND BAR — Trapper's Edge nav + regime ============ */
 .cmdbar {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(8, 9, 13, 0.82);
+  background: rgba(8, 9, 13, 0.85);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -12,21 +12,28 @@
   position: absolute;
   left: 0; right: 0; top: 0;
   height: 2px;
-  background: var(--green);
-  transition: background 0.3s, box-shadow 0.3s;
-  box-shadow: 0 0 12px var(--green-glow);
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.5;
+  transition: background 0.3s;
 }
-.cmdbar.neutral::before { background: var(--amber); box-shadow: 0 0 12px var(--amber-glow); }
-.cmdbar.risk-off::before { background: var(--red); box-shadow: 0 0 12px var(--red-glow); }
+.cmdbar.neutral::before { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+.cmdbar.risk-off::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
 
 .cmdbar-inner {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 12px 24px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 60px;
+  min-height: 56px;
+}
+
+/* Left cluster: brand + nav */
+.cmdbar-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
 }
 
 /* Brand */
@@ -34,73 +41,105 @@
   display: flex; align-items: center; gap: 10px;
   font-family: var(--display);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  font-size: 16px;
+  letter-spacing: 0.04em;
+  font-size: 13px;
   cursor: pointer;
   user-select: none;
   transition: opacity 0.15s;
+  flex-shrink: 0;
 }
 .brand:hover { opacity: 0.85; }
 .brand-mark {
   width: 28px; height: 28px;
-  background: linear-gradient(135deg, var(--cyan), #0284c7);
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--magenta) 100%);
   display: grid; place-items: center;
-  font-family: var(--mono);
+  font-family: var(--display);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--bg);
   border-radius: 6px;
-  box-shadow: 0 0 16px rgba(6, 212, 248, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+  flex-shrink: 0;
 }
-.brand-name { color: var(--ink); }
+.brand-name { color: var(--ink); letter-spacing: 0.04em; }
+.brand-name-dim { color: var(--ink-3); }
+
+/* Inline nav tabs */
+.cmdbar-nav {
+  display: flex;
+  gap: 2px;
+}
+.cmdbar-nav .tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 18px 12px;
+  color: var(--ink-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+.cmdbar-nav .tab:hover { color: var(--ink-2); }
+.cmdbar-nav .tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--cyan);
+}
 
 /* Right-side actions group */
 .cmdbar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-self: end;
 }
 
-/* Market context trigger inside cmdbar */
+/* Regime pill — opens market context panel */
 .cmdbar-context-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--r-md);
-  color: var(--ink-3);
-  transition: border-color 0.2s;
-}
-.cmdbar-context-btn {
+  padding: 6px 12px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-line, rgba(16,185,129,0.32));
+  border-radius: 999px;
   cursor: pointer;
   font-family: var(--mono);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--green-bright);
   text-transform: uppercase;
+  transition: all 0.15s;
 }
 .cmdbar-context-btn:hover {
-  color: var(--ink);
-  border-color: var(--cyan-dim);
-  background: rgba(6, 212, 248, 0.06);
+  background: rgba(16, 185, 129, 0.18);
+  border-color: var(--green-bright);
 }
+#regime-state.neutral {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: var(--amber-bright);
+}
+#regime-state.neutral:hover { background: rgba(245, 158, 11, 0.18); border-color: var(--amber-bright); }
+#regime-state.risk-off {
+  background: var(--red-bg);
+  border-color: rgba(239, 68, 68, 0.32);
+  color: var(--red-bright);
+}
+#regime-state.risk-off:hover { background: rgba(239, 68, 68, 0.18); border-color: var(--red-bright); }
+
 .cmdbar-regime-dot {
-  width: 8px; height: 8px;
+  width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 10px var(--green), 0 0 4px var(--green);
+  background: var(--green-bright);
+  box-shadow: 0 0 8px var(--green-bright);
   flex-shrink: 0;
 }
-#regime-state.neutral .cmdbar-regime-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
-#regime-state.risk-off .cmdbar-regime-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
-.cmdbar-context-regime {
-  color: var(--ink-4);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
+#regime-state.neutral .cmdbar-regime-dot { background: var(--amber-bright); box-shadow: 0 0 8px var(--amber-bright); }
+#regime-state.risk-off .cmdbar-regime-dot { background: var(--red-bright); box-shadow: 0 0 8px var(--red-bright); }
 
 /* Sync pill */
 .cmdbar-sync {
@@ -110,24 +149,41 @@
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--r-sm);
+  border-radius: 999px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  color: var(--ink-3);
-  letter-spacing: 0.06em;
+  color: var(--ink-4);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-.cmdbar-sync:hover { color: var(--ink); border-color: var(--line-soft); }
+.cmdbar-sync:hover { color: var(--ink-2); border-color: var(--line-soft); }
 .cmdbar-sync #sync-dot {
-  width: 7px; height: 7px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--ink-4);
   flex-shrink: 0;
 }
 
+/* ⌘K button */
+.cmdbar-kmk-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--r-md);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cmdbar-kmk-btn:hover { color: var(--ink); border-color: var(--line-soft); background: rgba(255,255,255,0.04); }
+
+/* Legacy selectors kept so existing JS still works */
 .nav-icon-btn {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -139,4 +195,5 @@
   transition: all 0.15s;
 }
 .nav-icon-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.06); }
+.cmdbar-context-regime { display: none; }
 
