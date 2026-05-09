@@ -179,6 +179,9 @@ function tfRenderHeader() {
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
     b.classList.toggle('active', b.dataset.tradeMode === m);
   });
+  // Mode-tinted accent on the trade panel (swing = cyan, intraday = magenta)
+  const panel = document.getElementById('panel-trade');
+  if (panel) panel.classList.toggle('intraday-mode', m === 'intraday');
 }
 
 function tfRenderActions() {

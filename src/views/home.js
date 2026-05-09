@@ -87,25 +87,45 @@ export function renderHome() {
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
   // Headline — concise, action-first. Priority: kill switch > caps > regime > all-clear.
+  // Hero version: split into a leading phrase + an accent word (matches design layout).
   let regimeHeadline, headlineTone = '';
+  let heroLead = 'Cleared to ', heroAccent = 'trade.', heroStatus = 'STATUS · LIVE';
   if (killActive) {
     regimeHeadline = `Kill switch on. Last ${rolling.days}d down ${Math.abs(rolling.pct).toFixed(1)}%. Pause.`;
     headlineTone = 'risk-off';
+    heroLead = `Don't trade. Last ${rolling.days}d down `;
+    heroAccent = `${Math.abs(rolling.pct).toFixed(1)}%.`;
+    heroStatus = 'KILL SWITCH · ACTIVE';
   } else if (!positionsOk) {
     regimeHeadline = `Position cap full (${openTrades.length}/${state.settings.maxPositions}). Close one to open another.`;
     headlineTone = 'neutral';
+    heroLead = `Position cap full. `;
+    heroAccent = `Close one.`;
+    heroStatus = 'CAP · LOCKED';
   } else if (!riskOk) {
     regimeHeadline = `Risk buffer thin. Next trade would push past the ${state.settings.maxRiskPct}% cap.`;
     headlineTone = 'neutral';
+    heroLead = `Buffer thin. Next trade clips the `;
+    heroAccent = `${state.settings.maxRiskPct}% cap.`;
+    heroStatus = 'BUFFER · WATCH';
   } else if (state.regime === 'risk-off') {
     regimeHeadline = `Risk-off tape. Longs blocked. Puts on Avoid sectors only, half size.`;
     headlineTone = 'risk-off';
+    heroLead = `Defensive. Puts on `;
+    heroAccent = `Avoid sectors.`;
+    heroStatus = 'RISK OFF · DEFENSIVE';
   } else if (state.regime === 'neutral') {
     regimeHeadline = `Neutral tape. Half size both ways. Wait for clean confirmation.`;
     headlineTone = 'neutral';
+    heroLead = `Half size. `;
+    heroAccent = `Wait for confirmation.`;
+    heroStatus = 'NEUTRAL · HALF SIZE';
   } else {
     regimeHeadline = `Cleared to trade. ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left, $${nextRisk} per trade.`;
     headlineTone = '';
+    heroLead = `Cleared to `;
+    heroAccent = `trade.`;
+    heroStatus = 'STATUS · CLEARED';
   }
 
   // Today-focused bullets. Each line is one breath; the color carries tone.
@@ -209,7 +229,36 @@ export function renderHome() {
 
   setText('home-intel-text', scoreText);
 
-  // Render structured Alpha Intelligence
+  // ========== HERO ==========
+  const heroKicker = document.getElementById('home-hero-kicker');
+  if (heroKicker) {
+    heroKicker.className = `home-hero-kicker ${headlineTone}`;
+    const heroStatusEl = document.getElementById('home-hero-status');
+    if (heroStatusEl) heroStatusEl.textContent = heroStatus;
+  }
+  const headline = document.getElementById('home-hero-headline');
+  if (headline) headline.className = headlineTone || '';
+  setText('home-hero-headline-text', heroLead);
+  setText('home-hero-headline-accent', heroAccent);
+
+  const heroMeta = document.getElementById('home-hero-meta');
+  if (heroMeta) {
+    if (killActive) {
+      heroMeta.innerHTML = `Wait for rolling P/L above <strong>-7%</strong>. Open positions still tradable to exit only.`;
+    } else if (!positionsOk) {
+      heroMeta.innerHTML = `<strong>${openTrades.length} of ${state.settings.maxPositions} slots used</strong> · close a position to free a slot.`;
+    } else if (!state.settings.account) {
+      heroMeta.innerHTML = `Set your <strong>account size</strong> in Settings to activate the read.`;
+    } else {
+      heroMeta.innerHTML = `<strong>${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left</strong> · next trade <strong>$${nextRisk}</strong> · buffer <strong>$${riskBuffer.toLocaleString()}</strong> of $${maxRiskDollars.toLocaleString()}`;
+    }
+  }
+
+  // ========== Tinted Intel card ==========
+  const intelCardEl = document.getElementById('home-intel-card');
+  if (intelCardEl) {
+    intelCardEl.classList.toggle('risk-off-tint', state.regime === 'risk-off' || killActive);
+  }
   const headlineEl = document.getElementById('home-intel-headline');
   if (headlineEl) {
     headlineEl.textContent = regimeHeadline;
@@ -232,13 +281,33 @@ export function renderHome() {
           : "Today's read");
   }
 
+  // ========== 4-stat row ==========
+  // Session P/L: format like the design — "+$1,247" with green/red tinting + sub line
+  const sessionPlEl = document.getElementById('home-session-pl');
+  if (sessionPlEl) {
+    const v = `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`;
+    sessionPlEl.textContent = v;
+    sessionPlEl.className = `ae-stat-value ${sessionPL > 0 ? 'green' : sessionPL < 0 ? 'red' : ''}`;
+  }
+  setText('home-session-sub', `${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R · realized ${todayPL >= 0 ? '$' : '-$'}${Math.abs(Math.round(todayPL))} · open ${openUnrealized >= 0 ? '$' : '-$'}${Math.abs(Math.round(openUnrealized))}`);
 
-  setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(sessionPL).toFixed(2)} <small>(${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R)</small>`);
+  setText('home-win-rate', `${winRate}%`);
+  setText('home-win-rate-sub', `${wins.length} / ${closed.length} closed`);
+
+  setText('home-trades-left', tradesLeft);
+  setText('home-slots-sub', `of ${maxPositions || 0} max`);
+
+  const bufferEl = document.getElementById('home-buffer');
+  if (bufferEl) {
+    bufferEl.textContent = `$${riskBuffer.toLocaleString()}`;
+    bufferEl.className = `ae-stat-value ${riskBuffer === 0 ? 'amber' : ''}`;
+  }
+  const bufferPct = maxRiskDollars > 0 ? Math.round((riskBuffer / maxRiskDollars) * 100) : 0;
+  setText('home-buffer-sub', `${bufferPct}% of cap`);
+
+  // ========== Hidden legacy fields kept for back-compat with other modules ==========
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
   setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
-  setText('home-win-rate', `${winRate}%`);
-  setText('home-trades-left', tradesLeft);
-  setText('home-buffer', `$${riskBuffer}`);
   setText('home-next-risk', `$${nextRisk}`);
   setText('home-risk-unit', `1R = $${nextRisk}`);
   setText('home-zone', tradesLeft > 1 ? 'Green Zone' : tradesLeft === 1 ? 'Caution' : 'Locked');

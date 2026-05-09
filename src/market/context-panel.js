@@ -18,27 +18,68 @@ export function closeContextPanel() {
 }
 
 export function renderContextPanel() {
+  const data = REGIME_DATA[state.regime];
+  const pct = (getRiskPctForRegime(state.regime) * 100).toFixed(2).replace(/\.?0+$/, '');
+
   // Regime buttons
   document.querySelectorAll('.ctx-regime-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.ctxRegime === state.regime);
   });
-  // Rules text
+
+  // Hero
+  const heroKicker = document.getElementById('ctx-hero-kicker-text');
+  if (heroKicker) {
+    const days = state.sectorRatedAt && typeof window.daysSinceSectorRating === 'function'
+      ? window.daysSinceSectorRating()
+      : null;
+    const ratedLabel = days === null ? 'NEVER RATED' : days === 0 ? 'RATED TODAY' : days === 1 ? 'RATED 1D AGO' : `RATED ${days}D AGO`;
+    heroKicker.textContent = `MARKET CONTEXT · ${ratedLabel}`;
+  }
+  const heroRegime = document.getElementById('ctx-hero-regime');
+  if (heroRegime) {
+    const text = data.text.replace('-', ' ').toLowerCase().replace(/^./, c => c.toUpperCase());
+    heroRegime.textContent = `${text}.`;
+    heroRegime.className = 'accent ' + (state.regime === 'risk-on' ? 'on' : state.regime === 'neutral' ? 'neut' : 'off');
+  }
+  const heroMeta = document.getElementById('ctx-hero-meta');
+  if (heroMeta) {
+    const tag = state.regime === 'risk-on' ? 'Long full size · short blocked'
+              : state.regime === 'neutral' ? 'Half size · both directions allowed'
+              : 'Reduced size · longs blocked · puts only on weak sectors';
+    heroMeta.innerHTML = `${tag} · sizing <strong style="color: var(--ink);">${pct}% / trade</strong>.`;
+  }
+
+  // Rules-in-effect grid (sidebar card)
   const rules = document.getElementById('ctx-rules');
   if (rules) {
-    const data = REGIME_DATA[state.regime];
-    const pct = (getRiskPctForRegime(state.regime) * 100).toFixed(2).replace(/\.?0+$/, '');
-    rules.innerHTML = data.rulesTemplate.replace('{pct}', pct);
+    const intradayDollar = state.settings?.intradayRiskPerTrade || 0;
+    const maxOpen = state.settings?.maxPositions || 0;
+    const rows = [
+      { l: 'Risk per swing',     v: `${pct}%`,           tone: 'cyan' },
+      { l: 'Risk per intraday',  v: `$${intradayDollar}`, tone: 'magenta' },
+      { l: 'Direction',          v: state.regime === 'risk-on' ? 'LONG · SHORT BLOCKED' : state.regime === 'risk-off' ? 'PUTS ONLY' : 'BOTH OK', tone: state.regime === 'risk-on' ? 'green' : state.regime === 'risk-off' ? 'red' : 'amber' },
+      { l: 'Position cap',       v: `${maxOpen} OPEN`,    tone: 'ink' },
+    ];
+    rules.innerHTML = `
+      <div class="ctx-rules-list">
+        ${rows.map(r => `
+          <div class="ctx-rules-row">
+            <span>${r.l}</span>
+            <strong class="${r.tone}">${r.v}</strong>
+          </div>
+        `).join('')}
+      </div>`;
   }
-  // Rated-at
-  const ratedAtEl = document.getElementById('ctx-rated-at');
-  if (ratedAtEl && state.sectorRatedAt) {
-    const days = (typeof window.daysSinceSectorRating === 'function') ? window.daysSinceSectorRating() : 0;
-    const label = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
-    ratedAtEl.textContent = `· ${label}`;
-    ratedAtEl.className = 'ctx-rated-at' + (days > 7 ? ' stale' : '');
-  } else if (ratedAtEl) {
-    ratedAtEl.textContent = '· never rated';
-    ratedAtEl.className = 'ctx-rated-at';
+
+  // Sector rated-at footer
+  const ratedAtFoot = document.getElementById('ctx-rated-at-foot');
+  if (ratedAtFoot) {
+    if (state.sectorRatedAt && typeof window.daysSinceSectorRating === 'function') {
+      const days = window.daysSinceSectorRating();
+      ratedAtFoot.textContent = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
+    } else {
+      ratedAtFoot.textContent = 'never';
+    }
   }
   // Sector grid
   const grid = document.getElementById('ctx-sector-grid');
@@ -87,14 +128,45 @@ export function renderContextPanel() {
 }
 
 export function updateCtxSectorSummary() {
-  const summary = document.getElementById('ctx-sector-summary');
-  if (!summary) return;
   // computeTop3 + computeAvoidList still live in legacy.js (sunday view).
   const top3 = (typeof window.computeTop3 === 'function') ? window.computeTop3() : [];
   const avoid = (typeof window.computeAvoidList === 'function') ? window.computeAvoidList() : [];
-  const topNames  = top3.length  ? top3.map(s => `${s.name} (${s.ticker})`).join(', ')  : '—';
-  const avoidNames = avoid.length ? avoid.map(s => `${s.name} (${s.ticker})`).join(', ') : '—';
-  summary.innerHTML = `<span class="cs-top">▲ Long: ${topNames}</span><br><span class="cs-avoid">▼ Avoid: ${avoidNames}</span>`;
+
+  // Old summary line (kept for back-compat if still in DOM)
+  const summary = document.getElementById('ctx-sector-summary');
+  if (summary) {
+    const topNames  = top3.length  ? top3.map(s => `${s.name} (${s.ticker})`).join(', ')  : '—';
+    const avoidNames = avoid.length ? avoid.map(s => `${s.name} (${s.ticker})`).join(', ') : '—';
+    summary.innerHTML = `<span class="cs-top">▲ Long: ${topNames}</span><br><span class="cs-avoid">▼ Avoid: ${avoidNames}</span>`;
+  }
+
+  // New: lean / avoid lists rendered in design sidebar
+  const leanList = document.getElementById('ctx-lean-list');
+  if (leanList) {
+    leanList.innerHTML = top3.length
+      ? top3.slice(0, 3).map(s => `
+          <div class="ctx-lean-row">
+            <div>
+              <span class="ctx-lean-name">${s.name}</span>
+              <span class="ctx-lean-ticker">${s.ticker}</span>
+            </div>
+            <span class="ctx-lean-rating green">${Number(s.rating).toFixed(1)}</span>
+          </div>`).join('')
+      : `<div class="ctx-lean-empty">No strong sectors yet. Rate sectors above.</div>`;
+  }
+  const avoidListEl = document.getElementById('ctx-avoid-list');
+  if (avoidListEl) {
+    avoidListEl.innerHTML = avoid.length
+      ? avoid.slice(0, 5).map(s => `
+          <div class="ctx-lean-row">
+            <div>
+              <span class="ctx-lean-name">${s.name}</span>
+              <span class="ctx-lean-ticker">${s.ticker}</span>
+            </div>
+            <span class="ctx-lean-rating red">${Number(s.rating).toFixed(1)}</span>
+          </div>`).join('')
+      : `<div class="ctx-lean-empty">No weak sectors flagged.</div>`;
+  }
 }
 
 // Bridge to legacy.js.

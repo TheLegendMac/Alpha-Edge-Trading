@@ -29,6 +29,38 @@ function clearLogSetupFilter() {
   setLogSetupFilter('');
 }
 
+export function renderLogHero() {
+  const trades = state.trades || [];
+  const closed = trades.filter(isClosedTrade);
+  const open = trades.filter(t => t.status === 'open');
+  const wins = closed.filter(t => (calcPL(t) || 0) > 0);
+  const losses = closed.filter(t => (calcPL(t) || 0) < 0);
+  const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+  const kicker = document.getElementById('log-hero-kicker-text');
+  if (kicker) kicker.textContent = `TRADE LOG · ${monthName}`;
+
+  const countEl = document.getElementById('log-hero-count');
+  if (countEl) countEl.textContent = trades.length;
+
+  const plEl = document.getElementById('log-hero-pl');
+  if (plEl) {
+    const v = `${totalPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(totalPL)).toLocaleString()}`;
+    plEl.textContent = v;
+    plEl.className = totalPL >= 0 ? 'pos' : 'neg';
+  }
+
+  const meta = document.getElementById('log-hero-meta');
+  if (meta) {
+    if (trades.length === 0) {
+      meta.innerHTML = `No trades logged yet. Click <strong>+ Add Trade</strong> to start.`;
+    } else {
+      meta.innerHTML = `<strong>${wins.length} wins / ${losses.length} losses</strong> closed · <strong>${open.length} open</strong> · sorted newest first.`;
+    }
+  }
+}
+
 export function renderLogTable() {
   const container = document.getElementById('log-table-container');
   const filter = state.logModeFilter || 'all';
@@ -117,3 +149,4 @@ export function renderLogTable() {
 window.setLogSetupFilter = setLogSetupFilter;
 window.clearLogSetupFilter = clearLogSetupFilter;
 window.renderLogTable = renderLogTable;
+window.renderLogHero = renderLogHero;

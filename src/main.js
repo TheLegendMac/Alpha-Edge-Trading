@@ -15,6 +15,7 @@ import '../styles/workflow.css';
 import '../styles/panels.css';
 import '../styles/utilities.css';
 import '../styles/print.css';
+import '../styles/redesign.css';
 
 // ---------- Config + state ----------
 import './config/constants.js';
@@ -53,6 +54,7 @@ import './views/log.js';
 import './views/sunday.js';
 import './views/reference.js';
 import './views/settings.js';
+import './views/stats.js';
 
 // ---------- Modals ----------
 import './modals/toast.js';
@@ -109,6 +111,11 @@ function init() {
   on('btn-home-new-analysis', 'click', () => setTab('trade'));
   on('btn-home-log', 'click', () => setTab('log'));
   on('brand-home', 'click', () => setTab('home'));
+
+  // Top-level command-bar nav tabs.
+  document.querySelectorAll('.cmdbar-nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => setTab(btn.dataset.cmdbarTab));
+  });
 
   // Context panel — regime cluster click opens the two-in-one panel.
   const ctxTrigger = document.getElementById('regime-state');
@@ -260,7 +267,7 @@ function init() {
   runSafe('renderSectorStatusMini', window.renderSectorStatusMini);
 
   // Restore last-active mode.
-  if (state.activeMode && ['home','sunday','log','reference','trade'].includes(state.activeMode)) {
+  if (state.activeMode && ['home','sunday','log','reference','trade','stats'].includes(state.activeMode)) {
     runSafe('restoreTab', () => setTab(state.activeMode));
   } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
     runSafe('restoreTradeTab', () => setTab('trade'));

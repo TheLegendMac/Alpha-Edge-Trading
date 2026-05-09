@@ -31,9 +31,19 @@
   <div class="cmdbar-inner">
     <!-- Brand -->
     <div class="cmdbar-brand brand" id="brand-home" title="Back to Home">
-      <span class="brand-mark">AE</span>
-      <span class="brand-name">Alpha Edge</span>
+      <span class="brand-mark"></span>
+      <span class="brand-name"></span>
     </div>
+
+    <!-- Top-level navigation tabs -->
+    <nav class="cmdbar-nav" aria-label="Primary navigation">
+      <button class="cmdbar-nav-tab active" data-cmdbar-tab="home" type="button">Home</button>
+      <button class="cmdbar-nav-tab" data-cmdbar-tab="trade" type="button">Trade</button>
+      <button class="cmdbar-nav-tab" data-cmdbar-tab="log" type="button">Log</button>
+      <button class="cmdbar-nav-tab" data-cmdbar-tab="stats" type="button">Stats</button>
+      <button class="cmdbar-nav-tab" data-cmdbar-tab="sunday" type="button">Sunday</button>
+      <button class="cmdbar-nav-tab" data-cmdbar-tab="reference" type="button">Reference</button>
+    </nav>
 
     <!-- Market context + actions -->
     <div class="cmdbar-actions">
@@ -73,9 +83,48 @@
   <!-- ===== HOME DASHBOARD ===== -->
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
-      <div class="home-card green" id="home-intel-card" style="margin-bottom:12px;">
+
+      <!-- Hero: status kicker + headline + meta line (single column, full width) -->
+      <section class="home-hero">
+        <div class="home-hero-kicker" id="home-hero-kicker">
+          <span class="ae-dot"></span> <span id="home-hero-status">STATUS · LIVE</span>
+        </div>
+        <h1 id="home-hero-headline">
+          <span id="home-hero-headline-text">Cleared to </span><span class="accent" id="home-hero-headline-accent">trade.</span>
+        </h1>
+        <p id="home-hero-meta">
+          Set your account size in Settings to activate the read.
+        </p>
+      </section>
+
+      <!-- 4-stat row, full width -->
+      <section class="home-stat-row">
+        <div class="ae-stat">
+          <div class="ae-stat-label">Session P/L</div>
+          <div class="ae-stat-value" id="home-session-pl">+$0</div>
+          <div class="ae-stat-sub" id="home-session-sub">realized $0 · open $0</div>
+        </div>
+        <div class="ae-stat">
+          <div class="ae-stat-label">Win rate</div>
+          <div class="ae-stat-value" id="home-win-rate">0%</div>
+          <div class="ae-stat-sub" id="home-win-rate-sub">0 / 0 closed</div>
+        </div>
+        <div class="ae-stat">
+          <div class="ae-stat-label">Slots open</div>
+          <div class="ae-stat-value" id="home-trades-left">0</div>
+          <div class="ae-stat-sub" id="home-slots-sub">of 0 max</div>
+        </div>
+        <div class="ae-stat">
+          <div class="ae-stat-label">Risk buffer</div>
+          <div class="ae-stat-value" id="home-buffer">$0</div>
+          <div class="ae-stat-sub" id="home-buffer-sub">0% of cap</div>
+        </div>
+      </section>
+
+      <!-- Tinted Alpha Intelligence card -->
+      <div class="home-card green" id="home-intel-card">
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-          <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button></div>
+          <div class="home-card-title" style="margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary" style="margin-left: 8px;">?</button></div>
           <div class="home-card-kicker" id="home-deep-label" style="margin: 0;">Today's read</div>
         </div>
         <div class="home-intel-headline" id="home-intel-headline">Set your account size in Settings to activate the read.</div>
@@ -83,36 +132,20 @@
         <div class="home-intel-text" id="home-intel-text" hidden></div>
       </div>
 
-      <div class="home-row">
-        <div class="home-card">
-          <div class="home-card-title">Session Performance</div>
-          <div class="home-session-value" id="home-session-pl">+$0.00 <small>(0.0R)</small></div>
-          <div class="home-mini-stats">
-            <div><div class="home-mini-label">Realized</div><div class="home-mini-value" id="home-realized">$0</div></div>
-            <div><div class="home-mini-label">Unrealized</div><div class="home-mini-value" id="home-unrealized">$0</div></div>
-            <div><div class="home-mini-label">Win Rate</div><div class="home-mini-value" id="home-win-rate">0%</div></div>
-          </div>
-        </div>
+      <!-- Activity calendar (2-week heatmap) — kept as standalone card -->
+      <div class="home-card home-calendar-card" style="margin-top: 18px;">
+        <div class="home-card-title" id="home-calendar-title">Two-week activity</div>
+        <div class="home-calendar" id="home-calendar"></div>
+      </div>
 
-        <div class="home-card">
-          <div class="home-card-title">Trades Left</div>
-          <div class="home-card-kicker" id="home-zone">Green Zone</div>
-          <div class="home-trades-left">
-            <div class="home-bolt">↯</div>
-            <div><span class="home-trades-number" id="home-trades-left">0</span> <span style="color:var(--ink-3); font-family:var(--mono); font-size:12px;">TRADES</span></div>
-          </div>
-          <div class="home-buffer">
-            <div><div class="home-mini-label">Total Buffer</div><div class="home-mini-value" id="home-buffer">$0</div></div>
-            <div style="text-align:right;"><div class="home-mini-label">Next Trade Risk</div><div class="home-mini-value" id="home-next-risk">$0</div></div>
-            <div class="home-risk-unit" id="home-risk-unit">1R = $0</div>
-            <div class="home-progress"><span id="home-progress-fill"></span></div>
-          </div>
-        </div>
-
-        <div class="home-card">
-          <div class="home-card-title" id="home-calendar-title">Session Calendar</div>
-          <div class="home-calendar" id="home-calendar"></div>
-        </div>
+      <!-- Hidden legacy elements still referenced by home.js -->
+      <div style="display: none;">
+        <div id="home-zone"></div>
+        <div id="home-realized"></div>
+        <div id="home-unrealized"></div>
+        <div id="home-next-risk"></div>
+        <div id="home-risk-unit"></div>
+        <div id="home-progress-fill"></div>
       </div>
 
       <div class="home-actions">
@@ -144,6 +177,15 @@
 
   <!-- ===== TRADE LOG ===== -->
   <section class="tab-panel" id="panel-log">
+    <section class="log-hero" id="log-hero-section">
+      <div class="log-hero-left">
+        <div class="log-hero-kicker">
+          <span class="ae-dot cyan"></span> <span id="log-hero-kicker-text">TRADE LOG</span>
+        </div>
+        <h1 id="log-hero-headline"><span id="log-hero-count">0</span> trades · <span class="pos" id="log-hero-pl">$0</span></h1>
+        <p id="log-hero-meta">No trades logged yet.</p>
+      </div>
+    </section>
     <div class="log-stats" id="log-stats"></div>
     <div class="log-table-wrap">
       <div class="log-toolbar">
@@ -280,7 +322,40 @@
   <!-- ===== REFERENCE ===== -->
   <section class="tab-panel" id="panel-reference">
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+    <!-- Redesign: hero + structured rules surfaces -->
+    <section class="ref-hero">
+      <div class="ref-hero-kicker">
+        <span class="ae-dot cyan"></span> <span id="ref-hero-kicker-text">REFERENCE</span>
+      </div>
+      <h1>The rules <span class="accent">are the edge.</span></h1>
+      <p>Your sizing, caps and IV-rank playbook. Edit settings to recalculate dollar amounts.</p>
+    </section>
+
+    <section class="ref-section">
+      <div class="ref-section-head">
+        <h2>Regime sizing</h2>
+        <span class="ae-mono">SWING · % OF EQUITY PER TRADE</span>
+      </div>
+      <div class="ref-regime-grid" id="ref-regime-grid"></div>
+    </section>
+
+    <section class="ref-section">
+      <div class="ref-section-head">
+        <h2>Position caps</h2>
+        <span class="ae-mono">HARD LIMITS · ENFORCED BY GATES</span>
+      </div>
+      <div class="ref-caps-card ae-card" id="ref-caps-card"></div>
+    </section>
+
+    <section class="ref-section">
+      <div class="ref-section-head">
+        <h2>IV-rank playbook</h2>
+        <span class="ae-mono">OPTIONS · STRATEGY BY IVR BUCKET</span>
+      </div>
+      <div class="ref-ivr-grid" id="ref-ivr-grid"></div>
+    </section>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 32px 0 18px; flex-wrap: wrap; gap: 12px;">
       <div>
         <h2 style="margin: 0; font-family: var(--display); font-size: 22px;">Reference & Cheat Sheets</h2>
         <p style="margin: 4px 0 0; color: var(--ink-3); font-size: 13px;">When X happens, do Y. Skim before any trade. Print Section A &amp; B and tape them next to your monitor.</p>
@@ -644,6 +719,11 @@ STRENGTH: 3/3</pre>
         </button>
       </div>
     </div>
+  </section>
+
+  <!-- ===== STATS DASHBOARD ===== -->
+  <section class="tab-panel" id="panel-stats" aria-label="Performance statistics">
+    <div class="stats-shell" id="stats-shell"></div>
   </section>
 
 </main>
@@ -1272,37 +1352,66 @@ STRENGTH: 3/3</pre>
   </div>
 </div>
 
-<!-- ============ CONTEXT PANEL — regime + sector two-in-one ============ -->
+<!-- ============ CONTEXT PANEL — Market Context (regime + sectors + leans + rules) ============ -->
 <div class="ctx-backdrop" id="ctx-backdrop"></div>
-<div class="ctx-panel" id="ctx-panel" role="dialog" aria-label="Regime & Sector context">
+<div class="ctx-panel" id="ctx-panel" role="dialog" aria-label="Market Context">
   <div class="ctx-panel-inner">
 
-    <div class="ctx-section">
-      <div class="ctx-section-label">Market Regime</div>
+    <!-- Hero: kicker + headline + regime selector pills -->
+    <section class="ctx-hero">
+      <div class="ctx-hero-left">
+        <div class="ctx-hero-kicker">
+          <span class="ae-dot cyan"></span> <span id="ctx-hero-kicker-text">MARKET CONTEXT</span>
+        </div>
+        <h1 id="ctx-hero-h1">Regime: <span class="accent" id="ctx-hero-regime">Risk-On.</span></h1>
+        <p id="ctx-hero-meta">Long full size · sizing 0.5% / trade.</p>
+      </div>
       <div class="ctx-regime-row">
         <button class="ctx-regime-btn on" data-ctx-regime="risk-on" title="Full size, long-biased">
-          <span class="ctx-regime-dot"></span>Risk-On
+          <span class="ctx-regime-dot"></span>RISK-ON
         </button>
         <button class="ctx-regime-btn neut" data-ctx-regime="neutral" title="Half size, both directions">
-          <span class="ctx-regime-dot"></span>Neutral
+          <span class="ctx-regime-dot"></span>NEUTRAL
         </button>
         <button class="ctx-regime-btn off" data-ctx-regime="risk-off" title="Reduced size, longs blocked">
-          <span class="ctx-regime-dot"></span>Risk-Off
+          <span class="ctx-regime-dot"></span>RISK-OFF
         </button>
       </div>
-      <div class="ctx-rules" id="ctx-rules"></div>
-    </div>
+    </section>
 
-    <div class="ctx-divider"></div>
-
-    <div class="ctx-section">
-      <div class="ctx-section-header">
-        <div class="ctx-section-label">SA Sector Ratings <span class="ctx-rated-at" id="ctx-rated-at"></span></div>
-        <button class="ctx-clear-btn" id="ctx-clear-sectors" type="button">Clear</button>
+    <!-- Body: sector grid + sidebar (lean/avoid/rules) -->
+    <section class="ctx-body">
+      <div class="ctx-sector-card ae-card">
+        <div class="ctx-sector-head">
+          <h2>Sector ratings · SA Quant</h2>
+          <div class="ctx-legend">
+            <span><span style="color: var(--green-bright);">●</span> ≥ 3.5 STRONG</span>
+            <span><span style="color: var(--amber-bright);">●</span> 2.5–3.4 NEUTRAL</span>
+            <span><span style="color: var(--red-bright);">●</span> &lt; 2.5 WEAK</span>
+          </div>
+        </div>
+        <div class="ctx-sector-grid" id="ctx-sector-grid"></div>
+        <div class="ctx-sector-foot">
+          <span class="ae-mono">11 sectors rated · last update <strong id="ctx-rated-at-foot" style="color: var(--ink-2);">—</strong></span>
+          <button class="ctx-clear-btn" id="ctx-clear-sectors" type="button">CLEAR ALL</button>
+        </div>
       </div>
-      <div class="ctx-sector-grid" id="ctx-sector-grid"></div>
-      <div class="ctx-sector-summary" id="ctx-sector-summary"></div>
-    </div>
+
+      <aside class="ctx-sidebar">
+        <div class="ctx-side-card lean ae-card">
+          <div class="ae-mono ctx-side-label" style="color: var(--green-bright);">▲ LEAN LONG · TOP 3</div>
+          <div id="ctx-lean-list"></div>
+        </div>
+        <div class="ctx-side-card avoid ae-card">
+          <div class="ae-mono ctx-side-label" style="color: var(--red-bright);">▼ AVOID</div>
+          <div id="ctx-avoid-list"></div>
+        </div>
+        <div class="ctx-side-card rules ae-card">
+          <div class="ae-mono ctx-side-label">RULES IN EFFECT</div>
+          <div id="ctx-rules"></div>
+        </div>
+      </aside>
+    </section>
 
     <button class="ctx-close" id="ctx-close" type="button" aria-label="Close">Done</button>
   </div>

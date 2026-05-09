@@ -8,12 +8,14 @@ import { renderHome } from './views/home.js';
 import { renderSectors } from './views/sunday.js';
 import { renderReference } from './views/reference.js';
 import { renderLogTable } from './views/log.js';
+import { renderStats } from './views/stats.js';
 import { _buildTickerHistory, rememberTicker } from './trade-flow/ticker-memory.js';
 
 export function setTab(name) {
   if (name === 'decision' || name === 'intraday') name = 'trade';
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  document.querySelectorAll('.cmdbar-nav-tab').forEach(t => t.classList.toggle('active', t.dataset.cmdbarTab === name));
   state.activeMode = name;
   saveState();
   // Refresh regime banner so its rules text matches the active mode.
@@ -25,8 +27,10 @@ export function setTab(name) {
   if (name === 'log') {
     // renderLogStats currently lives at the bottom of intel/alpha.js — reach via window.
     if (typeof window.renderLogStats === 'function') window.renderLogStats();
+    if (typeof window.renderLogHero === 'function') window.renderLogHero();
     renderLogTable();
   }
+  if (name === 'stats') renderStats();
   if (name === 'trade' && typeof window.renderTrade === 'function') window.renderTrade();
 }
 
