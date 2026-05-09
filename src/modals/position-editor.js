@@ -135,7 +135,37 @@ function _readModelNumber(id) {
 }
 
 function _refreshPositionHeader(t) {
-  document.getElementById('pos-ticker').textContent = (t.ticker || '—').toUpperCase();
+  const ticker = (t.ticker || '—').toUpperCase();
+  document.getElementById('pos-ticker').textContent = ticker;
+
+  // Breadcrumb ticker
+  const bc = document.getElementById('pos-ticker-bc');
+  if (bc) bc.textContent = `${ticker} ${(t.direction || 'LONG').toUpperCase()}`;
+
+  // Mode badge
+  const modeBadge = document.getElementById('pos-mode-badge');
+  if (modeBadge) {
+    const mode = (t.mode || 'swing').toLowerCase();
+    modeBadge.textContent = mode.toUpperCase();
+    modeBadge.className = `pos-mode-badge ${mode}`;
+  }
+
+  // Hero eyebrow — opened date
+  const openedEl = document.getElementById('pos-hero-opened');
+  if (openedEl) {
+    const d = t.date ? new Date(t.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—';
+    openedEl.textContent = d;
+  }
+
+  // Hero card tone class
+  const heroCard = document.getElementById('pos-hero-card');
+  if (heroCard) {
+    heroCard.classList.remove('is-profit', 'is-loss');
+    const pl = _posRealizedPL(t, []);
+    if (pl > 0) heroCard.classList.add('is-profit');
+    if (pl < 0) heroCard.classList.add('is-loss');
+  }
+
   const sideEl = document.getElementById('pos-side-badge');
   sideEl.textContent = _posSideLabel(t);
   const isBearish = tradeBias(t) === 'bearish';
@@ -319,16 +349,44 @@ function renderPositionEditor() {
 
   // Header total
   const totalEl = document.getElementById('pos-total-pnl');
-  totalEl.textContent = _fmtMoney(total);
-  totalEl.classList.remove('pos','neg','zero');
-  totalEl.classList.add(_toneClass(total));
+  if (totalEl) { totalEl.textContent = _fmtMoney(total); totalEl.classList.remove('pos','neg','zero'); totalEl.classList.add(_toneClass(total)); }
+
+  // Hero stat values (new full-page layout)
+  const heroUnreal = document.getElementById('pos-unrealized');
+  if (heroUnreal) { heroUnreal.textContent = _fmtMoney(unrealized); heroUnreal.classList.remove('pos','neg','zero'); heroUnreal.classList.add(_toneClass(unrealized)); }
+  const heroUnrealPct = document.getElementById('pos-unrealized-pct');
+  if (heroUnrealPct && mark && t.entry) {
+    const sign = _posSign(t);
+    const pct = (sign * (mark - Number(t.entry)) / Number(t.entry) * 100).toFixed(2);
+    heroUnrealPct.textContent = `${pct >= 0 ? '+' : ''}${pct}%`;
+  }
+  const heroMarkDisplay = document.getElementById('pos-mark-display');
+  if (heroMarkDisplay) heroMarkDisplay.textContent = mark != null ? `$${Number(mark).toFixed(2)}` : '—';
+  const heroRMult = document.getElementById('pos-r-multiple');
+  if (heroRMult) {
+    const riskUnit = (Number(t.riskDollars) || (typeof window.tradeRiskDollars === 'function' ? window.tradeRiskDollars(t) : 0));
+    if (riskUnit > 0 && unrealized !== 0) {
+      const r = unrealized / riskUnit;
+      heroRMult.textContent = `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`;
+      heroRMult.classList.remove('pos','neg','zero');
+      heroRMult.classList.add(_toneClass(unrealized));
+    } else {
+      heroRMult.textContent = '—';
+    }
+  }
+
+  // Hero card tone
+  const heroCard = document.getElementById('pos-hero-card');
+  if (heroCard) {
+    heroCard.classList.remove('is-profit', 'is-loss');
+    if (total > 0) heroCard.classList.add('is-profit');
+    else if (total < 0) heroCard.classList.add('is-loss');
+  }
 
   // Position status
   document.getElementById('pos-open-qty').textContent = open;
   const unrealEl = document.getElementById('pos-unrealized');
-  unrealEl.textContent = _fmtMoney(unrealized);
-  unrealEl.classList.remove('pos','neg','zero');
-  unrealEl.classList.add(_toneClass(unrealized));
+  // (already updated above for hero)
   _renderRiskProfile({ trade: t, realized, unrealized, total });
 
   // Quick scale buttons (mark % off open qty)

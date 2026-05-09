@@ -692,11 +692,31 @@ STRENGTH: 3/3</pre>
   <!-- ===== UNIFIED TRADE FLOW ===== -->
   <section class="tab-panel" id="panel-trade" aria-label="Unified trade entry">
     <div class="trade-shell">
+
+      <!-- Trade hero — mode toggle lives here, right-aligned -->
+      <div class="trade-hero" id="trade-hero">
+        <div class="trade-hero-text">
+          <div class="trade-hero-eyebrow swing" id="trade-hero-eyebrow">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
+            NEW TRADE · <span id="trade-hero-mode-label">SWING MODE</span>
+          </div>
+          <h1 class="trade-hero-heading" id="trade-hero-heading">Build your trade.</h1>
+          <p class="trade-hero-sub" id="trade-hero-sub">Select a mode above to begin.</p>
+          <button class="trade-hero-reset-btn" id="trade-reset-btn" type="button">↺ Reset</button>
+        </div>
+        <!-- Mode toggle — right side of hero -->
+        <div class="trade-mode-toggle trade-hero-toggle" role="tablist" aria-label="Trade mode">
+          <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab">SWING</button>
+          <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab">INTRADAY</button>
+        </div>
+      </div>
+
       <header class="trade-header">
         <div class="trade-header-top">
-          <div class="trade-mode-toggle" role="tablist" aria-label="Trade mode">
-            <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab">SWING</button>
-            <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab">INTRADAY</button>
+          <!-- Mode toggle also in header for mobile / sticky context -->
+          <div class="trade-mode-toggle trade-header-mode-toggle" role="tablist" aria-label="Trade mode" aria-hidden="true" style="visibility:hidden;pointer-events:none;">
+            <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab" tabindex="-1">SWING</button>
+            <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab" tabindex="-1">INTRADAY</button>
           </div>
           <div class="trade-header-actions">
             <button class="trade-header-btn trade-smart-paste-btn" id="trade-smart-paste-btn" type="button" title="Open smart paste" aria-label="Open smart paste">
@@ -727,16 +747,24 @@ STRENGTH: 3/3</pre>
         </div>
       </header>
 
-      <div class="trade-body" id="trade-body"></div>
-
-      <div class="trade-actions">
-        <button class="btn-secondary trade-action-btn" id="trade-back-btn" type="button">Back</button>
-        <div class="trade-action-spacer"></div>
-        <div class="trade-action-reason" id="trade-action-reason"></div>
-        <button class="btn-primary trade-action-btn" id="trade-continue-btn" type="button">
-          <span id="trade-continue-label">Continue</span>
-          <span class="trade-action-chevron">›</span>
-        </button>
+      <!-- 2-column layout: step rail (left) + step content (right) -->
+      <div class="trade-layout">
+        <aside class="trade-rail" id="trade-rail">
+          <!-- Rendered by tfRenderRail() in stepper.js -->
+        </aside>
+        <div class="trade-content">
+          <div class="trade-body" id="trade-body"></div>
+          <div class="trade-actions">
+            <button class="btn-secondary trade-action-btn" id="trade-back-btn" type="button">← Back</button>
+            <div class="trade-action-spacer"></div>
+            <div class="trade-action-reason" id="trade-action-reason"></div>
+            <button class="btn-secondary trade-action-btn trade-save-draft-btn" id="trade-save-draft-btn" type="button" style="display:none;">Save draft</button>
+            <button class="btn-primary trade-action-btn" id="trade-continue-btn" type="button">
+              <span id="trade-continue-label">Continue</span>
+              <span class="trade-action-chevron"> →</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -880,33 +908,179 @@ STRENGTH: 3/3</pre>
 </div>
 
 <!-- ============ POSITION EDITOR MODAL — simplified Execution Manager + Journal ============ -->
-<div class="modal-backdrop" id="modal-position">
-  <div class="modal modal-position">
-    <!-- Header: ticker + side badge + entry/qty + Total PnL + close -->
-    <div class="pos-modal-header">
-      <div class="pos-modal-head-left">
-        <div class="pos-modal-head-row">
-          <div class="pos-modal-ticker" id="pos-ticker">—</div>
-          <div class="pos-side-badge long" id="pos-side-badge">LONG</div>
-        </div>
-        <div class="pos-modal-sub">
-          <span>Entry: <strong id="pos-entry">$0.00</strong></span>
-          <span class="sub-dot">•</span>
-          <span><strong id="pos-qty-total">0</strong> <span id="pos-qty-unit">Contracts</span></span>
-          <span class="sub-dot">•</span>
-          <span>Setup: <strong id="pos-setup">—</strong></span>
-        </div>
+<div class="pos-fullpage-overlay" id="modal-position">
+  <div class="pos-fullpage-inner modal modal-position">
+
+    <!-- ── Top bar: breadcrumb + actions ── -->
+    <div class="pos-topbar">
+      <div class="pos-breadcrumb">
+        <button class="pos-breadcrumb-back" data-close-position type="button">← Open Book</button>
+        <span class="pos-breadcrumb-sep">›</span>
+        <span class="pos-breadcrumb-here">EDIT · <span id="pos-ticker-bc">—</span></span>
       </div>
-      <div class="pos-modal-head-right">
-        <div class="pos-pnl-block">
-          <div class="pos-pnl-label">Total PnL</div>
-          <div class="pos-pnl-value zero" id="pos-total-pnl">$0.00</div>
-        </div>
-        <button class="modal-close" data-close-position aria-label="Close">×</button>
+      <div class="pos-topbar-actions">
+        <button class="btn-danger" id="pos-delete-btn" type="button">Delete</button>
+        <button class="btn-ghost" data-close-position type="button">Cancel</button>
+        <button class="btn-primary pos-save-btn" id="pos-save-btn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save changes
+        </button>
       </div>
     </div>
 
-    <!-- Tabs (Hidden by CSS, preserved so JS doesn't error) -->
+    <!-- ── Hero status card ── -->
+    <div class="pos-hero-card" id="pos-hero-card">
+      <div class="pos-hero-left">
+        <div class="pos-hero-eyebrow" id="pos-hero-eyebrow">
+          <span class="pos-hero-dot"></span> OPEN · <span id="pos-hero-opened">—</span>
+        </div>
+        <div class="pos-hero-ticker-row">
+          <div class="pos-modal-ticker" id="pos-ticker">—</div>
+          <div class="pos-side-badge long" id="pos-side-badge">LONG</div>
+          <div class="pos-mode-badge swing" id="pos-mode-badge">SWING</div>
+          <div class="pos-modal-sub-inline">
+            <span><span id="pos-qty-total">0</span> <span id="pos-qty-unit">Contracts</span></span>
+            <span class="sub-dot">·</span>
+            <span>Entry <strong id="pos-entry">$0.00</strong></span>
+            <span class="sub-dot">·</span>
+            <span>Setup: <strong id="pos-setup">—</strong></span>
+          </div>
+        </div>
+      </div>
+      <div class="pos-hero-stats">
+        <div class="pos-hero-stat">
+          <div class="pos-hero-stat-label">Unrealized P/L</div>
+          <div class="pos-hero-stat-value zero" id="pos-unrealized">$0.00</div>
+          <div class="pos-hero-stat-sub" id="pos-unrealized-pct">—</div>
+        </div>
+        <div class="pos-hero-stat-divider"></div>
+        <div class="pos-hero-stat">
+          <div class="pos-hero-stat-label">R-Multiple</div>
+          <div class="pos-hero-stat-value" id="pos-r-multiple">—</div>
+          <div class="pos-hero-stat-sub">vs 1R risk</div>
+        </div>
+        <div class="pos-hero-stat-divider"></div>
+        <div class="pos-hero-stat">
+          <div class="pos-hero-stat-label">Mark price</div>
+          <div class="pos-hero-stat-value" id="pos-mark-display">—</div>
+          <div class="pos-hero-stat-sub">update below</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Price levels (simplified static) ── -->
+    <div class="pos-levels-card">
+      <div class="pos-levels-header">
+        <h2 class="pos-levels-title">Price levels</h2>
+        <span class="pos-levels-kicker">STOP · ENTRY · TARGET</span>
+      </div>
+      <div class="pos-levels-grid" id="pos-risk-profile"></div>
+      <div class="pos-mark-input-wrap">
+        <label class="pos-mark-label" for="pos-mark">Update mark ($)</label>
+        <input type="number" id="pos-mark" class="pos-mark-input" step="0.01" min="0" placeholder="Current mark price" />
+      </div>
+    </div>
+
+    <!-- ── 2-column main: scale/exec + journal ── -->
+    <div class="pos-main-grid">
+
+      <!-- Left: position status + quick scale + exec log -->
+      <div class="pos-main-left">
+        <div class="pos-new-card">
+          <div class="pos-new-card-title">
+            <span class="pos-new-card-dot cyan"></span>Position status
+          </div>
+          <div class="pos-stat-row">
+            <div class="pos-stat-block">
+              <div class="pos-stat-value" id="pos-open-qty">0</div>
+              <div class="pos-stat-sub"><span id="pos-open-qty-unit">Contracts</span> open</div>
+            </div>
+            <div class="pos-stat-block right">
+              <div class="pos-stat-value zero" id="pos-total-pnl">$0.00</div>
+              <div class="pos-stat-sub">Total P/L</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pos-new-card">
+          <div class="pos-new-card-title">
+            <span class="pos-new-card-dot amber"></span>Scale / close
+          </div>
+          <div class="pos-quick-row">
+            <button type="button" class="pos-quick-btn" data-scale="0.50">50%</button>
+            <button type="button" class="pos-quick-btn" data-scale="1.00">MAX</button>
+          </div>
+          <div class="pos-input-row">
+            <input type="number" id="pos-exit-qty" class="pos-num-input" min="0" step="1" placeholder="Qty to exit" aria-label="Exit quantity" />
+            <input type="number" id="pos-exit-price" class="pos-num-input" min="0" step="0.01" placeholder="Fill price" />
+          </div>
+          <button type="button" class="pos-execute-btn" id="pos-execute-btn">Execute exit</button>
+        </div>
+
+        <div class="pos-exec-log">
+          <div class="pos-exec-log-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Execution log
+          </div>
+          <div id="pos-exec-log-body"></div>
+        </div>
+      </div>
+
+      <!-- Right: outcome tags + notes + chart -->
+      <div class="pos-main-right">
+        <div class="pos-new-card">
+          <div class="pos-new-card-title">
+            <span class="pos-new-card-dot green"></span>Outcome tags
+          </div>
+          <div class="pos-tag-group" id="pos-tag-group">
+            <button type="button" class="pos-tag" data-tag="target_hit"     data-tone="pos">Target Hit</button>
+            <button type="button" class="pos-tag" data-tag="stop_loss"      data-tone="neg">Stop Loss</button>
+            <button type="button" class="pos-tag" data-tag="breakeven"      data-tone="neutral">Breakeven</button>
+            <button type="button" class="pos-tag" data-tag="manual_close"   data-tone="neutral">Manual Close</button>
+            <button type="button" class="pos-tag" data-tag="premature_exit">Premature Exit</button>
+            <button type="button" class="pos-tag" data-tag="fomo_entry">FOMO Entry</button>
+          </div>
+        </div>
+
+        <div class="pos-new-card pos-notes-card">
+          <div class="pos-notes-head">
+            <div class="pos-new-card-title" style="margin:0;">
+              <span class="pos-new-card-dot cyan"></span>Journal
+            </div>
+            <div class="pos-notes-actions">
+              <button type="button" class="pos-notes-btn" id="pos-dictate-btn" title="Voice-to-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                Dictate
+              </button>
+              <button type="button" class="pos-notes-btn refine" id="pos-refine-btn" title="Clean up notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l1.5 4.5L11 9l-4.5 1.5L5 15l-1.5-4.5L-1 9l4.5-1.5L5 3z" transform="translate(3 0)"/><path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z"/></svg>
+                Refine
+              </button>
+            </div>
+          </div>
+          <textarea id="pos-notes" class="pos-notes-area" placeholder="Review: plan vs execution, exit reason, lesson…"></textarea>
+        </div>
+
+        <div class="pos-new-card">
+          <div class="pos-new-card-title">
+            <span class="pos-new-card-dot ink"></span>Chart screenshot
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button type="button" class="pos-paste-btn" id="pos-paste-img-btn" title="Paste image" aria-label="Paste image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+              <span id="pos-paste-img-label">Paste</span>
+            </button>
+          </div>
+          <div class="pos-playbook-drop" id="pos-playbook-drop" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <div>Paste (Ctrl+V) Screenshot</div>
+          </div>
+          <input type="file" id="pos-playbook-file" accept="image/*" style="display:none" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs + panes (hidden, preserved for JS) -->
     <div class="pos-tabs" id="pos-tabs" style="display: none;">
       <button type="button" class="pos-tab active" data-pos-tab="exec">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1028,15 +1202,6 @@ STRENGTH: 3/3</pre>
     </div>
     </div>
 
-    <div class="pos-modal-footer">
-      <button class="btn-danger" id="pos-delete-btn" type="button">Delete</button>
-      <div style="flex:1;"></div>
-      <button class="btn-ghost" data-close-position type="button">Cancel</button>
-      <button class="btn-primary pos-save-btn" id="pos-save-btn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save
-      </button>
-    </div>
   </div>
 </div>
 
@@ -1381,7 +1546,9 @@ STRENGTH: 3/3</pre>
     <section class="ctx-hero">
       <div class="ctx-hero-left">
         <div class="ctx-hero-kicker">
-          <span class="ae-dot cyan"></span> <span id="ctx-hero-kicker-text">MARKET CONTEXT</span>
+          <span class="ae-dot cyan"></span>
+          MARKET CONTEXT
+          <span class="ctx-rated-at" id="ctx-rated-at">· never rated</span>
         </div>
         <h1 id="ctx-hero-h1">Regime: <span class="accent" id="ctx-hero-regime">Risk-On.</span></h1>
         <p id="ctx-hero-meta">Long full size · sizing 0.5% / trade.</p>
@@ -1411,29 +1578,30 @@ STRENGTH: 3/3</pre>
           </div>
         </div>
         <div class="ctx-sector-grid" id="ctx-sector-grid"></div>
+        <div class="ctx-sector-summary" id="ctx-sector-summary"></div>
         <div class="ctx-sector-foot">
-          <span class="ae-mono">11 sectors rated · last update <strong id="ctx-rated-at-foot" style="color: var(--ink-2);">—</strong></span>
+          <span class="ae-mono">Last update <strong id="ctx-rated-at-foot" style="color: var(--ink-2);">—</strong></span>
           <button class="ctx-clear-btn" id="ctx-clear-sectors" type="button">CLEAR ALL</button>
         </div>
       </div>
 
       <aside class="ctx-sidebar">
-        <div class="ctx-side-card lean ae-card">
-          <div class="ae-mono ctx-side-label" style="color: var(--green-bright);">▲ LEAN LONG · TOP 3</div>
-          <div id="ctx-lean-list"></div>
+        <div class="ctx-side-card lean">
+          <div class="ctx-side-label" style="color: var(--green-bright);">▲ LEAN LONG · TOP 3</div>
+          <div id="ctx-lean-list"><span style="font-size:12px;color:var(--ink-4);font-style:italic;">Rate sectors to populate</span></div>
         </div>
-        <div class="ctx-side-card avoid ae-card">
-          <div class="ae-mono ctx-side-label" style="color: var(--red-bright);">▼ AVOID</div>
-          <div id="ctx-avoid-list"></div>
+        <div class="ctx-side-card avoid">
+          <div class="ctx-side-label" style="color: var(--red-bright);">▼ AVOID</div>
+          <div id="ctx-avoid-list"><span style="font-size:12px;color:var(--ink-4);font-style:italic;">— none —</span></div>
         </div>
-        <div class="ctx-side-card rules ae-card">
-          <div class="ae-mono ctx-side-label">RULES IN EFFECT</div>
+        <div class="ctx-side-card rules">
+          <div class="ctx-side-label">RULES IN EFFECT</div>
           <div id="ctx-rules"></div>
         </div>
       </aside>
     </section>
 
-    <button class="ctx-close" id="ctx-close" type="button" aria-label="Close">Done</button>
+    <button class="ctx-close" id="ctx-close" type="button" aria-label="Close">Done ✓</button>
   </div>
 </div>
 

@@ -26,20 +26,31 @@ export function renderContextPanel() {
     b.classList.toggle('active', b.dataset.ctxRegime === state.regime);
   });
 
-  // Hero
-  const heroKicker = document.getElementById('ctx-hero-kicker-text');
-  if (heroKicker) {
+  // Hero rated-at pill (new element — replaces old ctx-hero-kicker-text)
+  const ratedAtEl = document.getElementById('ctx-rated-at');
+  if (ratedAtEl) {
     const days = state.sectorRatedAt && typeof window.daysSinceSectorRating === 'function'
       ? window.daysSinceSectorRating()
       : null;
-    const ratedLabel = days === null ? 'NEVER RATED' : days === 0 ? 'RATED TODAY' : days === 1 ? 'RATED 1D AGO' : `RATED ${days}D AGO`;
-    heroKicker.textContent = `MARKET CONTEXT · ${ratedLabel}`;
+    if (days === null) {
+      ratedAtEl.textContent = '· never rated';
+      ratedAtEl.className = 'ctx-rated-at';
+    } else {
+      const label = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
+      ratedAtEl.textContent = `· rated ${label}`;
+      ratedAtEl.className = 'ctx-rated-at' + (days > 7 ? ' stale' : '');
+    }
   }
+
+  // Hero headline
   const heroRegime = document.getElementById('ctx-hero-regime');
   if (heroRegime) {
-    const text = data.text.replace('-', ' ').toLowerCase().replace(/^./, c => c.toUpperCase());
-    heroRegime.textContent = `${text}.`;
-    heroRegime.className = 'accent ' + (state.regime === 'risk-on' ? 'on' : state.regime === 'neutral' ? 'neut' : 'off');
+    const labels = { 'risk-on': 'Risk-On.', 'neutral': 'Neutral.', 'risk-off': 'Risk-Off.' };
+    heroRegime.textContent = labels[state.regime] || 'Unknown.';
+    const accentColor = state.regime === 'risk-on'
+      ? 'var(--green-bright)' : state.regime === 'risk-off'
+      ? 'var(--red-bright)' : 'var(--amber-bright)';
+    heroRegime.style.color = accentColor;
   }
   const heroMeta = document.getElementById('ctx-hero-meta');
   if (heroMeta) {

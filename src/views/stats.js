@@ -46,13 +46,13 @@ function buildEquityCurve(sortedTrades) {
   return points;
 }
 
-function renderEquitySvg(points, totalPL) {
+function renderEquitySvg(points, totalPL, maxDDIdx = -1) {
   if (points.length < 2) {
     return `<svg viewBox="0 0 760 200" width="100%" class="stats-equity-svg">
       <text x="380" y="100" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="var(--ink-4)">No closed trades in this period</text>
     </svg>`;
   }
-  const W = 760, H = 188, PAD_L = 52, PAD_R = 16, PAD_T = 16, PAD_B = 20;
+  const W = 760, H = 178, PAD_L = 52, PAD_R = 16, PAD_T = 14, PAD_B = 28;
   const plotW = W - PAD_L - PAD_R;
   const plotH = H - PAD_T - PAD_B;
   const vals = points.map(p => p.cumPL);
@@ -66,30 +66,65 @@ function renderEquitySvg(points, totalPL) {
   const fillD = pathD + ` L${toX(points.length - 1).toFixed(1)} ${toY(0).toFixed(1)} L${toX(0).toFixed(1)} ${toY(0).toFixed(1)} Z`;
   const isPos = totalPL >= 0;
   const lineColor = isPos ? 'var(--cyan)' : 'var(--red-bright)';
-  const fillColor = isPos ? 'rgba(6,212,248,0.15)' : 'rgba(248,113,113,0.12)';
+  const fillColor = isPos ? 'rgba(6,212,248,0.12)' : 'rgba(248,113,113,0.10)';
 
-  // Y-axis labels (5 lines)
-  const yLabels = [0, 0.25, 0.5, 0.75, 1].map(f => {
+  // Y-axis labels (4 lines)
+  const yLabels = [0, 0.33, 0.67, 1].map(f => {
     const v = minV + f * range;
     const y = toY(v);
     const label = (v >= 0 ? '+$' : '-$') + Math.abs(Math.round(v)).toLocaleString();
     return `<g>
-      <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2 4"/>
-      <text x="${PAD_L - 4}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9.5" fill="var(--ink-4)">${label}</text>
+      <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3 5"/>
+      <text x="${PAD_L - 5}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="rgba(148,163,184,0.7)">${label}</text>
     </g>`;
   }).join('');
+
+  // X-axis date labels — evenly spaced, skip first (baseline)
+  const xLabels = (() => {
+    const n = points.length;
+    if (n < 3) return '';
+    const NUM = Math.min(6, n - 1);
+    const labels = [];
+    for (let k = 1; k <= NUM; k++) {
+      const i = Math.round((k / NUM) * (n - 1));
+      const pt = points[i];
+      if (!pt || !pt.date) continue;
+      const d = new Date(pt.date);
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const x = toX(i);
+      labels.push(`<text x="${x.toFixed(1)}" y="${(H + 8).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="rgba(148,163,184,0.65)">${label}</text>`);
+    }
+    return labels.join('');
+  })();
+
+  // Peak dot
+  const peakIdx = vals.reduce((best, v, i) => v > vals[best] ? i : best, 0);
+  const peakX   = toX(peakIdx).toFixed(1);
+  const peakY   = toY(vals[peakIdx]).toFixed(1);
+  const peakLabel = (vals[peakIdx] >= 0 ? '+$' : '-$') + Math.abs(Math.round(vals[peakIdx])).toLocaleString();
 
   // Baseline
   const baseY = toY(0).toFixed(1);
 
-  return `<svg viewBox="0 0 ${W} ${H + PAD_B}" width="100%" class="stats-equity-svg">
+  // Max DD marker (red vertical line at max DD index)
+  const maxDDMarker = maxDDIdx >= 0 && maxDDIdx < points.length ? `
+    <line x1="${toX(maxDDIdx).toFixed(1)}" x2="${toX(maxDDIdx).toFixed(1)}" y1="${PAD_T}" y2="${(H - PAD_B).toFixed(1)}" stroke="var(--red-bright)" stroke-width="1.5" opacity="0.4" stroke-dasharray="2 3"/>
+    <circle cx="${toX(maxDDIdx).toFixed(1)}" cy="${toY(vals[maxDDIdx]).toFixed(1)}" r="3" fill="var(--red-bright)" opacity="0.6"/>
+  ` : '';
+
+  return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" class="stats-equity-svg">
     ${yLabels}
-    <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
     <path d="${fillD}" fill="${fillColor}"/>
-    <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${toX(points.length - 1).toFixed(1)}" cy="${toY(points[points.length - 1].cumPL).toFixed(1)}" r="4" fill="${lineColor}" stroke="var(--bg)" stroke-width="2"/>
+    <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${maxDDMarker}
+    <circle cx="${toX(points.length - 1).toFixed(1)}" cy="${toY(points[points.length - 1].cumPL).toFixed(1)}" r="4.5" fill="${lineColor}" stroke="var(--bg)" stroke-width="2"/>
+    <circle cx="${peakX}" cy="${peakY}" r="3" fill="${lineColor}" opacity="0.6"/>
+    <text x="${peakX}" y="${(parseFloat(peakY) - 8).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="rgba(148,163,184,0.75)">PEAK ${peakLabel}</text>
+    ${xLabels}
   </svg>`;
 }
+
 
 export function renderStats() {
   const shell = document.getElementById('stats-shell');
@@ -112,6 +147,55 @@ export function renderStats() {
   const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
   const expectancy   = closedWithPL.length ? totalPL / closedWithPL.length : 0;
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
+
+  // ALL-time aggregates for Edge Intelligence card
+  const allClosedWithPL = allClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR ? (window.calcR(t) || 0) : 0 }));
+  const allWins    = allClosedWithPL.filter(x => x.pl > 0);
+  const allLosses  = allClosedWithPL.filter(x => x.pl < 0);
+  const allTotalPL = allClosedWithPL.reduce((s, x) => s + x.pl, 0);
+  const allGrossWin   = allWins.reduce((s, x) => s + x.pl, 0);
+  const allGrossLoss  = Math.abs(allLosses.reduce((s, x) => s + x.pl, 0));
+  const allPF         = allGrossLoss > 0 ? (allGrossWin / allGrossLoss).toFixed(2) : (allGrossWin > 0 ? '∞' : '—');
+  const allExpectancy = allClosedWithPL.length ? allTotalPL / allClosedWithPL.length : 0;
+  const allAvgR       = allClosedWithPL.length ? allClosedWithPL.reduce((s, x) => s + x.r, 0) / allClosedWithPL.length : 0;
+
+  // Full Edge Intelligence card HTML (same as Home tab — used only in modal)
+  const fullEiHtml = typeof window.buildAlphaIntel === 'function'
+    ? window.buildAlphaIntel(allClosed, allClosedWithPL, allWins, allLosses, allExpectancy, allAvgR, allPF)
+    : `<div class="home-card green" style="margin:0;">Edge Intelligence loading…</div>`;
+
+  // Glanceable compact card — 4 key numbers + verdict + enlarge button
+  const allWinRate  = allClosedWithPL.length ? Math.round(allWins.length / allClosedWithPL.length * 100) : null;
+  const allGraded   = allClosed.filter(t => t.grade);
+  const allGood     = allGraded.filter(t => { const l = (t.grade||'').toLowerCase(); return l.includes('good')||l.includes('clean')||l==='a'||l==='b'; }).length;
+  const gradeScore  = allGraded.length >= 3 ? Math.round(allGood / allGraded.length * 100) : null;
+  const eiKicker    = `Career view · ${allClosed.length} trade${allClosed.length===1?'':'s'}${gradeScore!=null?` · ${gradeScore}% on-plan`:''}`;
+  const eiVerdict   = allClosedWithPL.length === 0 ? 'No closed trades yet.'
+    : allAvgR >= 0.5 && (allWinRate||0) >= 55 ? 'Proven edge. Consistency and size are the only levers left.'
+    : allAvgR >= 0.25 && (allWinRate||0) >= 45 ? 'Developing edge — keep refining setup selection.'
+    : allAvgR >= 0   ? 'Marginal edge — protect R, cut losers faster.'
+    : 'Negative expected value — pause and review setups.';
+  const eiVerdictCls = allAvgR >= 0.25 ? 'pos' : allAvgR >= 0 ? 'warn' : 'neg';
+
+  const eiNums = [
+    { v: allWinRate!=null ? allWinRate+'%' : '—',   cls: allWinRate==null?'':allWinRate>=55?'pos':allWinRate>=45?'':'neg', l: 'Win rate'      },
+    { v: allClosedWithPL.length ? (allAvgR>=0?'+':'')+allAvgR.toFixed(2)+'R' : '—', cls: allAvgR>=0.3?'pos':allAvgR>=0?'':'neg', l: 'Avg R' },
+    { v: String(allPF),                             cls: 'cyan',                                                              l: 'Profit factor' },
+    { v: allClosedWithPL.length ? (allExpectancy>=0?'+$':'-$')+Math.abs(allExpectancy).toFixed(0) : '—', cls: allExpectancy>=0?'pos':'neg', l: 'Expectancy' },
+  ].map(m=>`<div class="sei-num"><div class="sei-num-val ${m.cls}">${m.v}</div><div class="sei-num-lbl">${m.l}</div></div>`).join('');
+
+  // 2-3 key bullets for compact view
+  const highlightBullets = typeof window.buildAlphaHighlightBullets === 'function'
+    ? window.buildAlphaHighlightBullets(allClosedWithPL).slice(0, 2)
+    : [];
+  const careerBullet = allClosedWithPL.length > 0 ? {
+    tone: allTotalPL >= 0 ? 'good' : 'bad', icon: '📈',
+    text: `<strong>Career: ${allTotalPL>=0?'+$':'-$'}${Math.abs(Math.round(allTotalPL)).toLocaleString()}</strong> · ${allClosed.length} trades · ${allWinRate}% wins · avg ${allAvgR>=0?'+':''}${allAvgR.toFixed(2)}R`,
+  } : null;
+  const previewBullets = [careerBullet, ...highlightBullets].filter(Boolean).slice(0, 3);
+  const previewBulletsHtml = previewBullets.length
+    ? `<ul class="home-intel-points sei-preview-bullets">${previewBullets.map(b=>`<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}</ul>`
+    : '';
 
   // Max drawdown
   let peak = 0, maxDD = 0, ddStart = null;
@@ -166,6 +250,117 @@ export function renderStats() {
   const bestTrade  = wins.length   ? wins.reduce((a, b) => a.r > b.r ? a : b) : null;
   const worstTrade = losses.length ? losses.reduce((a, b) => a.r < b.r ? a : b) : null;
 
+  // Compute current streak
+  let streakN = 0, streakT = '';
+  const sortedForStreak = [...periodClosed].sort((a,b) => (a.exit_date||a.date||'').localeCompare(b.exit_date||b.date||''));
+  for (let i = sortedForStreak.length - 1; i >= 0; i--) {
+    const pl = calcPL(sortedForStreak[i]) || 0;
+    const isWin = pl > 0;
+    if (streakN === 0) { streakN = 1; streakT = isWin ? 'W' : 'L'; }
+    else if ((isWin && streakT === 'W') || (!isWin && streakT === 'L')) streakN++;
+    else break;
+  }
+  const streakStr = streakN > 0 ? `${streakN}${streakT}` : '—';
+
+  // Alpha Intelligence card text
+  const winStreakN = (() => {
+    let n = 0;
+    for (let i = sortedForStreak.length - 1; i >= 0; i--) {
+      if ((calcPL(sortedForStreak[i]) || 0) > 0) n++;
+      else break;
+    }
+    return n;
+  })();
+
+  // FORM
+  const formText = closedWithPL.length === 0
+    ? 'No closed trades in this period.'
+    : winStreakN >= 3
+      ? `<strong>${winStreakN}-trade win streak</strong> · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R this period`
+      : avgR >= 0.3 && (winRateNum||0) >= 50
+        ? `<strong>${wins.length}W / ${losses.length}L</strong> · solid form · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`
+        : avgR >= 0
+          ? `<strong>${wins.length}W / ${losses.length}L</strong> · marginal form · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`
+          : `<strong>${losses.length} consecutive pressure</strong> · avg ${avgR.toFixed(2)}R · review sizing`;
+
+  // EDGE — top setup(s)
+  const setupMapForEdge = {};
+  periodClosed.forEach(t => {
+    const k = t.setup || '—';
+    if (!setupMapForEdge[k]) setupMapForEdge[k] = { n: 0, wins: 0, pl: 0, totalR: 0 };
+    const pl = calcPL(t) || 0;
+    setupMapForEdge[k].n++;
+    if (pl > 0) setupMapForEdge[k].wins++;
+    setupMapForEdge[k].pl += pl;
+    setupMapForEdge[k].totalR += window.calcR ? (window.calcR(t) || 0) : 0;
+  });
+  const topSetups = Object.entries(setupMapForEdge)
+    .filter(([, s]) => s.pl > 0)
+    .sort(([, a], [, b]) => b.pl - a.pl)
+    .slice(0, 2);
+  const edgeText = topSetups.length === 0
+    ? 'No profitable setups this period.'
+    : topSetups.map(([name, s]) => {
+        const wr = Math.round(s.wins / s.n * 100);
+        const ar = (s.totalR / s.n).toFixed(2);
+        return `<strong>${name}</strong> ${wr}% WR · +${ar}R`;
+      }).join(' &nbsp;·&nbsp; ');
+
+  // WATCH — worst setup
+  const worstSetup = Object.entries(setupMapForEdge)
+    .filter(([, s]) => s.pl < 0)
+    .sort(([, a], [, b]) => a.pl - b.pl)[0];
+  const watchTone = worstSetup ? 'warn' : 'pos';
+  const watchText = worstSetup
+    ? `<strong>${worstSetup[0]}</strong> underperforming · ${(worstSetup[1].pl < 0 ? '-$' : '+$')}${Math.abs(worstSetup[1].pl).toFixed(0)} · consider reducing size`
+    : maxDD > 0
+      ? `Max drawdown <strong>-$${Math.round(maxDD).toLocaleString()}</strong> — within acceptable range`
+      : 'No setups flagged for review this period.';
+
+  // ACTION
+  const actionText = closedWithPL.length === 0
+    ? 'Log more trades to generate recommendations.'
+    : avgR >= 0.5 && (winRateNum||0) >= 55
+      ? 'Edge confirmed. <strong>Size up on A-grade setups</strong> and protect capital on borderline entries.'
+      : avgR >= 0.25 && (winRateNum||0) >= 45
+        ? '<strong>Stay selective</strong> — focus on top 1-2 setups. Skip B/C setups until form improves.'
+        : avgR >= 0
+          ? '<strong>Reduce size</strong> on all trades. Only take A-grade setups until stats stabilize.'
+          : '<strong>Pause or go to sim</strong> — negative expected value. Review entry criteria before next trade.';
+
+  // Loss/win counts for R-dist header
+  const rDistLossCount = losses.length;
+  const rDistWinCount = wins.length;
+
+  // Alpha Intelligence card — all variables now defined
+  const alphaIntelHtml = `
+    <div class="stats-alpha-intel">
+      <div class="stats-alpha-hdr">
+        <span class="stats-alpha-title">
+          <span class="stats-alpha-dot-main"></span>Alpha Intelligence
+        </span>
+        <button class="stats-ei-enlarge-btn" type="button" data-ei-enlarge>Enlarge →</button>
+      </div>
+      <div class="stats-alpha-rows">
+        <div class="stats-alpha-row">
+          <span class="stats-alpha-tag" data-tone="pos">FORM</span>
+          <span class="stats-alpha-text">${formText}</span>
+        </div>
+        <div class="stats-alpha-row">
+          <span class="stats-alpha-tag" data-tone="pos">EDGE</span>
+          <span class="stats-alpha-text">${edgeText}</span>
+        </div>
+        <div class="stats-alpha-row">
+          <span class="stats-alpha-tag" data-tone="${watchTone}">WATCH</span>
+          <span class="stats-alpha-text" style="${watchTone === 'warn' ? 'color: var(--red-bright);' : ''}">${watchText}</span>
+        </div>
+        <div class="stats-alpha-row">
+          <span class="stats-alpha-tag" data-tone="action">ACTION</span>
+          <span class="stats-alpha-text">${actionText}</span>
+        </div>
+      </div>
+    </div>`;
+
   // Setup performance table
   const setupMap = {};
   periodClosed.forEach(t => {
@@ -207,7 +402,9 @@ export function renderStats() {
 
   // Equity curve
   const curvePoints = buildEquityCurve(periodClosed);
-  const svgHtml = renderEquitySvg(curvePoints, totalPL);
+  // Find max DD index in curve points
+  const maxDDIdx = ddStart ? curvePoints.findIndex(p => p.date === ddStart) : -1;
+  const svgHtml = renderEquitySvg(curvePoints, totalPL, maxDDIdx);
 
   // Period tabs
   const periodTabsHtml = PERIODS.map(p =>
@@ -233,25 +430,16 @@ export function renderStats() {
   </div>`).join('');
 
   shell.innerHTML = `
-    <!-- Hero -->
+    <!-- Hero: Alpha Intelligence (left) | Equity Curve (right) — equal height -->
     <section class="stats-hero">
-      <div class="stats-hero-left">
-        <div class="stats-hero-eyebrow">
-          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
-          ${period === 'ALL' ? 'ALL TIME' : period + ' PERFORMANCE'} · ${periodLabel}
-        </div>
-        <h1 class="stats-hero-heading" style="color:var(--${totalPL >= 0 ? 'green-bright' : 'red-bright'})">${totalPLStr}</h1>
-        <p class="stats-hero-sub">
-          <strong style="color:var(--${totalPL >= 0 ? 'green-bright' : 'red-bright'})">${(totalPL / account * 100).toFixed(1)}%</strong> on equity ·
-          <strong>${closedWithPL.length} closed</strong>
-          ${maxDD > 0 ? ` · max DD <strong style="color:var(--red-bright)">-$${Math.round(maxDD).toLocaleString()}</strong>` : ''}
-        </p>
-        <div class="stats-period-tabs">${periodTabsHtml}</div>
-      </div>
+      <div class="stats-edge-intel-wrap">${alphaIntelHtml}</div>
       <div class="stats-equity-card">
         <div class="stats-equity-header">
           <h2 class="stats-equity-title">Equity curve</h2>
-          <span class="stats-equity-meta">Cumulative · realized</span>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="stats-period-tabs">${periodTabsHtml}</div>
+            <span class="stats-equity-meta">Cumulative · realized</span>
+          </div>
         </div>
         ${svgHtml}
       </div>
@@ -265,7 +453,7 @@ export function renderStats() {
       <div class="stats-rdist-card">
         <div class="stats-rdist-header">
           <h2 class="stats-rdist-title">R-distribution</h2>
-          <span class="stats-rdist-meta">${closedWithPL.length} closed</span>
+          <span class="stats-rdist-meta">L · ${rDistLossCount} &nbsp; W · ${rDistWinCount} &nbsp; ${closedWithPL.length} CLOSED</span>
         </div>
         <div class="stats-rdist-bars">${rBarsHtml}</div>
         <div class="stats-rdist-highlights">
@@ -280,9 +468,9 @@ export function renderStats() {
             <div class="stats-rdist-hi-sub">${worstTrade ? (worstTrade.trade.ticker || '') + ' · ' + (worstTrade.trade.exit_date || worstTrade.trade.date || '') : 'no losses'}</div>
           </div>
           <div>
-            <div class="stats-rdist-hi-label">Avg R</div>
-            <div class="stats-rdist-hi-value" style="color:var(--cyan)">${closedWithPL.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—'}</div>
-            <div class="stats-rdist-hi-sub">per closed trade</div>
+            <div class="stats-rdist-hi-label">Streak</div>
+            <div class="stats-rdist-hi-value" style="color:${streakT === 'W' ? 'var(--cyan)' : streakT === 'L' ? 'var(--red-bright)' : 'var(--ink-3)'}">${streakStr}</div>
+            <div class="stats-rdist-hi-sub">current run</div>
           </div>
         </div>
       </div>
@@ -312,6 +500,23 @@ export function renderStats() {
       state.statsPeriod = btn.dataset.statsPeriod;
       renderStats();
     });
+  });
+
+  // Wire Edge Intel enlarge → modal (nothing in the page shifts)
+  shell.querySelector('[data-ei-enlarge]')?.addEventListener('click', () => {
+    const existing = document.getElementById('stats-ei-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'stats-ei-modal';
+    modal.className = 'stats-ei-modal';
+    modal.innerHTML = `
+      <div class="stats-ei-modal-box">
+        <button class="stats-ei-modal-close" type="button" aria-label="Close">✕</button>
+        ${fullEiHtml}
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('.stats-ei-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   });
 }
 

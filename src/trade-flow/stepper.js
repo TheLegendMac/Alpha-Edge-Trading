@@ -140,6 +140,60 @@ function tfRenderStepper() {
   }
 }
 
+// ── Vertical step rail (left sidebar) ──────────────────────────
+function tfRenderRail() {
+  const rail = document.getElementById('trade-rail');
+  const layout = document.querySelector('.trade-layout');
+  if (!rail) return;
+  if (window.tfIsSingleScreen()) {
+    rail.style.display = 'none';
+    if (layout) layout.classList.add('trade-layout--single');
+    return;
+  }
+  if (layout) layout.classList.remove('trade-layout--single');
+  rail.style.display = '';
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const names = window.tfStepNames();
+  const compl = window.tfStepCompletion();
+  const cur = state.tradeFlow.step || 1;
+  const accentColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
+  const accentBg    = m === 'intraday' ? 'rgba(236,72,153,0.12)' : 'rgba(6,212,248,0.12)';
+  const accentLine  = m === 'intraday' ? 'rgba(236,72,153,0.40)' : 'rgba(6,212,248,0.40)';
+
+  rail.innerHTML = `
+    <div class="trade-rail-inner">
+      <div class="trade-rail-label">WIZARD · STEP ${cur}/${names.length}</div>
+      <div class="trade-rail-steps">
+        ${names.map((n, i) => {
+          const idx = i + 1;
+          const done   = compl[i];
+          const active = idx === cur;
+          const locked = !done && !active && !compl.slice(0, i).every(Boolean);
+          const nodeStyle = active
+            ? `background:${accentColor};border-color:${accentColor};color:#0a0e1a;font-weight:800;`
+            : done
+              ? `background:var(--green-bright);border-color:var(--green-bright);color:#0a0e1a;font-weight:800;`
+              : `background:transparent;border-color:rgba(148,163,184,0.22);color:rgba(148,163,184,0.45);`;
+          const labelStyle = active
+            ? `color:var(--ink-1);font-weight:700;font-size:13px;`
+            : done ? `color:#94a3b8;` : `color:rgba(148,163,184,0.45);`;
+          return `<button class="trade-rail-step${active ? ' active' : done ? ' done' : locked ? ' locked' : ''}"
+                    type="button" data-rail-step="${idx}">
+            <span class="trade-rail-node" style="${nodeStyle}">${done ? '✓' : idx}</span>
+            <span class="trade-rail-name" style="${labelStyle}">${n}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  rail.querySelectorAll('[data-rail-step]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = parseInt(el.dataset.railStep, 10);
+      if (target && target !== cur) window.tfGoToStep(target);
+    });
+  });
+}
+
 function tfBindHeaderScroll() {
   const header = document.querySelector('#panel-trade .trade-header');
   if (!header || header.dataset.tfScrollBound === '1') return;
@@ -182,6 +236,37 @@ function tfRenderHeader() {
   // Mode-tinted accent on the trade panel (swing = cyan, intraday = magenta)
   const panel = document.getElementById('panel-trade');
   if (panel) panel.classList.toggle('intraday-mode', m === 'intraday');
+  // Note: [data-trade-mode] active sync happens earlier in tfRenderHeader via
+  // the querySelectorAll at line ~179 — no duplicate needed here.
+
+  // Update trade hero section
+  const heroEyebrow = document.getElementById('trade-hero-eyebrow');
+  const heroModeLabel = document.getElementById('trade-hero-mode-label');
+  const heroHeading = document.getElementById('trade-hero-heading');
+  const heroSub = document.getElementById('trade-hero-sub');
+  if (heroEyebrow) {
+    heroEyebrow.className = `trade-hero-eyebrow ${m}`;
+    const dot = heroEyebrow.querySelector('span');
+    if (dot) {
+      dot.style.background = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
+      dot.style.boxShadow = `0 0 6px ${m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)'}`;
+    }
+  }
+  if (heroModeLabel) heroModeLabel.textContent = m === 'intraday' ? 'INTRADAY MODE' : 'SWING MODE';
+  if (heroHeading) {
+    const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
+    const accentColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
+    heroHeading.innerHTML = ticker
+      ? (m === 'swing'
+          ? `Build a swing on <span style="color:${accentColor}">${ticker}</span>.`
+          : `Take an intraday on <span style="color:${accentColor}">${ticker}</span>.`)
+      : (m === 'swing' ? 'Build a swing trade.' : 'Take an intraday trade.');
+  }
+  if (heroSub) {
+    heroSub.textContent = m === 'swing'
+      ? 'Hold target 3–10 days · max 4 swings open · risk 0.5% / trade.'
+      : 'Same-day exit · max 2 intraday open · cut by 15:55 ET.';
+  }
 }
 
 function tfRenderActions() {
@@ -676,15 +761,96 @@ function tfBindTradePanelStaticOnce() {
 // Top-level orchestrator: header + stepper + step body + actions, plus the
 // step-body mount that wires every dynamic input. Every state mutation in the
 // trade flow funnels back through here.
+function tfRenderTickerCard() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const ticker  = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
+  const dir     = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
+  const sa      = state.saQuant || {};
+  const quant   = parseFloat(sa.quant || 0);
+  const bias    = quant > 0 ? Math.round((quant / 5) * 100) : null;
+  const sector  = sa.sector || '';
+  const cap     = sa.capBracket || '';
+  const meta    = [sector, cap].filter(Boolean).join(' · ');
+  const accentColor = m === 'intraday' ? 'var(--magenta,#ec4899)' : 'var(--cyan)';
+  const accentBg    = m === 'intraday' ? 'rgba(236,72,153,0.14)' : 'rgba(6,212,248,0.14)';
+  const accentLine  = m === 'intraday' ? 'rgba(236,72,153,0.40)' : 'rgba(6,212,248,0.40)';
+
+  const biasHtml = bias !== null ? `
+    <div class="tf-bias-wrap">
+      <span class="tf-card-lbl">BIAS SCORE</span>
+      <div class="tf-bias-row">
+        <div class="tf-bias-track"><div class="tf-bias-fill" style="width:${bias}%;background:${accentColor}"></div></div>
+        <span class="tf-bias-val" style="color:${accentColor}">${bias}</span>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="tf-ticker-card">
+      <div class="tf-ticker-card-hdr">
+        <span class="tf-card-lbl">TICKER</span>
+        <span class="tf-card-hint">ENTER OR PASTE</span>
+      </div>
+      <div class="tf-ticker-card-body">
+        <div class="tf-ticker-left">
+          <input class="tf-ticker-main-input" id="tf-ticker-card-input"
+            type="text" value="${ticker}" placeholder="—"
+            autocomplete="off" spellcheck="false" maxlength="10"
+            style="${ticker ? 'color:'+accentColor : ''}">
+          ${meta ? `<span class="tf-ticker-meta">${meta}</span>` : ''}
+        </div>
+        <div class="tf-ticker-right">
+          <div class="tf-dir-section">
+            <span class="tf-card-lbl">DIRECTION</span>
+            <div class="tf-dir-btns">
+              <button class="tf-dir-btn${dir==='long'?' active':''}" data-tf-dir="long" type="button"
+                style="${dir==='long'?'background:'+accentBg+';border-color:'+accentLine+';color:'+accentColor:''}">LONG</button>
+              <button class="tf-dir-btn${dir==='short'?' active short':''}" data-tf-dir="short" type="button"
+                style="${dir==='short'?'background:rgba(248,113,113,0.14);border-color:rgba(248,113,113,0.4);color:var(--red-bright)':''}">SHORT</button>
+            </div>
+          </div>
+          ${biasHtml}
+        </div>
+      </div>
+    </div>`;
+}
+
+function tfMountTickerCard() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  const inp = document.getElementById('tf-ticker-card-input');
+  if (inp) {
+    inp.addEventListener('input', () => {
+      const v = inp.value.toUpperCase();
+      inp.value = v;
+      if (m === 'intraday') { if (!state.intraday) state.intraday = {}; state.intraday.ticker = v; }
+      else { state.ticker = v; }
+      window.tfRenderHeader();
+    });
+    inp.addEventListener('blur', () => {
+      saveState();
+    });
+  }
+  document.querySelectorAll('#trade-body [data-tf-dir]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = btn.dataset.tfDir;
+      if (m === 'intraday') { if (!state.intraday) state.intraday = {}; state.intraday.direction = d; }
+      else { state.direction = d; }
+      saveState();
+      window.renderTrade();
+    });
+  });
+}
+
 function renderTrade() {
   if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
   tfBindTradePanelStaticOnce();
   const step = state.tradeFlow.step || 1;
   window.tfRenderHeader();
   window.tfRenderStepper();
+  window.tfRenderRail();
   const body = document.getElementById('trade-body');
-  if (body) body.innerHTML = window.tfStepBody(step);
+  if (body) body.innerHTML = tfRenderTickerCard() + window.tfStepBody(step);
   window.tfMountStep(step);
+  tfMountTickerCard();
   window.tfRenderActions();
 }
 
@@ -696,6 +862,7 @@ window.tfIsSingleScreen = tfIsSingleScreen;
 window.tfStepCompletion = tfStepCompletion;
 window.tfRenderStepper = tfRenderStepper;
 window.tfBindHeaderScroll = tfBindHeaderScroll;
+window.tfRenderRail = tfRenderRail;
 window.tfRenderHeader = tfRenderHeader;
 window.tfRenderActions = tfRenderActions;
 window.tfGoToStep = tfGoToStep;
