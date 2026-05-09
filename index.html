@@ -48,7 +48,6 @@
     </div>
 
     <!-- Right actions -->
->>>>>>> claude-recovery
     <div class="cmdbar-actions">
       <!-- Regime pill — tapping opens Market Context panel -->
       <button class="cmdbar-context-btn" id="regime-state" type="button" title="Open Market Context">
@@ -75,72 +74,6 @@
   <!-- ===== HOME DASHBOARD ===== -->
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
-<<<<<<< HEAD
-
-      <!-- Hero: status kicker + headline + meta line (single column, full width) -->
-      <section class="home-hero">
-        <div class="home-hero-kicker" id="home-hero-kicker">
-          <span class="ae-dot"></span> <span id="home-hero-status">STATUS · LIVE</span>
-        </div>
-        <h1 id="home-hero-headline">
-          <span id="home-hero-headline-text">Cleared to </span><span class="accent" id="home-hero-headline-accent">trade.</span>
-        </h1>
-        <p id="home-hero-meta">
-          Set your account size in Settings to activate the read.
-        </p>
-      </section>
-
-      <!-- 4-stat row, full width -->
-      <section class="home-stat-row">
-        <div class="ae-stat">
-          <div class="ae-stat-label">Session P/L</div>
-          <div class="ae-stat-value" id="home-session-pl">+$0</div>
-          <div class="ae-stat-sub" id="home-session-sub">realized $0 · open $0</div>
-        </div>
-        <div class="ae-stat">
-          <div class="ae-stat-label">Win rate</div>
-          <div class="ae-stat-value" id="home-win-rate">0%</div>
-          <div class="ae-stat-sub" id="home-win-rate-sub">0 / 0 closed</div>
-        </div>
-        <div class="ae-stat">
-          <div class="ae-stat-label">Slots open</div>
-          <div class="ae-stat-value" id="home-trades-left">0</div>
-          <div class="ae-stat-sub" id="home-slots-sub">of 0 max</div>
-        </div>
-        <div class="ae-stat">
-          <div class="ae-stat-label">Risk buffer</div>
-          <div class="ae-stat-value" id="home-buffer">$0</div>
-          <div class="ae-stat-sub" id="home-buffer-sub">0% of cap</div>
-        </div>
-      </section>
-
-      <!-- Tinted Alpha Intelligence card -->
-      <div class="home-card green" id="home-intel-card">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-          <div class="home-card-title" style="margin: 0; display: inline-flex; align-items: center;">Alpha Intelligence<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary" style="margin-left: 8px;">?</button></div>
-          <div class="home-card-kicker" id="home-deep-label" style="margin: 0;">Today's read</div>
-        </div>
-        <div class="home-intel-headline" id="home-intel-headline">Set your account size in Settings to activate the read.</div>
-        <ul class="home-intel-points" id="home-intel-points"></ul>
-        <div class="home-intel-text" id="home-intel-text" hidden></div>
-      </div>
-
-      <!-- Activity calendar (2-week heatmap) — kept as standalone card -->
-      <div class="home-card home-calendar-card" style="margin-top: 18px;">
-        <div class="home-card-title" id="home-calendar-title">Two-week activity</div>
-        <div class="home-calendar" id="home-calendar"></div>
-      </div>
-
-      <!-- Hidden legacy elements still referenced by home.js -->
-      <div style="display: none;">
-        <div id="home-zone"></div>
-        <div id="home-realized"></div>
-        <div id="home-unrealized"></div>
-        <div id="home-next-risk"></div>
-        <div id="home-risk-unit"></div>
-        <div id="home-progress-fill"></div>
-      </div>
-=======
 
       <!-- Hero row: headline + 4 stat cards -->
       <section class="home-hero">
@@ -199,7 +132,6 @@
           <div class="home-calendar" id="home-calendar"></div>
         </div>
       </section>
->>>>>>> claude-recovery
 
       <!-- Open Book -->
       <section class="home-openbook">
@@ -221,59 +153,6 @@
 
   <!-- ===== TRADE LOG ===== -->
   <section class="tab-panel" id="panel-log">
-<<<<<<< HEAD
-    <section class="log-hero" id="log-hero-section">
-      <div class="log-hero-left">
-        <div class="log-hero-kicker">
-          <span class="ae-dot cyan"></span> <span id="log-hero-kicker-text">TRADE LOG</span>
-        </div>
-        <h1 id="log-hero-headline"><span id="log-hero-count">0</span> trades · <span class="pos" id="log-hero-pl">$0</span></h1>
-        <p id="log-hero-meta">No trades logged yet.</p>
-      </div>
-    </section>
-    <div class="log-stats" id="log-stats"></div>
-    <div class="log-table-wrap">
-      <div class="log-toolbar">
-        <div class="log-toolbar-title">Trade Log</div>
-        <div class="log-toolbar-actions">
-          <input class="input-field" id="log-trade-search" placeholder="Ticker, setup, direction, status" autocomplete="off" style="width: 190px; height: 34px; font-size: 12px;" />
-          <button class="btn-secondary log-icon-btn" id="btn-weekly-report" title="Export weekly report" aria-label="Export weekly report">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M8 2v4"/>
-              <path d="M16 2v4"/>
-              <rect x="3" y="4" width="18" height="18" rx="2"/>
-              <path d="M3 10h18"/>
-              <path d="M8 15h5"/>
-              <path d="M8 18h8"/>
-            </svg>
-          </button>
-          <button class="btn-secondary log-icon-btn" id="btn-export-json" title="Export JSON" aria-label="Export JSON">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <path d="M7 10l5 5 5-5"/>
-              <path d="M12 15V3"/>
-            </svg>
-          </button>
-          <button class="btn-secondary log-icon-btn" id="btn-import-json" title="Import JSON" aria-label="Import JSON">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <path d="M17 8l-5-5-5 5"/>
-              <path d="M12 3v12"/>
-            </svg>
-          </button>
-          <button class="btn-secondary log-icon-btn" id="btn-add-test-trades" title="Generate 25 random test trades" aria-label="Generate 25 random test trades">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <path d="M8 8h.01"/>
-              <path d="M16 8h.01"/>
-              <path d="M8 16h.01"/>
-              <path d="M16 16h.01"/>
-              <path d="M12 12h.01"/>
-            </svg>
-          </button>
-          <input type="file" id="import-json-file" accept="application/json,.json" style="display:none" />
-        </div>
-=======
     <!-- Hero + 5 stat cards rendered by renderLogStats -->
     <div id="log-stats"></div>
 
@@ -283,7 +162,6 @@
         <span class="log-search-icon">⌕</span>
         <input class="log-search-input" id="log-trade-search" placeholder="Filter ticker, setup…" autocomplete="off" />
         <span class="log-search-count" id="log-search-count"></span>
->>>>>>> claude-recovery
       </div>
       <div class="log-mode-tabs" id="log-mode-tabs">
         <button class="log-mode-tab active" data-log-mode="all" type="button">ALL</button>
@@ -503,48 +381,6 @@
         </div>
       </section>
 
-<<<<<<< HEAD
-    <!-- Redesign: hero + structured rules surfaces -->
-    <section class="ref-hero">
-      <div class="ref-hero-kicker">
-        <span class="ae-dot cyan"></span> <span id="ref-hero-kicker-text">REFERENCE</span>
-      </div>
-      <h1>The rules <span class="accent">are the edge.</span></h1>
-      <p>Your sizing, caps and IV-rank playbook. Edit settings to recalculate dollar amounts.</p>
-    </section>
-
-    <section class="ref-section">
-      <div class="ref-section-head">
-        <h2>Regime sizing</h2>
-        <span class="ae-mono">SWING · % OF EQUITY PER TRADE</span>
-      </div>
-      <div class="ref-regime-grid" id="ref-regime-grid"></div>
-    </section>
-
-    <section class="ref-section">
-      <div class="ref-section-head">
-        <h2>Position caps</h2>
-        <span class="ae-mono">HARD LIMITS · ENFORCED BY GATES</span>
-      </div>
-      <div class="ref-caps-card ae-card" id="ref-caps-card"></div>
-    </section>
-
-    <section class="ref-section">
-      <div class="ref-section-head">
-        <h2>IV-rank playbook</h2>
-        <span class="ae-mono">OPTIONS · STRATEGY BY IVR BUCKET</span>
-      </div>
-      <div class="ref-ivr-grid" id="ref-ivr-grid"></div>
-    </section>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; margin: 32px 0 18px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 style="margin: 0; font-family: var(--display); font-size: 22px;">Reference & Cheat Sheets</h2>
-        <p style="margin: 4px 0 0; color: var(--ink-3); font-size: 13px;">When X happens, do Y. Skim before any trade. Print Section A &amp; B and tape them next to your monitor.</p>
-      </div>
-      <button class="btn-secondary btn-compact" onclick="window.print()">Print this page</button>
-=======
->>>>>>> claude-recovery
     </div>
     <!-- hidden legacy grid kept so any stray ref-grid CSS doesn't break -->
     <div class="ref-grid" style="display:none">

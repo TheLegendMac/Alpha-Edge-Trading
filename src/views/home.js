@@ -86,12 +86,7 @@ export function renderHome() {
   // Money formatter — keeps lines compact and consistent.
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
-<<<<<<< HEAD
-  // Headline — concise, action-first. Priority: kill switch > caps > regime > all-clear.
-  // Hero version: split into a leading phrase + an accent word (matches design layout).
-=======
   // Headline — short punchy phrase for the hero h1. Details go in sub-text.
->>>>>>> claude-recovery
   let regimeHeadline, headlineTone = '';
   let heroLead = 'Cleared to ', heroAccent = 'trade.', heroStatus = 'STATUS · LIVE';
   if (killActive) {
@@ -297,26 +292,6 @@ export function renderHome() {
   }
   setText('home-session-sub', `${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R · realized ${todayPL >= 0 ? '$' : '-$'}${Math.abs(Math.round(todayPL))} · open ${openUnrealized >= 0 ? '$' : '-$'}${Math.abs(Math.round(openUnrealized))}`);
 
-<<<<<<< HEAD
-  setText('home-win-rate', `${winRate}%`);
-  setText('home-win-rate-sub', `${wins.length} / ${closed.length} closed`);
-
-  setText('home-trades-left', tradesLeft);
-  setText('home-slots-sub', `of ${maxPositions || 0} max`);
-
-  const bufferEl = document.getElementById('home-buffer');
-  if (bufferEl) {
-    bufferEl.textContent = `$${riskBuffer.toLocaleString()}`;
-    bufferEl.className = `ae-stat-value ${riskBuffer === 0 ? 'amber' : ''}`;
-  }
-  const bufferPct = maxRiskDollars > 0 ? Math.round((riskBuffer / maxRiskDollars) * 100) : 0;
-  setText('home-buffer-sub', `${bufferPct}% of cap`);
-
-  // ========== Hidden legacy fields kept for back-compat with other modules ==========
-  setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
-  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
-  setText('home-next-risk', `$${nextRisk}`);
-=======
   // New stat card IDs
   setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`);
   setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
@@ -328,7 +303,6 @@ export function renderHome() {
   const zoneSub = document.getElementById('home-zone');
   if (zoneSub) zoneSub.textContent = `of ${maxPositions} max`;
   setText('home-buffer', `$${riskBuffer.toLocaleString()}`);
->>>>>>> claude-recovery
   setText('home-risk-unit', `1R = $${nextRisk}`);
 
   // Status dot colour mirrors headline tone

@@ -116,11 +116,6 @@ function init() {
   on('btn-home-new-analysis', 'click', () => setTab('trade'));
   on('brand-home', 'click', () => setTab('home'));
 
-<<<<<<< HEAD
-  // Top-level command-bar nav tabs.
-  document.querySelectorAll('.cmdbar-nav-tab').forEach(btn => {
-    btn.addEventListener('click', () => setTab(btn.dataset.cmdbarTab));
-=======
   // Log filter strip — mode tab buttons.
   document.getElementById('log-mode-tabs')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-log-mode]');
@@ -134,7 +129,6 @@ function init() {
   // Settings ⌘K button opens settings.
   document.getElementById('btn-settings')?.addEventListener('click', () => {
     if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
->>>>>>> claude-recovery
   });
 
   // Context panel — regime cluster click opens the two-in-one panel.
@@ -287,11 +281,7 @@ function init() {
   runSafe('renderSectorStatusMini', window.renderSectorStatusMini);
 
   // Restore last-active mode.
-<<<<<<< HEAD
-  if (state.activeMode && ['home','sunday','log','reference','trade','stats'].includes(state.activeMode)) {
-=======
   if (state.activeMode && ['home','log','stats','reference','trade'].includes(state.activeMode)) {
->>>>>>> claude-recovery
     runSafe('restoreTab', () => setTab(state.activeMode));
   } else if (state.activeMode === 'decision' || state.activeMode === 'intraday' || state.activeMode === 'sunday') {
     runSafe('restoreTradeTab', () => setTab('trade'));

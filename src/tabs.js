@@ -27,13 +27,9 @@ export function setTab(name) {
     if (typeof window.renderLogHero === 'function') window.renderLogHero();
     renderLogTable();
   }
-<<<<<<< HEAD
-  if (name === 'stats') renderStats();
-=======
   if (name === 'stats') {
     if (typeof window.renderStats === 'function') window.renderStats();
   }
->>>>>>> claude-recovery
   if (name === 'trade' && typeof window.renderTrade === 'function') window.renderTrade();
 }
 
