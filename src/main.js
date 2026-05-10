@@ -111,6 +111,40 @@ function init() {
     btn.addEventListener('click', () => setTab(btn.dataset.tab));
   });
 
+  // Mobile hamburger menu — toggles a dropdown panel of the same nav items.
+  const menuBtn   = document.getElementById('cmdbar-menu-btn');
+  const menuPanel = document.getElementById('cmdbar-menu-panel');
+  if (menuBtn && menuPanel) {
+    const closeMenu = () => {
+      menuPanel.classList.remove('open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuPanel.setAttribute('aria-hidden', 'true');
+    };
+    const openMenu = () => {
+      menuPanel.classList.add('open');
+      menuBtn.setAttribute('aria-expanded', 'true');
+      menuPanel.setAttribute('aria-hidden', 'false');
+    };
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuPanel.classList.contains('open') ? closeMenu() : openMenu();
+    });
+    menuPanel.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-menu-tab]');
+      if (!item) return;
+      setTab(item.dataset.menuTab);
+      closeMenu();
+    });
+    document.addEventListener('click', (e) => {
+      if (!menuPanel.classList.contains('open')) return;
+      if (menuPanel.contains(e.target) || menuBtn.contains(e.target)) return;
+      closeMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menuPanel.classList.contains('open')) closeMenu();
+    });
+  }
+
   // Wire the home actions early. If a later optional renderer fails, these
   // buttons still work and the user can navigate out of the bad state.
   on('home-portfolio-toggle', 'click', window.toggleHomePortfolioView);

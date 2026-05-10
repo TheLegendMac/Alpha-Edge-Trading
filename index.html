@@ -45,6 +45,10 @@
         <button class="tab" data-tab="stats" type="button">Stats</button>
         <button class="tab" data-tab="reference" type="button">Reference</button>
       </nav>
+      <!-- Mobile hamburger — shown only at narrow widths -->
+      <button class="cmdbar-menu-btn" id="cmdbar-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="cmdbar-menu-panel">
+        <span class="cmdbar-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
     </div>
 
     <!-- Right actions -->
@@ -65,6 +69,14 @@
 
       <button class="cmdbar-kmk-btn" id="btn-settings" title="Settings (⌘K)">⌘K</button>
     </div>
+  </div>
+  <!-- Mobile menu dropdown — wired via main.js, controlled by #cmdbar-menu-btn -->
+  <div class="cmdbar-menu-panel" id="cmdbar-menu-panel" role="menu" aria-hidden="true">
+    <button class="cmdbar-menu-item" data-menu-tab="home" type="button" role="menuitem">Home</button>
+    <button class="cmdbar-menu-item" data-menu-tab="trade" type="button" role="menuitem">Trade</button>
+    <button class="cmdbar-menu-item" data-menu-tab="log" type="button" role="menuitem">Log</button>
+    <button class="cmdbar-menu-item" data-menu-tab="stats" type="button" role="menuitem">Stats</button>
+    <button class="cmdbar-menu-item" data-menu-tab="reference" type="button" role="menuitem">Reference</button>
   </div>
 </header>
 

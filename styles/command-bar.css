@@ -193,6 +193,83 @@
 }
 .cmdbar-kmk-btn:hover { color: var(--ink); border-color: var(--line-soft); background: rgba(255,255,255,0.04); }
 
+/* ── Hamburger menu (mobile only) ── */
+.cmdbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  padding: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cmdbar-menu-btn:hover { border-color: var(--line-soft); background: rgba(255,255,255,0.03); }
+.cmdbar-menu-icon { display: inline-flex; flex-direction: column; gap: 4px; width: 18px; }
+.cmdbar-menu-icon span {
+  display: block;
+  height: 2px;
+  background: var(--ink-2);
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.cmdbar-menu-btn[aria-expanded="true"] .cmdbar-menu-icon span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.cmdbar-menu-btn[aria-expanded="true"] .cmdbar-menu-icon span:nth-child(2) { opacity: 0; }
+.cmdbar-menu-btn[aria-expanded="true"] .cmdbar-menu-icon span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.cmdbar-menu-panel {
+  display: none;
+  position: absolute;
+  right: 14px;
+  top: calc(100% + 6px);
+  min-width: 200px;
+  background: rgba(13, 16, 22, 0.96);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  z-index: 200;
+  flex-direction: column;
+  gap: 2px;
+}
+.cmdbar-menu-panel.open { display: flex; animation: cmdbarMenuIn 0.16s ease-out; }
+@keyframes cmdbarMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cmdbar-menu-item {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+.cmdbar-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--ink); }
+.cmdbar-menu-item.active { color: var(--cyan); background: rgba(6,212,248,0.08); }
+
+@media (max-width: 720px) {
+  .cmdbar-nav { display: none; }
+  .cmdbar-menu-btn { display: inline-flex; }
+}
+
 /* Legacy selectors kept so existing JS still works */
 .nav-icon-btn {
   background: rgba(255, 255, 255, 0.02);
