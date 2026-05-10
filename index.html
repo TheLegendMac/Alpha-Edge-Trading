@@ -1212,7 +1212,7 @@ STRENGTH: 3/3</pre>
   <!-- LEFT SIDEBAR NAV -->
   <aside class="sett-nav">
     <div class="sett-nav-header">
-      <span class="sett-nav-eyebrow">SETTINGS · 6 SECTIONS</span>
+      <span class="sett-nav-eyebrow">SETTINGS · 4 SECTIONS</span>
     </div>
     <nav class="sett-nav-list">
       <a class="sett-nav-item active" href="#sett-s01" data-sett-nav="s01">
@@ -1227,16 +1227,8 @@ STRENGTH: 3/3</pre>
         <span class="sett-nav-num">03</span>
         <span class="sett-nav-info"><span class="sett-nav-title">Trade modes</span><span class="sett-nav-sub">Swing · Intraday</span></span>
       </a>
-      <a class="sett-nav-item sett-nav-dim" href="#sett-s04" data-sett-nav="s04">
-        <span class="sett-nav-num">04</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Sector cadence</span><span class="sett-nav-sub">Re-rate window · staleness</span></span>
-      </a>
-      <a class="sett-nav-item sett-nav-dim" href="#sett-s04" data-sett-nav="s04">
-        <span class="sett-nav-num">05</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Alerts &amp; sync</span><span class="sett-nav-sub">Notifications · broker</span></span>
-      </a>
       <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
-        <span class="sett-nav-num">06</span>
+        <span class="sett-nav-num">04</span>
         <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups · danger</span></span>
       </a>
     </nav>
@@ -1330,7 +1322,7 @@ STRENGTH: 3/3</pre>
       <div class="sett-section-badge"><span class="sett-section-num">· 02 · RISK RULES</span></div>
       <h2 class="sett-section-title">Sizing by regime</h2>
       <p class="sett-section-desc">Three lanes. Risk-On is your green light. Risk-Off is the kill switch. Neutral is the slow lane — half size, both directions allowed.</p>
-      <button class="sett-btn-ghost sett-reset-inline" id="btn-reset-settings">RESET TO DEFAULTS</button>
+      <button class="sett-btn-ghost sett-reset-inline" onclick="window.resetSettingsToDefaults()">RESET TO DEFAULTS</button>
 
       <div class="sett-regime-grid">
         <!-- Risk-On -->
@@ -1452,10 +1444,10 @@ STRENGTH: 3/3</pre>
         </div>
         <div class="sett-kill-right">
           <div class="sett-kill-preview-label">LIVE PREVIEW · Where you'd be standing</div>
-          <canvas class="sett-kill-canvas" id="sett-kill-preview" width="280" height="120"></canvas>
+          <canvas class="sett-kill-canvas" id="sett-kill-preview" width="560" height="240" style="width:100%;height:120px;"></canvas>
           <div class="sett-kill-preview-foot">
-            <span>NOW</span>
-            <span class="sett-kill-preview-state" id="sett-kill-state">CLEARED</span>
+            <span>NOW &nbsp;<span id="sett-kill-now-pct" style="color:#f59e0b;font-weight:700;">—</span></span>
+            <span>STATE &nbsp;<span class="sett-kill-preview-state" id="sett-kill-state">CLEARED</span></span>
           </div>
         </div>
       </div>
@@ -1545,7 +1537,7 @@ STRENGTH: 3/3</pre>
           </div>
         </div>
       </div>
-      <div class="sett-modes-foot">Default stop <strong>50%</strong> of premium · target <strong>+100%</strong> · Long-only adds <span class="sett-lbl-off">OFF</span></div>
+      <div class="sett-modes-foot">Default stop <strong>50%</strong> of premium · target <strong>+100%</strong> · Long-only adds <span class="sett-lbl-off">OFF</span> <button class="sett-edit-defaults-link" onclick="window.toast('Edit defaults coming soon')">EDIT DEFAULTS →</button></div>
     </section>
 
     <!-- ── SECTION 04: DATA & EXPORT ── -->

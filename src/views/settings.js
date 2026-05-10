@@ -3,6 +3,7 @@
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
+import { calcPL, isClosedTrade } from '../models/trade.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
@@ -47,6 +48,8 @@ function updateLiveHints() {
   // Live kill equiv label
   if (el('sett-kill-eqv'))    el('sett-kill-eqv').textContent    = `= -${fmt$(acct * kill / 100)} on ${fmt$(acct)}`;
   if (el('sett-kill-daily-sub')) el('sett-kill-daily-sub').textContent = `= -${fmt$(acct * dml / 100)}`;
+  // Kill preview chart
+  drawKillPreview();
 }
 
 function syncSlider(sliderId, val, min, max, kind) {
@@ -57,6 +60,136 @@ function syncSlider(sliderId, val, min, max, kind) {
   const colorMap = { on: 'var(--green-bright)', neutral: '#f59e0b', off: 'var(--red-bright)', cap: 'var(--cyan)', kill: '#f59e0b' };
   const c = colorMap[kind] || 'var(--cyan)';
   sl.style.background = `linear-gradient(90deg, ${c} ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+}
+
+function drawKillPreview() {
+  const canvas = document.getElementById('sett-kill-preview');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const account = parseFloat(document.getElementById('set-account')?.value) || 50000;
+  const floor   = parseFloat(document.getElementById('set-kill-floor')?.value) || 7.0;
+  const floorPct = -floor;
+
+  // Build cumulative P&L over last 14 days, one data point per day
+  const DAYS = 14;
+  const now = Date.now();
+  const cutoff = now - DAYS * 24 * 60 * 60 * 1000;
+  const trades = (state.trades || []).filter(t => isClosedTrade(t) && (t.exit_date || t.date));
+
+  const dailyPL = {};
+  trades.forEach(t => {
+    const dateStr = (t.exit_date || t.date || '').slice(0, 10);
+    const ts = new Date(dateStr).getTime();
+    if (ts >= cutoff && ts <= now) {
+      dailyPL[dateStr] = (dailyPL[dateStr] || 0) + (calcPL(t) || 0);
+    }
+  });
+
+  const points = [];
+  let cum = 0;
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const d = new Date(now - i * 24 * 60 * 60 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    cum += dailyPL[dateStr] || 0;
+    points.push((cum / account) * 100);
+  }
+
+  const currentPct = points[points.length - 1];
+  const isFloored  = currentPct <= floorPct;
+
+  // Update labels
+  const stateEl  = document.getElementById('sett-kill-state');
+  const nowPctEl = document.getElementById('sett-kill-now-pct');
+  if (stateEl) {
+    stateEl.textContent = isFloored ? 'FLOORED' : 'CLEARED';
+    stateEl.style.color = isFloored ? '#f87171' : '#34d399';
+  }
+  if (nowPctEl) {
+    nowPctEl.textContent = (currentPct >= 0 ? '+' : '') + currentPct.toFixed(1) + '%';
+    nowPctEl.style.color = isFloored ? '#f87171' : '#f59e0b';
+  }
+
+  // Draw — canvas is 2× resolution (560×240) rendered at CSS 100%×120px
+  ctx.clearRect(0, 0, W, H);
+  const S = 2; // scale factor
+  const pad = { t: 12 * S, r: 14 * S, b: 14 * S, l: 14 * S };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+
+  const minVal = Math.min(floorPct - 1.5, ...points);
+  const maxVal = Math.max(2, ...points);
+  const range  = maxVal - minVal || 1;
+
+  const xOf = (i) => pad.l + (points.length > 1 ? (i / (points.length - 1)) : 0.5) * cW;
+  const yOf = (v) => pad.t + (1 - (v - minVal) / range) * cH;
+
+  // Floor dashed line
+  const floorY = yOf(floorPct);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(248,113,113,0.55)';
+  ctx.lineWidth = S;
+  ctx.setLineDash([5 * S, 6 * S]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l, floorY);
+  ctx.lineTo(W - pad.r, floorY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // "FLOOR" label
+  ctx.save();
+  ctx.font = `bold ${7 * S}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = 'rgba(248,113,113,0.65)';
+  ctx.textAlign = 'right';
+  ctx.fillText('FLOOR', W - pad.r - S, floorY - 3 * S);
+  ctx.restore();
+
+  // Filled area under P&L line
+  const lineColor = isFloored ? '#f87171' : '#f59e0b';
+  const fillTop   = isFloored ? 'rgba(248,113,113,0.18)' : 'rgba(245,158,11,0.18)';
+  ctx.save();
+  ctx.beginPath();
+  points.forEach((v, i) => {
+    const x = xOf(i), y = yOf(v);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(xOf(points.length - 1), H - pad.b);
+  ctx.lineTo(xOf(0), H - pad.b);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
+  grad.addColorStop(0, fillTop);
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+
+  // P&L line
+  ctx.save();
+  ctx.beginPath();
+  points.forEach((v, i) => {
+    const x = xOf(i), y = yOf(v);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1.5 * S;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  // Dot at today
+  const dotX = xOf(points.length - 1);
+  const dotY = yOf(currentPct);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 3 * S, 0, Math.PI * 2);
+  ctx.fillStyle = lineColor;
+  ctx.shadowColor = lineColor;
+  ctx.shadowBlur = 6 * S;
+  ctx.fill();
+  ctx.restore();
 }
 
 function wireSliderInput(sliderId, inputId, min, max, kind, linkedInputId) {
