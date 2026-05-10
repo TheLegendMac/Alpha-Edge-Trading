@@ -34,6 +34,8 @@
   display: flex;
   align-items: center;
   gap: 28px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Brand */
@@ -67,7 +69,15 @@
 .cmdbar-nav {
   display: flex;
   gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.cmdbar-nav::-webkit-scrollbar { display: none; }
+.cmdbar-nav .tab { flex: 0 0 auto; }
 .cmdbar-nav .tab {
   font-family: var(--mono);
   font-size: 11px;

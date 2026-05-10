@@ -133,11 +133,22 @@
 @media (max-width: 900px) {
   .cmdbar-inner {
     padding: 10px 14px;
+    min-height: 52px;
   }
-  .cmdbar-actions { gap: 6px; }
+  .cmdbar-actions { gap: 6px; flex: 0 0 auto; }
   .cmdbar-context-btn { padding: 6px 8px; }
   .cmdbar-context-regime { display: none; }
   .cmdbar-sync { display: none; }
   .brand-name { display: none; }
+  .cmdbar-left { gap: 14px; }
+  .cmdbar-nav .tab { padding: 14px 10px; font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .cmdbar-inner { padding: 8px 10px; }
+  .cmdbar-left { gap: 10px; }
+  .cmdbar-actions { gap: 4px; }
+  .cmdbar-kmk-btn { padding: 4px 6px; font-size: 10px; }
+  .cmdbar-context-btn { padding: 5px 6px; font-size: 10px; }
+  .cmdbar-nav .tab { padding: 14px 6px; font-size: 10px; letter-spacing: 0.04em; }
 }
 

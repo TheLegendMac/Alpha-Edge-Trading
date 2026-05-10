@@ -29,7 +29,7 @@ function logIntradayTrade() {
   const mid = instrument === 'options'
     ? (Number(t.mid) || (bid > 0 && ask > 0 ? (bid + ask) / 2 : null))
     : null;
-  const spreadPct = instrument === 'options' ? deriveSpreadPct(t) : null;
+  const spreadPct = instrument === 'options' ? window.deriveSpreadPct(t) : null;
   const nowIso = new Date().toISOString();
   const trade = {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
