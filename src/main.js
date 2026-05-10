@@ -213,7 +213,6 @@ function init() {
   });
 
   // Add trade.
-  document.getElementById('btn-add-trade')?.addEventListener('click', () => window.openTradeModal());
   document.getElementById('btn-add-test-trades')?.addEventListener('click', window.addTestTrades);
   document.getElementById('btn-export')?.addEventListener('click', window.exportCSV);
   document.getElementById('btn-export-json')?.addEventListener('click', window.exportJSON);

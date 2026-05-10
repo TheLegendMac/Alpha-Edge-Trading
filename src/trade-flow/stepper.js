@@ -244,8 +244,6 @@ function tfRenderHeader() {
   // Mode-tinted accent on the trade panel (swing = cyan, intraday = magenta)
   const panel = document.getElementById('panel-trade');
   if (panel) panel.classList.toggle('intraday-mode', m === 'intraday');
-  // Note: [data-trade-mode] active sync happens earlier in tfRenderHeader via
-  // the querySelectorAll at line ~179 — no duplicate needed here.
 
   // Update trade hero section
   const heroEyebrow = document.getElementById('trade-hero-eyebrow');

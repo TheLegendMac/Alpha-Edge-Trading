@@ -270,17 +270,5 @@
   .cmdbar-menu-btn { display: inline-flex; }
 }
 
-/* Legacy selectors kept so existing JS still works */
-.nav-icon-btn {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--ink-3);
-  width: 34px; height: 34px;
-  border-radius: var(--r-sm);
-  display: grid; place-items: center;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.nav-icon-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(6, 212, 248, 0.06); }
 .cmdbar-context-regime { display: none; }
 

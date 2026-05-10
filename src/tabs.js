@@ -14,7 +14,6 @@ export function setTab(name) {
   if (name === 'decision' || name === 'intraday') name = 'trade';
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
-  document.querySelectorAll('.cmdbar-nav-tab').forEach(t => t.classList.toggle('active', t.dataset.cmdbarTab === name));
   document.querySelectorAll('.cmdbar-menu-item').forEach(t => t.classList.toggle('active', t.dataset.menuTab === name));
   state.activeMode = name;
   saveState();
