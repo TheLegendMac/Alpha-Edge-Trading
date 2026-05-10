@@ -12,8 +12,8 @@ function updateLiveHints() {
   const rOn   = parseFloat(document.getElementById('set-risk-on-r')?.value) || 0.5;
   const prem  = parseFloat(document.getElementById('set-max-premium')?.value) || 12;
   const risk  = parseFloat(document.getElementById('set-max-risk')?.value) || 6;
-  const kill  = parseFloat(document.getElementById('set-killswitch-days')?.value) || 7;
-  const dml   = parseFloat(document.getElementById('set-i-max-loss')?.value) || 2;
+  const kill  = parseFloat(document.getElementById('set-kill-floor')?.value) || 7;
+  const dml   = parseFloat(document.getElementById('set-daily-loss-pct')?.value) || 2;
 
   const el = (id) => document.getElementById(id);
   if (el('sett-live-equity'))    el('sett-live-equity').textContent    = '$' + acct.toLocaleString();
@@ -34,9 +34,7 @@ function updateLiveHints() {
   if (el('sett-live-premium-cap')) el('sett-live-premium-cap').textContent = Math.round(acct * prem / 100).toLocaleString();
   if (el('sett-live-risk-cap'))    el('sett-live-risk-cap').textContent    = Math.round(acct * risk / 100).toLocaleString();
 
-  // Kill equiv
-  if (el('sett-kill-eqv'))    el('sett-kill-eqv').textContent    = `= -${fmt$(acct * kill / 100)} on ${fmt$(acct)}`;
-  if (el('sett-kill-daily-sub')) el('sett-kill-daily-sub').textContent = `= -${fmt$(acct * dml / 100)}`;
+  // Kill equiv (remove the duplicate - now done in syncSlider call above)
 
   // Slider fill
   syncSlider('sett-sl-on',      rOn,   0.1, 2,   'on');
@@ -46,6 +44,9 @@ function updateLiveHints() {
   syncSlider('sett-sl-prem',    prem,  5,  100,  'cap');
   syncSlider('sett-sl-risk',    risk,  1,   50,  'cap');
   syncSlider('sett-sl-kill',    kill,  1,   30,  'kill');
+  // Live kill equiv label
+  if (el('sett-kill-eqv'))    el('sett-kill-eqv').textContent    = `= -${fmt$(acct * kill / 100)} on ${fmt$(acct)}`;
+  if (el('sett-kill-daily-sub')) el('sett-kill-daily-sub').textContent = `= -${fmt$(acct * dml / 100)}`;
 }
 
 function syncSlider(sliderId, val, min, max, kind) {
@@ -108,7 +109,10 @@ function openSettings() {
   if (el('set-i-risk'))         el('set-i-risk').value         = s.intradayRiskPerTrade    || DEFAULT_SETTINGS.intradayRiskPerTrade;
   if (el('set-i-max-loss'))     el('set-i-max-loss').value     = s.intradayMaxDailyLoss    || DEFAULT_SETTINGS.intradayMaxDailyLoss;
   if (el('set-i-max-spread'))   el('set-i-max-spread').value   = s.intradayMaxSpreadPct    || DEFAULT_SETTINGS.intradayMaxSpreadPct;
-  if (el('set-i-delta'))        el('set-i-delta').checked      = true; // loss-day stop on by default
+  if (el('set-i-delta'))         el('set-i-delta').checked      = true; // loss-day stop on by default
+  if (el('set-kill-floor'))      el('set-kill-floor').value     = s.killSwitchFloor   || DEFAULT_SETTINGS.killSwitchFloor   || 7.0;
+  if (el('set-daily-loss-pct'))  el('set-daily-loss-pct').value = s.dailyMaxLossPct   || DEFAULT_SETTINGS.dailyMaxLossPct   || 2.0;
+  // keep legacy alias populated for any remaining references
   if (el('set-killswitch-days')) el('set-killswitch-days').value = s.killSwitchDays || DEFAULT_SETTINGS.killSwitchDays;
 
   // Wire sliders (only first time — guard with dataset flag)
@@ -121,7 +125,7 @@ function openSettings() {
     wireSliderInput('sett-sl-pos',     'set-max-positions',  1,   20,  'cap');
     wireSliderInput('sett-sl-prem',    'set-max-premium',    5,   100, 'cap');
     wireSliderInput('sett-sl-risk',    'set-max-risk',       1,   50,  'cap');
-    wireSliderInput('sett-sl-kill',    'set-killswitch-days',1,   30,  'kill');
+    wireSliderInput('sett-sl-kill',    'set-kill-floor',     1,   30,  'kill');
 
     // account input triggers all hints
     const acctEl = el('set-account');
@@ -215,11 +219,13 @@ function saveSettings() {
     maxPremiumPct:            v('set-max-premium',  DEFAULT_SETTINGS.maxPremiumPct),
     maxRiskPct:               v('set-max-risk',     DEFAULT_SETTINGS.maxRiskPct),
     longOnlyMode:             vc('set-long-only'),
-    intradayRiskPerTrade:     v('set-i-risk',       DEFAULT_SETTINGS.intradayRiskPerTrade),
-    intradayMaxDailyLoss:     v('set-i-max-loss',   DEFAULT_SETTINGS.intradayMaxDailyLoss),
-    intradayMaxSpreadPct:     v('set-i-max-spread', DEFAULT_SETTINGS.intradayMaxSpreadPct),
-    intradayDefaultDelta:     v('set-i-delta',      DEFAULT_SETTINGS.intradayDefaultDelta),
+    intradayRiskPerTrade:     v('set-i-risk',        DEFAULT_SETTINGS.intradayRiskPerTrade),
+    intradayMaxDailyLoss:     v('set-i-max-loss',    DEFAULT_SETTINGS.intradayMaxDailyLoss),
+    intradayMaxSpreadPct:     v('set-i-max-spread',  DEFAULT_SETTINGS.intradayMaxSpreadPct),
+    intradayDefaultDelta:     v('set-i-delta',       DEFAULT_SETTINGS.intradayDefaultDelta),
     killSwitchDays:           vi('set-killswitch-days', DEFAULT_SETTINGS.killSwitchDays),
+    killSwitchFloor:          v('set-kill-floor',    DEFAULT_SETTINGS.killSwitchFloor   || 7.0),
+    dailyMaxLossPct:          v('set-daily-loss-pct', DEFAULT_SETTINGS.dailyMaxLossPct  || 2.0),
   };
 
   state.settings = newSettings;

@@ -22,7 +22,9 @@ export const DEFAULT_SETTINGS = {
   intradayMaxSpreadPct: 5,
   intradayDefaultDelta: 0.65,
   // ---- ALPHA INTEL ----
-  killSwitchDays: 30, // window (in days) for kill-switch P/L computation
+  killSwitchDays: 30,    // window (in days) for kill-switch P/L computation
+  killSwitchFloor: 7.0,  // rolling floor as % drawdown threshold (positive number = -X%)
+  dailyMaxLossPct: 2.0,  // daily max loss as % of account
 };
 
 // ---------- Intraday setup library ----------

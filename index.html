@@ -1212,7 +1212,7 @@ STRENGTH: 3/3</pre>
   <!-- LEFT SIDEBAR NAV -->
   <aside class="sett-nav">
     <div class="sett-nav-header">
-      <span class="sett-nav-eyebrow">SETTINGS · 4 SECTIONS</span>
+      <span class="sett-nav-eyebrow">SETTINGS · 6 SECTIONS</span>
     </div>
     <nav class="sett-nav-list">
       <a class="sett-nav-item active" href="#sett-s01" data-sett-nav="s01">
@@ -1227,11 +1227,25 @@ STRENGTH: 3/3</pre>
         <span class="sett-nav-num">03</span>
         <span class="sett-nav-info"><span class="sett-nav-title">Trade modes</span><span class="sett-nav-sub">Swing · Intraday</span></span>
       </a>
-      <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
+      <a class="sett-nav-item sett-nav-dim" href="#sett-s04" data-sett-nav="s04">
         <span class="sett-nav-num">04</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Sector cadence</span><span class="sett-nav-sub">Re-rate window · staleness</span></span>
+      </a>
+      <a class="sett-nav-item sett-nav-dim" href="#sett-s04" data-sett-nav="s04">
+        <span class="sett-nav-num">05</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Alerts &amp; sync</span><span class="sett-nav-sub">Notifications · broker</span></span>
+      </a>
+      <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
+        <span class="sett-nav-num">06</span>
         <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups · danger</span></span>
       </a>
     </nav>
+    <!-- Unsaved override banner -->
+    <div class="sett-nav-override" id="sett-override-banner" style="display:none">
+      <div class="sett-override-label">UNSAVED OVERRIDE</div>
+      <div class="sett-override-text" id="sett-override-text">Kill switch widened to +9%</div>
+      <div class="sett-override-sub">auto-revert · <span id="sett-override-timer">2hr 12m</span></div>
+    </div>
     <div class="sett-nav-footer">
       <button class="sett-btn-ghost sett-cancel-btn" data-close-settings>← Close</button>
     </div>
@@ -1416,11 +1430,12 @@ STRENGTH: 3/3</pre>
 
       <div class="sett-kill-grid">
         <div class="sett-kill-left">
-          <div class="sett-kill-label">ROLLING 14-DAY FLOOR</div>
+          <div class="sett-kill-label">ROLLING <span id="sett-kill-days-label">14</span>-DAY FLOOR</div>
           <div class="sett-kill-value-row">
-            <input type="number" min="1" max="30" step="0.5" class="sett-kill-input" id="set-killswitch-days" value="7.0" />
+            <span class="sett-kill-minus">−</span>
+            <input type="number" min="1" max="30" step="0.5" class="sett-kill-input" id="set-kill-floor" value="7.0" />
             <span class="sett-kill-pct">%</span>
-            <span class="sett-kill-eqv" id="sett-kill-eqv">= -$3,500 on $50k</span>
+            <span class="sett-kill-eqv" id="sett-kill-eqv">= -$700 on $10k</span>
           </div>
           <input type="range" min="1" max="30" step="0.5" class="sett-slider sett-slider-kill" id="sett-sl-kill" value="7" />
           <div class="sett-kill-hint">Tighter — more conservative &nbsp;·&nbsp; Looser — more tolerance for drawdown</div>
@@ -1428,8 +1443,9 @@ STRENGTH: 3/3</pre>
           <div class="sett-kill-daily">
             <div class="sett-kill-daily-label">DAILY MAX LOSS</div>
             <div class="sett-kill-daily-val">
-              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-i-max-loss" value="2.0" /> <span class="sett-cap-unit">%</span>
-              <span class="sett-kill-daily-sub" id="sett-kill-daily-sub">= -$1,000</span>
+              <span class="sett-kill-minus" style="font-size:20px;margin-right:2px">−</span>
+              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-daily-loss-pct" value="2.0" /> <span class="sett-cap-unit">%</span>
+              <span class="sett-kill-daily-sub" id="sett-kill-daily-sub">= -$200</span>
             </div>
             <div class="sett-kill-strikes">2 losses · 3-strike rule on</div>
           </div>
