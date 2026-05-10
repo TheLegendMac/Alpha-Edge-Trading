@@ -3149,19 +3149,22 @@
 }
 .sett-dollar-wrap, .sett-pct-wrap {
   display: flex;
-  align-items: center;
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 6px;
-  overflow: hidden;
+  align-items: baseline;
+  gap: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 4px;
 }
 .sett-dollar-sign, .sett-pct-sign {
   font-family: var(--mono);
-  font-size: 16px;
-  color: var(--ink-4);
-  padding: 0 8px 0 12px;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink-3);
   flex-shrink: 0;
+  line-height: 1;
 }
+.sett-pct-sign { font-size: 14px; }
 .sett-input {
   background: transparent;
   border: none;
@@ -3170,16 +3173,18 @@
   font-size: 26px;
   font-weight: 700;
   color: var(--ink);
-  padding: 10px 10px;
+  padding: 0;
   width: 100%;
+  line-height: 1.2;
 }
-.sett-input-dollar { font-size: 28px; }
-.sett-input-pct { font-size: 20px; padding: 10px 4px; }
+.sett-input-dollar { font-size: 32px; }
+.sett-input-pct { font-size: 18px; font-weight: 600; }
 .sett-select {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 6px;
-  padding: 11px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0;
+  padding: 0 0 4px;
   font-family: var(--mono);
   font-size: 16px;
   font-weight: 700;
@@ -3235,14 +3240,14 @@
   margin-bottom: 0;
 }
 .sett-regime-card {
-  border-radius: 10px;
-  padding: 16px 18px;
+  border-radius: 8px;
+  padding: 14px 16px 12px;
   border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(13,17,23,0.7);
+  background: rgba(8,12,20,0.9);
 }
-.sett-regime-on { border-color: rgba(52,211,153,0.22); background: rgba(6,10,16,0.85); }
-.sett-regime-neutral { border-color: rgba(245,158,11,0.22); background: rgba(6,10,16,0.85); }
-.sett-regime-off { border-color: rgba(248,113,113,0.22); background: rgba(6,10,16,0.85); }
+.sett-regime-on      { border-color: rgba(52,211,153,0.25); }
+.sett-regime-neutral { border-color: rgba(245,158,11,0.25); }
+.sett-regime-off     { border-color: rgba(248,113,113,0.25); }
 .sett-regime-hdr {
   display: flex;
   align-items: center;
