@@ -703,6 +703,9 @@ STRENGTH: 3/3</pre>
           <h1 class="trade-hero-heading" id="trade-hero-heading">Build your trade.</h1>
           <p class="trade-hero-sub" id="trade-hero-sub">Select a mode above to begin.</p>
           <button class="trade-hero-reset-btn" id="trade-reset-btn" type="button">↺ Reset</button>
+          <button class="trade-hero-paste-btn" id="trade-hero-paste-btn" type="button" title="Smart paste TOS alert">
+            <span style="color:var(--cyan);font-size:15px;">⚡</span> TOS Alert
+          </button>
         </div>
         <!-- Mode toggle — right side of hero -->
         <div class="trade-mode-toggle trade-hero-toggle" role="tablist" aria-label="Trade mode">
@@ -725,7 +728,7 @@ STRENGTH: 3/3</pre>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
             </button>
-            <button class="trade-header-btn" id="trade-reset-btn" type="button" title="Clear all fields and start over">Reset</button>
+            <button class="trade-header-btn trade-header-reset-btn" type="button" title="Clear all fields and start over" onclick="window.tfReset()">Reset</button>
           </div>
         </div>
         <nav class="trade-stepper" id="trade-stepper" aria-label="Trade flow steps"></nav>
@@ -1212,7 +1215,7 @@ STRENGTH: 3/3</pre>
   <!-- LEFT SIDEBAR NAV -->
   <aside class="sett-nav">
     <div class="sett-nav-header">
-      <span class="sett-nav-eyebrow">SETTINGS · 4 SECTIONS</span>
+      <span class="sett-nav-eyebrow">SETTINGS</span>
     </div>
     <nav class="sett-nav-list">
       <a class="sett-nav-item active" href="#sett-s01" data-sett-nav="s01">
@@ -1221,7 +1224,7 @@ STRENGTH: 3/3</pre>
       </a>
       <a class="sett-nav-item" href="#sett-s02" data-sett-nav="s02">
         <span class="sett-nav-num">02</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · kill switch</span></span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · caps · kill switch</span></span>
       </a>
       <a class="sett-nav-item" href="#sett-s03" data-sett-nav="s03">
         <span class="sett-nav-num">03</span>
@@ -1246,31 +1249,63 @@ STRENGTH: 3/3</pre>
   <!-- MAIN CONTENT -->
   <div class="sett-main" id="sett-main-scroll">
 
+    <!-- Mobile list view — replaces desktop layout on small screens -->
+    <div class="sett-mv" id="sett-mv">
+      <div class="sett-mv-hero">
+        <h1 class="sett-mv-headline">Rules <span class="sett-hero-accent">that protect you.</span></h1>
+        <div class="sett-mv-card" id="sett-mv-card">
+          <div class="sett-mv-card-col">
+            <div class="sett-mv-card-lbl">EQUITY</div>
+            <div class="sett-mv-card-val" id="smv-equity">—</div>
+          </div>
+          <div class="sett-mv-card-col sett-mv-card-right">
+            <div class="sett-mv-card-lbl">1R</div>
+            <div class="sett-mv-card-val sett-hero-card-cyan" id="smv-1r">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="sett-mv-list">
+        <div class="sett-mv-row" data-mv-sec="sett-s01"><span class="sett-mv-num">01</span><div class="sett-mv-body"><div class="sett-mv-title">Account &amp; equity</div><div class="sett-mv-sub" id="smv-s01">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-On sizing</div><div class="sett-mv-sub sett-mv-green" id="smv-s-rOn">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Neutral sizing</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-rNeu">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-Off sizing</div><div class="sett-mv-sub sett-mv-red" id="smv-s-rOff">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s02b"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Position caps</div><div class="sett-mv-sub" id="smv-s-caps">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s02c"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Kill switch</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-kill">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s03"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Swing rules</div><div class="sett-mv-sub sett-mv-cyan" id="smv-s-swing">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s03"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Intraday rules</div><div class="sett-mv-sub sett-mv-mag" id="smv-s-intra">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">04</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
+      </div>
+    </div>
+
     <!-- Hero -->
     <div class="sett-hero">
       <div class="sett-breadcrumb">SETTINGS · ACCOUNT &amp; RULES</div>
-      <h1 class="sett-hero-headline">The rules <span class="sett-hero-accent">that<br>protect you.</span></h1>
-      <p class="sett-hero-body">Dollar amounts recompute live from your equity. Changes apply on save — open positions keep their entry rules.</p>
-      <div class="sett-hero-cards">
-        <div class="sett-hero-card">
-          <div class="sett-hero-card-label">EQUITY</div>
-          <div class="sett-hero-card-value" id="sett-live-equity">—</div>
-          <div class="sett-hero-card-sub">last reconciled</div>
+      <div class="sett-hero-body-row">
+        <div class="sett-hero-left">
+          <h1 class="sett-hero-headline">The rules <span class="sett-hero-accent">that<br>protect you.</span></h1>
+          <p class="sett-hero-body">Dollar amounts recompute live from your equity. Changes apply on save — open positions keep their entry rules.</p>
         </div>
-        <div class="sett-hero-card">
-          <div class="sett-hero-card-label">BASE 1R</div>
-          <div class="sett-hero-card-value" id="sett-live-base1r">—</div>
-          <div class="sett-hero-card-sub">0.50% of equity</div>
-        </div>
-        <div class="sett-hero-card">
-          <div class="sett-hero-card-label">CAP REMAINING</div>
-          <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
-          <div class="sett-hero-card-sub" id="sett-live-cap-sub">of $5,000 · 80%</div>
-        </div>
-        <div class="sett-hero-card">
-          <div class="sett-hero-card-label">KILL WINDOW</div>
-          <div class="sett-hero-card-value sett-hero-card-neg" id="sett-live-kill">—</div>
-          <div class="sett-hero-card-sub">rolling 14d</div>
+        <div class="sett-hero-cards">
+          <div class="sett-hero-card">
+            <div class="sett-hero-card-label">EQUITY</div>
+            <div class="sett-hero-card-value" id="sett-live-equity">—</div>
+            <div class="sett-hero-card-sub">last reconciled</div>
+          </div>
+          <div class="sett-hero-card">
+            <div class="sett-hero-card-label">BASE 1R</div>
+            <div class="sett-hero-card-value sett-hero-card-green" id="sett-live-base1r">—</div>
+            <div class="sett-hero-card-sub" id="sett-live-base1r-sub">0.50% of equity</div>
+          </div>
+          <div class="sett-hero-card">
+            <div class="sett-hero-card-label">CAP REMAINING</div>
+            <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
+            <div class="sett-hero-card-sub" id="sett-live-cap-sub">of $5,000 · 80%</div>
+          </div>
+          <div class="sett-hero-card">
+            <div class="sett-hero-card-label">KILL WINDOW</div>
+            <div class="sett-hero-card-value sett-hero-card-amber" id="sett-live-kill">—</div>
+            <div class="sett-hero-card-sub">rolling 14d</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1281,37 +1316,25 @@ STRENGTH: 3/3</pre>
       <h2 class="sett-section-title">Account &amp; equity</h2>
       <p class="sett-section-desc">Anchor everything to a single equity number. Update it after a reconciliation, not after each trade.</p>
 
-      <div class="sett-fields-grid sett-grid-4">
+      <div class="sett-fields-grid sett-grid-2">
         <div class="sett-field-group">
           <label class="sett-field-lbl">EQUITY</label>
-          <div class="sett-dollar-wrap">
-            <span class="sett-dollar-sign">$</span>
-            <input type="number" min="500" step="100" class="sett-input sett-input-dollar" id="set-account" placeholder="50,000" />
+          <div class="sett-field-box">
+            <div class="sett-dollar-wrap">
+              <span class="sett-dollar-sign">$</span>
+              <input type="number" min="500" step="100" class="sett-input sett-input-dollar" id="set-account" placeholder="50,000" />
+            </div>
+            <div class="sett-field-hint">USD · cash + open · ex-dividends</div>
           </div>
-          <div class="sett-field-hint">USD · cash + open · ex-dividends</div>
         </div>
         <div class="sett-field-group">
           <label class="sett-field-lbl">BASE RISK PER TRADE</label>
-          <div class="sett-pct-wrap">
-            <input type="number" min="0.1" max="10" step="0.1" class="sett-input sett-input-pct" id="set-risk-on" placeholder="0.50" />
-            <span class="sett-pct-sign">%</span>
-          </div>
-          <div class="sett-field-hint" id="sett-hint-base1r">+ $250 · 1R</div>
-        </div>
-        <div class="sett-field-group">
-          <label class="sett-field-lbl">ACCOUNT CURRENCY</label>
-          <select class="sett-input sett-select" id="set-currency">
-            <option value="USD">USD</option>
-            <option value="CAD">CAD</option>
-            <option value="EUR">EUR</option>
-          </select>
-        </div>
-        <div class="sett-field-group">
-          <label class="sett-field-lbl">RECONCILE CADENCE</label>
-          <div class="sett-seg-group">
-            <button class="sett-seg" data-cadence="daily">DAILY</button>
-            <button class="sett-seg active" data-cadence="weekly">WEEKLY</button>
-            <button class="sett-seg" data-cadence="manual">MANUAL</button>
+          <div class="sett-field-box">
+            <div class="sett-pct-wrap">
+              <input type="number" min="0.1" max="10" step="0.1" class="sett-input sett-input-pct" id="set-risk-on" placeholder="0.50" />
+              <span class="sett-pct-sign">%</span>
+            </div>
+            <div class="sett-field-hint" id="sett-hint-base1r">= $250 · 1R</div>
           </div>
         </div>
       </div>
@@ -1390,27 +1413,45 @@ STRENGTH: 3/3</pre>
             <span class="sett-cap-lbl">CONCURRENT POSITIONS</span>
             <span class="sett-cap-tag">EXIT-ONLY PAST CAP</span>
           </div>
-          <div class="sett-cap-value"><input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" /> <span class="sett-cap-unit">open</span></div>
+          <div class="sett-cap-box">
+            <div class="sett-cap-box-left">
+              <input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" />
+              <span class="sett-cap-unit">open</span>
+            </div>
+            <span class="sett-cap-box-right">exit-only past cap</span>
+          </div>
           <input type="range" min="1" max="20" step="1" class="sett-slider sett-slider-cap" id="sett-sl-pos" value="4" />
-          <div class="sett-cap-range">0 · 2 · 5 · 10</div>
+          <div class="sett-cap-range"><span>1</span><span>20</span></div>
         </div>
         <div class="sett-cap-col">
           <div class="sett-cap-labels">
             <span class="sett-cap-lbl">TOTAL PREMIUM DEPLOYED</span>
-            <span class="sett-cap-tag">$&nbsp;<span id="sett-live-premium-cap">6,000</span> OF EQUITY</span>
+            <span class="sett-cap-tag">$<span id="sett-live-premium-cap">6,000</span> of equity</span>
           </div>
-          <div class="sett-cap-value"><input type="number" min="5" max="100" step="1" class="sett-cap-input" id="set-max-premium" value="12" /> <span class="sett-cap-unit">%</span></div>
+          <div class="sett-cap-box">
+            <div class="sett-cap-box-left">
+              <input type="number" min="5" max="100" step="1" class="sett-cap-input" id="set-max-premium" value="12" />
+              <span class="sett-cap-unit">%</span>
+            </div>
+            <span class="sett-cap-box-right">$<span id="sett-live-premium-cap-b">6,000</span> of equity</span>
+          </div>
           <input type="range" min="5" max="100" step="1" class="sett-slider sett-slider-cap" id="sett-sl-prem" value="12" />
-          <div class="sett-cap-range">10% · 100%</div>
+          <div class="sett-cap-range"><span>5%</span><span>100%</span></div>
         </div>
         <div class="sett-cap-col">
           <div class="sett-cap-labels">
             <span class="sett-cap-lbl">TOTAL AT RISK</span>
-            <span class="sett-cap-tag">$&nbsp;<span id="sett-live-risk-cap">3,000</span> OF EQUITY</span>
+            <span class="sett-cap-tag">$<span id="sett-live-risk-cap">3,000</span> of equity</span>
           </div>
-          <div class="sett-cap-value"><input type="number" min="1" max="50" step="1" class="sett-cap-input" id="set-max-risk" value="6" /> <span class="sett-cap-unit">%</span></div>
+          <div class="sett-cap-box">
+            <div class="sett-cap-box-left">
+              <input type="number" min="1" max="50" step="1" class="sett-cap-input" id="set-max-risk" value="6" />
+              <span class="sett-cap-unit">%</span>
+            </div>
+            <span class="sett-cap-box-right">$<span id="sett-live-risk-cap-b">3,000</span> of equity</span>
+          </div>
           <input type="range" min="1" max="50" step="1" class="sett-slider sett-slider-cap" id="sett-sl-risk" value="6" />
-          <div class="sett-cap-range">10% · 100%</div>
+          <div class="sett-cap-range"><span>1%</span><span>50%</span></div>
         </div>
       </div>
     </section>
@@ -1421,35 +1462,64 @@ STRENGTH: 3/3</pre>
       <h2 class="sett-section-title">When to stop trading</h2>
 
       <div class="sett-kill-grid">
-        <div class="sett-kill-left">
-          <div class="sett-kill-label">ROLLING <span id="sett-kill-days-label">14</span>-DAY FLOOR</div>
+    <div class="sett-kill-left">
+      <div class="sett-kill-label">ROLLING 14-DAY FLOOR</div>
+      <div class="sett-kill-card">
+        <div class="sett-kill-card-top">
           <div class="sett-kill-value-row">
             <span class="sett-kill-minus">−</span>
             <input type="number" min="1" max="30" step="0.5" class="sett-kill-input" id="set-kill-floor" value="7.0" />
             <span class="sett-kill-pct">%</span>
-            <span class="sett-kill-eqv" id="sett-kill-eqv">= -$700 on $10k</span>
           </div>
-          <input type="range" min="1" max="30" step="0.5" class="sett-slider sett-slider-kill" id="sett-sl-kill" value="7" />
-          <div class="sett-kill-hint">Tighter — more conservative &nbsp;·&nbsp; Looser — more tolerance for drawdown</div>
+          <span class="sett-kill-eqv" id="sett-kill-eqv">= -$3,500 on $50k</span>
+        </div>
+        <input type="range" min="1" max="30" step="0.5" class="sett-slider sett-slider-kill" id="sett-sl-kill" value="7" />
+        <div class="sett-kill-ticks">
+          <span>-3%</span><span>-7%</span><span>-10%</span><span>-15%</span>
+        </div>
+        <div class="sett-kill-hint">Tighter → more conservative &nbsp;·&nbsp; looser → more tolerance for drawdown</div>
+      </div>
 
-          <div class="sett-kill-daily">
-            <div class="sett-kill-daily-label">DAILY MAX LOSS</div>
-            <div class="sett-kill-daily-val">
-              <span class="sett-kill-minus" style="font-size:20px;margin-right:2px">−</span>
-              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-daily-loss-pct" value="2.0" /> <span class="sett-cap-unit">%</span>
-              <span class="sett-kill-daily-sub" id="sett-kill-daily-sub">= -$200</span>
+      <div class="sett-kill-daily-section">
+        <div class="sett-kill-label" style="margin-bottom:10px;">DAILY MAX LOSS</div>
+        <div class="sett-kill-daily-boxes">
+          <div class="sett-kill-mini-box">
+            <div class="sett-kill-mini-value">
+              <span class="sett-kill-minus" style="font-size:22px;margin-right:1px;">−</span>
+              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-daily-loss-pct" value="2.0" style="width:56px;" />
+              <span class="sett-cap-unit" style="font-size:13px;">%</span>
             </div>
-            <div class="sett-kill-strikes">2 losses · 3-strike rule on</div>
+            <div class="sett-kill-mini-sub" id="sett-kill-daily-sub">= -$1,000</div>
+          </div>
+          <div class="sett-kill-mini-box">
+            <div class="sett-kill-mini-strikes">2 losses</div>
+            <div class="sett-kill-mini-sub">2-strike rule on</div>
           </div>
         </div>
-        <div class="sett-kill-right">
-          <div class="sett-kill-preview-label">LIVE PREVIEW · Where you'd be standing</div>
-          <canvas class="sett-kill-canvas" id="sett-kill-preview" width="560" height="240" style="width:100%;height:120px;"></canvas>
-          <div class="sett-kill-preview-foot">
-            <span>NOW &nbsp;<span id="sett-kill-now-pct" style="color:#f59e0b;font-weight:700;">—</span></span>
-            <span>STATE &nbsp;<span class="sett-kill-preview-state" id="sett-kill-state">CLEARED</span></span>
-          </div>
+      </div>
+    </div>
+
+    <div class="sett-kill-right">
+      <div class="sett-kill-preview-eyebrow">LIVE PREVIEW</div>
+      <div class="sett-kill-preview-subtitle">Where you'd be standing</div>
+      <canvas class="sett-kill-canvas" id="sett-kill-preview" width="560" height="240" style="width:100%;height:120px;"></canvas>
+      <div class="sett-kill-axis">
+        <span>14 DAYS AGO</span>
+        <span>TODAY</span>
+      </div>
+      <div class="sett-kill-preview-stats">
+        <div class="sett-kill-stat">
+          <div class="sett-kill-stat-label">NOW</div>
+          <div class="sett-kill-stat-value" id="sett-kill-now-pct">—</div>
+          <div class="sett-kill-stat-sub" id="sett-kill-now-sub">—</div>
         </div>
+        <div class="sett-kill-stat">
+          <div class="sett-kill-stat-label">STATE</div>
+          <div class="sett-kill-stat-value sett-kill-preview-state" id="sett-kill-state">CLEARED</div>
+          <div class="sett-kill-stat-sub" id="sett-kill-state-sub">trading allowed</div>
+        </div>
+      </div>
+    </div>
       </div>
     </section>
 

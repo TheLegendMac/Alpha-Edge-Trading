@@ -10,19 +10,23 @@ function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
 
 function updateLiveHints() {
   const acct  = parseFloat(document.getElementById('set-account')?.value) || 50000;
-  const rOn   = parseFloat(document.getElementById('set-risk-on-r')?.value) || 0.5;
+  // read from regime slider first, fall back to account-section base risk input
+  const rOn   = parseFloat(document.getElementById('set-risk-on-r')?.value)
+             || parseFloat(document.getElementById('set-risk-on')?.value)
+             || 0.5;
   const prem  = parseFloat(document.getElementById('set-max-premium')?.value) || 12;
   const risk  = parseFloat(document.getElementById('set-max-risk')?.value) || 6;
   const kill  = parseFloat(document.getElementById('set-kill-floor')?.value) || 7;
   const dml   = parseFloat(document.getElementById('set-daily-loss-pct')?.value) || 2;
 
   const el = (id) => document.getElementById(id);
-  if (el('sett-live-equity'))    el('sett-live-equity').textContent    = '$' + acct.toLocaleString();
-  if (el('sett-live-base1r'))    el('sett-live-base1r').textContent    = fmt$(acct * rOn / 100);
-  if (el('sett-live-cap'))       el('sett-live-cap').textContent       = fmt$(acct * prem / 100);
-  if (el('sett-live-cap-sub'))   el('sett-live-cap-sub').textContent   = `of ${fmt$(acct)} · ${prem}%`;
-  if (el('sett-live-kill'))      el('sett-live-kill').textContent      = `-${kill.toFixed(1)}%`;
-  if (el('sett-hint-base1r'))    el('sett-hint-base1r').textContent    = `+ ${fmt$(acct * rOn / 100)} · 1R`;
+  if (el('sett-live-equity'))      el('sett-live-equity').textContent      = '$' + acct.toLocaleString();
+  if (el('sett-live-base1r'))      el('sett-live-base1r').textContent      = fmt$(acct * rOn / 100);
+  if (el('sett-live-base1r-sub'))  el('sett-live-base1r-sub').textContent  = `${rOn.toFixed(2)}% of equity`;
+  if (el('sett-live-cap'))         el('sett-live-cap').textContent         = fmt$(acct * prem / 100);
+  if (el('sett-live-cap-sub'))     el('sett-live-cap-sub').textContent     = `of ${fmt$(acct)} · ${prem}%`;
+  if (el('sett-live-kill'))        el('sett-live-kill').textContent        = `-${kill.toFixed(1)}%`;
+  if (el('sett-hint-base1r'))      el('sett-hint-base1r').textContent      = `= ${fmt$(acct * rOn / 100)} · 1R`;
 
   // Regime equiv labels
   const rNeu = parseFloat(document.getElementById('set-risk-neutral-r')?.value) || 0.25;
@@ -31,9 +35,11 @@ function updateLiveHints() {
   if (el('sett-eqv-neutral')) el('sett-eqv-neutral').textContent = `= ${fmt$(acct * rNeu / 100)}`;
   if (el('sett-eqv-off'))     el('sett-eqv-off').textContent     = `= ${fmt$(acct * rOff / 100)}`;
 
-  // Cap dollar labels
-  if (el('sett-live-premium-cap')) el('sett-live-premium-cap').textContent = Math.round(acct * prem / 100).toLocaleString();
-  if (el('sett-live-risk-cap'))    el('sett-live-risk-cap').textContent    = Math.round(acct * risk / 100).toLocaleString();
+  // Cap dollar labels (header tags + inline box-right)
+  const premCap = Math.round(acct * prem / 100).toLocaleString();
+  const riskCap = Math.round(acct * risk / 100).toLocaleString();
+  ['sett-live-premium-cap','sett-live-premium-cap-b'].forEach(id => { if (el(id)) el(id).textContent = premCap; });
+  ['sett-live-risk-cap','sett-live-risk-cap-b'].forEach(id => { if (el(id)) el(id).textContent = riskCap; });
 
   // Kill equiv (remove the duplicate - now done in syncSlider call above)
 
@@ -50,6 +56,36 @@ function updateLiveHints() {
   if (el('sett-kill-daily-sub')) el('sett-kill-daily-sub').textContent = `= -${fmt$(acct * dml / 100)}`;
   // Kill preview chart
   drawKillPreview();
+  // Mobile list view values
+  updateMobileView(acct, rOn, kill);
+}
+
+function updateMobileView(acct, rOn, kill) {
+  const el = (id) => document.getElementById(id);
+  if (!el('sett-mv')) return;
+  const a = acct || parseFloat(el('set-account')?.value) || 50000;
+  const r = rOn  || parseFloat(el('set-risk-on-r')?.value) || parseFloat(el('set-risk-on')?.value) || 0.5;
+  const k = kill || parseFloat(el('set-kill-floor')?.value) || 7;
+  const rNeu = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
+  const rOff = parseFloat(el('set-risk-off-r')?.value) || 0.15;
+  const maxPos  = parseInt(el('set-max-positions')?.value) || 4;
+  const maxPrem = parseFloat(el('set-max-premium')?.value) || 12;
+  const maxRisk = parseFloat(el('set-max-risk')?.value) || 6;
+  const maxPosTgt = parseInt(el('set-target-pct')?.value) || 4;
+  const iRisk = parseFloat(el('set-i-risk')?.value) || 125;
+  const f$ = (n) => '$' + Math.abs(Math.round(n)).toLocaleString();
+
+  const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
+  set('smv-equity', '$' + a.toLocaleString());
+  set('smv-1r',     f$(a * r / 100));
+  set('smv-s01',    '$' + a.toLocaleString());
+  set('smv-s-rOn',  r.toFixed(2) + '%');
+  set('smv-s-rNeu', rNeu.toFixed(2) + '%');
+  set('smv-s-rOff', rOff.toFixed(2) + '%');
+  set('smv-s-caps', `${maxPos} · ${maxPrem}% · ${maxRisk}%`);
+  set('smv-s-kill', `-${k.toFixed(1)}% · 14d`);
+  set('smv-s-swing', `${r.toFixed(2)}% · ${maxPosTgt} max`);
+  set('smv-s-intra', `${f$(iRisk)} · 15:55 ET`);
 }
 
 function syncSlider(sliderId, val, min, max, kind) {
@@ -101,15 +137,22 @@ function drawKillPreview() {
   const isFloored  = currentPct <= floorPct;
 
   // Update labels
-  const stateEl  = document.getElementById('sett-kill-state');
-  const nowPctEl = document.getElementById('sett-kill-now-pct');
+  const stateEl    = document.getElementById('sett-kill-state');
+  const stateSubEl = document.getElementById('sett-kill-state-sub');
+  const nowPctEl   = document.getElementById('sett-kill-now-pct');
+  const nowSubEl   = document.getElementById('sett-kill-now-sub');
   if (stateEl) {
     stateEl.textContent = isFloored ? 'FLOORED' : 'CLEARED';
     stateEl.style.color = isFloored ? '#f87171' : '#34d399';
   }
+  if (stateSubEl) stateSubEl.textContent = isFloored ? 'trading stopped' : 'trading allowed';
   if (nowPctEl) {
     nowPctEl.textContent = (currentPct >= 0 ? '+' : '') + currentPct.toFixed(1) + '%';
     nowPctEl.style.color = isFloored ? '#f87171' : '#f59e0b';
+  }
+  if (nowSubEl) {
+    const distToFloor = (currentPct - floorPct).toFixed(1);
+    nowSubEl.textContent = isFloored ? 'floor breached' : `${distToFloor}pt to floor`;
   }
 
   // Draw — canvas is 2× resolution (560×240) rendered at CSS 100%×120px
@@ -224,14 +267,16 @@ function openSettings() {
 
   // Populate all inputs from state
   if (el('set-account'))        el('set-account').value        = s.account        || DEFAULT_SETTINGS.account;
-  // Regime risk — new IDs include -r suffix for the new sliders/inputs
-  if (el('set-risk-on-r'))      el('set-risk-on-r').value      = s.riskOn         || DEFAULT_SETTINGS.riskOn;
-  if (el('set-risk-neutral-r')) el('set-risk-neutral-r').value = s.riskNeutral    || DEFAULT_SETTINGS.riskNeutral;
-  if (el('set-risk-off-r'))     el('set-risk-off-r').value     = s.riskOff        || DEFAULT_SETTINGS.riskOff;
-  // Also keep old IDs alive for save compat
-  if (el('set-risk-on'))        el('set-risk-on').value        = s.riskOn         || DEFAULT_SETTINGS.riskOn;
-  if (el('set-risk-neutral'))   el('set-risk-neutral').value   = s.riskNeutral    || DEFAULT_SETTINGS.riskNeutral;
-  if (el('set-risk-off'))       el('set-risk-off').value       = s.riskOff        || DEFAULT_SETTINGS.riskOff;
+  // Regime risk — all three inputs (slider, regime -r input, account base-risk) kept in sync
+  const rOn  = s.riskOn      || DEFAULT_SETTINGS.riskOn;
+  const rNeu = s.riskNeutral || DEFAULT_SETTINGS.riskNeutral;
+  const rOff = s.riskOff     || DEFAULT_SETTINGS.riskOff;
+  if (el('set-risk-on-r'))      el('set-risk-on-r').value      = rOn;
+  if (el('set-risk-neutral-r')) el('set-risk-neutral-r').value = rNeu;
+  if (el('set-risk-off-r'))     el('set-risk-off-r').value     = rOff;
+  if (el('set-risk-on'))        el('set-risk-on').value        = rOn;   // account base risk field
+  if (el('set-risk-neutral'))   el('set-risk-neutral').value   = rNeu;
+  if (el('set-risk-off'))       el('set-risk-off').value       = rOff;
 
   if (el('set-stop-pct'))       el('set-stop-pct').value       = s.stopPct        || DEFAULT_SETTINGS.stopPct;
   if (el('set-target-pct'))     el('set-target-pct').value     = s.targetPct      || DEFAULT_SETTINGS.targetPct;
@@ -245,8 +290,7 @@ function openSettings() {
   if (el('set-i-delta'))         el('set-i-delta').checked      = true; // loss-day stop on by default
   if (el('set-kill-floor'))      el('set-kill-floor').value     = s.killSwitchFloor   || DEFAULT_SETTINGS.killSwitchFloor   || 7.0;
   if (el('set-daily-loss-pct'))  el('set-daily-loss-pct').value = s.dailyMaxLossPct   || DEFAULT_SETTINGS.dailyMaxLossPct   || 2.0;
-  // keep legacy alias populated for any remaining references
-  if (el('set-killswitch-days')) el('set-killswitch-days').value = s.killSwitchDays || DEFAULT_SETTINGS.killSwitchDays;
+  // no-op: set-killswitch-days input was removed from HTML
 
   // Wire sliders (only first time — guard with dataset flag)
   const overlay = document.getElementById('modal-settings');
@@ -264,13 +308,18 @@ function openSettings() {
     const acctEl = el('set-account');
     if (acctEl) acctEl.addEventListener('input', updateLiveHints);
 
-    // Segment cadence buttons
-    overlay.querySelectorAll('[data-cadence]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        overlay.querySelectorAll('[data-cadence]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    // Wire account-section base-risk input (set-risk-on) → regime slider + hints
+    const acctRiskEl = el('set-risk-on');
+    if (acctRiskEl) {
+      acctRiskEl.addEventListener('input', () => {
+        const val = parseFloat(acctRiskEl.value) || 0;
+        const rOnR = el('set-risk-on-r');
+        const slOn = el('sett-sl-on');
+        if (rOnR) rOnR.value = val;
+        if (slOn) { slOn.value = val; syncSlider('sett-sl-on', val, 0.1, 2, 'on'); }
+        updateLiveHints();
       });
-    });
+    }
 
     // Sidebar nav highlight on scroll
     const mainScroll = el('sett-main-scroll');
@@ -308,7 +357,38 @@ function openSettings() {
         loLbl.className = 'sett-toggle-lbl-sm ' + (loCheck.checked ? 'sett-lbl-on' : '');
       });
     }
+
+    // Mobile list row taps — expand the section inline below the list
+    const mvEl = el('sett-mv');
+    if (mvEl) {
+      mvEl.querySelectorAll('[data-mv-sec]').forEach(row => {
+        row.addEventListener('click', () => {
+          const secId = row.dataset.mvSec;
+          // collapse all first
+          document.querySelectorAll('.sett-section.sett-mv-open').forEach(s => s.classList.remove('sett-mv-open'));
+          const sec = el(secId);
+          if (!sec) return;
+          sec.classList.add('sett-mv-open');
+          // inject back button once
+          if (!sec.querySelector('.sett-mv-back')) {
+            const btn = document.createElement('button');
+            btn.className = 'sett-mv-back';
+            btn.textContent = '← Back';
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              sec.classList.remove('sett-mv-open');
+              mvEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            sec.insertAdjacentElement('afterbegin', btn);
+          }
+          sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
   }
+
+  // Reset mobile open state on every open
+  document.querySelectorAll('.sett-section.sett-mv-open').forEach(s => s.classList.remove('sett-mv-open'));
 
   // Update all live hints
   updateLiveHints();
@@ -319,6 +399,8 @@ function openSettings() {
 // ── close ─────────────────────────────────────────────────────────────
 function closeSettings() {
   document.getElementById('modal-settings')?.classList.remove('show');
+  // collapse any open mobile sections
+  document.querySelectorAll('.sett-section.sett-mv-open').forEach(s => s.classList.remove('sett-mv-open'));
 }
 
 // ── save ──────────────────────────────────────────────────────────────
@@ -353,10 +435,11 @@ function saveSettings() {
     maxRiskPct:               v('set-max-risk',     DEFAULT_SETTINGS.maxRiskPct),
     longOnlyMode:             vc('set-long-only'),
     intradayRiskPerTrade:     v('set-i-risk',        DEFAULT_SETTINGS.intradayRiskPerTrade),
-    intradayMaxDailyLoss:     v('set-i-max-loss',    DEFAULT_SETTINGS.intradayMaxDailyLoss),
+    // set-i-max-loss has no visible input — preserve the existing saved value to avoid overwrite
+    intradayMaxDailyLoss:     v('set-i-max-loss',    state.settings?.intradayMaxDailyLoss ?? DEFAULT_SETTINGS.intradayMaxDailyLoss),
     intradayMaxSpreadPct:     v('set-i-max-spread',  DEFAULT_SETTINGS.intradayMaxSpreadPct),
     intradayDefaultDelta:     v('set-i-delta',       DEFAULT_SETTINGS.intradayDefaultDelta),
-    killSwitchDays:           vi('set-killswitch-days', DEFAULT_SETTINGS.killSwitchDays),
+    killSwitchDays:           state.settings?.killSwitchDays ?? DEFAULT_SETTINGS.killSwitchDays,
     killSwitchFloor:          v('set-kill-floor',    DEFAULT_SETTINGS.killSwitchFloor   || 7.0),
     dailyMaxLossPct:          v('set-daily-loss-pct', DEFAULT_SETTINGS.dailyMaxLossPct  || 2.0),
   };

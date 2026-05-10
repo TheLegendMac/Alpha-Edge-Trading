@@ -738,6 +738,7 @@ function tfBindTradePanelStaticOnce() {
 
   document.getElementById('trade-reset-btn')?.addEventListener('click', () => window.tfReset());
   document.getElementById('trade-smart-paste-btn')?.addEventListener('click', () => window.tfFocusSmartPaste());
+  document.getElementById('trade-hero-paste-btn')?.addEventListener('click', () => window.tfFocusSmartPaste());
 
   document.getElementById('trade-back-btn')?.addEventListener('click', () => {
     const cur = (state.tradeFlow && state.tradeFlow.step) || 1;
