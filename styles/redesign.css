@@ -3079,19 +3079,25 @@
 }
 
 /* ── Sections ── */
+/* Main scroll has a slightly different bg to make cards "pop" */
+.sett-main { background: #08090d; }
+
 .sett-section {
-  padding: 24px 40px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin: 0 20px 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.018) 0%, transparent 40%), #0e1119;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 20px 24px 22px;
 }
+.sett-section:first-of-type { margin-top: 0; }
 .sett-section-sub {
-  padding-top: 20px;
-  background: rgba(255,255,255,0.01);
+  margin-top: 14px;
 }
 .sett-section-badge {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .sett-section-num {
   font-family: var(--mono);
@@ -3100,6 +3106,7 @@
   letter-spacing: 0.14em;
   color: var(--cyan);
   text-transform: uppercase;
+  opacity: 0.75;
 }
 .sett-section-tag {
   font-family: var(--mono);
@@ -3107,27 +3114,28 @@
   color: var(--ink-4);
   letter-spacing: 0.10em;
   text-transform: uppercase;
+  margin-left: auto;
 }
 .sett-section-title {
   font-family: var(--display);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: var(--ink);
 }
 .sett-section-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ink-3);
-  margin: 0 0 22px;
-  line-height: 1.6;
-  max-width: 600px;
+  margin: 0 0 18px;
+  line-height: 1.55;
+  max-width: 560px;
 }
 
 /* ── Account fields grid ── */
-.sett-fields-grid { display: grid; gap: 20px; }
-.sett-grid-4 { grid-template-columns: repeat(4, 1fr); }
-.sett-field-group { display: flex; flex-direction: column; gap: 8px; }
+.sett-fields-grid { display: grid; gap: 16px; }
+.sett-grid-4 { grid-template-columns: 1.4fr 1fr 0.9fr 1.2fr; }
+.sett-field-group { display: flex; flex-direction: column; gap: 6px; }
 .sett-field-lbl {
   font-family: var(--mono);
   font-size: 9px;
@@ -3139,16 +3147,16 @@
 .sett-dollar-wrap, .sett-pct-wrap {
   display: flex;
   align-items: center;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
   overflow: hidden;
 }
 .sett-dollar-sign, .sett-pct-sign {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-4);
-  padding: 0 10px;
+  padding: 0 8px 0 12px;
   flex-shrink: 0;
 }
 .sett-input {
@@ -3156,19 +3164,19 @@
   border: none;
   outline: none;
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--ink);
-  padding: 12px 12px;
+  padding: 10px 10px;
   width: 100%;
 }
-.sett-input-dollar { font-size: 22px; }
-.sett-input-pct { font-size: 22px; text-align: right; }
+.sett-input-dollar { font-size: 28px; }
+.sett-input-pct { font-size: 20px; padding: 10px 4px; }
 .sett-select {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  padding: 12px 14px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 11px 14px;
   font-family: var(--mono);
   font-size: 16px;
   font-weight: 700;
@@ -3192,21 +3200,29 @@
 .sett-seg {
   flex: 1;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-4);
-  padding: 8px 4px;
-  border-radius: 6px;
+  padding: 7px 4px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
+  border: none;
+  background: transparent;
 }
 .sett-seg.active {
   background: var(--cyan);
   color: #08090d;
 }
-.sett-seg:hover:not(.active) { background: rgba(255,255,255,0.06); color: var(--ink); }
+.sett-seg:hover:not(.active) { background: rgba(255,255,255,0.06); color: var(--ink-2); }
+.sett-seg-group {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 5px;
+  padding: 2px;
+}
 
 /* ── Regime grid ── */
 .sett-regime-grid {
@@ -3251,71 +3267,89 @@
 .sett-regime-value-row {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: 2px;
+  margin-bottom: 10px;
 }
 .sett-regime-input {
   font-family: var(--mono);
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   color: var(--ink);
   background: transparent;
   border: none;
   outline: none;
-  width: 80px;
+  width: 90px;
+  padding: 0;
 }
 .sett-regime-pct {
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 14px;
   color: var(--ink-3);
+  line-height: 1;
+  padding-bottom: 2px;
 }
 .sett-regime-eqv {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-4);
-  margin-left: auto;
+  margin-left: 6px;
+  padding-bottom: 2px;
 }
-.sett-regime-slider-wrap { margin-bottom: 10px; }
+.sett-regime-slider-wrap { margin-bottom: 6px; }
 .sett-regime-foot {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--ink-4);
+  margin-top: 4px;
 }
 
 /* ── Sliders ── */
 .sett-slider {
   width: 100%;
-  height: 4px;
+  height: 3px;
   -webkit-appearance: none;
   appearance: none;
   border-radius: 2px;
   cursor: pointer;
   outline: none;
+  display: block;
 }
-.sett-slider-on { background: linear-gradient(90deg, var(--green-bright) 25%, rgba(255,255,255,0.1) 25%); }
-.sett-slider-neutral { background: linear-gradient(90deg, #f59e0b 12.5%, rgba(255,255,255,0.1) 12.5%); }
-.sett-slider-off { background: linear-gradient(90deg, var(--red-bright) 7.5%, rgba(255,255,255,0.1) 7.5%); }
-.sett-slider-cap { background: linear-gradient(90deg, var(--cyan) 20%, rgba(255,255,255,0.1) 20%); }
-.sett-slider-kill { background: linear-gradient(90deg, #f59e0b 23.3%, rgba(255,255,255,0.1) 23.3%); }
+.sett-slider-on      { background: linear-gradient(90deg, var(--green-bright) 25%, rgba(255,255,255,0.08) 25%); }
+.sett-slider-neutral { background: linear-gradient(90deg, #f59e0b 12.5%, rgba(255,255,255,0.08) 12.5%); }
+.sett-slider-off     { background: linear-gradient(90deg, var(--red-bright) 7.5%, rgba(255,255,255,0.08) 7.5%); }
+.sett-slider-cap     { background: linear-gradient(90deg, var(--cyan) 20%, rgba(255,255,255,0.08) 20%); }
+.sett-slider-kill    { background: linear-gradient(90deg, #f59e0b 23.3%, rgba(255,255,255,0.08) 23.3%); }
 .sett-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px; height: 14px;
+  width: 12px; height: 12px;
   border-radius: 50%;
-  background: var(--ink);
+  background: #e2e8f0;
   cursor: pointer;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4);
 }
 .sett-slider::-moz-range-thumb {
-  width: 14px; height: 14px;
+  width: 12px; height: 12px;
   border-radius: 50%;
-  background: var(--ink);
+  background: #e2e8f0;
   cursor: pointer;
   border: none;
 }
+/* Slider tick labels */
+.sett-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+.sett-slider-ticks span {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--ink-4);
+  opacity: 0.7;
+}
 .sett-reset-inline {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.10em;
-  padding: 6px 14px;
+  padding: 5px 10px;
   float: right;
   margin-top: -50px;
 }
