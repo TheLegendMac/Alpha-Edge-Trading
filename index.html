@@ -1206,177 +1206,364 @@ STRENGTH: 3/3</pre>
   </div>
 </div>
 
-<!-- ============ SETTINGS MODAL ============ -->
-<div class="modal-backdrop" id="modal-settings">
-  <div class="sett-modal">
-    <!-- Header -->
-    <div class="sett-header">
-      <div>
-        <div class="sett-eyebrow">Configuration</div>
-        <h2 class="sett-title">Settings</h2>
+<!-- ============ SETTINGS OVERLAY (full-page) ============ -->
+<div class="sett-overlay" id="modal-settings">
+
+  <!-- LEFT SIDEBAR NAV -->
+  <aside class="sett-nav">
+    <div class="sett-nav-header">
+      <span class="sett-nav-eyebrow">SETTINGS · 4 SECTIONS</span>
+    </div>
+    <nav class="sett-nav-list">
+      <a class="sett-nav-item active" href="#sett-s01" data-sett-nav="s01">
+        <span class="sett-nav-num">01</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Account &amp; equity</span><span class="sett-nav-sub">Capital base · base 1R</span></span>
+      </a>
+      <a class="sett-nav-item" href="#sett-s02" data-sett-nav="s02">
+        <span class="sett-nav-num">02</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · kill switch</span></span>
+      </a>
+      <a class="sett-nav-item" href="#sett-s03" data-sett-nav="s03">
+        <span class="sett-nav-num">03</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Trade modes</span><span class="sett-nav-sub">Swing · Intraday</span></span>
+      </a>
+      <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
+        <span class="sett-nav-num">04</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups · danger</span></span>
+      </a>
+    </nav>
+    <div class="sett-nav-footer">
+      <button class="sett-btn-ghost sett-cancel-btn" data-close-settings>← Close</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="sett-main" id="sett-main-scroll">
+
+    <!-- Hero -->
+    <div class="sett-hero">
+      <div class="sett-breadcrumb">SETTINGS · ACCOUNT &amp; RULES</div>
+      <h1 class="sett-hero-headline">The rules <span class="sett-hero-accent">that<br>protect you.</span></h1>
+      <p class="sett-hero-body">Dollar amounts recompute live from your equity. Changes apply on save — open positions keep their entry rules.</p>
+      <div class="sett-hero-cards">
+        <div class="sett-hero-card">
+          <div class="sett-hero-card-label">EQUITY</div>
+          <div class="sett-hero-card-value" id="sett-live-equity">—</div>
+          <div class="sett-hero-card-sub">last reconciled</div>
+        </div>
+        <div class="sett-hero-card">
+          <div class="sett-hero-card-label">BASE 1R</div>
+          <div class="sett-hero-card-value" id="sett-live-base1r">—</div>
+          <div class="sett-hero-card-sub">0.50% of equity</div>
+        </div>
+        <div class="sett-hero-card">
+          <div class="sett-hero-card-label">CAP REMAINING</div>
+          <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
+          <div class="sett-hero-card-sub" id="sett-live-cap-sub">of $5,000 · 80%</div>
+        </div>
+        <div class="sett-hero-card">
+          <div class="sett-hero-card-label">KILL WINDOW</div>
+          <div class="sett-hero-card-value sett-hero-card-neg" id="sett-live-kill">—</div>
+          <div class="sett-hero-card-sub">rolling 14d</div>
+        </div>
       </div>
-      <button class="sett-close" data-close-settings aria-label="Close settings">×</button>
     </div>
 
-    <!-- Body -->
-    <div class="sett-body">
+    <!-- ── SECTION 01: ACCOUNT ── -->
+    <section class="sett-section" id="sett-s01">
+      <div class="sett-section-badge"><span class="sett-section-num">· 01 · ACCOUNT</span></div>
+      <h2 class="sett-section-title">Account &amp; equity</h2>
+      <p class="sett-section-desc">Anchor everything to a single equity number. Update it after a reconciliation, not after each trade.</p>
 
-      <!-- Account -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Account size</span>
-          <span class="sett-card-desc">Used to compute risk dollars from your risk percentages</span>
+      <div class="sett-fields-grid sett-grid-4">
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">EQUITY</label>
+          <div class="sett-dollar-wrap">
+            <span class="sett-dollar-sign">$</span>
+            <input type="number" min="500" step="100" class="sett-input sett-input-dollar" id="set-account" placeholder="50,000" />
+          </div>
+          <div class="sett-field-hint">USD · cash + open · ex-dividends</div>
         </div>
-        <div class="sett-fields-row">
-          <div class="sett-field sett-field-wide">
-            <label class="sett-field-label">ACCOUNT SIZE ($)</label>
-            <input type="number" min="500" step="100" class="sett-input" id="set-account" />
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">BASE RISK PER TRADE</label>
+          <div class="sett-pct-wrap">
+            <input type="number" min="0.1" max="10" step="0.1" class="sett-input sett-input-pct" id="set-risk-on" placeholder="0.50" />
+            <span class="sett-pct-sign">%</span>
+          </div>
+          <div class="sett-field-hint" id="sett-hint-base1r">+ $250 · 1R</div>
+        </div>
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">ACCOUNT CURRENCY</label>
+          <select class="sett-input sett-select" id="set-currency">
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">RECONCILE CADENCE</label>
+          <div class="sett-seg-group">
+            <button class="sett-seg" data-cadence="daily">DAILY</button>
+            <button class="sett-seg active" data-cadence="weekly">WEEKLY</button>
+            <button class="sett-seg" data-cadence="manual">MANUAL</button>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Risk per regime -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Risk per trade · by regime</span>
-          <span class="sett-card-desc">% of account risked on a single trade</span>
+    <!-- ── SECTION 02: RISK RULES ── -->
+    <section class="sett-section" id="sett-s02">
+      <div class="sett-section-badge"><span class="sett-section-num">· 02 · RISK RULES</span></div>
+      <h2 class="sett-section-title">Sizing by regime</h2>
+      <p class="sett-section-desc">Three lanes. Risk-On is your green light. Risk-Off is the kill switch. Neutral is the slow lane — half size, both directions allowed.</p>
+      <button class="sett-btn-ghost sett-reset-inline" id="btn-reset-settings">RESET TO DEFAULTS</button>
+
+      <div class="sett-regime-grid">
+        <!-- Risk-On -->
+        <div class="sett-regime-card sett-regime-on">
+          <div class="sett-regime-hdr">
+            <span class="sett-regime-dot" style="background:var(--green-bright);box-shadow:0 0 6px var(--green-bright)"></span>
+            <span class="sett-regime-label">RISK-ON</span>
+            <span class="sett-regime-sub">SHORT BLOCKED</span>
+          </div>
+          <div class="sett-regime-value-row">
+            <input type="number" min="0.1" max="10" step="0.1" class="sett-regime-input" id="set-risk-on-r" value="0.50" />
+            <span class="sett-regime-pct">%</span>
+            <span class="sett-regime-eqv" id="sett-eqv-on">= $250</span>
+          </div>
+          <div class="sett-regime-slider-wrap">
+            <input type="range" min="0.1" max="2" step="0.05" class="sett-slider sett-slider-on" id="sett-sl-on" value="0.5" />
+          </div>
+          <div class="sett-regime-foot">Long full size</div>
         </div>
-        <div class="sett-fields-row">
-          <div class="sett-field">
-            <label class="sett-field-label"><span class="sett-dot sett-dot-green"></span>RISK-ON %</label>
-            <input type="number" min="0.1" max="10" step="0.1" class="sett-input" id="set-risk-on" />
+        <!-- Neutral -->
+        <div class="sett-regime-card sett-regime-neutral">
+          <div class="sett-regime-hdr">
+            <span class="sett-regime-dot" style="background:#f59e0b;box-shadow:0 0 6px #f59e0b"></span>
+            <span class="sett-regime-label">NEUTRAL</span>
+            <span class="sett-regime-sub">LONG &amp; SHORT ALLOWED</span>
           </div>
-          <div class="sett-field">
-            <label class="sett-field-label"><span class="sett-dot sett-dot-amber"></span>NEUTRAL %</label>
-            <input type="number" min="0.1" max="10" step="0.1" class="sett-input" id="set-risk-neutral" />
+          <div class="sett-regime-value-row">
+            <input type="number" min="0.1" max="10" step="0.1" class="sett-regime-input" id="set-risk-neutral-r" value="0.25" />
+            <span class="sett-regime-pct">%</span>
+            <span class="sett-regime-eqv" id="sett-eqv-neutral">= $125</span>
           </div>
-          <div class="sett-field">
-            <label class="sett-field-label"><span class="sett-dot sett-dot-red"></span>RISK-OFF %</label>
-            <input type="number" min="0.1" max="10" step="0.1" class="sett-input" id="set-risk-off" />
+          <div class="sett-regime-slider-wrap">
+            <input type="range" min="0.1" max="2" step="0.05" class="sett-slider sett-slider-neutral" id="sett-sl-neutral" value="0.25" />
+          </div>
+          <div class="sett-regime-foot">Reduced · both ways</div>
+        </div>
+        <!-- Risk-Off -->
+        <div class="sett-regime-card sett-regime-off">
+          <div class="sett-regime-hdr">
+            <span class="sett-regime-dot" style="background:var(--red-bright);box-shadow:0 0 6px var(--red-bright)"></span>
+            <span class="sett-regime-label">RISK-OFF</span>
+            <span class="sett-regime-sub">LONG BLOCKED</span>
+          </div>
+          <div class="sett-regime-value-row">
+            <input type="number" min="0.1" max="10" step="0.1" class="sett-regime-input" id="set-risk-off-r" value="0.15" />
+            <span class="sett-regime-pct">%</span>
+            <span class="sett-regime-eqv" id="sett-eqv-off">= $75</span>
+          </div>
+          <div class="sett-regime-slider-wrap">
+            <input type="range" min="0.1" max="2" step="0.05" class="sett-slider sett-slider-off" id="sett-sl-off" value="0.15" />
+          </div>
+          <div class="sett-regime-foot">Defensive · puts only</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 02: CAPS ── -->
+    <section class="sett-section sett-section-sub" id="sett-s02b">
+      <div class="sett-section-badge"><span class="sett-section-num">· 02 · RISK RULES · CAPS</span><span class="sett-section-tag">HARD STOPS · CANNOT BE OVERRIDDEN INTRADAY</span></div>
+      <h2 class="sett-section-title">Position &amp; exposure caps</h2>
+
+      <div class="sett-caps-grid">
+        <div class="sett-cap-col">
+          <div class="sett-cap-labels">
+            <span class="sett-cap-lbl">CONCURRENT POSITIONS</span>
+            <span class="sett-cap-tag">EXIT-ONLY PAST CAP</span>
+          </div>
+          <div class="sett-cap-value"><input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" /> <span class="sett-cap-unit">open</span></div>
+          <input type="range" min="1" max="20" step="1" class="sett-slider sett-slider-cap" id="sett-sl-pos" value="4" />
+          <div class="sett-cap-range">0 · 2 · 5 · 10</div>
+        </div>
+        <div class="sett-cap-col">
+          <div class="sett-cap-labels">
+            <span class="sett-cap-lbl">TOTAL PREMIUM DEPLOYED</span>
+            <span class="sett-cap-tag">$&nbsp;<span id="sett-live-premium-cap">6,000</span> OF EQUITY</span>
+          </div>
+          <div class="sett-cap-value"><input type="number" min="5" max="100" step="1" class="sett-cap-input" id="set-max-premium" value="12" /> <span class="sett-cap-unit">%</span></div>
+          <input type="range" min="5" max="100" step="1" class="sett-slider sett-slider-cap" id="sett-sl-prem" value="12" />
+          <div class="sett-cap-range">10% · 100%</div>
+        </div>
+        <div class="sett-cap-col">
+          <div class="sett-cap-labels">
+            <span class="sett-cap-lbl">TOTAL AT RISK</span>
+            <span class="sett-cap-tag">$&nbsp;<span id="sett-live-risk-cap">3,000</span> OF EQUITY</span>
+          </div>
+          <div class="sett-cap-value"><input type="number" min="1" max="50" step="1" class="sett-cap-input" id="set-max-risk" value="6" /> <span class="sett-cap-unit">%</span></div>
+          <input type="range" min="1" max="50" step="1" class="sett-slider sett-slider-cap" id="sett-sl-risk" value="6" />
+          <div class="sett-cap-range">10% · 100%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 02: KILL SWITCH ── -->
+    <section class="sett-section sett-section-sub" id="sett-s02c">
+      <div class="sett-section-badge"><span class="sett-section-num">· 02 · RISK RULES · KILL SWITCH</span><span class="sett-section-tag">TRIGGER EITHER · ALL TIMES ET</span></div>
+      <h2 class="sett-section-title">When to stop trading</h2>
+
+      <div class="sett-kill-grid">
+        <div class="sett-kill-left">
+          <div class="sett-kill-label">ROLLING 14-DAY FLOOR</div>
+          <div class="sett-kill-value-row">
+            <input type="number" min="1" max="30" step="0.5" class="sett-kill-input" id="set-killswitch-days" value="7.0" />
+            <span class="sett-kill-pct">%</span>
+            <span class="sett-kill-eqv" id="sett-kill-eqv">= -$3,500 on $50k</span>
+          </div>
+          <input type="range" min="1" max="30" step="0.5" class="sett-slider sett-slider-kill" id="sett-sl-kill" value="7" />
+          <div class="sett-kill-hint">Tighter — more conservative &nbsp;·&nbsp; Looser — more tolerance for drawdown</div>
+
+          <div class="sett-kill-daily">
+            <div class="sett-kill-daily-label">DAILY MAX LOSS</div>
+            <div class="sett-kill-daily-val">
+              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-i-max-loss" value="2.0" /> <span class="sett-cap-unit">%</span>
+              <span class="sett-kill-daily-sub" id="sett-kill-daily-sub">= -$1,000</span>
+            </div>
+            <div class="sett-kill-strikes">2 losses · 3-strike rule on</div>
+          </div>
+        </div>
+        <div class="sett-kill-right">
+          <div class="sett-kill-preview-label">LIVE PREVIEW · Where you'd be standing</div>
+          <canvas class="sett-kill-canvas" id="sett-kill-preview" width="280" height="120"></canvas>
+          <div class="sett-kill-preview-foot">
+            <span>NOW</span>
+            <span class="sett-kill-preview-state" id="sett-kill-state">CLEARED</span>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Trade mechanics -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Trade mechanics</span>
-          <span class="sett-card-desc">Stop-loss and profit-target as % of premium paid</span>
-        </div>
-        <div class="sett-fields-row">
-          <div class="sett-field">
-            <label class="sett-field-label">STOP LOSS % OF PREMIUM</label>
-            <input type="number" min="10" max="90" step="5" class="sett-input" id="set-stop-pct" />
+    <!-- ── SECTION 03: TRADE MODES ── -->
+    <section class="sett-section" id="sett-s03">
+      <div class="sett-section-badge"><span class="sett-section-num">· 03 · TRADE MODES</span></div>
+      <h2 class="sett-section-title">Mode-specific rules</h2>
+      <p class="sett-section-desc">Swing and intraday share the equity pool but get separate caps and risk dials. Override per mode if a setup demands it.</p>
+
+      <div class="sett-modes-grid">
+        <!-- Swing -->
+        <div class="sett-mode-card sett-mode-swing">
+          <div class="sett-mode-hdr">
+            <span class="sett-mode-badge sett-badge-swing">SWING</span>
+            <span class="sett-mode-tagline">Multi-day · 3–10d hold</span>
           </div>
-          <div class="sett-field">
-            <label class="sett-field-label">PROFIT TARGET % OF PREMIUM</label>
-            <input type="number" min="10" max="200" step="5" class="sett-input" id="set-target-pct" />
+          <div class="sett-mode-rows">
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Risk per trade</span>
+              <span class="sett-mode-hint">$250 · 1R</span>
+              <div class="sett-mode-val">
+                <input type="number" min="0.1" max="5" step="0.1" class="sett-mode-input" id="set-stop-pct" value="9.50" />
+                <span class="sett-mode-unit">%</span>
+              </div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Max open</span>
+              <span class="sett-mode-hint">concurrent</span>
+              <div class="sett-mode-val">
+                <input type="number" min="1" max="20" step="1" class="sett-mode-input sett-mode-input-int" id="set-target-pct" value="4" />
+              </div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Hold window</span>
+              <span class="sett-mode-hint">auto-flag if longer</span>
+              <div class="sett-mode-val sett-mode-val-range">3 – 10d</div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Same-week add</span>
+              <span class="sett-mode-hint">no re-entry after stop</span>
+              <label class="sett-toggle-sm">
+                <input type="checkbox" id="set-long-only" class="sett-checkbox" />
+                <div class="sett-toggle-track-sm"><div class="sett-toggle-thumb-sm"></div></div>
+                <span class="sett-toggle-lbl-sm" id="sett-long-only-lbl">OFF</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- Intraday -->
+        <div class="sett-mode-card sett-mode-intraday">
+          <div class="sett-mode-hdr">
+            <span class="sett-mode-badge sett-badge-intraday">INTRADAY</span>
+            <span class="sett-mode-tagline">Same-day · cut by close</span>
+          </div>
+          <div class="sett-mode-rows">
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Risk per trade</span>
+              <span class="sett-mode-hint">$125 · 1R</span>
+              <div class="sett-mode-val">
+                <input type="number" min="10" step="5" class="sett-mode-input sett-mode-input-dollar" id="set-i-risk" value="125" />
+                <span class="sett-mode-unit">$</span>
+              </div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Max open</span>
+              <span class="sett-mode-hint">concurrent</span>
+              <div class="sett-mode-val">
+                <input type="number" min="1" max="10" step="1" class="sett-mode-input sett-mode-input-int" id="set-i-max-spread" value="2" />
+              </div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Hard cutoff</span>
+              <span class="sett-mode-hint">auto-flatten</span>
+              <div class="sett-mode-val sett-mode-val-range">15:55 ET</div>
+            </div>
+            <div class="sett-mode-row">
+              <span class="sett-mode-lbl">Loss-day stop</span>
+              <span class="sett-mode-hint">kill mode after 3L</span>
+              <label class="sett-toggle-sm sett-toggle-sm-on">
+                <input type="checkbox" id="set-i-delta" class="sett-checkbox" checked />
+                <div class="sett-toggle-track-sm"><div class="sett-toggle-thumb-sm"></div></div>
+                <span class="sett-toggle-lbl-sm sett-lbl-on">ON</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
+      <div class="sett-modes-foot">Default stop <strong>50%</strong> of premium · target <strong>+100%</strong> · Long-only adds <span class="sett-lbl-off">OFF</span></div>
+    </section>
 
-      <!-- Portfolio caps -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Portfolio caps</span>
-          <span class="sett-card-desc">Hard limits enforced across all open trades</span>
-        </div>
-        <div class="sett-fields-row">
-          <div class="sett-field">
-            <label class="sett-field-label">MAX POSITIONS</label>
-            <input type="number" min="1" max="20" step="1" class="sett-input" id="set-max-positions" />
-          </div>
-          <div class="sett-field">
-            <label class="sett-field-label">MAX PREMIUM DEPLOYED %</label>
-            <input type="number" min="5" max="100" step="1" class="sett-input" id="set-max-premium" />
-          </div>
-          <div class="sett-field">
-            <label class="sett-field-label">MAX TOTAL AT RISK %</label>
-            <input type="number" min="1" max="50" step="1" class="sett-input" id="set-max-risk" />
-          </div>
-        </div>
-      </div>
+    <!-- ── SECTION 04: DATA & EXPORT ── -->
+    <section class="sett-section" id="sett-s04">
+      <div class="sett-section-badge"><span class="sett-section-num">· 04 · DATA &amp; EXPORT</span></div>
+      <h2 class="sett-section-title">Data &amp; export</h2>
+      <p class="sett-section-desc">Export your trade log and manage your data. Danger zone actions cannot be undone.</p>
 
-      <!-- Trade style -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Trade style</span>
-          <span class="sett-card-desc">Controls spread guidance when IV is elevated</span>
+      <div class="sett-data-rows">
+        <div class="sett-data-row">
+          <div class="sett-data-info">
+            <div class="sett-data-name">Reset to defaults</div>
+            <div class="sett-data-desc">Restores all values to v3 defaults · trade log untouched</div>
+          </div>
+          <button class="sett-btn-ghost" id="btn-reset-settings">RESET SETTINGS</button>
         </div>
-        <label class="sett-toggle-row">
-          <input type="checkbox" id="set-long-only" class="sett-checkbox" />
-          <div class="sett-toggle-track"><div class="sett-toggle-thumb"></div></div>
-          <div>
-            <div class="sett-toggle-name">Long-only mode (no spreads)</div>
-            <div class="sett-toggle-sub">IVR 50+ becomes "skip" instead of "use spread"</div>
+        <div class="sett-data-row sett-data-row-danger">
+          <div class="sett-data-info">
+            <div class="sett-data-name sett-danger-text">Clear all trades &amp; data</div>
+            <div class="sett-data-desc">Permanently deletes all trades, sector ratings &amp; session data. Settings preserved. Cannot be undone.</div>
           </div>
-        </label>
-      </div>
-
-      <!-- Intraday -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Intraday mode</span>
-          <span class="sett-card-desc">Separate caps governing intraday-only entries</span>
-        </div>
-        <div class="sett-fields-row">
-          <div class="sett-field">
-            <label class="sett-field-label">RISK PER TRADE ($)</label>
-            <input type="number" min="10" step="5" class="sett-input" id="set-i-risk" />
-          </div>
-          <div class="sett-field">
-            <label class="sett-field-label">MAX DAILY LOSS ($)</label>
-            <input type="number" min="20" step="10" class="sett-input" id="set-i-max-loss" />
-          </div>
-          <div class="sett-field">
-            <label class="sett-field-label">MAX SPREAD %</label>
-            <input type="number" min="0.1" step="0.1" class="sett-input" id="set-i-max-spread" />
-          </div>
-          <div class="sett-field">
-            <label class="sett-field-label">DEFAULT DELTA (0–1)</label>
-            <input type="number" min="0.1" max="1" step="0.05" class="sett-input" id="set-i-delta" />
-          </div>
+          <button class="sett-btn-danger" id="btn-clear-all-data">CLEAR ALL DATA</button>
         </div>
       </div>
+    </section>
 
-      <!-- Edge Intelligence -->
-      <div class="sett-card">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label">Edge Intelligence</span>
-          <span class="sett-card-desc">Lookback window for kill-switch &amp; rolling P/L</span>
-        </div>
-        <div class="sett-fields-row">
-          <div class="sett-field sett-field-wide">
-            <label class="sett-field-label">KILL-SWITCH WINDOW (DAYS)</label>
-            <input type="number" min="7" max="180" step="1" class="sett-input" id="set-killswitch-days" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Reset -->
-      <div class="sett-card sett-card-flat">
-        <button class="sett-btn-ghost" id="btn-reset-settings">Reset to defaults</button>
-        <span class="sett-reset-desc">Restores all values above to v3 defaults · trade log untouched</span>
-      </div>
-
-      <!-- Danger zone -->
-      <div class="sett-card sett-danger-zone">
-        <div class="sett-card-hdr">
-          <span class="sett-card-label sett-danger-label">Danger zone</span>
-          <span class="sett-card-desc">Permanently deletes all trades, sector ratings &amp; session data. Settings are preserved. Cannot be undone.</span>
-        </div>
-        <button class="sett-btn-danger" id="btn-clear-all-data">Clear all trades &amp; data</button>
-      </div>
-
-    </div><!-- /sett-body -->
-
-    <!-- Footer -->
-    <div class="sett-footer">
+    <!-- sticky footer -->
+    <div class="sett-sticky-footer">
       <button class="sett-btn-ghost" data-close-settings>Cancel</button>
       <button class="sett-btn-primary" id="btn-save-settings">Apply settings →</button>
     </div>
-  </div>
-</div>
+
+  </div><!-- /sett-main -->
+</div><!-- /sett-overlay -->
 
 <!-- ============ EDIT TRADE — full-page overlay ============ -->
 <div class="edit-trade-overlay" id="edit-trade-overlay">
