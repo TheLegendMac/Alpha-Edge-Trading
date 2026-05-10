@@ -3059,10 +3059,10 @@
 }
 
 .sett-hero-cards {
-  flex: 1 1 320px;
+  flex: 1 1 260px;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   align-content: start;
 }
@@ -4037,7 +4037,7 @@
   .sett-hero-left { flex: none; max-width: 100%; }
   .sett-hero-body { max-width: 520px; font-size: 12px; }
   .sett-hero-headline { font-size: clamp(26px, 3vw, 38px); }
-  .sett-hero-cards { grid-template-columns: repeat(4, 1fr); }
+  .sett-hero-cards { grid-template-columns: repeat(3, 1fr); }
   .sett-hero-card { padding: 12px 14px; }
   .sett-hero-card-value { font-size: 20px; }
   .sett-section { margin: 0 12px 10px; padding: 16px 18px 18px; }
@@ -4046,10 +4046,6 @@
   .sett-regime-grid { grid-template-columns: 1fr; gap: 8px; }
   .sett-regime-card { padding: 12px 16px; }
   .sett-regime-input { font-size: 32px; width: 80px; }
-  .sett-kill-grid { grid-template-columns: 1fr; gap: 20px; }
-  .sett-kill-input { font-size: 32px; width: 80px; }
-  .sett-kill-minus { font-size: 32px; }
-  .sett-modes-grid { grid-template-columns: 1fr; }
 }
 
 /* 720px — mobile list view replaces desktop sections */
@@ -4069,11 +4065,7 @@
   .sett-section.sett-mv-open .sett-grid-4 { grid-template-columns: 1fr; }
   .sett-section.sett-mv-open .sett-grid-2 { grid-template-columns: 1fr; }
   .sett-section.sett-mv-open .sett-caps-grid { grid-template-columns: 1fr; gap: 16px; }
-  .sett-section.sett-mv-open .sett-kill-grid { grid-template-columns: 1fr; gap: 20px; }
-  .sett-section.sett-mv-open .sett-modes-grid { grid-template-columns: 1fr; }
   .sett-section.sett-mv-open .sett-regime-grid { grid-template-columns: 1fr; gap: 8px; }
-  .sett-section.sett-mv-open .sett-kill-input { font-size: 28px; }
-  .sett-section.sett-mv-open .sett-kill-minus { font-size: 28px; }
   .sett-section.sett-mv-open .sett-regime-input { font-size: 26px; }
   .sett-section.sett-mv-open .sett-input-dollar { font-size: clamp(18px, 2vw, 24px); }
   .sett-section.sett-mv-open .sett-reset-inline { margin-top: -38px; }

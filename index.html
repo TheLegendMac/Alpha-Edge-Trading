@@ -1224,14 +1224,10 @@ STRENGTH: 3/3</pre>
       </a>
       <a class="sett-nav-item" href="#sett-s02" data-sett-nav="s02">
         <span class="sett-nav-num">02</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · caps · kill switch</span></span>
-      </a>
-      <a class="sett-nav-item" href="#sett-s03" data-sett-nav="s03">
-        <span class="sett-nav-num">03</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Trade modes</span><span class="sett-nav-sub">Swing · Intraday</span></span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · caps</span></span>
       </a>
       <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
-        <span class="sett-nav-num">04</span>
+        <span class="sett-nav-num">03</span>
         <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups · danger</span></span>
       </a>
     </nav>
@@ -1270,10 +1266,7 @@ STRENGTH: 3/3</pre>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Neutral sizing</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-rNeu">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-Off sizing</div><div class="sett-mv-sub sett-mv-red" id="smv-s-rOff">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02b"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Position caps</div><div class="sett-mv-sub" id="smv-s-caps">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s02c"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Kill switch</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-kill">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s03"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Swing rules</div><div class="sett-mv-sub sett-mv-cyan" id="smv-s-swing">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s03"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Intraday rules</div><div class="sett-mv-sub sett-mv-mag" id="smv-s-intra">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">04</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
       </div>
     </div>
 
@@ -1300,11 +1293,6 @@ STRENGTH: 3/3</pre>
             <div class="sett-hero-card-label">CAP REMAINING</div>
             <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
             <div class="sett-hero-card-sub" id="sett-live-cap-sub">of $5,000 · 80%</div>
-          </div>
-          <div class="sett-hero-card">
-            <div class="sett-hero-card-label">KILL WINDOW</div>
-            <div class="sett-hero-card-value sett-hero-card-amber" id="sett-live-kill">—</div>
-            <div class="sett-hero-card-sub">rolling 14d</div>
           </div>
         </div>
       </div>
@@ -1456,163 +1444,10 @@ STRENGTH: 3/3</pre>
       </div>
     </section>
 
-    <!-- ── SECTION 02: KILL SWITCH ── -->
-    <section class="sett-section sett-section-sub" id="sett-s02c">
-      <div class="sett-section-badge"><span class="sett-section-num">· 02 · RISK RULES · KILL SWITCH</span><span class="sett-section-tag">TRIGGER EITHER · ALL TIMES ET</span></div>
-      <h2 class="sett-section-title">When to stop trading</h2>
-
-      <div class="sett-kill-grid">
-    <div class="sett-kill-left">
-      <div class="sett-kill-label">ROLLING 14-DAY FLOOR</div>
-      <div class="sett-kill-card">
-        <div class="sett-kill-card-top">
-          <div class="sett-kill-value-row">
-            <span class="sett-kill-minus">−</span>
-            <input type="number" min="1" max="30" step="0.5" class="sett-kill-input" id="set-kill-floor" value="7.0" />
-            <span class="sett-kill-pct">%</span>
-          </div>
-          <span class="sett-kill-eqv" id="sett-kill-eqv">= -$3,500 on $50k</span>
-        </div>
-        <input type="range" min="1" max="30" step="0.5" class="sett-slider sett-slider-kill" id="sett-sl-kill" value="7" />
-        <div class="sett-kill-ticks">
-          <span>-3%</span><span>-7%</span><span>-10%</span><span>-15%</span>
-        </div>
-        <div class="sett-kill-hint">Tighter → more conservative &nbsp;·&nbsp; looser → more tolerance for drawdown</div>
-      </div>
-
-      <div class="sett-kill-daily-section">
-        <div class="sett-kill-label" style="margin-bottom:10px;">DAILY MAX LOSS</div>
-        <div class="sett-kill-daily-boxes">
-          <div class="sett-kill-mini-box">
-            <div class="sett-kill-mini-value">
-              <span class="sett-kill-minus" style="font-size:22px;margin-right:1px;">−</span>
-              <input type="number" min="0.5" max="10" step="0.5" class="sett-cap-input" id="set-daily-loss-pct" value="2.0" style="width:56px;" />
-              <span class="sett-cap-unit" style="font-size:13px;">%</span>
-            </div>
-            <div class="sett-kill-mini-sub" id="sett-kill-daily-sub">= -$1,000</div>
-          </div>
-          <div class="sett-kill-mini-box">
-            <div class="sett-kill-mini-strikes">2 losses</div>
-            <div class="sett-kill-mini-sub">2-strike rule on</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sett-kill-right">
-      <div class="sett-kill-preview-eyebrow">LIVE PREVIEW</div>
-      <div class="sett-kill-preview-subtitle">Where you'd be standing</div>
-      <canvas class="sett-kill-canvas" id="sett-kill-preview" width="560" height="240" style="width:100%;height:120px;"></canvas>
-      <div class="sett-kill-axis">
-        <span>14 DAYS AGO</span>
-        <span>TODAY</span>
-      </div>
-      <div class="sett-kill-preview-stats">
-        <div class="sett-kill-stat">
-          <div class="sett-kill-stat-label">NOW</div>
-          <div class="sett-kill-stat-value" id="sett-kill-now-pct">—</div>
-          <div class="sett-kill-stat-sub" id="sett-kill-now-sub">—</div>
-        </div>
-        <div class="sett-kill-stat">
-          <div class="sett-kill-stat-label">STATE</div>
-          <div class="sett-kill-stat-value sett-kill-preview-state" id="sett-kill-state">CLEARED</div>
-          <div class="sett-kill-stat-sub" id="sett-kill-state-sub">trading allowed</div>
-        </div>
-      </div>
-    </div>
-      </div>
-    </section>
-
-    <!-- ── SECTION 03: TRADE MODES ── -->
-    <section class="sett-section" id="sett-s03">
-      <div class="sett-section-badge"><span class="sett-section-num">· 03 · TRADE MODES</span></div>
-      <h2 class="sett-section-title">Mode-specific rules</h2>
-      <p class="sett-section-desc">Swing and intraday share the equity pool but get separate caps and risk dials. Override per mode if a setup demands it.</p>
-
-      <div class="sett-modes-grid">
-        <!-- Swing -->
-        <div class="sett-mode-card sett-mode-swing">
-          <div class="sett-mode-hdr">
-            <span class="sett-mode-badge sett-badge-swing">SWING</span>
-            <span class="sett-mode-tagline">Multi-day · 3–10d hold</span>
-          </div>
-          <div class="sett-mode-rows">
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Risk per trade</span>
-              <span class="sett-mode-hint">$250 · 1R</span>
-              <div class="sett-mode-val">
-                <input type="number" min="0.1" max="5" step="0.1" class="sett-mode-input" id="set-stop-pct" value="9.50" />
-                <span class="sett-mode-unit">%</span>
-              </div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Max open</span>
-              <span class="sett-mode-hint">concurrent</span>
-              <div class="sett-mode-val">
-                <input type="number" min="1" max="20" step="1" class="sett-mode-input sett-mode-input-int" id="set-target-pct" value="4" />
-              </div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Hold window</span>
-              <span class="sett-mode-hint">auto-flag if longer</span>
-              <div class="sett-mode-val sett-mode-val-range">3 – 10d</div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Same-week add</span>
-              <span class="sett-mode-hint">no re-entry after stop</span>
-              <label class="sett-toggle-sm">
-                <input type="checkbox" id="set-long-only" class="sett-checkbox" />
-                <div class="sett-toggle-track-sm"><div class="sett-toggle-thumb-sm"></div></div>
-                <span class="sett-toggle-lbl-sm" id="sett-long-only-lbl">OFF</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        <!-- Intraday -->
-        <div class="sett-mode-card sett-mode-intraday">
-          <div class="sett-mode-hdr">
-            <span class="sett-mode-badge sett-badge-intraday">INTRADAY</span>
-            <span class="sett-mode-tagline">Same-day · cut by close</span>
-          </div>
-          <div class="sett-mode-rows">
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Risk per trade</span>
-              <span class="sett-mode-hint">$125 · 1R</span>
-              <div class="sett-mode-val">
-                <input type="number" min="10" step="5" class="sett-mode-input sett-mode-input-dollar" id="set-i-risk" value="125" />
-                <span class="sett-mode-unit">$</span>
-              </div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Max open</span>
-              <span class="sett-mode-hint">concurrent</span>
-              <div class="sett-mode-val">
-                <input type="number" min="1" max="10" step="1" class="sett-mode-input sett-mode-input-int" id="set-i-max-spread" value="2" />
-              </div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Hard cutoff</span>
-              <span class="sett-mode-hint">auto-flatten</span>
-              <div class="sett-mode-val sett-mode-val-range">15:55 ET</div>
-            </div>
-            <div class="sett-mode-row">
-              <span class="sett-mode-lbl">Loss-day stop</span>
-              <span class="sett-mode-hint">kill mode after 3L</span>
-              <label class="sett-toggle-sm sett-toggle-sm-on">
-                <input type="checkbox" id="set-i-delta" class="sett-checkbox" checked />
-                <div class="sett-toggle-track-sm"><div class="sett-toggle-thumb-sm"></div></div>
-                <span class="sett-toggle-lbl-sm sett-lbl-on">ON</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="sett-modes-foot">Default stop <strong>50%</strong> of premium · target <strong>+100%</strong> · Long-only adds <span class="sett-lbl-off">OFF</span> <button class="sett-edit-defaults-link" onclick="window.toast('Edit defaults coming soon')">EDIT DEFAULTS →</button></div>
-    </section>
 
     <!-- ── SECTION 04: DATA & EXPORT ── -->
     <section class="sett-section" id="sett-s04">
-      <div class="sett-section-badge"><span class="sett-section-num">· 04 · DATA &amp; EXPORT</span></div>
+      <div class="sett-section-badge"><span class="sett-section-num">· 03 · DATA &amp; EXPORT</span></div>
       <h2 class="sett-section-title">Data &amp; export</h2>
       <p class="sett-section-desc">Export your trade log and manage your data. Danger zone actions cannot be undone.</p>
 

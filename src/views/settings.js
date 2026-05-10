@@ -3,7 +3,6 @@
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
-import { calcPL, isClosedTrade } from '../models/trade.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
@@ -16,8 +15,6 @@ function updateLiveHints() {
              || 0.5;
   const prem  = parseFloat(document.getElementById('set-max-premium')?.value) || 12;
   const risk  = parseFloat(document.getElementById('set-max-risk')?.value) || 6;
-  const kill  = parseFloat(document.getElementById('set-kill-floor')?.value) || 7;
-  const dml   = parseFloat(document.getElementById('set-daily-loss-pct')?.value) || 2;
 
   const el = (id) => document.getElementById(id);
   if (el('sett-live-equity'))      el('sett-live-equity').textContent      = '$' + acct.toLocaleString();
@@ -25,7 +22,6 @@ function updateLiveHints() {
   if (el('sett-live-base1r-sub'))  el('sett-live-base1r-sub').textContent  = `${rOn.toFixed(2)}% of equity`;
   if (el('sett-live-cap'))         el('sett-live-cap').textContent         = fmt$(acct * prem / 100);
   if (el('sett-live-cap-sub'))     el('sett-live-cap-sub').textContent     = `of ${fmt$(acct)} · ${prem}%`;
-  if (el('sett-live-kill'))        el('sett-live-kill').textContent        = `-${kill.toFixed(1)}%`;
   if (el('sett-hint-base1r'))      el('sett-hint-base1r').textContent      = `= ${fmt$(acct * rOn / 100)} · 1R`;
 
   // Regime equiv labels
@@ -41,8 +37,6 @@ function updateLiveHints() {
   ['sett-live-premium-cap','sett-live-premium-cap-b'].forEach(id => { if (el(id)) el(id).textContent = premCap; });
   ['sett-live-risk-cap','sett-live-risk-cap-b'].forEach(id => { if (el(id)) el(id).textContent = riskCap; });
 
-  // Kill equiv (remove the duplicate - now done in syncSlider call above)
-
   // Slider fill
   syncSlider('sett-sl-on',      rOn,   0.1, 2,   'on');
   syncSlider('sett-sl-neutral', rNeu,  0.1, 2,   'neutral');
@@ -50,29 +44,20 @@ function updateLiveHints() {
   syncSlider('sett-sl-pos',     parseFloat(document.getElementById('set-max-positions')?.value)||4, 1, 20, 'cap');
   syncSlider('sett-sl-prem',    prem,  5,  100,  'cap');
   syncSlider('sett-sl-risk',    risk,  1,   50,  'cap');
-  syncSlider('sett-sl-kill',    kill,  1,   30,  'kill');
-  // Live kill equiv label
-  if (el('sett-kill-eqv'))    el('sett-kill-eqv').textContent    = `= -${fmt$(acct * kill / 100)} on ${fmt$(acct)}`;
-  if (el('sett-kill-daily-sub')) el('sett-kill-daily-sub').textContent = `= -${fmt$(acct * dml / 100)}`;
-  // Kill preview chart
-  drawKillPreview();
   // Mobile list view values
-  updateMobileView(acct, rOn, kill);
+  updateMobileView(acct, rOn);
 }
 
-function updateMobileView(acct, rOn, kill) {
+function updateMobileView(acct, rOn) {
   const el = (id) => document.getElementById(id);
   if (!el('sett-mv')) return;
   const a = acct || parseFloat(el('set-account')?.value) || 50000;
   const r = rOn  || parseFloat(el('set-risk-on-r')?.value) || parseFloat(el('set-risk-on')?.value) || 0.5;
-  const k = kill || parseFloat(el('set-kill-floor')?.value) || 7;
   const rNeu = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
   const rOff = parseFloat(el('set-risk-off-r')?.value) || 0.15;
   const maxPos  = parseInt(el('set-max-positions')?.value) || 4;
   const maxPrem = parseFloat(el('set-max-premium')?.value) || 12;
   const maxRisk = parseFloat(el('set-max-risk')?.value) || 6;
-  const maxPosTgt = parseInt(el('set-target-pct')?.value) || 4;
-  const iRisk = parseFloat(el('set-i-risk')?.value) || 125;
   const f$ = (n) => '$' + Math.abs(Math.round(n)).toLocaleString();
 
   const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
@@ -83,9 +68,6 @@ function updateMobileView(acct, rOn, kill) {
   set('smv-s-rNeu', rNeu.toFixed(2) + '%');
   set('smv-s-rOff', rOff.toFixed(2) + '%');
   set('smv-s-caps', `${maxPos} · ${maxPrem}% · ${maxRisk}%`);
-  set('smv-s-kill', `-${k.toFixed(1)}% · 14d`);
-  set('smv-s-swing', `${r.toFixed(2)}% · ${maxPosTgt} max`);
-  set('smv-s-intra', `${f$(iRisk)} · 15:55 ET`);
 }
 
 function syncSlider(sliderId, val, min, max, kind) {
@@ -98,142 +80,6 @@ function syncSlider(sliderId, val, min, max, kind) {
   sl.style.background = `linear-gradient(90deg, ${c} ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
 }
 
-function drawKillPreview() {
-  const canvas = document.getElementById('sett-kill-preview');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
-
-  const account = parseFloat(document.getElementById('set-account')?.value) || 50000;
-  const floor   = parseFloat(document.getElementById('set-kill-floor')?.value) || 7.0;
-  const floorPct = -floor;
-
-  // Build cumulative P&L over last 14 days, one data point per day
-  const DAYS = 14;
-  const now = Date.now();
-  const cutoff = now - DAYS * 24 * 60 * 60 * 1000;
-  const trades = (state.trades || []).filter(t => isClosedTrade(t) && (t.exit_date || t.date));
-
-  const dailyPL = {};
-  trades.forEach(t => {
-    const dateStr = (t.exit_date || t.date || '').slice(0, 10);
-    const ts = new Date(dateStr).getTime();
-    if (ts >= cutoff && ts <= now) {
-      dailyPL[dateStr] = (dailyPL[dateStr] || 0) + (calcPL(t) || 0);
-    }
-  });
-
-  const points = [];
-  let cum = 0;
-  for (let i = DAYS - 1; i >= 0; i--) {
-    const d = new Date(now - i * 24 * 60 * 60 * 1000);
-    const dateStr = d.toISOString().slice(0, 10);
-    cum += dailyPL[dateStr] || 0;
-    points.push((cum / account) * 100);
-  }
-
-  const currentPct = points[points.length - 1];
-  const isFloored  = currentPct <= floorPct;
-
-  // Update labels
-  const stateEl    = document.getElementById('sett-kill-state');
-  const stateSubEl = document.getElementById('sett-kill-state-sub');
-  const nowPctEl   = document.getElementById('sett-kill-now-pct');
-  const nowSubEl   = document.getElementById('sett-kill-now-sub');
-  if (stateEl) {
-    stateEl.textContent = isFloored ? 'FLOORED' : 'CLEARED';
-    stateEl.style.color = isFloored ? '#f87171' : '#34d399';
-  }
-  if (stateSubEl) stateSubEl.textContent = isFloored ? 'trading stopped' : 'trading allowed';
-  if (nowPctEl) {
-    nowPctEl.textContent = (currentPct >= 0 ? '+' : '') + currentPct.toFixed(1) + '%';
-    nowPctEl.style.color = isFloored ? '#f87171' : '#f59e0b';
-  }
-  if (nowSubEl) {
-    const distToFloor = (currentPct - floorPct).toFixed(1);
-    nowSubEl.textContent = isFloored ? 'floor breached' : `${distToFloor}pt to floor`;
-  }
-
-  // Draw — canvas is 2× resolution (560×240) rendered at CSS 100%×120px
-  ctx.clearRect(0, 0, W, H);
-  const S = 2; // scale factor
-  const pad = { t: 12 * S, r: 14 * S, b: 14 * S, l: 14 * S };
-  const cW = W - pad.l - pad.r;
-  const cH = H - pad.t - pad.b;
-
-  const minVal = Math.min(floorPct - 1.5, ...points);
-  const maxVal = Math.max(2, ...points);
-  const range  = maxVal - minVal || 1;
-
-  const xOf = (i) => pad.l + (points.length > 1 ? (i / (points.length - 1)) : 0.5) * cW;
-  const yOf = (v) => pad.t + (1 - (v - minVal) / range) * cH;
-
-  // Floor dashed line
-  const floorY = yOf(floorPct);
-  ctx.save();
-  ctx.strokeStyle = 'rgba(248,113,113,0.55)';
-  ctx.lineWidth = S;
-  ctx.setLineDash([5 * S, 6 * S]);
-  ctx.beginPath();
-  ctx.moveTo(pad.l, floorY);
-  ctx.lineTo(W - pad.r, floorY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
-
-  // "FLOOR" label
-  ctx.save();
-  ctx.font = `bold ${7 * S}px "JetBrains Mono", monospace`;
-  ctx.fillStyle = 'rgba(248,113,113,0.65)';
-  ctx.textAlign = 'right';
-  ctx.fillText('FLOOR', W - pad.r - S, floorY - 3 * S);
-  ctx.restore();
-
-  // Filled area under P&L line
-  const lineColor = isFloored ? '#f87171' : '#f59e0b';
-  const fillTop   = isFloored ? 'rgba(248,113,113,0.18)' : 'rgba(245,158,11,0.18)';
-  ctx.save();
-  ctx.beginPath();
-  points.forEach((v, i) => {
-    const x = xOf(i), y = yOf(v);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.lineTo(xOf(points.length - 1), H - pad.b);
-  ctx.lineTo(xOf(0), H - pad.b);
-  ctx.closePath();
-  const grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
-  grad.addColorStop(0, fillTop);
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.restore();
-
-  // P&L line
-  ctx.save();
-  ctx.beginPath();
-  points.forEach((v, i) => {
-    const x = xOf(i), y = yOf(v);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 1.5 * S;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-  ctx.restore();
-
-  // Dot at today
-  const dotX = xOf(points.length - 1);
-  const dotY = yOf(currentPct);
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 3 * S, 0, Math.PI * 2);
-  ctx.fillStyle = lineColor;
-  ctx.shadowColor = lineColor;
-  ctx.shadowBlur = 6 * S;
-  ctx.fill();
-  ctx.restore();
-}
 
 function wireSliderInput(sliderId, inputId, min, max, kind, linkedInputId) {
   const sl = document.getElementById(sliderId);
@@ -278,19 +124,9 @@ function openSettings() {
   if (el('set-risk-neutral'))   el('set-risk-neutral').value   = rNeu;
   if (el('set-risk-off'))       el('set-risk-off').value       = rOff;
 
-  if (el('set-stop-pct'))       el('set-stop-pct').value       = s.stopPct        || DEFAULT_SETTINGS.stopPct;
-  if (el('set-target-pct'))     el('set-target-pct').value     = s.targetPct      || DEFAULT_SETTINGS.targetPct;
   if (el('set-max-positions'))  el('set-max-positions').value  = s.maxPositions   || DEFAULT_SETTINGS.maxPositions;
   if (el('set-max-premium'))    el('set-max-premium').value    = s.maxPremiumPct  || DEFAULT_SETTINGS.maxPremiumPct;
   if (el('set-max-risk'))       el('set-max-risk').value       = s.maxRiskPct     || DEFAULT_SETTINGS.maxRiskPct;
-  if (el('set-long-only'))      el('set-long-only').checked    = s.longOnlyMode   || false;
-  if (el('set-i-risk'))         el('set-i-risk').value         = s.intradayRiskPerTrade    || DEFAULT_SETTINGS.intradayRiskPerTrade;
-  if (el('set-i-max-loss'))     el('set-i-max-loss').value     = s.intradayMaxDailyLoss    || DEFAULT_SETTINGS.intradayMaxDailyLoss;
-  if (el('set-i-max-spread'))   el('set-i-max-spread').value   = s.intradayMaxSpreadPct    || DEFAULT_SETTINGS.intradayMaxSpreadPct;
-  if (el('set-i-delta'))         el('set-i-delta').checked      = true; // loss-day stop on by default
-  if (el('set-kill-floor'))      el('set-kill-floor').value     = s.killSwitchFloor   || DEFAULT_SETTINGS.killSwitchFloor   || 7.0;
-  if (el('set-daily-loss-pct'))  el('set-daily-loss-pct').value = s.dailyMaxLossPct   || DEFAULT_SETTINGS.dailyMaxLossPct   || 2.0;
-  // no-op: set-killswitch-days input was removed from HTML
 
   // Wire sliders (only first time — guard with dataset flag)
   const overlay = document.getElementById('modal-settings');
@@ -302,7 +138,6 @@ function openSettings() {
     wireSliderInput('sett-sl-pos',     'set-max-positions',  1,   20,  'cap');
     wireSliderInput('sett-sl-prem',    'set-max-premium',    5,   100, 'cap');
     wireSliderInput('sett-sl-risk',    'set-max-risk',       1,   50,  'cap');
-    wireSliderInput('sett-sl-kill',    'set-kill-floor',     1,   30,  'kill');
 
     // account input triggers all hints
     const acctEl = el('set-account');
@@ -325,7 +160,7 @@ function openSettings() {
     const mainScroll = el('sett-main-scroll');
     if (mainScroll) {
       mainScroll.addEventListener('scroll', () => {
-        const sections = ['sett-s01','sett-s02','sett-s03','sett-s04'];
+        const sections = ['sett-s01','sett-s02','sett-s04'];
         let active = sections[0];
         sections.forEach(id => {
           const sec = el(id);
@@ -347,16 +182,6 @@ function openSettings() {
         if (target && mainScroll) mainScroll.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
       });
     });
-
-    // Long-only toggle label
-    const loCheck = el('set-long-only');
-    const loLbl   = el('sett-long-only-lbl');
-    if (loCheck && loLbl) {
-      loCheck.addEventListener('change', () => {
-        loLbl.textContent = loCheck.checked ? 'ON' : 'OFF';
-        loLbl.className = 'sett-toggle-lbl-sm ' + (loCheck.checked ? 'sett-lbl-on' : '');
-      });
-    }
 
     // Mobile list row taps — expand the section inline below the list
     const mvEl = el('sett-mv');
@@ -428,20 +253,19 @@ function saveSettings() {
     riskOn,
     riskNeutral,
     riskOff,
-    stopPct:                  v('set-stop-pct',     DEFAULT_SETTINGS.stopPct),
-    targetPct:                v('set-target-pct',   DEFAULT_SETTINGS.targetPct),
+    stopPct:                  state.settings?.stopPct            ?? DEFAULT_SETTINGS.stopPct,
+    targetPct:                state.settings?.targetPct          ?? DEFAULT_SETTINGS.targetPct,
     maxPositions:             vi('set-max-positions', DEFAULT_SETTINGS.maxPositions),
     maxPremiumPct:            v('set-max-premium',  DEFAULT_SETTINGS.maxPremiumPct),
     maxRiskPct:               v('set-max-risk',     DEFAULT_SETTINGS.maxRiskPct),
-    longOnlyMode:             vc('set-long-only'),
-    intradayRiskPerTrade:     v('set-i-risk',        DEFAULT_SETTINGS.intradayRiskPerTrade),
-    // set-i-max-loss has no visible input — preserve the existing saved value to avoid overwrite
-    intradayMaxDailyLoss:     v('set-i-max-loss',    state.settings?.intradayMaxDailyLoss ?? DEFAULT_SETTINGS.intradayMaxDailyLoss),
-    intradayMaxSpreadPct:     v('set-i-max-spread',  DEFAULT_SETTINGS.intradayMaxSpreadPct),
-    intradayDefaultDelta:     v('set-i-delta',       DEFAULT_SETTINGS.intradayDefaultDelta),
-    killSwitchDays:           state.settings?.killSwitchDays ?? DEFAULT_SETTINGS.killSwitchDays,
-    killSwitchFloor:          v('set-kill-floor',    DEFAULT_SETTINGS.killSwitchFloor   || 7.0),
-    dailyMaxLossPct:          v('set-daily-loss-pct', DEFAULT_SETTINGS.dailyMaxLossPct  || 2.0),
+    longOnlyMode:             state.settings?.longOnlyMode       ?? DEFAULT_SETTINGS.longOnlyMode,
+    intradayRiskPerTrade:     state.settings?.intradayRiskPerTrade    ?? DEFAULT_SETTINGS.intradayRiskPerTrade,
+    intradayMaxDailyLoss:     state.settings?.intradayMaxDailyLoss    ?? DEFAULT_SETTINGS.intradayMaxDailyLoss,
+    intradayMaxSpreadPct:     state.settings?.intradayMaxSpreadPct    ?? DEFAULT_SETTINGS.intradayMaxSpreadPct,
+    intradayDefaultDelta:     state.settings?.intradayDefaultDelta    ?? DEFAULT_SETTINGS.intradayDefaultDelta,
+    killSwitchDays:           state.settings?.killSwitchDays          ?? DEFAULT_SETTINGS.killSwitchDays,
+    killSwitchFloor:          state.settings?.killSwitchFloor         ?? DEFAULT_SETTINGS.killSwitchFloor,
+    dailyMaxLossPct:          state.settings?.dailyMaxLossPct         ?? DEFAULT_SETTINGS.dailyMaxLossPct,
   };
 
   state.settings = newSettings;
