@@ -4422,14 +4422,15 @@
 /* Action row */
 .et-action-row {
   display: grid;
-  grid-template-columns: 180px 1fr 140px;
+  grid-template-columns: 160px 1fr 130px;
   gap: 14px;
   align-items: center;
-  padding: 13px 15px;
+  padding: 12px 16px;
   background: rgba(14,17,24,0.6);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
   border-left-width: 3px;
+  margin-top: 10px;
 }
 .et-action-row.dim { opacity: 0.55; }
 .et-action-name { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--ink); }
@@ -4479,20 +4480,22 @@
   color: var(--amber-bright, #fbbf24);
   line-height: 1.5;
 }
-.et-retag-btn {
+.et-repeat-setup-pill {
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--ink-3);
-  padding: 7px 12px;
-  border-radius: 6px;
-  background: rgba(14,17,24,0.8);
-  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 12px;
+  border-radius: 999px;
   cursor: pointer;
   align-self: flex-start;
+  transition: opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
+.et-repeat-setup-pill:hover { opacity: 0.85; }
 
 /* Journal card */
 .et-journal-card {

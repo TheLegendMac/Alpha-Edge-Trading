@@ -96,22 +96,25 @@ function renderEditTrade(trade) {
   const plPct    = entry ? (gainPerUnit / entry * 100) : 0;
   const oneR     = Math.round(Math.abs(riskPerUnit) * qty);
 
-  // Price ladder geometry
-  const lo = Math.min(stop, target);
-  const hi = Math.max(stop, target);
-  const range = (hi - lo) || 1;
-  const pos = v => Math.max(2, Math.min(97, ((v - lo) / range) * 84 + 8));
-  const stopX = pos(stop);
-  const entryX = pos(entry);
-  const targetX = pos(target);
-  const markPct = pos(mark);
+  // Price ladder geometry — fixed visual positions so STOP→ENTRY→TARGET always reads left→right.
+  const hasTarget = target > 0 && Number.isFinite(target) && target !== entry;
+  const stopX   = 8;
+  const entryX  = 32;
+  const targetX = 92;
+  // Mark progresses from stop (0) → target (1). Sign flips for shorts.
+  const progressDen = hasTarget ? (isLong ? (target - stop) : (stop - target)) : (isLong ? (entry - stop) : (stop - entry));
+  const progressNum = isLong ? (mark - stop) : (stop - mark);
+  const progress    = progressDen ? Math.max(-0.2, Math.min(1.2, progressNum / progressDen)) : 0;
+  const markPct     = Math.max(2, Math.min(97, stopX + progress * (targetX - stopX)));
 
   // Progress context
-  const pctToTarget = target !== entry ? ((mark - entry) / (target - entry) * 100) : 0;
-  const pctToStop   = entry !== stop ? ((mark - stop) / (entry - stop) * 100) : 100;
-  const ctxLeft = isProfit
-    ? `<strong style="color:var(--green-bright)">${Math.round(pctToTarget)}% to target.</strong> Price ${Math.abs(plPct).toFixed(1)}% above entry · trail to BE recommended at $${(entry * 1.005).toFixed(2)}.`
-    : `<strong style="color:var(--red-bright)">${Math.round(pctToStop)}% buffer to stop.</strong> Price ${Math.abs(plPct).toFixed(1)}% below entry · monitor closely.`;
+  const pctToTarget = hasTarget ? Math.round((isLong ? (mark - entry) / (target - entry) : (entry - mark) / (entry - target)) * 100) : 0;
+  const pctToStop   = entry !== stop ? Math.round((isLong ? (mark - stop) / (entry - stop) : (stop - mark) / (stop - entry)) * 100) : 100;
+  const ctxLeft = !hasTarget
+    ? `<strong style="color:var(--amber-bright,#fbbf24)">No target set.</strong> Add one to track progress vs. risk.`
+    : isProfit
+      ? `<strong style="color:var(--green-bright)">${pctToTarget}% to target.</strong> Price ${Math.abs(plPct).toFixed(1)}% ${isLong ? 'above' : 'below'} entry · trail to BE recommended.`
+      : `<strong style="color:var(--red-bright)">${pctToStop}% buffer to stop.</strong> Price ${Math.abs(plPct).toFixed(1)}% ${isLong ? 'below' : 'above'} entry · monitor closely.`;
 
   // Highest mark today (fallback to current mark if not tracked)
   const highestMark = Math.max(mark, parseFloat(trade.highMark || trade.dayHigh || mark) || mark);
@@ -191,7 +194,7 @@ function renderEditTrade(trade) {
       </div>
       <div class="et-ladder">
         <div class="et-ladder-track">
-          <div class="et-ladder-fill" style="background:linear-gradient(90deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.18) 28%,rgba(255,255,255,0.04) 28%,rgba(255,255,255,0.04) 32%,rgba(16,185,129,0.14) 32%,rgba(52,211,153,0.28) 100%)"></div>
+          <div class="et-ladder-fill" style="background:linear-gradient(90deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.18) 28%,rgba(255,255,255,0.04) 28%,rgba(255,255,255,0.04) 32%,rgba(16,185,129,0.14) 32%,${hasTarget ? 'rgba(52,211,153,0.28)' : 'rgba(255,255,255,0.04)'} 100%)"></div>
         </div>
         <div class="et-marker" style="left:${stopX}%;top:2px;">
           <div class="et-marker-label" style="color:var(--red-bright)">STOP</div>
@@ -203,15 +206,20 @@ function renderEditTrade(trade) {
           <div class="et-marker-label" style="color:${a.c}">ENTRY</div>
           <div class="et-marker-price">$${entry.toFixed(2)}</div>
         </div>
+        ${hasTarget ? `
         <div class="et-marker" style="left:${targetX}%;top:2px;">
           <div class="et-marker-label" style="color:var(--green-bright)">TARGET</div>
           <div class="et-marker-price">$${target.toFixed(2)}</div>
           <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
-        </div>
-        <div class="et-now-dot" style="left:${markPct}%;top:20px;">
-          <div class="et-now-label" style="color:${tone}">NOW · $${mark.toFixed(2)}</div>
+        </div>` : `
+        <div class="et-marker" style="left:${targetX}%;top:2px;opacity:0.6;">
+          <div class="et-marker-label" style="color:var(--amber-bright,#fbbf24)">TARGET</div>
+          <div class="et-marker-price" style="color:var(--ink-4);">—</div>
+        </div>`}
+        <div class="et-now-dot" style="left:${markPct}%;top:-6px;">
+          <div class="et-now-label" style="color:${tone};white-space:nowrap;">NOW · $${mark.toFixed(2)}</div>
+          <div class="et-now-stem" style="background:${tone};height:38px;"></div>
           <div class="et-now-circle" style="background:${tone};box-shadow:0 0 14px ${tone},0 0 0 3px var(--bg,#08090d)"></div>
-          <div class="et-now-stem" style="background:${tone}"></div>
         </div>
       </div>
       <div class="et-ladder-ctx">
@@ -280,6 +288,8 @@ function renderEditTrade(trade) {
           <div class="et-setup-warn">
             Edge re-rated to <strong>FADING</strong>. Consider tighter management or reducing size.
           </div>` : ''}
+          ${trade.setup ? `<button class="et-repeat-setup-pill" id="et-repeat-setup-btn" type="button"
+            style="color:${a.c};background:${a.bg};border:1px solid ${a.line};">↻ Repeat setup</button>` : ''}
         </div>
 
         <div class="et-journal-card">
@@ -351,6 +361,27 @@ function renderEditTrade(trade) {
     toast(`Closed ${trade.ticker || ''} @ $${mark.toFixed(2)} · ${fmt$(pl)}`);
     closeEditTrade();
     if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
+  });
+
+  // Repeat setup → pre-seed trade flow with this setup + mode + direction
+  mainEl.querySelector('#et-repeat-setup-btn')?.addEventListener('click', () => {
+    if (!trade.setup) return;
+    if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+    state.tradeFlow.mode = mode;
+    state.tradeFlow.step = 1;
+    if (mode === 'intraday') {
+      if (!state.intraday) state.intraday = {};
+      state.intraday.setup = trade.setup;
+      state.intraday.direction = isLong ? 'long' : 'short';
+    } else {
+      state.selectedSetup = trade.setup;
+      state.direction = isLong ? 'long' : 'short';
+    }
+    saveState();
+    closeEditTrade();
+    if (typeof window.setTab === 'function') window.setTab('trade');
+    if (typeof window.renderTrade === 'function') window.renderTrade();
+    toast(`Repeating ${trade.setup}`);
   });
 
   // Journal edit toggle
