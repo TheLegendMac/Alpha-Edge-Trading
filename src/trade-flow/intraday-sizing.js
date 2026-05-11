@@ -81,7 +81,6 @@ function tfRenderIntradaySizingHtml() {
   if (!auto) {
     return `<div class="input-help" style="margin-top:8px;">Fill entry and stop to auto-size ${isOptions ? 'contracts' : 'shares'}.</div>`;
   }
-  const perUnit = auto.stopDist * auto.mult;
   const manualQty = Number(it.contracts);
   const useQty = manualQty > 0 ? manualQty : auto.qty;
   const realizedRisk = Math.round(useQty * auto.stopDist * auto.mult);
@@ -89,16 +88,8 @@ function tfRenderIntradaySizingHtml() {
   return `
     <div class="trade-output" style="margin-top:10px;">
       <div class="trade-output-title">${manualQty > 0 ? 'Sized (override)' : 'Auto-sized'}</div>
-      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}</div>
+      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'} · risk $${realizedRisk}</div>
       <div class="trade-output-rationale">${manualQty > 0 ? `Override risk: $${realizedRisk}. AUTO sets to ${auto.qty} for $${auto.riskBudget} risk unit.` : `Sized from your $${auto.riskBudget} risk unit ÷ stop distance. GO logs this size.`}</div>
-      <div class="trade-output-grid">
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">${window.tfMoneyText(it.entry)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">${window.tfMoneyText(it.stop)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Limit</span><span class="trade-output-cell-value">${window.tfMoneyText(it.target)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${auto.riskBudget}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / ${isOptions ? 'ct' : 'share'}</span><span class="trade-output-cell-value">$${perUnit.toFixed(isOptions ? 0 : 2)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Realized risk</span><span class="trade-output-cell-value">$${realizedRisk}</span></div>
-      </div>
       ${profileHtml || ''}
     </div>`;
 }
@@ -118,25 +109,26 @@ function tfRenderIntradayEstimatesHtml() {
   const manualQty = Number(it.contracts);
   const qty  = manualQty > 0 ? manualQty : (auto ? auto.qty : 0);
   const mult = isOptions ? 100 : 1;
-  const riskDist = Math.abs(entry - stop);
-  const rewardDist = target > 0 ? Math.abs(target - entry) : 0;
-  const lossDollar = Math.round(riskDist * mult * qty);
-  const gainDollar = Math.round(rewardDist * mult * qty);
-  const lossPct = entry > 0 ? -(riskDist / entry * 100) : 0;
-  const gainPct = entry > 0 && target > 0 ? (rewardDist / entry * 100) : 0;
-  const rValue  = (lossDollar > 0 && gainDollar > 0) ? (gainDollar / lossDollar) : null;
+  const direction = window.tfRiskDirection({ entry, stop, target });
+  const stopStat = window.tfRiskLevelStat({ entry, price: stop, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction });
+  const targetStat = target > 0 ? window.tfRiskLevelStat({ entry, price: target, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction }) : null;
+  const lossDollar = Math.round(Math.abs(stopStat ? stopStat.pnl : 0));
+  const gainDollar = targetStat ? Math.round(targetStat.pnl) : 0;
+  const lossPct = stopStat ? stopStat.pct : 0;
+  const gainPct = targetStat ? targetStat.pct : 0;
+  const rValue  = targetStat ? targetStat.r : null;
   const fmtPct = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
   return `
     <div class="tf-i-est">
       <div class="tf-i-est-cell tf-i-est-loss">
-        <div class="tf-i-est-label">If stopped</div>
+        <div class="tf-i-est-label">Closing @ Stop</div>
         <div class="tf-i-est-val">−$${lossDollar.toLocaleString()}</div>
         <div class="tf-i-est-sub">${fmtPct(lossPct)} · −1.00R</div>
       </div>
       <div class="tf-i-est-cell tf-i-est-gain">
-        <div class="tf-i-est-label">If limit hits</div>
-        <div class="tf-i-est-val">${target > 0 ? '+$' + gainDollar.toLocaleString() : '—'}</div>
-        <div class="tf-i-est-sub">${target > 0 ? `${fmtPct(gainPct)} · ${rValue ? '+' + rValue.toFixed(2) + 'R' : '—'}` : 'add a limit price'}</div>
+        <div class="tf-i-est-label">Closing @ Target</div>
+        <div class="tf-i-est-val">${target > 0 ? window.tfSignedMoneyText(gainDollar, 0) : '—'}</div>
+        <div class="tf-i-est-sub">${target > 0 ? `${fmtPct(gainPct)} · ${rValue !== null ? (rValue >= 0 ? '+' : '') + rValue.toFixed(2) + 'R' : '—'}` : 'add a limit price'}</div>
       </div>
       <div class="tf-i-est-cell">
         <div class="tf-i-est-label">Size</div>
@@ -156,7 +148,9 @@ function tfComputeIntradayRiskSize() {
   const stopDist = Math.abs(entry - stop);
   if (!(stopDist > 0)) return null;
   const mult = isOptions ? 100 : 1;
-  const riskBudget = settings.intradayRiskPerTrade || 100;
+  const baseRisk = settings.intradayRiskPerTrade || 100;
+  const regimeMult = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+  const riskBudget = Math.round(baseRisk * regimeMult);
   const qty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, stopDist * mult)));
   return {
     qty,
@@ -200,6 +194,7 @@ function tfUpdateIntradaySizing() {
   const card = document.getElementById('tf-i-sizing-card');
   if (card) card.innerHTML = window.tfRenderIntradaySizingHtml();
   window.tfBindIntradayRiskSizeButton();
+  window.tfBindPriceLevelSliders();
   window.tfBindMoonshotSliders();
 }
 

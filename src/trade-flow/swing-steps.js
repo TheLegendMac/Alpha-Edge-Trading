@@ -6,33 +6,62 @@ import { DEFAULT_SETTINGS, TRADE_SWING_SETUPS, TRADE_STRUCTURES, TRADE_SETUP_TEM
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
-  const cards = TRADE_SWING_SETUPS.map(s => `
+  const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+  // Filter: hide setups whose bias doesn't match the active direction (either always shows).
+  const visible = TRADE_SWING_SETUPS.filter(s => {
+    const b = s.bias || 'either';
+    return b === 'either' || b === dirKey;
+  });
+  const cards = visible.map(s => {
+    const biasTag = s.bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
+                  : s.bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
+                                       : '<span class="tf-bias-tag neutral">EITHER</span>';
+    return `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
-      <span class="trade-setup-card-num">SETUP ${s.num}${s.halfSize ? ' · ½ SIZE' : ''}</span>
+      <span class="trade-setup-card-num">${s.num} · ${biasTag}${s.halfSize ? ' <span class="tf-bias-tag neutral" style="margin-left:4px;">½ SIZE</span>' : ''}</span>
       <span class="trade-setup-card-name">${s.id}</span>
       <span class="trade-setup-card-detail">${s.desc}</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
+
+  const empty = !visible.length
+    ? `<div class="input-help">No setups match this direction. Switch direction in the header.</div>`
+    : '';
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Technical setup</div>
-          <div class="trade-section-subtitle">Pick one approved chart pattern. If none fit, stop here.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Pick the setup</div>
+          <div class="trade-section-subtitle">Pick one approved chart pattern. Only setups matching your direction are shown.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid" id="tf-setup-grid">${cards}</div>
+        ${empty}
       </div>
     </div>
   `;
 }
 
 function tfMountSwingStep1() {
+  // If the currently-selected setup doesn't match the active direction, clear it.
+  if (state.selectedSetup) {
+    const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+    const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup);
+    const bias = def ? (def.bias || 'either') : 'either';
+    if (bias !== 'either' && bias !== dirKey) {
+      state.selectedSetup = null;
+      saveState();
+    }
+  }
   document.querySelectorAll('#panel-trade [data-tf-setup]').forEach(b => {
     b.addEventListener('click', () => {
       state.selectedSetup = b.dataset.tfSetup;
+      // Auto-align direction if the setup has a specific bias.
+      const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup);
+      if (def && def.bias && def.bias !== 'either') state.direction = def.bias;
       saveState();
       window.tfRefreshAll();
     });
@@ -535,7 +564,9 @@ function tfMountSwingStep3() {
         if (typeof window.toast === 'function') window.toast('Enter the entry premium first.', true);
         return;
       }
-      const stopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const baseStopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const regimeMult  = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+      const stopPct = baseStopPct * regimeMult;
       const isShort = (state.direction || 'long').toLowerCase().startsWith('s');
       const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
       state.swingStop = stop;
@@ -575,6 +606,9 @@ function tfMountSwingStep3() {
       window.tfUpdateSwingSizing();
     });
   }
+  // Bind sliders on initial render — tfUpdateSwingSizing handles rebinds after rebuilds.
+  if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
+  if (typeof window.tfBindMoonshotSliders === 'function')  window.tfBindMoonshotSliders();
 }
 
 // ----- Swing step 4 — Final review & send -----

@@ -153,7 +153,6 @@ function tfRenderHeader() {
   const heroEyebrow = document.getElementById('trade-hero-eyebrow');
   const heroModeLabel = document.getElementById('trade-hero-mode-label');
   const heroHeading = document.getElementById('trade-hero-heading');
-  const heroSub = document.getElementById('trade-hero-sub');
   if (heroEyebrow) {
     heroEyebrow.className = `trade-hero-eyebrow ${m}`;
     const dot = heroEyebrow.querySelector('span');
@@ -172,52 +171,68 @@ function tfRenderHeader() {
           : `Take an intraday on <span style="color:${accentColor}">${ticker}</span>.`)
       : (m === 'swing' ? 'Build a swing trade.' : 'Take an intraday trade.');
   }
-  if (heroSub) {
-    const modeColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
-    const modeTag = `<strong style="color:${modeColor};letter-spacing:0.06em;">${m === 'intraday' ? 'INTRADAY' : 'SWING'}</strong>`;
-    let blurb = m === 'swing'
-      ? `${modeTag} · Hold target 3–10 days · max 4 swings open · risk 0.5% / trade.`
-      : `${modeTag} · Same-day exit · max 2 intraday open · cut by 15:55 ET.`;
-
-    const setup = m === 'swing' ? state.selectedSetup : ((state.intraday && state.intraday.setup) || '');
-    const dir = m === 'swing' ? state.direction : ((state.intraday && state.intraday.direction) || '');
-
-    if (setup) {
-      const dirKey = (dir || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
-      const dirLabel = dirKey === 'short' ? 'Short' : 'Long';
-
-      let setupLabel = setup;
-      if (m === 'intraday' && typeof window.tfFindIntradaySetup === 'function') {
-         const def = window.tfFindIntradaySetup(setup);
-         if (def) setupLabel = def.name;
-      }
-
-      const closed = (state.trades || []).filter(t => isClosedTrade(t));
-      const peers = closed.filter(t => {
-        const tDir = (t.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
-        return t.setup === setup && tDir === dirKey;
-      });
-
-      const setupHead = `<strong style="color:${modeColor};">${setupLabel} · ${dirLabel}:</strong>`;
-
-      if (peers.length >= 2) {
-        const wins = peers.filter(t => (calcPL(t) || 0) > 0).length;
-        const wr = Math.round(wins / peers.length * 100);
-        const totalR = peers.reduce((s, x) => s + (calcR(x) || 0), 0);
-        const avgR = totalR / peers.length;
-        const tone = avgR >= 0.4 ? 'var(--green-bright)' : avgR >= 0 ? modeColor : 'var(--red-bright)';
-        blurb = `${setupHead} ${peers.length} prior, ${wr}% wins, <span style="color:${tone}; font-weight:700;">${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg</span>.`;
-      } else if (peers.length === 1) {
-        blurb = `${setupHead} Only 1 prior trade. Log this one to build your sample size.`;
-      } else {
-        blurb = `${setupHead} First one of your career. Trust the setup criteria.`;
-      }
+  const heroPnl = document.getElementById('trade-hero-pnl');
+  if (heroPnl) {
+    heroPnl.classList.toggle('swing', m === 'swing');
+    heroPnl.classList.toggle('intraday', m === 'intraday');
+    const p = window.tfComputeHeroPnl ? window.tfComputeHeroPnl() : null;
+    if (p && p.risk > 0 && p.reward > 0) {
+      const rr = p.risk > 0 ? (p.reward / p.risk) : 0;
+      heroPnl.innerHTML = `Risking <span style="color:var(--red-bright);font-weight:700;">$${Math.round(p.risk).toLocaleString()}</span> to make <span style="color:var(--green-bright);font-weight:700;">$${Math.round(p.reward).toLocaleString()}</span> <span style="color:var(--ink-3);">(${rr.toFixed(2)}R · ${p.qty} ${p.label}${p.qty === 1 ? '' : 's'})</span>`;
+    } else {
+      heroPnl.textContent = 'Fill entry, stop, and limit to see win / loss.';
     }
-
-    heroSub.className = `trade-hero-sub ${m}`;
-    heroSub.innerHTML = blurb;
   }
 }
+
+// Compute risk + reward + size for the sub-hero P/L line. Mode-aware.
+function tfComputeHeroPnl() {
+  const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
+  if (m === 'intraday') {
+    const it = state.intraday || {};
+    const entry = Number(it.entry);
+    const stop = Number(it.stop);
+    const target = Number(it.target);
+    if (!(entry > 0 && stop > 0 && target > 0)) return null;
+    const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+    const manualQty = Number(it.contracts);
+    const qty = manualQty > 0 ? manualQty : (auto ? auto.qty : 0);
+    const mult = auto ? auto.mult : ((it.instrument === 'stocks') ? 1 : 100);
+    const label = auto ? auto.label : ((it.instrument === 'stocks') ? 'share' : 'contract');
+    if (!(qty > 0)) return null;
+    return {
+      risk: Math.abs(entry - stop) * qty * mult,
+      reward: Math.abs(target - entry) * qty * mult,
+      qty, label,
+    };
+  }
+  // Swing
+  const premium = Number(state.premium);
+  const stop = Number(state.swingStop);
+  const target = Number(state.swingTarget);
+  if (!(premium > 0 && stop > 0 && target > 0)) return null;
+  const isOptions = state.instrument !== 'stocks';
+  const mult = isOptions ? 100 : 1;
+  const label = isOptions ? 'contract' : 'share';
+  // Auto-size mirrors the logic in swing-sizing.js.
+  const settings = state.settings || {};
+  const account = settings.account || 10000;
+  const deployed = (typeof window.tfCapitalDeployed === 'function') ? window.tfCapitalDeployed() : 0;
+  const available = Math.max(0, account - deployed);
+  let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  const riskDollars = Math.round(available * riskPct);
+  const perUnitRisk = Math.abs(premium - stop) * mult;
+  const autoQty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, perUnitRisk)));
+  const manualQty = Number(state.swingQty);
+  const qty = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoQty;
+  return {
+    risk: perUnitRisk * qty,
+    reward: Math.abs(target - premium) * mult * qty,
+    qty, label,
+  };
+}
+window.tfComputeHeroPnl = tfComputeHeroPnl;
 
 function tfRenderActions() {
   const backBtn = document.getElementById('trade-back-btn');

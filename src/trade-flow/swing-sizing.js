@@ -12,6 +12,9 @@ function tfRenderSwingSizingHtml() {
   const account = settings.account || 10000;
   const deployed = window.tfCapitalDeployed();
   const available = Math.max(0, account - deployed);
+  const manualStop = Number(state.swingStop);
+  const manualTarget = Number(state.swingTarget);
+  const manualQty = Number(state.swingQty);
   let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
   const halfSize = state.selectedSetup === 'Edge Reversal';
   if (halfSize) riskPct = riskPct / 2;
@@ -22,50 +25,36 @@ function tfRenderSwingSizingHtml() {
   const halfSizeNote = halfSize ? ' Edge Reversal is half size.' : '';
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
-    const maxLossPerContract = premium * stopFraction * 100;
-    const contracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+    const defaultStopPrem = premium * (1 - stopFraction);
+    const stopPrem = manualStop > 0 ? manualStop : defaultStopPrem;
+    const maxLossPerContract = Math.abs(premium - stopPrem) * 100;
+    const autoContracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
+    const contracts = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoContracts;
     const totalRisk = contracts * maxLossPerContract;
-    const totalPremium = contracts * premium * 100;
-    const target = premium * (1 + (settings.targetPct || 50) / 100);
-    const stopPrem = premium * (1 - stopFraction);
-    const atr = state.atr; const upx = state.underlyingPrice;
-    const stopDollar = (atr > 0 && upx > 0) ? `${(state.direction === 'short' ? upx + atr * 1.5 : upx - atr * 1.5).toFixed(2)}` : '—';
+    const defaultTarget = premium * (1 + (settings.targetPct || 50) / 100);
+    const target = manualTarget > 0 ? manualTarget : defaultTarget;
     return `
       <div class="trade-output">
         <div class="trade-output-title">Entry & risk unit</div>
         <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
-        <div class="trade-output-rationale">Entry, stop, target, and size are tied to one risk unit. ${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
-        <div class="trade-output-grid">
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">$${premium.toFixed(2)} / ct</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${contracts} ct</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Premium stop</span><span class="trade-output-cell-value">$${stopPrem.toFixed(2)} / ct</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">$${target.toFixed(2)} / ct</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Underlying stop</span><span class="trade-output-cell-value">$${stopDollar}</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Total premium</span><span class="trade-output-cell-value">$${Math.round(totalPremium)}</span></div>
-        </div>
+        <div class="trade-output-rationale">${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${manualQty > 0 ? ` Manual size would risk $${Math.round(totalRisk)}.` : ''}${halfSizeNote}${deployedNote}</div>
         ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
       </div>`;
   }
   const stopPct = (settings.stopPct || 5) / 100;
-  const maxLossPerShare = premium * stopPct;
-  const shares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
   const targetPct = (settings.targetPct || 50) / 100;
-  const stopPrice = state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct);
-  const targetPrice = state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct);
+  const defaultStopPrice = state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct);
+  const defaultTargetPrice = state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct);
+  const stopPrice = manualStop > 0 ? manualStop : defaultStopPrice;
+  const targetPrice = manualTarget > 0 ? manualTarget : defaultTargetPrice;
+  const maxLossPerShare = Math.abs(premium - stopPrice);
+  const autoShares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
+  const shares = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoShares;
   return `
     <div class="trade-output">
       <div class="trade-output-title">Entry & risk unit</div>
       <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
-      <div class="trade-output-rationale">Entry, stop, target, and share count are tied to one risk unit. ${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
-      <div class="trade-output-grid">
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">$${premium.toFixed(2)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${shares} shares</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">$${stopPrice.toFixed(2)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">$${targetPrice.toFixed(2)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / share</span><span class="trade-output-cell-value">$${maxLossPerShare.toFixed(2)}</span></div>
-      </div>
+      <div class="trade-output-rationale">${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
       ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
     </div>`;
 }
@@ -122,6 +111,7 @@ function tfUpdateSwingSpreadLine() {
 function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
   if (card) card.innerHTML = window.tfRenderSwingSizingHtml();
+  window.tfBindPriceLevelSliders();
   window.tfBindMoonshotSliders();
   const premiumCounter = document.getElementById('tf-premium-counter');
   if (premiumCounter) {

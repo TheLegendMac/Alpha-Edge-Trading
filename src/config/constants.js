@@ -98,11 +98,11 @@ export const REGIME_DATA = {
 
 // ---------- Trade-flow catalogues ----------
 export const TRADE_SWING_SETUPS = [
-  { id: '21-EMA Pullback',  num: '01', desc: 'Stock in clear uptrend pulls back to its 21-day MA, then prints a green/up bar.' },
-  { id: 'Base Breakout',    num: '02', desc: 'Trading flat in a tight range for 15+ days, then breaks above on 1.5×+ avg volume.' },
-  { id: 'Breakout Retest',  num: '03', desc: 'Stock breaks out, pulls back to retest the breakout level, then bounces.' },
-  { id: '9-EMA Reclaim',    num: '04', desc: 'Intraday wick below the 9-day MA closes back above by EOD — dip-buyers showed up.' },
-  { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true },
+  { id: '21-EMA Pullback',  num: '01', desc: 'Stock in clear uptrend pulls back to its 21-day MA, then prints a green/up bar.', bias: 'long' },
+  { id: 'Base Breakout',    num: '02', desc: 'Trading flat in a tight range for 15+ days, then breaks above on 1.5×+ avg volume.', bias: 'long' },
+  { id: 'Breakout Retest',  num: '03', desc: 'Stock breaks out, pulls back to retest the breakout level, then bounces.', bias: 'long' },
+  { id: '9-EMA Reclaim',    num: '04', desc: 'Intraday wick below the 9-day MA closes back above by EOD — dip-buyers showed up.', bias: 'long' },
+  { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true, bias: 'either' },
 ];
 
 export const TRADE_STRUCTURES = [

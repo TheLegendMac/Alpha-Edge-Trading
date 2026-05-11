@@ -677,6 +677,17 @@
   background: rgba(16,185,129,0.08);
   box-shadow: inset 0 0 0 1px rgba(16,185,129,0.14);
 }
+#panel-trade .tf-risk-caption {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 4px;
+}
 #panel-trade .tf-risk-zone strong {
   display: block;
   font-family: var(--mono);
@@ -719,6 +730,64 @@
   font-weight: 800;
   letter-spacing: 0.12em;
 }
+#panel-trade .tf-price-adjust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+#panel-trade .tf-price-adjust-row {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(15,23,42,0.36);
+}
+#panel-trade .tf-price-adjust-row[data-tf-price-row="stop"] {
+  border-color: rgba(239,68,68,0.26);
+  background: rgba(239,68,68,0.07);
+}
+#panel-trade .tf-price-adjust-row[data-tf-price-row="target"] {
+  border-color: rgba(16,185,129,0.24);
+  background: rgba(16,185,129,0.06);
+}
+#panel-trade .tf-price-adjust-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+#panel-trade .tf-price-adjust-head output {
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+#panel-trade .tf-price-adjust-slider {
+  width: 100%;
+  height: 18px;
+  cursor: pointer;
+}
+#panel-trade .tf-price-adjust-row[data-tf-price-row="stop"] .tf-price-adjust-slider {
+  accent-color: var(--red-bright);
+}
+#panel-trade .tf-price-adjust-row[data-tf-price-row="target"] .tf-price-adjust-slider {
+  accent-color: var(--green-bright);
+}
+#panel-trade .tf-price-adjust-result {
+  min-height: 18px;
+  margin-top: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+#panel-trade .tf-price-adjust-result .pos { color: var(--green-bright); }
+#panel-trade .tf-price-adjust-result .neg { color: var(--red-bright); }
 #panel-trade .tf-moonshot-control {
   margin-top: 12px;
   padding: 12px 14px;
@@ -794,6 +863,9 @@
 #panel-trade .tf-risk-table-row.moon .level,
 #panel-trade .tf-risk-table-row.moon .pos { color: var(--green-bright); }
 @media (max-width: 760px) {
+  #panel-trade .tf-price-adjust {
+    grid-template-columns: 1fr;
+  }
   #panel-trade .tf-risk-table-row {
     grid-template-columns: 1fr 1fr;
   }

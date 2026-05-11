@@ -9,6 +9,7 @@ import { calcPL, tradeRiskDollars, tradeMultiplier, tradeQty } from '../models/t
 let editMode = false;
 let draft = null;          // staged copy in edit mode
 let originalSnapshot = null; // for discard
+let journalEditOnRender = false;
 
 // ── format helpers ─────────────────────────────────────────────────────────
 function fmt$(v) {
@@ -83,6 +84,7 @@ export function closeEditTrade() {
   editMode = false;
   draft = null;
   originalSnapshot = null;
+  journalEditOnRender = false;
 }
 
 // ── working copy helpers ───────────────────────────────────────────────────
@@ -99,6 +101,7 @@ function exitEditMode(trade) {
   editMode = false;
   draft = null;
   originalSnapshot = null;
+  journalEditOnRender = false;
   renderEditTrade(trade);
 }
 function commitDraft(trade) {
@@ -159,14 +162,14 @@ function renderEditTrade(trade) {
   const markPct     = Math.max(stopX, Math.min(targetX, stopX + progress * (targetX - stopX)));
 
   // Detect overlap with markers so NOW label stays readable.
-  const nearStop   = Math.abs(markPct - stopX)   < 6;
-  const nearEntry  = Math.abs(markPct - entryX)  < 6;
-  const nearTarget = Math.abs(markPct - targetX) < 6;
-  // Default NOW label sits above the dot. When near STOP/TARGET (which also sit on top),
-  // lift NOW label higher so the two don't collide.
-  const nowLabelOffset = (nearStop || nearTarget) ? -34 : -8;
-  const stopLabelOffset = nearStop ? 0 : 0;
-  const targetLabelOffset = nearTarget ? 0 : 0;
+  const nearStop   = Math.abs(markPct - stopX)   < 7;
+  const nearEntry  = Math.abs(markPct - entryX)  < 7;
+  const nearTarget = Math.abs(markPct - targetX) < 7;
+  const stopLaneTop = nearStop ? 88 : 12;
+  const stopLineTop = nearStop ? -32 : 36;
+  const targetLaneTop = nearTarget ? 88 : 12;
+  const targetLineTop = nearTarget ? -32 : 36;
+  const entryLaneTop = nearEntry ? 96 : 88;
 
   const pctToTarget = hasTarget ? Math.round((isLong ? (mark - entry) / (target - entry) : (entry - mark) / (entry - target)) * 100) : 0;
   const pctToStop   = entry !== stop ? Math.round((isLong ? (mark - stop) / (entry - stop) : (stop - mark) / (stop - entry)) * 100) : 100;
@@ -183,6 +186,7 @@ function renderEditTrade(trade) {
   // Opened-at display
   const openedAt = w.openedAt || w.created_at || w.date || null;
   const openedStr = openedAt ? formatOpened(openedAt) : '—';
+  const isJournalEditing = editMode && journalEditOnRender;
 
   // ── nav bar ─────────────────────────────────────────────────────────────
   const navBar = document.getElementById('edit-trade-nav-bar');
@@ -333,27 +337,27 @@ function renderEditTrade(trade) {
         <div class="et-ladder-track">
           <div class="et-ladder-fill" style="background:linear-gradient(90deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.18) 28%,rgba(255,255,255,0.04) 28%,rgba(255,255,255,0.04) 32%,rgba(16,185,129,0.14) 32%,${hasTarget ? 'rgba(52,211,153,0.28)' : 'rgba(255,255,255,0.04)'} 100%)"></div>
         </div>
-        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="stop" style="left:${stopX}%;top:2px;">
+        <div class="et-marker ${nearStop ? 'et-marker-below' : 'et-marker-above'} ${editMode ? 'et-marker-drag' : ''}" data-handle="stop" style="left:${stopX}%;top:${stopLaneTop}px;">
           <div class="et-marker-label" style="color:var(--red-bright)">STOP</div>
           <div class="et-marker-price">$${stop.toFixed(2)}</div>
-          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
+          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:28px;position:absolute;top:${stopLineTop}px;"></div>
         </div>
-        <div class="et-marker et-marker-entry ${editMode ? 'et-marker-drag' : ''}" data-handle="entry" style="left:${entryX}%;top:50px;">
-          <div class="et-marker-line" style="background:${a.c};opacity:0.6;height:18px;position:absolute;top:-20px;"></div>
+        <div class="et-marker et-marker-entry et-marker-below ${editMode ? 'et-marker-drag' : ''}" data-handle="entry" style="left:${entryX}%;top:${entryLaneTop}px;">
+          <div class="et-marker-line" style="background:${a.c};opacity:0.6;height:28px;position:absolute;top:-32px;"></div>
           <div class="et-marker-label" style="color:${a.c}">ENTRY</div>
           <div class="et-marker-price">$${entry.toFixed(2)}</div>
         </div>
         ${hasTarget ? `
-        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;${nearTarget ? 'opacity:0.35;' : ''}">
+        <div class="et-marker ${nearTarget ? 'et-marker-below' : 'et-marker-above'} ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:${targetLaneTop}px;">
           <div class="et-marker-label" style="color:var(--green-bright)">TARGET</div>
           <div class="et-marker-price">$${target.toFixed(2)}</div>
-          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
+          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:28px;position:absolute;top:${targetLineTop}px;"></div>
         </div>` : `
-        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;opacity:0.6;">
+        <div class="et-marker et-marker-above ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:12px;opacity:0.6;">
           <div class="et-marker-label" style="color:var(--amber-bright,#fbbf24)">TARGET</div>
           <div class="et-marker-price" style="color:var(--ink-4);">—</div>
         </div>`}
-        <div class="et-now-dot" style="left:${markPct}%;top:${nowLabelOffset}px;">
+        <div class="et-now-dot" style="left:${markPct}%;top:10px;">
           <div class="et-now-label" style="color:${tone};white-space:nowrap;">NOW · $${mark.toFixed(2)}</div>
           <div class="et-now-stem" style="background:${tone};height:38px;"></div>
           <div class="et-now-circle" style="background:${tone};box-shadow:0 0 14px ${tone},0 0 0 3px var(--bg,#08090d)"></div>
@@ -361,19 +365,19 @@ function renderEditTrade(trade) {
       </div>
       <div class="et-ladder-trio">
         <div class="et-trio-cell">
-          <div class="et-trio-label">Target price</div>
-          <div class="et-trio-val">${hasTarget ? '$' + target.toFixed(2) : '—'}</div>
-          <div class="et-trio-sub">${hasTarget ? `${plannedRR.toFixed(2)}:1 R:R` : 'not set'}</div>
+          <div class="et-trio-label">Closing @ Stop</div>
+          <div class="et-trio-val" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
+          <div class="et-trio-sub" style="color:var(--red-bright)">${entry ? '−' + Math.abs((stop - entry) / entry * 100).toFixed(2) + '%' : '—'}</div>
         </div>
-        <div class="et-trio-cell">
-          <div class="et-trio-label">If sold now</div>
+        <div class="et-trio-cell et-trio-center">
+          <div class="et-trio-label">Closing Now</div>
           <div class="et-trio-val" style="color:${tone}">${pl >= 0 ? '+$' : '−$'}${Math.abs(Math.round(pl)).toLocaleString()}</div>
           <div class="et-trio-sub" style="color:${tone}">${plPct >= 0 ? '+' : '−'}${Math.abs(plPct).toFixed(2)}%</div>
         </div>
-        <div class="et-trio-cell">
-          <div class="et-trio-label">If stopped</div>
-          <div class="et-trio-val" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
-          <div class="et-trio-sub" style="color:var(--red-bright)">${entry ? '−' + Math.abs((stop - entry) / entry * 100).toFixed(2) + '%' : '—'}</div>
+        <div class="et-trio-cell et-trio-right">
+          <div class="et-trio-label">Closing @ Target</div>
+          <div class="et-trio-val" style="color:var(--green-bright)">${hasTarget ? '+$' + targetDollars.toLocaleString() : '—'}</div>
+          <div class="et-trio-sub">${hasTarget ? '$' + target.toFixed(2) + ' · ' + plannedRR.toFixed(2) + ':1 R:R' : 'not set'}</div>
         </div>
       </div>
       ${editMode ? `
@@ -399,11 +403,16 @@ function renderEditTrade(trade) {
       <div class="et-journal-card" style="grid-column:1 / -1;">
         <div class="et-card-heading">
           <h2 class="et-card-title">Journal</h2>
-          ${editMode && !journalEditing(w) ? '<button class="btn-secondary btn-compact" id="et-edit-journal-btn">EDIT ENTRY NOTE</button>' : ''}
+          ${!isJournalEditing ? `
+            <button class="et-journal-edit-btn" id="et-edit-journal-btn" type="button" title="Edit journal note" aria-label="Edit journal note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </button>` : ''}
         </div>
-        <div class="et-card-meta" style="margin-bottom:6px;">ENTRY THESIS</div>
-        <div class="et-journal-quote" id="et-journal-quote">${renderJournalQuote(w)}</div>
-        ${renderRunningNotes(w)}
+        <div class="et-card-meta" style="margin-bottom:6px;">NOTE</div>
+        <div class="et-journal-quote" id="et-journal-quote">${isJournalEditing ? renderJournalEditor(w) : renderJournalQuote(w)}</div>
       </div>
     </section>
 
@@ -450,6 +459,25 @@ function renderEditTrade(trade) {
 function renderManageForms(w, mark, qty, a, isProfit, r) {
   return `
   <section class="et-manage-grid">
+    <div class="et-manage-card">
+      <div class="et-card-heading">
+        <h2 class="et-card-title">Add to position</h2>
+        <div class="et-card-meta">AVERAGE ENTRY</div>
+      </div>
+      <div class="et-form-row">
+        <label class="et-form-field">
+          <span>Qty</span>
+          <input type="number" min="1" id="et-add-qty" value="1">
+        </label>
+        <label class="et-form-field">
+          <span>Fill price</span>
+          <input type="number" step="0.01" id="et-add-price" value="${mark.toFixed(2)}">
+        </label>
+        <button class="et-form-apply" id="et-add-apply" style="color:var(--cyan);background:rgba(6,212,248,0.12);border:1px solid rgba(6,212,248,0.32);">ADD</button>
+      </div>
+      <div class="et-form-hint" id="et-add-hint">Stages added size and recalculates average entry.</div>
+    </div>
+
     <div class="et-manage-card">
       <div class="et-card-heading">
         <h2 class="et-card-title">Scale out</h2>
@@ -565,6 +593,13 @@ function wireEvents(trade, w, ctx) {
       if (!Number.isFinite(px) || px <= 0) { toast('Enter a fill price'); return; }
       applyScaleOut(trade, q, px, ctx);
     });
+    mainEl.querySelector('#et-add-apply')?.addEventListener('click', () => {
+      const q = parseInt(mainEl.querySelector('#et-add-qty')?.value, 10);
+      const px = parseFloat(mainEl.querySelector('#et-add-price')?.value);
+      if (!Number.isFinite(q) || q < 1) { toast('Enter qty to add'); return; }
+      if (!Number.isFinite(px) || px <= 0) { toast('Enter a fill price'); return; }
+      applyAddToPosition(trade, q, px, ctx);
+    });
     mainEl.querySelector('#et-close-apply')?.addEventListener('click', () => {
       const q  = parseInt(mainEl.querySelector('#et-close-qty')?.value, 10);
       const px = parseFloat(mainEl.querySelector('#et-close-price')?.value);
@@ -596,43 +631,25 @@ function wireEvents(trade, w, ctx) {
     toast(`Repeating ${w.setup}`);
   });
 
-  // Journal edit — single editor handles both the entry thesis and adding a new note.
-  if (editMode) {
-    mainEl.querySelector('#et-edit-journal-btn')?.addEventListener('click', () => {
-      const quote = mainEl.querySelector('#et-journal-quote');
-      if (!quote || quote.dataset.editing === '1') return;
-      quote.dataset.editing = '1';
-      const current = draft.journal || draft.thesis || '';
-      quote.innerHTML = `
-        <label class="et-card-meta" style="display:block;margin-bottom:4px;">ENTRY THESIS</label>
-        <textarea class="et-note-area" id="et-journal-edit" style="width:100%;min-height:90px;">${escapeHtml(current)}</textarea>
-        <label class="et-card-meta" style="display:block;margin-top:10px;margin-bottom:4px;">ADD A NEW NOTE (OPTIONAL)</label>
-        <textarea class="et-note-area" id="et-journal-append" placeholder='e.g. "Moved stop to BE per plan."' style="width:100%;min-height:60px;"></textarea>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="btn-primary btn-compact" id="et-journal-save">SAVE</button>
-          <button class="btn-secondary btn-compact" id="et-journal-cancel">CANCEL</button>
-        </div>`;
-      quote.querySelector('#et-journal-cancel').addEventListener('click', () => {
-        renderEditTrade(trade);
-      });
-      quote.querySelector('#et-journal-save').addEventListener('click', () => {
-        const v   = quote.querySelector('#et-journal-edit').value.trim();
-        const add = quote.querySelector('#et-journal-append').value.trim();
-        draft.journal = v;
-        if (add) {
-          if (!Array.isArray(draft.runningNotes)) {
-            draft.runningNotes = draft.notes
-              ? [{ at: draft.updated_at || draft.created_at || new Date().toISOString(), text: draft.notes }]
-              : [];
-          }
-          draft.runningNotes.push({ at: new Date().toISOString(), text: add });
-          draft.notes = '';
-        }
-        renderEditTrade(trade);
-      });
-      quote.querySelector('#et-journal-edit').focus();
-    });
-  }
+  mainEl.querySelector('#et-edit-journal-btn')?.addEventListener('click', () => {
+    journalEditOnRender = true;
+    if (!editMode) enterEditMode(trade);
+    else renderEditTrade(trade);
+  });
+  mainEl.querySelector('#et-journal-cancel')?.addEventListener('click', () => {
+    journalEditOnRender = false;
+    renderEditTrade(trade);
+  });
+  mainEl.querySelector('#et-journal-save')?.addEventListener('click', () => {
+    if (!draft) return;
+    draft.journal = (mainEl.querySelector('#et-journal-edit')?.value || '').trim();
+    draft.thesis = draft.journal;
+    draft.notes = '';
+    delete draft.runningNotes;
+    journalEditOnRender = false;
+    renderEditTrade(trade);
+  });
+  if (journalEditOnRender) mainEl.querySelector('#et-journal-edit')?.focus();
 
   // Footer actions
   const footer = mainEl.querySelector('.et-sticky-footer');
@@ -725,16 +742,27 @@ function applyScaleOut(trade, q, px, ctx) {
   draft.scaleOuts.push({ qty: q, price: px, at: new Date().toISOString() });
   const realized = (px - parseFloat(draft.entry || draft.premium || 0)) * q * (ctx.isLong ? 1 : -1);
   draft.realized = (parseFloat(draft.realized) || 0) + realized;
-  const note = `Scaled out ${q} @ $${px.toFixed(2)} · realized ${fmt$(realized)}`;
-  if (!Array.isArray(draft.runningNotes)) {
-    draft.runningNotes = draft.notes
-      ? [{ at: draft.updated_at || draft.created_at || new Date().toISOString(), text: draft.notes }]
-      : [];
-  }
-  draft.runningNotes.push({ at: new Date().toISOString(), text: note });
-  draft.notes = '';
   renderEditTrade(trade);
   toast(`${q} scaled out · ${newQty} remaining (save to commit)`);
+}
+
+function applyAddToPosition(trade, q, px, ctx) {
+  const newQty = ctx.qty + q;
+  const currentEntry = parseFloat(draft.entry || draft.premium || 0) || ctx.entry || px;
+  const avgEntry = ((currentEntry * ctx.qty) + (px * q)) / newQty;
+  draft.qty = newQty;
+  if (draft.shares != null) draft.shares = newQty;
+  if (draft.contracts != null) draft.contracts = newQty;
+  if (draft.entry != null) draft.entry = +avgEntry.toFixed(4);
+  if (draft.premium != null) draft.premium = +avgEntry.toFixed(4);
+  draft.addOns = Array.isArray(draft.addOns) ? draft.addOns : [];
+  draft.addOns.push({ qty: q, price: px, at: new Date().toISOString() });
+  const stop = parseFloat(draft.stop || 0);
+  if (stop > 0) {
+    draft.riskDollars = Math.round(Math.abs(avgEntry - stop) * newQty * tradeMultiplier(draft));
+  }
+  renderEditTrade(trade);
+  toast(`Added ${q} · ${newQty} total (save to commit)`);
 }
 
 function applyCloseAll(trade, q, px, ctx) {
@@ -759,34 +787,19 @@ function applyCloseAll(trade, q, px, ctx) {
 }
 
 // ── journal helpers ───────────────────────────────────────────────────────
-function journalEditing(_w) {
-  // We re-derive editing state from the DOM rather than tracking it on the trade
-  const q = document.getElementById('et-journal-quote');
-  return !!(q && q.dataset.editing === '1');
-}
 function renderJournalQuote(w) {
-  const text = w.journal || w.thesis || '';
-  if (!text) return '<span style="color:var(--ink-4);font-style:italic;">No entry thesis recorded.</span>';
+  const text = w.journal || w.thesis || w.notes || '';
+  if (!text) return '<span style="color:var(--ink-4);font-style:italic;">No note recorded.</span>';
   return `"${escapeHtml(text)}"`;
 }
-function getRunningNotes(w) {
-  if (Array.isArray(w.runningNotes)) return w.runningNotes;
-  // Migrate legacy free-text notes into a single-entry list (display only).
-  if (w.notes) return [{ at: w.updated_at || w.created_at || null, text: w.notes }];
-  return [];
-}
-function renderRunningNotes(w) {
-  const notes = getRunningNotes(w);
-  if (!notes.length) return '';
+function renderJournalEditor(w) {
+  const current = w.journal || w.thesis || w.notes || '';
   return `
-    <div class="et-card-meta" style="margin-top:14px;">RUNNING NOTES · ${notes.length}</div>
-    <ul class="et-notes-feed">
-      ${notes.map((n, i) => `
-        <li class="et-note-item" data-idx="${i}">
-          <span class="et-note-time">${n.at ? formatOpened(n.at) : '—'}</span>
-          <span class="et-note-text">${escapeHtml(n.text || '')}</span>
-        </li>`).join('')}
-    </ul>`;
+    <textarea class="et-note-area" id="et-journal-edit" style="width:100%;min-height:110px;">${escapeHtml(current)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-primary btn-compact" id="et-journal-save" type="button">SAVE</button>
+      <button class="btn-secondary btn-compact" id="et-journal-cancel" type="button">CANCEL</button>
+    </div>`;
 }
 
 // ── misc helpers ──────────────────────────────────────────────────────────
@@ -831,6 +844,18 @@ function buildHistory(trade, accentColor, toneColor) {
         kind: 'SCALE',
         text: `Scaled out ${s.qty} @ $${(+s.price).toFixed(2)}`,
         color: 'var(--green-bright)',
+      });
+    });
+  }
+
+  if (Array.isArray(trade.addOns)) {
+    trade.addOns.forEach(a => {
+      const ad = new Date(a.at || Date.now());
+      events.push({
+        t: ad.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        kind: 'ADD',
+        text: `Added ${a.qty} @ $${(+a.price).toFixed(2)}`,
+        color: 'var(--cyan)',
       });
     });
   }

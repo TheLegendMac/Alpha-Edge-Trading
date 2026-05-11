@@ -55,6 +55,15 @@ export function getRiskPctForRegime(regime) {
   return s.riskOn / 100;
 }
 
+// Regime size/stop multiplier — scales both the auto-stop pct and any
+// fixed-dollar risk unit (e.g. intradayRiskPerTrade). risk-on = full, neutral =
+// half, risk-off = quarter. Drives "tighter stops + smaller size" in weaker tape.
+export function getRegimeRiskMultiplier(regime) {
+  if (regime === 'neutral')  return 0.5;
+  if (regime === 'risk-off') return 0.25;
+  return 1.0;
+}
+
 // Refresh entire UI after state replacement. Render functions still live in
 // legacy.js, so we look them up via window — `typeof` is safe even if undefined.
 export function refreshAllUI() {
@@ -74,4 +83,5 @@ export function refreshAllUI() {
 // Bridge to legacy.js (regular <script>).
 window.state = state;
 window.getRiskPctForRegime = getRiskPctForRegime;
+window.getRegimeRiskMultiplier = getRegimeRiskMultiplier;
 window.refreshAllUI = refreshAllUI;

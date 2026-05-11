@@ -142,7 +142,13 @@ function tfIntradayStep1() {
   const it = state.intraday || {};
   const setupDef = window.tfFindIntradaySetup(it.setup);
   const isOrb = !!(setupDef && setupDef.isOrb);
-  const cards = TRADE_INTRADAY_SETUPS.map(s => {
+  const dirKey = (it.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+  // Hide setups whose bias doesn't match the active direction (either always shows).
+  const visible = TRADE_INTRADAY_SETUPS.filter(s => {
+    const b = s.bias || 'either';
+    return b === 'either' || b === dirKey;
+  });
+  const cards = visible.map(s => {
     const biasTag = s.bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
                   : s.bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
                                        : '<span class="tf-bias-tag neutral">EITHER</span>';
@@ -153,6 +159,9 @@ function tfIntradayStep1() {
       <span class="trade-setup-card-detail">${s.desc}</span>
     </button>`;
   }).join('');
+  const emptyMsg = !visible.length
+    ? `<div class="input-help">No setups match this direction. Switch direction in the header.</div>`
+    : '';
 
   const orbChips = isOrb ? `
     <div class="tf-chip-row" id="tf-i-orb-chips" style="margin-top:12px;">
@@ -199,6 +208,7 @@ function tfIntradayStep1() {
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid">${cards}</div>
+        ${emptyMsg}
         ${orbChips}
       </div>
     </div>
@@ -206,6 +216,17 @@ function tfIntradayStep1() {
 }
 
 function tfMountIntradayStep1() {
+  // If the selected setup no longer matches the active direction, clear it.
+  const it = state.intraday || {};
+  if (it.setup) {
+    const dirKey = (it.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
+    const def = (typeof window.tfFindIntradaySetup === 'function') ? window.tfFindIntradaySetup(it.setup) : null;
+    const bias = def ? (def.bias || 'either') : 'either';
+    if (bias !== 'either' && bias !== dirKey) {
+      it.setup = null;
+      saveState();
+    }
+  }
   // Smart paste — applies on Cmd+V (paste event) or click of Apply button.
   // Counts only the meaningful keys (skips containers like `liquidity` /
   // `gates`) so the user gets a truthful "filled N fields" toast.
@@ -290,8 +311,11 @@ function tfIntradayStep2() {
   const rngText = (filled(it.orHi) && filled(it.orLo) && Number(it.orHi) >= Number(it.orLo))
     ? `RNG ${(+(Number(it.orHi) - Number(it.orLo)).toFixed(2))}`
     : 'RNG —';
-  const levelsLetter = isOptions ? 'B.' : 'A.';
-  const orLetter = isOptions ? 'C.' : 'B.';
+  const levelsLetter = 'A.';
+  const orLetter = 'B.';
+  const sizingHtml = (typeof window.tfRenderIntradaySizingHtml === 'function')
+    ? window.tfRenderIntradaySizingHtml()
+    : '';
 
   // ORB section is optional ("bypass if not shown" — only present when an
   // ORB pattern is the picked setup, and even then the user can leave it
@@ -327,8 +351,8 @@ function tfIntradayStep2() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry · stop · limit</div>
-          <div class="trade-section-subtitle">Enter your three prices. Size auto-derives from your $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk unit ÷ stop distance.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry · stop · limit · auto-sized risk</div>
+          <div class="trade-section-subtitle">Enter your three prices, or drag the sliders. Size auto-derives from your $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk unit ÷ stop distance.</div>
         </div>
         <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
       </div>
@@ -357,7 +381,7 @@ function tfIntradayStep2() {
             <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Blank = auto from risk" />
           </div></div>
         </div>
-        <div id="tf-i-estimates" style="margin-top:14px;">${window.tfRenderIntradayEstimatesHtml ? window.tfRenderIntradayEstimatesHtml() : ''}</div>
+        <div id="tf-i-sizing-card" style="margin-top:14px;">${sizingHtml}</div>
       </div>
     </div>
     ${orSection}
@@ -417,7 +441,7 @@ function tfMountIntradayStep2() {
   wire('tf-i-orHi', 'orHi');
   wire('tf-i-orLo', 'orLo');
 
-  // AUTO stop — derive from settings.stopPct fraction of entry.
+  // AUTO stop — settings.stopPct × regime multiplier (tightens in neutral / risk-off).
   const autoStopBtn = document.getElementById('tf-i-auto-stop');
   if (autoStopBtn) {
     autoStopBtn.addEventListener('click', () => {
@@ -427,7 +451,9 @@ function tfMountIntradayStep2() {
         if (typeof window.toast === 'function') window.toast('Enter the entry first.', true);
         return;
       }
-      const stopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const baseStopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const regimeMult  = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+      const stopPct = baseStopPct * regimeMult;
       const dir = (it.direction || 'long').toLowerCase();
       const isShort = dir.startsWith('s');
       const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
@@ -462,31 +488,18 @@ function tfMountIntradayStep2() {
   }
 }
 
-// ----- Intraday plan — Size: options bid/ask spread or stock share count -----
+// Sizing now lives inline inside step 2 (Entry · stop · limit). Kept as a
+// stub so the stepper can still concatenate the two without changes.
 function tfIntradayStep3() {
-  // Sizing is fully auto-derived from risk unit ÷ stop distance. No manual
-  // inputs — just a readout card showing the math + the gain/loss estimates.
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
-  const settings = state.settings || DEFAULT_SETTINGS;
-  const sizeLetter = isOptions ? 'C.' : 'C.';
-  return `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${sizeLetter}</span> Auto-sized risk</div>
-          <div class="trade-section-subtitle">${isOptions ? 'Contracts' : 'Shares'} are derived from your $${settings.intradayRiskPerTrade || 100} risk unit ÷ stop distance.</div>
-        </div>
-      </div>
-      <div class="trade-section-body">
-        <div id="tf-i-sizing-card">${window.tfRenderIntradaySizingHtml()}</div>
-      </div>
-    </div>
-  `;
+  return '';
 }
 
 function tfMountIntradayStep3() {
-  // No inputs anymore — the sizing card is fully derived from step 2's levels.
-  // Auto-update the card whenever levels change is already handled by step 2.
+  // Sizing card renders inline inside step 2. Bind the sliders so the
+  // initial render (before any input change) is interactive.
+  if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
+  if (typeof window.tfBindMoonshotSliders === 'function')  window.tfBindMoonshotSliders();
+  if (typeof window.tfBindIntradayRiskSizeButton === 'function') window.tfBindIntradayRiskSizeButton();
 }
 
 // ----- Intraday step 3 — Context: optional ThinkScript chips + guardrails -----
