@@ -4,6 +4,7 @@ import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { todayISO } from '../models/formatters.js';
 import { genTradeId, tradeBias } from '../models/trade.js';
+import { newIntradayTicket } from '../config/constants.js';
 
 function todayIntradayTrades() {
   return state.trades.filter(t => t.mode === "intraday" && t.date === todayISO());

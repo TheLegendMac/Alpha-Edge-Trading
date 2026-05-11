@@ -2,7 +2,7 @@
 
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { isClosedTrade, calcPL } from '../models/trade.js';
-import { TRADE_INTRADAY_SETUPS } from '../config/constants.js';
+import { DEFAULT_SETTINGS, TRADE_CONFLUENCE_OPTIONS } from '../config/constants.js';
 import { computeRollingPL } from '../intel/rolling.js';
 
 function tfComputeRolling30dPL() {
@@ -104,8 +104,7 @@ function tfComputeStatus() {
     if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
     // 3 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
     if (it.confluence) {
-      const confDef = (typeof TRADE_CONFLUENCE_OPTIONS !== 'undefined')
-        ? TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) : null;
+      const confDef = TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || null;
       if (confDef && confDef.bias !== 'either' && it.direction !== confDef.bias) {
         return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 3 };
       }

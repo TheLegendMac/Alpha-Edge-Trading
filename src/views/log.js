@@ -10,6 +10,8 @@ import {
   tradeInstrument,
   normalizeProcessQuality,
   processQualityLabel,
+  tradeRiskDollars,
+  calcR,
 } from '../models/trade.js';
 import { formatDate } from '../models/formatters.js';
 import { saveState } from '../state/persistence.js';
@@ -104,13 +106,13 @@ export function renderLogTable() {
       </div>
       ${sorted.map(t => {
         const pl = calcPL(t);
-        const r = window.calcR(t);
+        const r = calcR(t);
         const mode = t.mode || 'swing';
         const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
         const sizeUnit = tradeInstrument(t) === 'stocks' ? 'sh' : 'ctr';
         const entry = Number(t.entry || 0);
         const exit = t.exit ? Number(t.exit) : null;
-        const risk = Number(t.riskDollars) || window.tradeRiskDollars(t) || 0;
+        const risk = Number(t.riskDollars) || tradeRiskDollars(t) || 0;
         const valueText = t.status === 'open' ? `$${Math.round(risk)}` : formatMoney(pl || 0);
         const processLabel = processQualityLabel(t.grade);
         const valueDetail = t.status === 'open'

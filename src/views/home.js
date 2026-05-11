@@ -3,13 +3,13 @@
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { REGIME_DATA } from '../config/constants.js';
 import {
-  isClosedTrade,
   calcPL,
   tradeBias,
   tradeMultiplier,
   tradeQty,
   tradeInstrument,
   tradeRiskDollars,
+  calcR,
 } from '../models/trade.js';
 import { formatDate, todayISO } from '../models/formatters.js';
 import { computeRollingPL } from '../intel/rolling.js';
@@ -53,7 +53,7 @@ export function renderHome() {
   const closed = tradeIndex.closed;
   const todayClosed = tradeIndex.byExitDate.get(today) || [];
   const todayPL = todayClosed.reduce((s, t) => s + (calcPL(t) || 0), 0);
-  const todayR = todayClosed.reduce((s, t) => s + (window.calcR(t) || 0), 0);
+  const todayR = todayClosed.reduce((s, t) => s + (calcR(t) || 0), 0);
   const wins = closed.filter(t => (calcPL(t) || 0) > 0);
   const losses = closed.filter(t => (calcPL(t) || 0) < 0);
   const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
@@ -470,7 +470,7 @@ export function renderHome() {
     } else {
       empty.innerHTML = filterBanner + listTrades.map(t => {
         const pl = calcPL(t);
-        const r = window.calcR(t);
+        const r = calcR(t);
         const statusClass = t.status === 'open' ? 'open' : pl >= 0 ? 'win' : 'loss';
         const mode = t.mode || 'swing';
         const qtyUnit = tradeInstrument(t) === 'stocks' ? 'sh' : 'ctr';

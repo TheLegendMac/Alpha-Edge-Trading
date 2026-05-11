@@ -2,6 +2,8 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
+import { newIntradayTicket } from '../config/constants.js';
+import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
 
 function tfTickerHistory(symbol) {
   if (!symbol) return null;
@@ -12,7 +14,7 @@ function tfTickerHistory(symbol) {
   const wins   = closed.filter(t => (calcPL(t) || 0) > 0).length;
   const losses = closed.filter(t => (calcPL(t) || 0) < 0).length;
   const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
-  const avgR    = closed.length ? closed.reduce((s, t) => s + (window.calcR(t) || 0), 0) / closed.length : 0;
+  const avgR    = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
   // Per-setup aggregate so we can surface the strongest pattern for this name.
   const setupMap = {};
   closed.forEach(t => {

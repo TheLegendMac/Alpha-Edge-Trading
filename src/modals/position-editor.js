@@ -568,7 +568,7 @@ function _savePositionEditor() {
   state.trades[tradeIdx] = updated;
   saveState();
   if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     window.doPush();
   }
   closePositionEditor();
@@ -588,7 +588,7 @@ function _deletePositionEditor() {
   state.trades = state.trades.filter(x => x.id !== t.id);
   saveState();
   if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     window.doPush();
   }
   closePositionEditor();

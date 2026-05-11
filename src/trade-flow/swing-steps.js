@@ -1,8 +1,8 @@
 // Swing trade flow steps 1-4 with mount handlers + paste import helpers.
 
-import { state } from '../state/store.js';
+import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { TRADE_SWING_SETUPS, TRADE_STRUCTURES, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
+import { DEFAULT_SETTINGS, TRADE_SWING_SETUPS, TRADE_STRUCTURES, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
@@ -547,8 +547,7 @@ function tfComputeSwingReviewPlan() {
   const entry = Number(state.premium);
   const atr = Number(state.atr);
   const upx = Number(state.underlyingPrice);
-  let riskPct = (typeof getRiskPctForRegime === 'function')
-    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  let riskPct = getRiskPctForRegime(state.regime || 'risk-on');
   if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
   const riskBudget = Math.round(account * riskPct);
   const direction = state.direction || 'long';

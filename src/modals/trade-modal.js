@@ -14,8 +14,8 @@ import {
 } from '../models/trade.js';
 import {
   DEFAULT_SETTINGS,
-  INTRADAY_SETUPS,
   TRADE_INTRADAY_SETUPS,
+  REGIME_DATA,
 } from '../config/constants.js';
 import { formatDate, dateOffsetISO } from '../models/formatters.js';
 import { getRiskPctForRegime } from '../state/store.js';
@@ -132,7 +132,7 @@ function addTestTrades(count = 25, skipConfirm = false) {
   state.trades.push(...sampleTrades);
   saveState();
   if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     window.doPush();
   }
   window.renderHome();
@@ -235,7 +235,7 @@ function openTradeModal(trade) {
     if (state.premium) document.getElementById('t-entry').value = state.premium;
     if (state.ivr !== null) document.getElementById('t-ivr').value = state.ivr;
     if (state.ticker) document.getElementById('t-ticker').value = state.ticker;
-    document.getElementById('t-regime').value = REGIME_DATA[state.regime].text;
+    document.getElementById('t-regime').value = REGIME_DATA[state.regime]?.text || 'RISK-ON';
 
     // Pre-fill stop from ATR + underlying price if both available (bias-aware)
     if (state.atr && state.atr > 0 && state.underlyingPrice && state.underlyingPrice > 0) {
@@ -339,7 +339,7 @@ function saveTrade() {
   // Trades are too important to wait the 1.5s debounce — push right now.
   // If the user closes the tab in the next 1.5s, debounced push could be lost.
   if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     window.doPush();
   }
   closeTradeModal();
@@ -369,7 +369,7 @@ function deleteTrade() {
   saveState();
   // Force immediate push (same reason as saveTrade)
   if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
     window.doPush();
   }
   closeTradeModal();

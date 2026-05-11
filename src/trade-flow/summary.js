@@ -2,7 +2,8 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { TRADE_SETUP_TEMPLATES, TRADE_INTRADAY_SETUPS } from '../config/constants.js';
+import { TRADE_SETUP_TEMPLATES, TRADE_INTRADAY_SETUPS, newIntradayTicket } from '../config/constants.js';
+import { tradeQty, tradeMultiplier } from '../models/trade.js';
 
 function tfEnsureSummaryControls(mode) {
   const tickerEl = document.getElementById('trade-summary-ticker');

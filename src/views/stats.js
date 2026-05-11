@@ -1,7 +1,7 @@
 // Stats tab — equity curve, 7 metric cards, R-distribution, setup performance.
 
 import { state } from '../state/store.js';
-import { isClosedTrade, calcPL } from '../models/trade.js';
+import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
 import { computeRollingPL } from '../intel/rolling.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 
@@ -137,7 +137,7 @@ export function renderStats() {
     (a.exit_date || a.date || '').localeCompare(b.exit_date || b.date || '')
   );
 
-  const closedWithPL = periodClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR ? (window.calcR(t) || 0) : 0 }));
+  const closedWithPL = periodClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
   const totalPL    = closedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -149,7 +149,7 @@ export function renderStats() {
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
 
   // ALL-time aggregates for Edge Intelligence card
-  const allClosedWithPL = allClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR ? (window.calcR(t) || 0) : 0 }));
+  const allClosedWithPL = allClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const allWins    = allClosedWithPL.filter(x => x.pl > 0);
   const allLosses  = allClosedWithPL.filter(x => x.pl < 0);
   const allTotalPL = allClosedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -292,7 +292,7 @@ export function renderStats() {
     setupMapForEdge[k].n++;
     if (pl > 0) setupMapForEdge[k].wins++;
     setupMapForEdge[k].pl += pl;
-    setupMapForEdge[k].totalR += window.calcR ? (window.calcR(t) || 0) : 0;
+    setupMapForEdge[k].totalR += calcR(t) || 0;
   });
   const topSetups = Object.entries(setupMapForEdge)
     .filter(([, s]) => s.pl > 0)
@@ -370,7 +370,7 @@ export function renderStats() {
     setupMap[k].n++;
     if (pl > 0) setupMap[k].wins++;
     setupMap[k].pl += pl;
-    setupMap[k].totalR += window.calcR ? (window.calcR(t) || 0) : 0;
+    setupMap[k].totalR += calcR(t) || 0;
   });
   const setupRows = Object.entries(setupMap)
     .sort(([, a], [, b]) => b.pl - a.pl)

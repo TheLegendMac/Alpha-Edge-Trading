@@ -2,7 +2,7 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { TRADE_INTRADAY_SETUPS, TRADE_ORB_TYPES, TRADE_CONFLUENCE_OPTIONS, TRADE_BREADTH_OPTIONS, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
+import { DEFAULT_SETTINGS, newIntradayTicket, TRADE_INTRADAY_SETUPS, TRADE_ORB_TYPES, TRADE_CONFLUENCE_OPTIONS, TRADE_BREADTH_OPTIONS, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
 
 function tfFindIntradaySetup(id) {
   return TRADE_INTRADAY_SETUPS.find(s => s.id === id) || null;

@@ -1,8 +1,17 @@
 // Stepper: step labels, completion, header/actions render, navigation + orchestration.
 // Includes mount dispatch, refresh, continue/log handlers, confirm modal.
 
-import { state } from '../state/store.js';
+import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
+import { genTradeId } from '../models/trade.js';
+import {
+  DEFAULT_SETTINGS,
+  newIntradayTicket,
+  TRADE_INTRADAY_SETUPS,
+  TRADE_CONFLUENCE_OPTIONS,
+  TRADE_BREADTH_OPTIONS,
+  REGIME_DATA
+} from '../config/constants.js';
 
 function tfStepCount() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
@@ -518,8 +527,7 @@ function tfLogSwingDirect() {
 
   // Sizing: regime risk%, halved for Edge Reversal. Same math as the legacy
   // calc — we replicate it inline to avoid a dependency on the modal.
-  let riskPct = (typeof getRiskPctForRegime === 'function')
-    ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+  let riskPct = getRiskPctForRegime(state.regime || 'risk-on');
   if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
   let riskDollars = settings.account * riskPct;
   const stopFraction = (settings.stopPct || 50) / 100;
@@ -548,9 +556,7 @@ function tfLogSwingDirect() {
 
   const ticker = (state.ticker || '').toUpperCase();
   const directionLabel = state.direction === 'short' ? 'Short' : 'Long';
-  const regimeText = (typeof REGIME_DATA !== 'undefined' && REGIME_DATA[state.regime])
-    ? REGIME_DATA[state.regime].text
-    : (state.regime || 'risk-on').toUpperCase();
+  const regimeText = REGIME_DATA[state.regime] ? REGIME_DATA[state.regime].text : (state.regime || 'risk-on').toUpperCase();
 
   if (!ticker || !state.selectedSetup || !premium || premium <= 0) {
     if (typeof toast === 'function') window.toast('Missing required field — go back and check the inputs.', true);
@@ -597,7 +603,7 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
   const ask = Number(liq.ask);
   const mid = isOptions && bid > 0 && ask > 0 ? (bid + ask) / 2 : null;
   const trade = {
-    id: (typeof genTradeId === 'function') ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+    id: genTradeId ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
     mode: 'swing',
     instrument: isOptions ? 'options' : 'stocks',
     structure: state.structure || (isOptions ? 'options' : 'stocks'),

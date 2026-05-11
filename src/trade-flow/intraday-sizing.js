@@ -2,6 +2,7 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
+import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
 
 function tfSetIntradayStructure(structure) {
   if (!state.intraday) state.intraday = newIntradayTicket();

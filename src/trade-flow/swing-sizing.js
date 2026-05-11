@@ -1,8 +1,8 @@
 // Swing trade sizing: render premium/sizing widgets, auto-fill from quote, structure/instrument toggles.
 
-import { state } from '../state/store.js';
+import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { TRADE_STRUCTURES } from '../config/constants.js';
+import { TRADE_STRUCTURES, DEFAULT_SETTINGS } from '../config/constants.js';
 
 function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
