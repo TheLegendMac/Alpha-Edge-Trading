@@ -1,4 +1,4 @@
-// Reference tab — regime sizing cards, position caps, IV-rank playbook.
+// Reference tab — regime sizing cards, open-position limit, IV-rank playbook.
 
 import { state } from '../state/store.js';
 import { esc } from '../dom/html.js';
@@ -58,9 +58,7 @@ export function renderReference() {
   const caps = document.getElementById('ref-caps-list');
   if (caps) {
     const rows = [
-      { key: `max ${s.maxPositions}`,    keyClass: 'amber', val: 'Concurrent positions',     detail: 'Across both swing and intraday combined.' },
-      { key: `max ${s.maxPremiumPct}%`,  keyClass: 'amber', val: 'Total premium deployed',   detail: `$${Math.round(account * (s.maxPremiumPct || 0) / 100).toLocaleString()} cap on capital tied up.` },
-      { key: `max ${s.maxRiskPct}%`,     keyClass: 'amber', val: 'Total at risk',            detail: `$${Math.round(account * (s.maxRiskPct || 0) / 100).toLocaleString()} ceiling across all open trades.` },
+      { key: `max ${s.maxPositions}`,    keyClass: 'amber', val: 'Open positions',           detail: 'Across both swing and intraday combined.' },
       { key: `${s.stopPct}%`,            keyClass: 'amber', val: 'Stop loss · premium paid', detail: 'Hard cut on options; equities use technical stop.' },
       { key: `+${s.targetPct}%`,         keyClass: 'green', val: 'Profit target',            detail: 'Default exit — adjust per setup playbook.' },
       { key: '15:55',                    keyClass: 'cyan',  val: 'Intraday cut time',        detail: 'Hard close · no holding intraday positions overnight.' },

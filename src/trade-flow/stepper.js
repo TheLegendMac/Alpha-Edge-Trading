@@ -562,6 +562,8 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     mid,
     spreadPct: isOptions ? window.deriveSpreadPct(liq) : null,
     regime: regimeText,
+    regimeAtEntry: state.regime || null,
+    openedAt: nowIso,
     thesis: state.tradeFlow.thesis || '',
     premortem: state.tradeFlow.preMortem || '',
     stop: isOptions ? (stopSell || null) : stopPrice,

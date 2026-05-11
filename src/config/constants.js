@@ -13,8 +13,6 @@ export const DEFAULT_SETTINGS = {
   stopPct: 50,         // % of premium = stop loss
   targetPct: 50,       // % of premium gain = profit target
   maxPositions: 5,
-  maxPremiumPct: 20,   // max premium deployed as % of account
-  maxRiskPct: 10,      // max total at risk as % of account
   longOnlyMode: false, // when true, hides spread recommendations and converts spread zones to "skip"
   // ---- INTRADAY ----
   intradayRiskPerTrade: 100, // $ at risk per intraday trade

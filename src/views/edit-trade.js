@@ -1,9 +1,14 @@
-// Edit Trade — full-page overlay for managing an open position.
-// Simplified per design: hero · price ladder · three wired actions · sidebar · timeline · footer.
+// Edit Trade — full-page view for managing an open position.
+// Two modes: VIEW (read-only dashboard) and EDIT (drag handles + form controls + staged save).
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { calcPL } from '../models/trade.js';
+import { calcPL, tradeRiskDollars, tradeMultiplier, tradeQty } from '../models/trade.js';
+
+// ── module state ──────────────────────────────────────────────────────────
+let editMode = false;
+let draft = null;          // staged copy in edit mode
+let originalSnapshot = null; // for discard
 
 // ── format helpers ─────────────────────────────────────────────────────────
 function fmt$(v) {
@@ -44,20 +49,18 @@ function edgeLine(edge) {
   if (e) return 'rgba(239,68,68,0.32)';
   return 'rgba(255,255,255,0.08)';
 }
-function ageLabel(opened) {
-  if (!opened) return '';
-  const d = new Date(opened);
-  if (isNaN(d)) return '';
-  const days = Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
-  if (days === 0) return 'TODAY';
-  if (days === 1) return '1D AGO';
-  return `${days}D AGO`;
+function regimeColor(r) {
+  const k = (r || '').toLowerCase();
+  if (k.includes('on'))  return 'var(--green-bright)';
+  if (k.includes('off')) return 'var(--red-bright)';
+  if (k.includes('neutral')) return 'var(--amber-bright,#fbbf24)';
+  return 'var(--ink-3)';
 }
 function toast(msg) {
   if (typeof window.toast === 'function') window.toast(msg);
 }
 
-// ── main renderer ─────────────────────────────────────────────────────────
+// ── entry point ────────────────────────────────────────────────────────────
 export function openEditTrade(tradeId) {
   const overlay = document.getElementById('edit-trade-overlay');
   const mainEl  = document.getElementById('edit-trade-main');
@@ -68,46 +71,103 @@ export function openEditTrade(tradeId) {
 
   overlay.dataset.tradeId = tradeId;
   overlay.classList.add('show');
+  editMode = false;
+  draft = null;
+  originalSnapshot = null;
   renderEditTrade(trade);
 }
 
+export function closeEditTrade() {
+  const overlay = document.getElementById('edit-trade-overlay');
+  if (overlay) overlay.classList.remove('show');
+  editMode = false;
+  draft = null;
+  originalSnapshot = null;
+}
+
+// ── working copy helpers ───────────────────────────────────────────────────
+function workingTrade(trade) {
+  return editMode && draft ? draft : trade;
+}
+function enterEditMode(trade) {
+  editMode = true;
+  draft = JSON.parse(JSON.stringify(trade));
+  originalSnapshot = JSON.parse(JSON.stringify(trade));
+  renderEditTrade(trade);
+}
+function exitEditMode(trade) {
+  editMode = false;
+  draft = null;
+  originalSnapshot = null;
+  renderEditTrade(trade);
+}
+function commitDraft(trade) {
+  if (!draft) return;
+  Object.keys(draft).forEach(k => { trade[k] = draft[k]; });
+  trade.updated_at = new Date().toISOString();
+  saveState();
+}
+function draftDirty() {
+  if (!draft || !originalSnapshot) return false;
+  return JSON.stringify(draft) !== JSON.stringify(originalSnapshot);
+}
+
+// ── main render ────────────────────────────────────────────────────────────
 function renderEditTrade(trade) {
   const overlay = document.getElementById('edit-trade-overlay');
   const mainEl  = document.getElementById('edit-trade-main');
   if (!overlay || !mainEl) return;
 
-  const mode     = trade.mode || 'swing';
+  const w        = workingTrade(trade);
+  const mode     = w.mode || 'swing';
   const a        = modeAccent(mode);
-  const entry    = parseFloat(trade.entry || trade.premium || 0);
-  const stop     = parseFloat(trade.stop || 0);
-  const target   = parseFloat(trade.target || 0);
-  const mark     = parseFloat(trade.mark || trade.currentPrice || entry);
-  const qty      = trade.qty || trade.contracts || trade.shares || 1;
-  const edge     = (trade.edge || trade.setup_edge || '').toUpperCase() || null;
+  const entry    = parseFloat(w.entry || w.premium || 0);
+  const stop     = parseFloat(w.stop || 0);
+  const target   = parseFloat(w.target || 0);
+  const mark     = parseFloat(w.mark || w.currentPrice || entry);
+  const qty      = w.qty || w.contracts || w.shares || 1;
+  const edge     = (w.edge || w.setup_edge || '').toUpperCase() || null;
+  const regimeAtEntry = w.regimeAtEntry || w.regime || null;
 
-  const dirRaw   = (trade.direction || trade.dir || 'long').toLowerCase();
+  const dirRaw   = (w.direction || w.dir || 'long').toLowerCase();
   const isLong   = !dirRaw.startsWith('s');
+  const mult     = tradeMultiplier(w);
   const gainPerUnit = (mark - entry) * (isLong ? 1 : -1);
-  const pl       = gainPerUnit * qty;
+  const pl       = gainPerUnit * qty * mult;
   const isProfit = pl >= 0;
   const tone     = isProfit ? 'var(--green-bright)' : 'var(--red-bright)';
-  const riskPerUnit = Math.abs(entry - stop) || 1;
-  const r        = gainPerUnit / riskPerUnit;
+  // 1R is FROZEN at entry: trade.riskDollars (account × regimePct at the moment of entry).
+  // Falls back to |entry−stop| × qty × multiplier for legacy trades that didn't snapshot riskDollars.
+  const oneR     = Math.round(tradeRiskDollars(w) || (Math.abs(entry - stop) * qty * mult) || 1);
+  const r        = oneR ? (pl / oneR) : 0;
   const plPct    = entry ? (gainPerUnit / entry * 100) : 0;
-  const oneR     = Math.round(Math.abs(riskPerUnit) * qty);
 
-  // Price ladder geometry — fixed visual positions so STOP→ENTRY→TARGET always reads left→right.
+  // Target dollar potential — uses live entry/target/qty, scaled by contract multiplier.
   const hasTarget = target > 0 && Number.isFinite(target) && target !== entry;
+  const targetGainPerUnit = hasTarget ? Math.abs(target - entry) : 0;
+  const targetDollars = Math.round(targetGainPerUnit * qty * mult);
+  const plannedRR = hasTarget && oneR ? (targetDollars / oneR) : 0;
+
+  // Ladder geometry — fixed visual positions
   const stopX   = 8;
   const entryX  = 32;
   const targetX = 92;
-  // Mark progresses from stop (0) → target (1). Sign flips for shorts.
   const progressDen = hasTarget ? (isLong ? (target - stop) : (stop - target)) : (isLong ? (entry - stop) : (stop - entry));
   const progressNum = isLong ? (mark - stop) : (stop - mark);
-  const progress    = progressDen ? Math.max(-0.2, Math.min(1.2, progressNum / progressDen)) : 0;
-  const markPct     = Math.max(2, Math.min(97, stopX + progress * (targetX - stopX)));
+  // Clamp progress to [0,1] so NOW dot never exits the bar.
+  const progress    = progressDen ? Math.max(0, Math.min(1, progressNum / progressDen)) : 0;
+  const markPct     = Math.max(stopX, Math.min(targetX, stopX + progress * (targetX - stopX)));
 
-  // Progress context
+  // Detect overlap with markers so NOW label stays readable.
+  const nearStop   = Math.abs(markPct - stopX)   < 6;
+  const nearEntry  = Math.abs(markPct - entryX)  < 6;
+  const nearTarget = Math.abs(markPct - targetX) < 6;
+  // Default NOW label sits above the dot. When near STOP/TARGET (which also sit on top),
+  // lift NOW label higher so the two don't collide.
+  const nowLabelOffset = (nearStop || nearTarget) ? -34 : -8;
+  const stopLabelOffset = nearStop ? 0 : 0;
+  const targetLabelOffset = nearTarget ? 0 : 0;
+
   const pctToTarget = hasTarget ? Math.round((isLong ? (mark - entry) / (target - entry) : (entry - mark) / (entry - target)) * 100) : 0;
   const pctToStop   = entry !== stop ? Math.round((isLong ? (mark - stop) / (entry - stop) : (stop - mark) / (stop - entry)) * 100) : 100;
   const ctxLeft = !hasTarget
@@ -116,56 +176,81 @@ function renderEditTrade(trade) {
       ? `<strong style="color:var(--green-bright)">${pctToTarget}% to target.</strong> Price ${Math.abs(plPct).toFixed(1)}% ${isLong ? 'above' : 'below'} entry · trail to BE recommended.`
       : `<strong style="color:var(--red-bright)">${pctToStop}% buffer to stop.</strong> Price ${Math.abs(plPct).toFixed(1)}% ${isLong ? 'below' : 'above'} entry · monitor closely.`;
 
-  // Highest mark today (fallback to current mark if not tracked)
-  const highestMark = Math.max(mark, parseFloat(trade.highMark || trade.dayHigh || mark) || mark);
+  const highestMark = Math.max(mark, parseFloat(w.highMark || w.dayHigh || mark) || mark);
 
-  // Status line bits
-  const opened = trade.opened || trade.date || trade.openedAt;
-  const od = opened ? new Date(opened) : null;
-  const dayTag = od && !isNaN(od) ? od.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase() : '—';
-  const timeTag = od && !isNaN(od) ? od.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' ET' : '';
+  const history = buildHistory(w, a.c, tone);
 
-  const history = buildHistory(trade, a.c, tone);
+  // Opened-at display
+  const openedAt = w.openedAt || w.created_at || w.date || null;
+  const openedStr = openedAt ? formatOpened(openedAt) : '—';
 
-  // Nav
+  // ── nav bar ─────────────────────────────────────────────────────────────
   const navBar = document.getElementById('edit-trade-nav-bar');
   if (navBar) {
+    const regimeKey = (state.regime || 'risk-on').toLowerCase();
     navBar.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(8,9,13,0.8);backdrop-filter:blur(8px);">
-        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" id="et-brand-home" title="Back to Home">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 21H3"></path><path d="M3 14l5-5 4 4 9-9"></path>
-          </svg>
-          <span style="font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:0.04em;color:var(--ink);">TRAPPER'S <span style="color:var(--ink-4)">EDGE</span></span>
+      <header class="cmdbar ${regimeKey}">
+        <div class="cmdbar-inner">
+          <div class="cmdbar-left">
+            <div class="cmdbar-brand brand" id="et-brand-home" title="Back to Home">
+              <span class="brand-mark" style="display:flex;align-items:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 18 L12 4 L21 18"></path>
+                  <path d="M8 18 L12 11 L16 18"></path>
+                </svg>
+              </span>
+              <span class="brand-name">TRAPPER'S <span class="brand-name-dim">EDGE</span></span>
+            </div>
+            <div class="et-breadcrumb">
+              <span>OPEN BOOK</span>
+              <span class="et-breadcrumb-sep">›</span>
+              <span class="et-breadcrumb-active">${(w.ticker || w.symbol || '—').toUpperCase()} ${(isLong ? 'LONG' : 'SHORT')}</span>
+              <span class="et-breadcrumb-sep">·</span>
+              <span>#${String(w.id || '').slice(-4).toUpperCase() || '—'}</span>
+            </div>
+          </div>
+          <div class="cmdbar-actions">
+            <div class="et-mode-toggle" role="tablist" aria-label="View or edit">
+              <button class="et-mode-btn ${!editMode ? 'is-active' : ''}" data-mode="view">VIEW</button>
+              <button class="et-mode-btn ${editMode ? 'is-active' : ''}" data-mode="edit">EDIT</button>
+            </div>
+            <button class="btn-secondary btn-compact" id="et-close-btn" title="Back to Book">← BACK</button>
+          </div>
         </div>
-        <div class="et-breadcrumb">
-          <span>OPEN BOOK</span>
-          <span class="et-breadcrumb-sep">›</span>
-          <span class="et-breadcrumb-active">EDIT · ${(trade.ticker || trade.symbol || '—').toUpperCase()} ${(isLong ? 'LONG' : 'SHORT')}</span>
-          <span class="et-breadcrumb-sep">·</span>
-          <span>POSITION #${String(trade.id || '').slice(-4).toUpperCase() || '—'}</span>
-        </div>
-        <button class="et-btn-back" id="et-close-btn">← BACK TO BOOK</button>
-      </div>`;
-    navBar.querySelector('#et-close-btn').addEventListener('click', closeEditTrade);
+      </header>`;
+    navBar.querySelector('#et-close-btn').addEventListener('click', handleBack(trade));
     navBar.querySelector('#et-brand-home').addEventListener('click', () => {
+      if (editMode && draftDirty()) {
+        if (!confirm('Discard unsaved edits and leave?')) return;
+      }
       closeEditTrade();
       if (typeof window.setTab === 'function') window.setTab('home');
     });
+    navBar.querySelectorAll('.et-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.mode;
+        if (target === 'edit' && !editMode) enterEditMode(trade);
+        else if (target === 'view' && editMode) {
+          if (draftDirty() && !confirm('Discard unsaved edits?')) return;
+          exitEditMode(trade);
+        }
+      });
+    });
   }
 
+  // ── body html ───────────────────────────────────────────────────────────
   mainEl.innerHTML = `
     <section class="et-hero ${isProfit ? 'et-hero-profit' : 'et-hero-loss'}">
       <div class="et-hero-left">
         <div class="et-hero-status" style="color:${tone}">
           <div class="et-hero-status-dot" style="background:${tone};box-shadow:0 0 8px ${tone}"></div>
-          OPEN · ${dayTag} · ${ageLabel(opened)} ${timeTag ? '· ' + timeTag : ''}
+          OPEN${editMode ? ' · EDITING' : ''}
         </div>
         <div class="et-ticker-row">
-          <h1 class="et-ticker">${(trade.ticker || trade.symbol || '—').toUpperCase()}</h1>
+          <h1 class="et-ticker">${(w.ticker || w.symbol || '—').toUpperCase()}</h1>
           <span class="et-pill ${isLong ? 'et-pill-long' : 'et-pill-short'}">${isLong ? 'LONG' : 'SHORT'}</span>
           <span class="et-pill ${mode === 'intraday' ? 'et-pill-intra' : 'et-pill-swing'}">${mode}</span>
-          <span class="et-qty-note">${qty} sh · 1R = $${oneR}</span>
+          <span class="et-qty-note">${qty} ${mode === 'intraday' || w.instrument === 'options' ? 'ct' : 'sh'}</span>
         </div>
       </div>
       <div class="et-pnl-grid">
@@ -175,132 +260,139 @@ function renderEditTrade(trade) {
           <div class="et-pnl-sub" style="color:${tone}">${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%</div>
         </div>
         <div>
-          <div class="et-pnl-label">R-Multiple</div>
-          <div class="et-pnl-val" style="color:${tone}">${fmtR(r)}</div>
-          <div class="et-pnl-sub">vs 1R risk</div>
+          <div class="et-pnl-label">Risk · R</div>
+          <div class="et-pnl-val" style="color:var(--red-bright)">$${oneR.toLocaleString()}</div>
+          <div class="et-pnl-sub" style="color:${tone}">${fmtR(r)} now</div>
         </div>
         <div>
-          <div class="et-pnl-label">Mark</div>
-          <div class="et-pnl-val" style="color:var(--ink)">$${mark.toFixed(2)}</div>
-          <div class="et-pnl-sub">NBBO · live</div>
+          <div class="et-pnl-label">Mark ${editMode ? '<span style="color:var(--ink-4);font-size:9px;">· tap to edit</span>' : ''}</div>
+          <div class="et-pnl-val ${editMode ? 'et-mark-editable' : ''}" id="et-mark-val"
+            ${editMode ? 'contenteditable="true" inputmode="decimal"' : ''}
+            style="color:var(--ink);${editMode ? 'cursor:text;outline:none;' : ''}">$${mark.toFixed(2)}</div>
         </div>
       </div>
     </section>
 
+    <!-- Setup snapshot — frozen on entry -->
+    <section class="et-snapshot-card" style="background:linear-gradient(180deg,${a.soft},transparent 60%),rgba(19,23,34,0.78);border:1px solid ${a.line};">
+      <div class="et-card-heading">
+        <h2 class="et-card-title">Setup snapshot</h2>
+        <div class="et-card-meta">FROZEN AT ENTRY · ${openedStr}</div>
+      </div>
+      <div class="et-snapshot-grid">
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Macro regime</div>
+          <div class="et-snap-val" style="color:${regimeColor(regimeAtEntry)}">${(regimeAtEntry || '—').toString().toUpperCase()}</div>
+        </div>
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Setup</div>
+          <div class="et-snap-val">${escapeHtml(w.setup || w.selectedSetup || '—')}</div>
+        </div>
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Edge at entry</div>
+          <div class="et-snap-val" style="color:${edgeColor(edge)}">${edge || '—'}</div>
+        </div>
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Direction</div>
+          <div class="et-snap-val" style="color:${isLong ? 'var(--green-bright)' : 'var(--red-bright)'}">${isLong ? 'LONG' : 'SHORT'} · ${mode}</div>
+        </div>
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Entry price</div>
+          <div class="et-snap-val">$${entry.toFixed(2)}</div>
+        </div>
+        <div class="et-snap-cell">
+          <div class="et-snap-label">Planned R:R</div>
+          <div class="et-snap-val">${plannedRR ? plannedRR.toFixed(2) + ':1' : '—'}</div>
+        </div>
+      </div>
+      ${w.setup ? `<button class="et-repeat-setup-pill" id="et-repeat-setup-btn" type="button"
+        style="color:${a.c};background:${a.bg};border:1px solid ${a.line};">↻ Repeat this setup</button>` : ''}
+    </section>
+
+    <!-- Price ladder -->
     <section class="et-ladder-card">
       <div class="et-card-heading">
-        <h2 class="et-card-title">Price ladder</h2>
+        <h2 class="et-card-title">Price ladder${editMode ? ' <span class="et-card-meta" style="margin-left:8px;">DRAG TO ADJUST</span>' : ''}</h2>
         <div class="et-card-meta">STOP → ENTRY → TARGET</div>
       </div>
-      <div class="et-ladder">
+      <div class="et-ladder ${editMode ? 'is-editable' : ''}" id="et-ladder">
         <div class="et-ladder-track">
           <div class="et-ladder-fill" style="background:linear-gradient(90deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.18) 28%,rgba(255,255,255,0.04) 28%,rgba(255,255,255,0.04) 32%,rgba(16,185,129,0.14) 32%,${hasTarget ? 'rgba(52,211,153,0.28)' : 'rgba(255,255,255,0.04)'} 100%)"></div>
         </div>
-        <div class="et-marker" style="left:${stopX}%;top:2px;">
+        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="stop" style="left:${stopX}%;top:2px;">
           <div class="et-marker-label" style="color:var(--red-bright)">STOP</div>
           <div class="et-marker-price">$${stop.toFixed(2)}</div>
-          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
+          <div class="et-marker-pnl" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
+          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:18px;position:absolute;top:52px;"></div>
         </div>
-        <div class="et-marker et-marker-entry" style="left:${entryX}%;top:50px;">
+        <div class="et-marker et-marker-entry ${editMode ? 'et-marker-drag' : ''}" data-handle="entry" style="left:${entryX}%;top:50px;">
           <div class="et-marker-line" style="background:${a.c};opacity:0.6;height:18px;position:absolute;top:-20px;"></div>
           <div class="et-marker-label" style="color:${a.c}">ENTRY</div>
           <div class="et-marker-price">$${entry.toFixed(2)}</div>
         </div>
         ${hasTarget ? `
-        <div class="et-marker" style="left:${targetX}%;top:2px;">
+        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;${nearTarget ? 'opacity:0.35;' : ''}">
           <div class="et-marker-label" style="color:var(--green-bright)">TARGET</div>
           <div class="et-marker-price">$${target.toFixed(2)}</div>
-          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
+          <div class="et-marker-pnl" style="color:var(--green-bright)">+$${targetDollars.toLocaleString()}</div>
+          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:52px;"></div>
         </div>` : `
-        <div class="et-marker" style="left:${targetX}%;top:2px;opacity:0.6;">
+        <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;opacity:0.6;">
           <div class="et-marker-label" style="color:var(--amber-bright,#fbbf24)">TARGET</div>
           <div class="et-marker-price" style="color:var(--ink-4);">—</div>
         </div>`}
-        <div class="et-now-dot" style="left:${markPct}%;top:-6px;">
+        <div class="et-now-dot" style="left:${markPct}%;top:${nowLabelOffset}px;">
           <div class="et-now-label" style="color:${tone};white-space:nowrap;">NOW · $${mark.toFixed(2)}</div>
           <div class="et-now-stem" style="background:${tone};height:38px;"></div>
           <div class="et-now-circle" style="background:${tone};box-shadow:0 0 14px ${tone},0 0 0 3px var(--bg,#08090d)"></div>
+        </div>
+      </div>
+      <div class="et-ladder-trio">
+        <div class="et-trio-cell">
+          <div class="et-trio-label">$ at risk</div>
+          <div class="et-trio-val" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
+        </div>
+        <div class="et-trio-cell">
+          <div class="et-trio-label">$ at target</div>
+          <div class="et-trio-val" style="color:var(--green-bright)">${hasTarget ? '+$' + targetDollars.toLocaleString() : '—'}</div>
+        </div>
+        <div class="et-trio-cell">
+          <div class="et-trio-label">R:R planned</div>
+          <div class="et-trio-val">${plannedRR ? plannedRR.toFixed(2) + ':1' : '—'}</div>
         </div>
       </div>
       <div class="et-ladder-ctx">
         <span>${ctxLeft}</span>
         <span class="et-ladder-ctx-right">Highest mark today: $${highestMark.toFixed(2)}</span>
       </div>
+      ${editMode ? `
+      <div class="et-level-inputs">
+        <label class="et-level-input">
+          <span style="color:var(--red-bright)">STOP</span>
+          <input type="number" step="0.01" id="et-input-stop" value="${stop.toFixed(2)}">
+        </label>
+        <label class="et-level-input">
+          <span style="color:${a.c}">ENTRY</span>
+          <input type="number" step="0.01" id="et-input-entry" value="${entry.toFixed(2)}">
+        </label>
+        <label class="et-level-input">
+          <span style="color:var(--green-bright)">TARGET</span>
+          <input type="number" step="0.01" id="et-input-target" value="${hasTarget ? target.toFixed(2) : ''}" placeholder="—">
+        </label>
+      </div>` : ''}
     </section>
 
+    ${editMode ? renderManageForms(w, mark, qty, a, isProfit, r) : ''}
+
     <section class="et-body-grid">
-      <div class="et-actions-card">
-        <div class="et-card-heading" style="margin-bottom:4px;">
-          <h2 class="et-card-title">Adjust the trade</h2>
-          <div class="et-card-meta">SUGGESTED · TAP TO APPLY</div>
+      <div class="et-journal-card" style="grid-column:1 / -1;">
+        <div class="et-card-heading">
+          <h2 class="et-card-title">Journal</h2>
+          ${editMode && !journalEditing(w) ? '<button class="btn-secondary btn-compact" id="et-edit-journal-btn">EDIT ENTRY NOTE</button>' : ''}
         </div>
-
-        ${actionRow({
-          id: 'move-stop',
-          title: 'Move stop',
-          accent: 'var(--cyan)',
-          suggestion: isProfit
-            ? `to $${entry.toFixed(2)} · breakeven`
-            : `hold $${stop.toFixed(2)} · original`,
-          suggestionColor: isProfit ? 'var(--green-bright)' : 'var(--ink-3)',
-          cta: 'UPDATE',
-          ctaColor: 'var(--cyan)',
-          ctaBg: 'rgba(6,212,248,0.12)',
-          ctaLine: 'rgba(6,212,248,0.4)',
-        })}
-
-        ${actionRow({
-          id: 'take-partial',
-          title: 'Take partial',
-          accent: 'var(--green-bright)',
-          suggestion: isProfit
-            ? `trim 50% at $${mark.toFixed(2)} · lock ${fmtR(r * 0.5)}`
-            : 'not recommended at this level',
-          suggestionColor: isProfit ? 'var(--green-bright)' : 'var(--amber-bright,#fbbf24)',
-          cta: 'SCALE OUT',
-          ctaColor: 'var(--green-bright)',
-          ctaBg: 'rgba(16,185,129,0.12)',
-          ctaLine: 'rgba(16,185,129,0.32)',
-          disabled: !isProfit,
-        })}
-
-        ${actionRow({
-          id: 'close-all',
-          title: 'Close position',
-          accent: 'var(--red-bright)',
-          suggestion: `market @ $${mark.toFixed(2)} · realize ${fmt$(pl)}`,
-          suggestionColor: tone,
-          cta: 'CLOSE ALL',
-          ctaColor: 'var(--red-bright)',
-          ctaBg: 'rgba(239,68,68,0.12)',
-          ctaLine: 'rgba(239,68,68,0.4)',
-        })}
-      </div>
-
-      <div class="et-sidebar">
-        <div class="et-setup-card" style="background:linear-gradient(180deg,${a.soft},transparent 60%),rgba(19,23,34,0.78);border:1px solid ${a.line};">
-          <div class="et-setup-hdr">
-            <span class="et-card-meta">SETUP</span>
-            ${edge ? `<span class="et-setup-edge" style="color:${edgeColor(edge)};background:${edgeBg(edge)};border:1px solid ${edgeLine(edge)}">EDGE · ${edge}</span>` : ''}
-          </div>
-          <div class="et-setup-name">${trade.setup || trade.selectedSetup || '—'}</div>
-          ${!isProfit && edge === 'FADING' ? `
-          <div class="et-setup-warn">
-            Edge re-rated to <strong>FADING</strong>. Consider tighter management or reducing size.
-          </div>` : ''}
-          ${trade.setup ? `<button class="et-repeat-setup-pill" id="et-repeat-setup-btn" type="button"
-            style="color:${a.c};background:${a.bg};border:1px solid ${a.line};">↻ Repeat setup</button>` : ''}
-        </div>
-
-        <div class="et-journal-card">
-          <div class="et-card-heading">
-            <span class="et-card-meta">JOURNAL · ON ENTRY</span>
-            <span class="et-card-meta" style="cursor:pointer;color:var(--ink-4)" id="et-edit-journal-btn">EDIT</span>
-          </div>
-          <div class="et-journal-quote" id="et-journal-quote">"${escapeHtml(trade.journal || trade.thesis || trade.notes || 'No entry notes recorded.')}"</div>
-          <div class="et-card-meta" style="margin-top:10px;">ADD A NOTE</div>
-          <textarea class="et-note-area" id="et-note-input" placeholder='e.g. "Price tagging 495, moving stop to BE per plan."'></textarea>
-        </div>
+        <div class="et-card-meta" style="margin-bottom:6px;">ENTRY THESIS</div>
+        <div class="et-journal-quote" id="et-journal-quote">${renderJournalQuote(w)}</div>
+        ${renderRunningNotes(w)}
       </div>
     </section>
 
@@ -319,121 +411,386 @@ function renderEditTrade(trade) {
     </section>
   `;
 
-  // Footer
+  // Footer / save bar
   const footer = document.createElement('div');
   footer.className = 'et-footer';
-  footer.innerHTML = `
-    <button class="et-btn-back" id="et-footer-back">← BACK TO BOOK</button>
-    <div class="et-footer-right">
-      <button class="et-btn-save" id="et-save-notes-btn">SAVE NOTES</button>
-      <button class="et-btn-apply" id="et-apply-btn" style="background:${a.c};border:1px solid ${a.c}">APPLY CHANGES →</button>
-    </div>`;
+  if (editMode) {
+    const dirty = draftDirty();
+    footer.innerHTML = `
+      <button class="btn-secondary" id="et-footer-back">← BACK</button>
+      <div class="et-footer-mid" style="color:${dirty ? 'var(--amber-bright,#fbbf24)' : 'var(--ink-4)'}">
+        ${dirty ? '● UNSAVED EDITS' : 'NO CHANGES'}
+      </div>
+      <div class="et-footer-right">
+        <button class="btn-secondary" id="et-discard-btn" ${dirty ? '' : 'disabled'}>DISCARD</button>
+        <button class="btn-primary" id="et-save-btn" ${dirty ? '' : 'disabled'}>SAVE CHANGES</button>
+      </div>`;
+  } else {
+    footer.innerHTML = `
+      <button class="btn-secondary" id="et-footer-back">← BACK TO BOOK</button>
+      <div class="et-footer-right">
+        <button class="btn-primary" id="et-enter-edit">EDIT TRADE →</button>
+      </div>`;
+  }
   mainEl.appendChild(footer);
 
-  // Wire actions
-  mainEl.querySelector('[data-action="move-stop"]')?.addEventListener('click', () => {
-    if (isProfit) {
-      trade.stop = entry;
-      saveState();
-      toast(`Stop moved to breakeven ($${entry.toFixed(2)})`);
-      renderEditTrade(trade);
-    } else {
-      toast(`Stop held at $${stop.toFixed(2)}`);
-    }
-  });
-  mainEl.querySelector('[data-action="take-partial"]')?.addEventListener('click', () => {
-    if (!isProfit) return;
-    const half = Math.max(1, Math.floor(qty / 2));
-    trade.qty = qty - half;
-    if (trade.shares != null) trade.shares = trade.qty;
-    if (trade.contracts != null) trade.contracts = trade.qty;
-    const note = `Scaled out ${half} @ $${mark.toFixed(2)} · locked ${fmtR(r)}`;
-    trade.notes = trade.notes ? trade.notes + '\n' + note : note;
-    saveState();
-    toast(`Scaled out ${half} · ${trade.qty} remaining`);
-    renderEditTrade(trade);
-  });
-  mainEl.querySelector('[data-action="close-all"]')?.addEventListener('click', () => {
-    trade.status = 'closed';
-    trade.exit = mark;
-    trade.exitDate = new Date().toISOString().slice(0, 10);
-    saveState();
-    toast(`Closed ${trade.ticker || ''} @ $${mark.toFixed(2)} · ${fmt$(pl)}`);
-    closeEditTrade();
-    if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
-  });
+  wireEvents(trade, w, { mark, qty, entry, stop, target, a, isLong });
 
-  // Repeat setup → pre-seed trade flow with this setup + mode + direction
+  mainEl.scrollTop = 0;
+}
+
+// ── manage forms (edit mode) ──────────────────────────────────────────────
+function renderManageForms(w, mark, qty, a, isProfit, r) {
+  return `
+  <section class="et-manage-grid">
+    <div class="et-manage-card">
+      <div class="et-card-heading">
+        <h2 class="et-card-title">Scale out</h2>
+        <div class="et-card-meta">PARTIAL CLOSE</div>
+      </div>
+      <div class="et-pct-row">
+        ${[25, 50, 75].map(p => `<button class="et-pct-btn" data-pct="${p}">${p}%</button>`).join('')}
+      </div>
+      <div class="et-form-row">
+        <label class="et-form-field">
+          <span>Qty</span>
+          <input type="number" min="1" max="${qty}" id="et-scale-qty" value="${Math.max(1, Math.floor(qty/2))}">
+        </label>
+        <label class="et-form-field">
+          <span>Fill price</span>
+          <input type="number" step="0.01" id="et-scale-price" value="${mark.toFixed(2)}">
+        </label>
+        <button class="et-form-apply" id="et-scale-apply" style="color:var(--green-bright);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.32);">SCALE OUT</button>
+      </div>
+      <div class="et-form-hint" id="et-scale-hint">Locks ${fmtR(r * 0.5)} on half · ${qty} ct remaining if 50%.</div>
+    </div>
+
+    <div class="et-manage-card">
+      <div class="et-card-heading">
+        <h2 class="et-card-title">Close position</h2>
+        <div class="et-card-meta">FULL EXIT</div>
+      </div>
+      <div class="et-form-row">
+        <label class="et-form-field">
+          <span>Qty</span>
+          <input type="number" min="1" max="${qty}" id="et-close-qty" value="${qty}">
+        </label>
+        <label class="et-form-field">
+          <span>Fill price</span>
+          <input type="number" step="0.01" id="et-close-price" value="${mark.toFixed(2)}">
+        </label>
+        <button class="et-form-apply" id="et-close-apply" style="color:var(--red-bright);background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);">CLOSE</button>
+      </div>
+      <div class="et-form-hint" id="et-close-hint">Realizes P&amp;L at the fill price you enter.</div>
+    </div>
+  </section>`;
+}
+
+// ── event wiring ───────────────────────────────────────────────────────────
+function wireEvents(trade, w, ctx) {
+  const mainEl = document.getElementById('edit-trade-main');
+  if (!mainEl) return;
+
+  // Mark edit (only in edit mode)
+  const markEl = mainEl.querySelector('#et-mark-val');
+  if (markEl && editMode) {
+    markEl.addEventListener('focus', () => {
+      const range = document.createRange();
+      range.selectNodeContents(markEl);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+    markEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); markEl.blur(); }
+      if (e.key === 'Escape') { e.preventDefault(); markEl.textContent = `$${ctx.mark.toFixed(2)}`; markEl.blur(); }
+    });
+    markEl.addEventListener('blur', () => {
+      const raw = markEl.textContent.replace(/[^0-9.]/g, '');
+      const v = parseFloat(raw);
+      if (Number.isFinite(v) && v > 0 && Math.abs(v - ctx.mark) > 0.001) {
+        draft.mark = v;
+        renderEditTrade(trade);
+      } else {
+        markEl.textContent = `$${ctx.mark.toFixed(2)}`;
+      }
+    });
+  }
+
+  // Level inputs
+  if (editMode) {
+    const wireLevel = (id, key) => {
+      const el = mainEl.querySelector(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        const v = parseFloat(el.value);
+        if (Number.isFinite(v) && v > 0) {
+          draft[key] = v;
+          renderEditTrade(trade);
+        } else if (el.value === '' && key === 'target') {
+          draft.target = null;
+          renderEditTrade(trade);
+        }
+      });
+    };
+    wireLevel('#et-input-stop', 'stop');
+    wireLevel('#et-input-entry', 'entry');
+    wireLevel('#et-input-target', 'target');
+  }
+
+  // Drag handles
+  if (editMode) wireDragHandles(trade, w, ctx);
+
+  // Scale-out form
+  if (editMode) {
+    mainEl.querySelectorAll('.et-pct-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = parseInt(btn.dataset.pct, 10);
+        const q = Math.max(1, Math.floor(ctx.qty * (p / 100)));
+        const qtyEl = mainEl.querySelector('#et-scale-qty');
+        if (qtyEl) qtyEl.value = q;
+      });
+    });
+    mainEl.querySelector('#et-scale-apply')?.addEventListener('click', () => {
+      const q = parseInt(mainEl.querySelector('#et-scale-qty')?.value, 10);
+      const px = parseFloat(mainEl.querySelector('#et-scale-price')?.value);
+      if (!Number.isFinite(q) || q < 1 || q >= ctx.qty) { toast('Enter qty between 1 and ' + (ctx.qty - 1)); return; }
+      if (!Number.isFinite(px) || px <= 0) { toast('Enter a fill price'); return; }
+      applyScaleOut(trade, q, px, ctx);
+    });
+    mainEl.querySelector('#et-close-apply')?.addEventListener('click', () => {
+      const q  = parseInt(mainEl.querySelector('#et-close-qty')?.value, 10);
+      const px = parseFloat(mainEl.querySelector('#et-close-price')?.value);
+      if (!Number.isFinite(q) || q < 1) { toast('Enter qty'); return; }
+      if (!Number.isFinite(px) || px <= 0) { toast('Enter a fill price'); return; }
+      applyCloseAll(trade, q, px, ctx);
+    });
+  }
+
+  // Repeat setup
   mainEl.querySelector('#et-repeat-setup-btn')?.addEventListener('click', () => {
-    if (!trade.setup) return;
+    if (!w.setup) return;
+    const mode = w.mode || 'swing';
     if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
     state.tradeFlow.mode = mode;
     state.tradeFlow.step = 1;
     if (mode === 'intraday') {
       if (!state.intraday) state.intraday = {};
-      state.intraday.setup = trade.setup;
-      state.intraday.direction = isLong ? 'long' : 'short';
+      state.intraday.setup = w.setup;
+      state.intraday.direction = ctx.isLong ? 'long' : 'short';
     } else {
-      state.selectedSetup = trade.setup;
-      state.direction = isLong ? 'long' : 'short';
+      state.selectedSetup = w.setup;
+      state.direction = ctx.isLong ? 'long' : 'short';
     }
     saveState();
     closeEditTrade();
     if (typeof window.setTab === 'function') window.setTab('trade');
     if (typeof window.renderTrade === 'function') window.renderTrade();
-    toast(`Repeating ${trade.setup}`);
+    toast(`Repeating ${w.setup}`);
   });
 
-  // Journal edit toggle
-  mainEl.querySelector('#et-edit-journal-btn')?.addEventListener('click', () => {
-    const quote = mainEl.querySelector('#et-journal-quote');
-    if (!quote) return;
-    if (quote.dataset.editing === '1') return;
-    quote.dataset.editing = '1';
-    const current = trade.journal || trade.thesis || '';
-    quote.innerHTML = `<textarea class="et-note-area" id="et-journal-edit" style="width:100%;">${escapeHtml(current)}</textarea>
-      <button class="et-btn-save" id="et-journal-save" style="margin-top:6px;">SAVE</button>`;
-    quote.querySelector('#et-journal-save').addEventListener('click', () => {
-      const v = quote.querySelector('#et-journal-edit').value.trim();
-      trade.journal = v;
-      saveState();
-      toast('Journal updated');
-      renderEditTrade(trade);
+  // Journal edit — single editor handles both the entry thesis and adding a new note.
+  if (editMode) {
+    mainEl.querySelector('#et-edit-journal-btn')?.addEventListener('click', () => {
+      const quote = mainEl.querySelector('#et-journal-quote');
+      if (!quote || quote.dataset.editing === '1') return;
+      quote.dataset.editing = '1';
+      const current = draft.journal || draft.thesis || '';
+      quote.innerHTML = `
+        <label class="et-card-meta" style="display:block;margin-bottom:4px;">ENTRY THESIS</label>
+        <textarea class="et-note-area" id="et-journal-edit" style="width:100%;min-height:90px;">${escapeHtml(current)}</textarea>
+        <label class="et-card-meta" style="display:block;margin-top:10px;margin-bottom:4px;">ADD A NEW NOTE (OPTIONAL)</label>
+        <textarea class="et-note-area" id="et-journal-append" placeholder='e.g. "Moved stop to BE per plan."' style="width:100%;min-height:60px;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-primary btn-compact" id="et-journal-save">SAVE</button>
+          <button class="btn-secondary btn-compact" id="et-journal-cancel">CANCEL</button>
+        </div>`;
+      quote.querySelector('#et-journal-cancel').addEventListener('click', () => {
+        renderEditTrade(trade);
+      });
+      quote.querySelector('#et-journal-save').addEventListener('click', () => {
+        const v   = quote.querySelector('#et-journal-edit').value.trim();
+        const add = quote.querySelector('#et-journal-append').value.trim();
+        draft.journal = v;
+        if (add) {
+          if (!Array.isArray(draft.runningNotes)) {
+            draft.runningNotes = draft.notes
+              ? [{ at: draft.updated_at || draft.created_at || new Date().toISOString(), text: draft.notes }]
+              : [];
+          }
+          draft.runningNotes.push({ at: new Date().toISOString(), text: add });
+          draft.notes = '';
+        }
+        renderEditTrade(trade);
+      });
+      quote.querySelector('#et-journal-edit').focus();
     });
-  });
+  }
 
-  footer.querySelector('#et-footer-back').addEventListener('click', closeEditTrade);
-  footer.querySelector('#et-save-notes-btn').addEventListener('click', () => {
-    const note = document.getElementById('et-note-input')?.value?.trim();
-    if (!note) return;
-    trade.notes = trade.notes ? trade.notes + '\n\n' + note : note;
-    saveState();
-    toast('Note saved');
-    renderEditTrade(trade);
-  });
-  footer.querySelector('#et-apply-btn').addEventListener('click', () => {
-    saveState();
-    toast('Changes applied');
-    closeEditTrade();
+  // Footer actions
+  const footer = mainEl.querySelector('.et-footer');
+  footer?.querySelector('#et-footer-back')?.addEventListener('click', handleBack(trade));
+  footer?.querySelector('#et-enter-edit')?.addEventListener('click', () => enterEditMode(trade));
+  footer?.querySelector('#et-save-btn')?.addEventListener('click', () => {
+    if (!draftDirty()) return;
+    commitDraft(trade);
+    toast('Changes saved');
+    exitEditMode(trade);
     if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
   });
-
-  mainEl.scrollTop = 0;
+  footer?.querySelector('#et-discard-btn')?.addEventListener('click', () => {
+    if (!draftDirty()) return;
+    if (!confirm('Discard all unsaved edits?')) return;
+    exitEditMode(trade);
+    toast('Edits discarded');
+  });
 }
 
-export function closeEditTrade() {
-  const overlay = document.getElementById('edit-trade-overlay');
-  if (overlay) overlay.classList.remove('show');
+function handleBack(trade) {
+  return () => {
+    if (editMode && draftDirty()) {
+      if (!confirm('Discard unsaved edits and leave?')) return;
+    }
+    closeEditTrade();
+  };
 }
 
-// ── row helper ─────────────────────────────────────────────────────────────
-function actionRow({ id, title, accent, suggestion, suggestionColor, cta, ctaColor, ctaBg, ctaLine, disabled = false }) {
-  return `<div class="et-action-row${disabled ? ' dim' : ''}" style="border-left-color:${accent};">
-    <div class="et-action-name">${title}</div>
-    <div class="et-action-suggestion" style="color:${suggestionColor}">${suggestion}</div>
-    <button class="et-action-cta" data-action="${id}" ${disabled ? 'disabled' : ''}
-      style="color:${ctaColor};background:${ctaBg};border:1px solid ${ctaLine};${disabled ? 'opacity:0.5;cursor:not-allowed;' : ''}">${cta}</button>
-  </div>`;
+// ── drag handles ──────────────────────────────────────────────────────────
+function wireDragHandles(trade, w, ctx) {
+  const ladder = document.getElementById('et-ladder');
+  if (!ladder) return;
+  const stopX = 8, entryX = 32, targetX = 92;
+
+  // Use stop/entry actual prices to define the price-per-pixel scale.
+  // We map the current stop position (stopX%) to current stop price and entry position (entryX%) to entry price.
+  // From those two anchors derive: price(percent) = entry + (percent - entryX) * pricePerPercent
+  const stop = parseFloat(w.stop || 0);
+  const entry = parseFloat(w.entry || w.premium || 0);
+  if (!entry || !stop || stop === entry) return;
+  const pricePerPercent = (entry - stop) / (entryX - stopX);
+  const percentToPrice = (pct) => {
+    const v = entry + (pct - entryX) * pricePerPercent;
+    return Math.round(v * 100) / 100;
+  };
+
+  ladder.querySelectorAll('.et-marker-drag').forEach(handle => {
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const which = handle.dataset.handle;
+      const rect = ladder.getBoundingClientRect();
+      handle.setPointerCapture?.(e.pointerId);
+      handle.classList.add('is-dragging');
+
+      const onMove = (ev) => {
+        const x = ev.clientX - rect.left;
+        const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        const price = percentToPrice(pct);
+        if (!Number.isFinite(price) || price <= 0) return;
+        if (which === 'stop')   draft.stop = price;
+        if (which === 'entry')  draft.entry = price;
+        if (which === 'target') draft.target = price;
+        // Live update the price label without re-rendering the whole view.
+        const label = handle.querySelector('.et-marker-price');
+        if (label) label.textContent = '$' + price.toFixed(2);
+      };
+      const onUp = () => {
+        handle.classList.remove('is-dragging');
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onUp);
+        handle.removeEventListener('pointercancel', onUp);
+        renderEditTrade(trade);
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onUp);
+      handle.addEventListener('pointercancel', onUp);
+    });
+  });
+}
+
+// ── manage actions ────────────────────────────────────────────────────────
+function applyScaleOut(trade, q, px, ctx) {
+  const newQty = ctx.qty - q;
+  if (newQty < 1) { toast('Use Close to fully exit'); return; }
+  draft.qty = newQty;
+  if (draft.shares != null) draft.shares = newQty;
+  if (draft.contracts != null) draft.contracts = newQty;
+  draft.scaleOuts = Array.isArray(draft.scaleOuts) ? draft.scaleOuts : [];
+  draft.scaleOuts.push({ qty: q, price: px, at: new Date().toISOString() });
+  const realized = (px - parseFloat(draft.entry || draft.premium || 0)) * q * (ctx.isLong ? 1 : -1);
+  draft.realized = (parseFloat(draft.realized) || 0) + realized;
+  const note = `Scaled out ${q} @ $${px.toFixed(2)} · realized ${fmt$(realized)}`;
+  if (!Array.isArray(draft.runningNotes)) {
+    draft.runningNotes = draft.notes
+      ? [{ at: draft.updated_at || draft.created_at || new Date().toISOString(), text: draft.notes }]
+      : [];
+  }
+  draft.runningNotes.push({ at: new Date().toISOString(), text: note });
+  draft.notes = '';
+  renderEditTrade(trade);
+  toast(`${q} scaled out · ${newQty} remaining (save to commit)`);
+}
+
+function applyCloseAll(trade, q, px, ctx) {
+  if (q < ctx.qty) {
+    // Partial close routed through scale-out
+    applyScaleOut(trade, q, px, ctx);
+    return;
+  }
+  if (!confirm(`Close ${q} ${ctx.isLong ? 'long' : 'short'} @ $${px.toFixed(2)}? This commits immediately.`)) return;
+  // Closing is destructive — commit immediately rather than staging.
+  Object.assign(trade, draft);
+  trade.status = 'closed';
+  trade.exit = px;
+  trade.exit_date = new Date().toISOString().slice(0, 10);
+  trade.exitDate = trade.exit_date;
+  trade.closedAt = new Date().toISOString();
+  trade.updated_at = trade.closedAt;
+  saveState();
+  toast(`Closed ${trade.ticker || ''} @ $${px.toFixed(2)}`);
+  closeEditTrade();
+  if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
+}
+
+// ── journal helpers ───────────────────────────────────────────────────────
+function journalEditing(_w) {
+  // We re-derive editing state from the DOM rather than tracking it on the trade
+  const q = document.getElementById('et-journal-quote');
+  return !!(q && q.dataset.editing === '1');
+}
+function renderJournalQuote(w) {
+  const text = w.journal || w.thesis || '';
+  if (!text) return '<span style="color:var(--ink-4);font-style:italic;">No entry thesis recorded.</span>';
+  return `"${escapeHtml(text)}"`;
+}
+function getRunningNotes(w) {
+  if (Array.isArray(w.runningNotes)) return w.runningNotes;
+  // Migrate legacy free-text notes into a single-entry list (display only).
+  if (w.notes) return [{ at: w.updated_at || w.created_at || null, text: w.notes }];
+  return [];
+}
+function renderRunningNotes(w) {
+  const notes = getRunningNotes(w);
+  if (!notes.length) return '';
+  return `
+    <div class="et-card-meta" style="margin-top:14px;">RUNNING NOTES · ${notes.length}</div>
+    <ul class="et-notes-feed">
+      ${notes.map((n, i) => `
+        <li class="et-note-item" data-idx="${i}">
+          <span class="et-note-time">${n.at ? formatOpened(n.at) : '—'}</span>
+          <span class="et-note-text">${escapeHtml(n.text || '')}</span>
+        </li>`).join('')}
+    </ul>`;
+}
+
+// ── misc helpers ──────────────────────────────────────────────────────────
+function formatOpened(iso) {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    const day = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+    const tm = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${day} · ${tm}`;
+  } catch { return '—'; }
 }
 
 function escapeHtml(s) {
@@ -442,14 +799,15 @@ function escapeHtml(s) {
 
 function buildHistory(trade, accentColor, toneColor) {
   const events = [];
-  const d = new Date(trade.date || trade.opened || Date.now());
+  const d = new Date(trade.openedAt || trade.created_at || trade.date || trade.opened || Date.now());
   const dateStr = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   const qty = trade.qty || trade.contracts || trade.shares || 1;
   const entry = parseFloat(trade.entry || trade.premium || 0);
   const stop  = parseFloat(trade.stop || 0);
   const mark  = parseFloat(trade.mark || trade.currentPrice || entry);
-  const oneR  = Math.round(Math.abs(entry - stop) * qty) || 0;
+  const mult  = tradeMultiplier(trade);
+  const oneR  = Math.round(tradeRiskDollars(trade) || (Math.abs(entry - stop) * qty * mult)) || 0;
 
   events.push({
     t: `${dateStr} ${timeStr}`,
@@ -457,6 +815,18 @@ function buildHistory(trade, accentColor, toneColor) {
     text: `BUY ${qty} @ $${entry.toFixed(2)} · 1R = $${oneR}`,
     color: accentColor,
   });
+
+  if (Array.isArray(trade.scaleOuts)) {
+    trade.scaleOuts.forEach(s => {
+      const sd = new Date(s.at || Date.now());
+      events.push({
+        t: sd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        kind: 'SCALE',
+        text: `Scaled out ${s.qty} @ $${(+s.price).toFixed(2)}`,
+        color: 'var(--green-bright)',
+      });
+    });
+  }
 
   if (trade.journal || trade.thesis) {
     events.push({
@@ -467,10 +837,9 @@ function buildHistory(trade, accentColor, toneColor) {
     });
   }
 
-  const riskPerUnit = Math.abs(entry - stop) || 1;
-  const r = (mark - entry) / riskPerUnit;
   const pl = calcPL(trade);
-  const plStr = pl != null ? fmt$(pl) : `${(mark - entry) * qty >= 0 ? '+$' : '−$'}${Math.abs((mark - entry) * qty).toFixed(0)}`;
+  const r = (pl != null && oneR) ? (pl / oneR) : 0;
+  const plStr = pl != null ? fmt$(pl) : `${(mark - entry) * qty * mult >= 0 ? '+$' : '−$'}${Math.abs((mark - entry) * qty * mult).toFixed(0)}`;
   events.unshift({
     t: 'now',
     kind: 'MARK',

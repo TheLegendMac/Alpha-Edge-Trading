@@ -102,11 +102,10 @@
             <span id="home-deep-label">STATUS</span>
           </div>
           <h1 class="home-hero-headline" id="home-intel-headline">Cleared to trade.</h1>
-          <p class="home-hero-sub" id="home-intel-text"></p>
         </div>
         <div class="home-stat-cards">
           <div class="home-stat-card">
-            <div class="home-stat-label">Session P/L</div>
+            <div class="home-stat-label">Net P/L</div>
             <div class="home-stat-value" id="home-session-pl">+$0</div>
             <div class="home-stat-sub"><span id="home-realized">$0</span> realized · <span id="home-unrealized">$0</span> open</div>
           </div>
@@ -118,10 +117,9 @@
           <div class="home-stat-card">
             <div class="home-stat-label">Slots open</div>
             <div class="home-stat-value" id="home-trades-left">—</div>
-            <div class="home-stat-sub" id="home-zone">of 4 max</div>
           </div>
           <div class="home-stat-card">
-            <div class="home-stat-label">Risk buffer</div>
+            <div class="home-stat-label">Open risk</div>
             <div class="home-stat-value" id="home-buffer">$0</div>
             <div class="home-stat-sub" id="home-risk-unit">1R = $0</div>
           </div>
@@ -315,7 +313,7 @@
       <section class="ref-hero">
         <div class="ref-hero-eyebrow"><span class="ref-hero-dot"></span> REFERENCE · <span id="ref-account-label">ACCOUNT $0</span></div>
         <h1 class="ref-hero-heading">The rules <span class="ref-hero-accent">are the edge.</span></h1>
-        <p class="ref-hero-sub">Your sizing, caps and IV-rank playbook. Edit settings to recalculate dollar amounts.</p>
+        <p class="ref-hero-sub">Your sizing, open-position limit and IV-rank playbook. Edit settings to recalculate dollar amounts.</p>
       </section>
 
       <!-- Regime sizing -->
@@ -329,11 +327,11 @@
         </div>
       </section>
 
-      <!-- Position caps -->
+      <!-- Position limit -->
       <section class="ref-section">
         <div class="ref-section-header">
-          <h2 class="ref-section-title">Position caps</h2>
-          <span class="ref-section-meta">HARD LIMITS · ENFORCED BY GATES</span>
+          <h2 class="ref-section-title">Open position limit</h2>
+          <span class="ref-section-meta">HARD LIMIT · ENFORCED BY GATES</span>
         </div>
         <div class="ref-caps-card">
           <ul class="ref-caps-list" id="ref-caps-list">
@@ -781,7 +779,7 @@ STRENGTH: 3/3</pre>
       </a>
       <a class="sett-nav-item" href="#sett-s02" data-sett-nav="s02">
         <span class="sett-nav-num">02</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Sizing · caps</span></span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Regime sizing</span></span>
       </a>
       <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
         <span class="sett-nav-num">03</span>
@@ -819,7 +817,6 @@ STRENGTH: 3/3</pre>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-On sizing</div><div class="sett-mv-sub sett-mv-green" id="smv-s-rOn">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Neutral sizing</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-rNeu">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-Off sizing</div><div class="sett-mv-sub sett-mv-red" id="smv-s-rOff">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s02b"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Position caps</div><div class="sett-mv-sub" id="smv-s-caps">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
       </div>
     </div>
@@ -844,9 +841,9 @@ STRENGTH: 3/3</pre>
             <div class="sett-hero-card-sub" id="sett-live-base1r-sub">0.50% of equity</div>
           </div>
           <div class="sett-hero-card">
-            <div class="sett-hero-card-label">CAP REMAINING</div>
+            <div class="sett-hero-card-label">OPEN LIMIT</div>
             <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
-            <div class="sett-hero-card-sub" id="sett-live-cap-sub">of $5,000 · 80%</div>
+            <div class="sett-hero-card-sub" id="sett-live-cap-sub">max open positions</div>
           </div>
         </div>
       </div>
@@ -854,8 +851,8 @@ STRENGTH: 3/3</pre>
 
     <!-- ── SECTION 01: ACCOUNT ── -->
     <section class="sett-section" id="sett-s01">
-      <h2 class="sett-section-title">Account size</h2>
-      <p class="sett-section-desc">Anchor everything to a single equity number.</p>
+      <h2 class="sett-section-title">Account &amp; open positions</h2>
+      <p class="sett-section-desc">Anchor sizing to one equity number and set the only portfolio-wide gate: max open positions.</p>
 
       <div class="sett-fields-grid sett-grid-2">
         <div class="sett-field-group">
@@ -867,6 +864,21 @@ STRENGTH: 3/3</pre>
             </div>
             <div class="sett-field-hint">Account cash</div>
           </div>
+        </div>
+        <div class="sett-cap-col">
+          <div class="sett-cap-labels">
+            <span class="sett-cap-lbl">MAX OPEN POSITIONS</span>
+            <span class="sett-cap-tag">EXIT-ONLY PAST LIMIT</span>
+          </div>
+          <div class="sett-cap-box">
+            <div class="sett-cap-box-left">
+              <input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" />
+              <span class="sett-cap-unit">open</span>
+            </div>
+            <span class="sett-cap-box-right">exit-only past limit</span>
+          </div>
+          <input type="range" min="1" max="20" step="1" class="sett-slider sett-slider-cap" id="sett-sl-pos" value="4" />
+          <div class="sett-cap-range"><span>1</span><span>20</span></div>
         </div>
       </div>
     </section>
@@ -932,60 +944,6 @@ STRENGTH: 3/3</pre>
       </div>
     </section>
 
-    <!-- ── SECTION 02: CAPS ── -->
-    <section class="sett-section sett-section-sub" id="sett-s02b">
-      <h2 class="sett-section-title">Position &amp; exposure caps</h2>
-
-      <div class="sett-caps-grid">
-        <div class="sett-cap-col">
-          <div class="sett-cap-labels">
-            <span class="sett-cap-lbl">CONCURRENT POSITIONS</span>
-            <span class="sett-cap-tag">EXIT-ONLY PAST CAP</span>
-          </div>
-          <div class="sett-cap-box">
-            <div class="sett-cap-box-left">
-              <input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" />
-              <span class="sett-cap-unit">open</span>
-            </div>
-            <span class="sett-cap-box-right">exit-only past cap</span>
-          </div>
-          <input type="range" min="1" max="20" step="1" class="sett-slider sett-slider-cap" id="sett-sl-pos" value="4" />
-          <div class="sett-cap-range"><span>1</span><span>20</span></div>
-        </div>
-        <div class="sett-cap-col">
-          <div class="sett-cap-labels">
-            <span class="sett-cap-lbl">TOTAL PREMIUM DEPLOYED</span>
-            <span class="sett-cap-tag">$<span id="sett-live-premium-cap">6,000</span> of equity</span>
-          </div>
-          <div class="sett-cap-box">
-            <div class="sett-cap-box-left">
-              <input type="number" min="5" max="100" step="1" class="sett-cap-input" id="set-max-premium" value="12" />
-              <span class="sett-cap-unit">%</span>
-            </div>
-            <span class="sett-cap-box-right">$<span id="sett-live-premium-cap-b">6,000</span> of equity</span>
-          </div>
-          <input type="range" min="5" max="100" step="1" class="sett-slider sett-slider-cap" id="sett-sl-prem" value="12" />
-          <div class="sett-cap-range"><span>5%</span><span>100%</span></div>
-        </div>
-        <div class="sett-cap-col">
-          <div class="sett-cap-labels">
-            <span class="sett-cap-lbl">TOTAL AT RISK</span>
-            <span class="sett-cap-tag">$<span id="sett-live-risk-cap">3,000</span> of equity</span>
-          </div>
-          <div class="sett-cap-box">
-            <div class="sett-cap-box-left">
-              <input type="number" min="1" max="50" step="1" class="sett-cap-input" id="set-max-risk" value="6" />
-              <span class="sett-cap-unit">%</span>
-            </div>
-            <span class="sett-cap-box-right">$<span id="sett-live-risk-cap-b">3,000</span> of equity</span>
-          </div>
-          <input type="range" min="1" max="50" step="1" class="sett-slider sett-slider-cap" id="sett-sl-risk" value="6" />
-          <div class="sett-cap-range"><span>1%</span><span>50%</span></div>
-        </div>
-      </div>
-    </section>
-
-
     <!-- ── SECTION 04: DATA & EXPORT ── -->
     <section class="sett-section" id="sett-s04">
       <h2 class="sett-section-title">Data &amp; export</h2>
@@ -1049,9 +1007,9 @@ STRENGTH: 3/3</pre>
       </div>
 
       <div class="ai-glossary-term">
-        <h4>Buffer / Trades remaining</h4>
-        <p>How many more trades you can take before hitting your portfolio risk cap.</p>
-        <code>floor((maxRiskPct% of account - openRisk) / nextRisk)</code>
+        <h4>Slots open</h4>
+        <p>How many more positions you can open before hitting your max open positions limit.</p>
+        <code>maxPositions - openPositions</code>
       </div>
 
       <div class="ai-glossary-term">
@@ -1197,8 +1155,8 @@ STRENGTH: 3/3</pre>
       </div>
 
       <div class="ai-glossary-term">
-        <h4>Max positions / Max risk %</h4>
-        <p>Hard portfolio limits. Max positions caps simultaneously-open trades. Max risk % caps the sum of all open risk as a percent of account.</p>
+        <h4>Max open positions</h4>
+        <p>The only portfolio-wide gate. It caps simultaneously-open trades across swing and intraday.</p>
       </div>
     </section>
   </div>

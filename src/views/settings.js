@@ -28,14 +28,13 @@ function updateLiveHints() {
     if (el('sett-sl-off')) el('sett-sl-off').value = rOff;
   }
 
-  const prem  = parseFloat(el('set-max-premium')?.value) || 12;
-  const risk  = parseFloat(el('set-max-risk')?.value) || 6;
+  const maxPos = parseInt(el('set-max-positions')?.value, 10) || 4;
 
   if (el('sett-live-equity'))      el('sett-live-equity').textContent      = '$' + acct.toLocaleString();
   if (el('sett-live-base1r'))      el('sett-live-base1r').textContent      = fmt$(acct * rOn / 100);
   if (el('sett-live-base1r-sub'))  el('sett-live-base1r-sub').textContent  = `${rOn.toFixed(2)}% of equity`;
-  if (el('sett-live-cap'))         el('sett-live-cap').textContent         = fmt$(acct * prem / 100);
-  if (el('sett-live-cap-sub'))     el('sett-live-cap-sub').textContent     = `of ${fmt$(acct)} · ${prem}%`;
+  if (el('sett-live-cap'))         el('sett-live-cap').textContent         = String(maxPos);
+  if (el('sett-live-cap-sub'))     el('sett-live-cap-sub').textContent     = `max open position${maxPos === 1 ? '' : 's'}`;
   if (el('sett-hint-base1r'))      el('sett-hint-base1r').textContent      = `= ${fmt$(acct * rOn / 100)} · 1R`;
 
   // Regime equiv labels
@@ -43,19 +42,11 @@ function updateLiveHints() {
   if (el('sett-eqv-neutral')) el('sett-eqv-neutral').textContent = `= ${fmt$(acct * rNeu / 100)}`;
   if (el('sett-eqv-off'))     el('sett-eqv-off').textContent     = `= ${fmt$(acct * rOff / 100)}`;
 
-  // Cap dollar labels (header tags + inline box-right)
-  const premCap = Math.round(acct * prem / 100).toLocaleString();
-  const riskCap = Math.round(acct * risk / 100).toLocaleString();
-  ['sett-live-premium-cap','sett-live-premium-cap-b'].forEach(id => { if (el(id)) el(id).textContent = premCap; });
-  ['sett-live-risk-cap','sett-live-risk-cap-b'].forEach(id => { if (el(id)) el(id).textContent = riskCap; });
-
   // Slider fill
   syncSlider('sett-sl-on',      rOn,   0.1, 100, 'on');
   syncSlider('sett-sl-neutral', rNeu,  0.1, 100, 'neutral');
   syncSlider('sett-sl-off',     rOff,  0.1, 100, 'off');
-  syncSlider('sett-sl-pos',     parseFloat(document.getElementById('set-max-positions')?.value)||4, 1, 20, 'cap');
-  syncSlider('sett-sl-prem',    prem,  5,  100,  'cap');
-  syncSlider('sett-sl-risk',    risk,  1,   50,  'cap');
+  syncSlider('sett-sl-pos',     maxPos, 1, 20, 'cap');
   // Mobile list view values
   updateMobileView(acct, rOn);
 }
@@ -68,18 +59,15 @@ function updateMobileView(acct, rOn) {
   const rNeu = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
   const rOff = parseFloat(el('set-risk-off-r')?.value) || 0.15;
   const maxPos  = parseInt(el('set-max-positions')?.value) || 4;
-  const maxPrem = parseFloat(el('set-max-premium')?.value) || 12;
-  const maxRisk = parseFloat(el('set-max-risk')?.value) || 6;
   const f$ = (n) => '$' + Math.abs(Math.round(n)).toLocaleString();
 
   const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
   set('smv-equity', '$' + a.toLocaleString());
   set('smv-1r',     f$(a * r / 100));
-  set('smv-s01',    '$' + a.toLocaleString());
+  set('smv-s01',    `$${a.toLocaleString()} · ${maxPos} max open`);
   set('smv-s-rOn',  r.toFixed(2) + '%');
   set('smv-s-rNeu', rNeu.toFixed(2) + '%');
   set('smv-s-rOff', rOff.toFixed(2) + '%');
-  set('smv-s-caps', `${maxPos} · ${maxPrem}% · ${maxRisk}%`);
 }
 
 function syncSlider(sliderId, val, min, max, kind) {
@@ -136,8 +124,6 @@ function openSettings() {
   if (el('set-risk-off-r'))     el('set-risk-off-r').value     = rOff;
 
   if (el('set-max-positions'))  el('set-max-positions').value  = s.maxPositions   || DEFAULT_SETTINGS.maxPositions;
-  if (el('set-max-premium'))    el('set-max-premium').value    = s.maxPremiumPct  || DEFAULT_SETTINGS.maxPremiumPct;
-  if (el('set-max-risk'))       el('set-max-risk').value       = s.maxRiskPct     || DEFAULT_SETTINGS.maxRiskPct;
 
   // Wire sliders (only first time — guard with dataset flag)
   const overlay = document.getElementById('modal-settings');
@@ -147,8 +133,6 @@ function openSettings() {
     wireSliderInput('sett-sl-neutral', 'set-risk-neutral-r', 0.1, 100, 'neutral');
     wireSliderInput('sett-sl-off',     'set-risk-off-r',     0.1, 100, 'off');
     wireSliderInput('sett-sl-pos',     'set-max-positions',  1,   20,  'cap');
-    wireSliderInput('sett-sl-prem',    'set-max-premium',    5,   100, 'cap');
-    wireSliderInput('sett-sl-risk',    'set-max-risk',       1,   50,  'cap');
 
     // account input triggers all hints
     const acctEl = el('set-account');
@@ -262,9 +246,9 @@ function saveSettings() {
     riskNeutral,
     riskOff,
     maxPositions:             vi('set-max-positions', DEFAULT_SETTINGS.maxPositions),
-    maxPremiumPct:            v('set-max-premium',  DEFAULT_SETTINGS.maxPremiumPct),
-    maxRiskPct:               v('set-max-risk',     DEFAULT_SETTINGS.maxRiskPct),
   };
+  delete newSettings.maxPremiumPct;
+  delete newSettings.maxRiskPct;
 
   state.settings = newSettings;
   saveState();

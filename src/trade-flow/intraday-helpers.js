@@ -66,6 +66,8 @@ function logIntradayTrade() {
     inWindow: window.isInIntradayWindow(),
     tradeNumOfDay: window.todayIntradayTrades().length + 1,
     regime: state.regime,
+    regimeAtEntry: state.regime || null,
+    openedAt: nowIso,
     ivr: null,
     thesis: t.notes,
     premortem: '',

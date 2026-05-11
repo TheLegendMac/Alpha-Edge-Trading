@@ -1,7 +1,7 @@
 // Home dashboard — main landing tab. Pulls together account/regime/portfolio summary.
 
 import { state, getRiskPctForRegime } from '../state/store.js';
-import { REGIME_DATA } from '../config/constants.js';
+import { REGIME_DATA, TRADE_SWING_SETUPS } from '../config/constants.js';
 import {
   calcPL,
   tradeBias,
@@ -47,6 +47,62 @@ function openRiskDollars(t) {
   return risk * (openQty(t) / totalQty);
 }
 
+function getSwingSetupDef(setup) {
+  return (TRADE_SWING_SETUPS || []).find(s => s.id === setup) || null;
+}
+
+function buildHomeRiskProfile({ account, regime, settings, tradeMode, selectedSetup }) {
+  const baseSwingRisk = Math.round(account * getRiskPctForRegime(regime));
+  const selectedSetupDef = getSwingSetupDef(selectedSetup);
+  const selectedSwingRisk = selectedSetupDef && selectedSetupDef.halfSize
+    ? Math.round(baseSwingRisk / 2)
+    : baseSwingRisk;
+  const intradayRisk = Math.round(Number(settings.intradayRiskPerTrade) || 0);
+
+  const candidates = [
+    {
+      key: 'swing-full',
+      label: `${REGIME_DATA[regime]?.text || 'REGIME'} swing`,
+      risk: baseSwingRisk,
+      mode: 'swing',
+    },
+    {
+      key: 'swing-half',
+      label: 'half-size pattern',
+      risk: Math.round(baseSwingRisk / 2),
+      mode: 'swing',
+    },
+  ];
+
+  if (intradayRisk > 0) {
+    candidates.push({
+      key: 'intraday',
+      label: 'intraday',
+      risk: intradayRisk,
+      mode: 'intraday',
+    });
+  }
+
+  const active = tradeMode === 'intraday'
+    ? candidates.find(c => c.key === 'intraday')
+    : {
+        key: selectedSetupDef && selectedSetupDef.halfSize ? 'selected-half' : 'selected-swing',
+        label: selectedSetupDef && selectedSetupDef.halfSize ? `${selectedSetup} half-size` : `${REGIME_DATA[regime]?.text || 'REGIME'} swing`,
+        risk: selectedSwingRisk,
+        mode: 'swing',
+      };
+
+  const fallback = active || candidates.find(c => c.risk > 0) || null;
+
+  return {
+    active,
+    next: fallback,
+    fullSwingRisk: baseSwingRisk,
+    halfSwingRisk: Math.round(baseSwingRisk / 2),
+    intradayRisk,
+  };
+}
+
 export function renderHome() {
   const today = todayISO();
   const tradeIndex = buildTradeIndex(state.trades || []);
@@ -63,23 +119,31 @@ export function renderHome() {
     const risk = tradeRiskDollars(t);
     return risk > 0 ? sum + (openUnrealizedPL(t) / risk) : sum;
   }, 0);
-  const sessionPL = todayPL + openUnrealized;
-  const sessionR = todayR + openUnrealizedR;
+  // Net P/L is cumulative realized (all closed trades, lifetime) plus current unrealized.
+  const realizedAll = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
+  const sessionPL = realizedAll + openUnrealized;
+  const sessionR = closed.reduce((s, t) => s + (calcR(t) || 0), 0) + openUnrealizedR;
+  const settings = state.settings || {};
+  const account = settings.account || 10000;
   const maxPositions = state.settings.maxPositions || 0;
   const positionSlotsLeft = Math.max(0, maxPositions - openTrades.length);
-  const nextRisk = Math.round((state.settings.account || 10000) * getRiskPctForRegime(state.regime));
-  const maxRiskDollars = Math.round((state.settings.account || 10000) * (state.settings.maxRiskPct || 10) / 100);
   const openRisk = openTrades.reduce((sum, t) => sum + openRiskDollars(t), 0);
-  const riskBuffer = Math.max(0, Math.round(maxRiskDollars - openRisk));
-  const riskBasedTradesLeft = nextRisk > 0 ? Math.floor(riskBuffer / nextRisk) : positionSlotsLeft;
-  const tradesLeft = Math.max(0, Math.min(positionSlotsLeft, riskBasedTradesLeft));
+  const riskProfile = buildHomeRiskProfile({
+    account,
+    regime: state.regime,
+    settings,
+    tradeMode: state.tradeFlow?.mode || 'swing',
+    selectedSetup: state.selectedSetup,
+  });
+  const nextRisk = riskProfile.next?.risk || 0;
+  const nextRiskLabel = riskProfile.next?.label || 'next trade';
+  const tradesLeft = positionSlotsLeft;
   const ratings = Object.values(state.sectorRatings || {}).map(Number).filter(v => Number.isFinite(v));
   const sectorScore = ratings.length ? Math.round(ratings.reduce((s, v) => s + v, 0) / ratings.length / 5 * 100) : null;
   const top3 = window.computeTop3();
   const avoid = window.computeAvoidList();
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
   const positionsOk = openTrades.length < state.settings.maxPositions;
-  const riskOk = nextRisk > 0 && riskBuffer >= nextRisk;
   const rolling = computeRollingPL();
   const killActive = rolling.pct <= -7;
 
@@ -101,12 +165,6 @@ export function renderHome() {
     heroLead = `Position cap full. `;
     heroAccent = `Close one.`;
     heroStatus = 'CAP · LOCKED';
-  } else if (!riskOk) {
-    regimeHeadline = `Buffer thin.`;
-    headlineTone = 'neutral';
-    heroLead = `Buffer thin. Next trade clips the `;
-    heroAccent = `${state.settings.maxRiskPct}% cap.`;
-    heroStatus = 'BUFFER · WATCH';
   } else if (state.regime === 'risk-off') {
     regimeHeadline = `Risk-off.`;
     headlineTone = 'risk-off';
@@ -203,9 +261,6 @@ export function renderHome() {
   } else if (!positionsOk) {
     actionTone = 'warn'; actionIcon = '🔒';
     actionHtml = `<strong>Position cap.</strong> Close one before opening another.`;
-  } else if (!riskOk) {
-    actionTone = 'warn'; actionIcon = '🔒';
-    actionHtml = `<strong>Buffer thin.</strong> Close something or pass on the next trade.`;
   } else if (state.regime === 'neutral') {
     actionTone = 'warn'; actionIcon = '⚖️';
     actionHtml = `<strong>Half size.</strong> Both directions OK on confirmed setups only.`;
@@ -226,11 +281,7 @@ export function renderHome() {
     if (el) el.innerHTML = text;
   };
 
-  // home-intel-text is now the hero sub-paragraph — show slots + risk summary.
-  const subText = killActive
-    ? `Last ${rolling.days}d: ${$(rolling.totalPL)} · stop trading until rolling P/L above −7%.`
-    : `${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk} · buffer $${riskBuffer} of $${maxRiskDollars}`;
-  setText('home-intel-text', subText);
+  // (Hero sub-paragraph removed — the stat cards below cover slots + open risk.)
 
   // ========== HERO ==========
   const heroKicker = document.getElementById('home-hero-kicker');
@@ -253,7 +304,7 @@ export function renderHome() {
     } else if (!state.settings.account) {
       heroMeta.innerHTML = `Set your <strong>account size</strong> in Settings to activate the read.`;
     } else {
-      heroMeta.innerHTML = `<strong>${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left</strong> · next trade <strong>$${nextRisk}</strong> · buffer <strong>$${riskBuffer.toLocaleString()}</strong> of $${maxRiskDollars.toLocaleString()}`;
+      heroMeta.innerHTML = `<strong>${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left</strong> · ${nextRiskLabel} <strong>$${nextRisk.toLocaleString()}</strong> · open risk <strong>$${Math.round(openRisk).toLocaleString()}</strong>`;
     }
   }
 
@@ -294,15 +345,13 @@ export function renderHome() {
 
   // New stat card IDs
   setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`);
-  setText('home-realized', `${todayPL >= 0 ? '+$' : '-$'}${Math.abs(todayPL).toFixed(0)}`);
-  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(openUnrealized).toFixed(0)}`);
+  setText('home-realized', `${realizedAll >= 0 ? '+$' : '-$'}${Math.abs(Math.round(realizedAll)).toLocaleString()}`);
+  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(Math.round(openUnrealized)).toLocaleString()}`);
   setText('home-win-rate', winRate > 0 ? `${winRate}%` : '—');
   const wrSub = document.getElementById('home-win-rate-sub');
   if (wrSub) wrSub.textContent = closed.length ? `${wins.length} / ${closed.length} closed` : 'all time';
   setText('home-trades-left', tradesLeft > 0 ? String(tradesLeft) : '0');
-  const zoneSub = document.getElementById('home-zone');
-  if (zoneSub) zoneSub.textContent = `of ${maxPositions} max`;
-  setText('home-buffer', `$${riskBuffer.toLocaleString()}`);
+  setText('home-buffer', `$${Math.round(openRisk).toLocaleString()}`);
   setText('home-risk-unit', `1R = $${nextRisk}`);
 
   // Status dot colour mirrors headline tone
@@ -321,17 +370,17 @@ export function renderHome() {
   // Open book meta line
   const meta = document.getElementById('home-openbook-meta');
   if (meta) meta.textContent = openTrades.length
-    ? `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} · risk $${Math.round(openRisk)} / $${maxRiskDollars}`
+    ? `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} · open risk $${Math.round(openRisk).toLocaleString()}`
     : '';
 
   // Legacy compat: keep hidden fields so nothing crashes
   const legacyNextRisk = document.getElementById('home-next-risk');
   if (legacyNextRisk) legacyNextRisk.setAttribute('data-value', nextRisk);
   const legacyProgress = document.getElementById('home-progress-fill');
-  if (legacyProgress) legacyProgress.setAttribute('data-pct', Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100)));
+  if (legacyProgress) legacyProgress.setAttribute('data-pct', '0');
 
   const progress = document.getElementById('home-progress-fill');
-  if (progress) progress.style.width = `${Math.max(0, Math.min(100, riskBuffer / Math.max(1, maxRiskDollars) * 100))}%`;
+  if (progress) progress.style.width = '0%';
 
   const calendar = document.getElementById('home-calendar');
   const title = document.getElementById('home-calendar-title');

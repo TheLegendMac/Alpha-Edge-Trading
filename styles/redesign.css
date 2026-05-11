@@ -4311,6 +4311,9 @@
 }
 .et-pnl-label { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 4px; }
 .et-pnl-val   { font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.et-mark-editable { border-bottom: 1px dashed rgba(255,255,255,0.18); padding-bottom: 1px; transition: border-color 0.15s, background 0.15s; }
+.et-mark-editable:hover { border-bottom-color: var(--cyan); }
+.et-mark-editable:focus { border-bottom-color: var(--cyan); background: rgba(6,212,248,0.08); border-radius: 3px; }
 .et-pnl-sub   { font-family: var(--mono); font-size: 11px; color: var(--ink-4); margin-top: 2px; }
 
 /* Price ladder card */
@@ -4345,7 +4348,14 @@
 }
 
 /* Ladder track */
-.et-ladder { position: relative; height: 88px; margin: 4px 0; }
+.et-ladder { position: relative; height: 108px; margin: 4px 0; }
+.et-marker-pnl {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
 .et-ladder-track {
   position: absolute;
   left: 4%; right: 4%; top: 38px; height: 12px;
@@ -4609,6 +4619,309 @@
   box-shadow: 0 0 20px rgba(6,212,248,0.25);
 }
 .et-btn-apply:hover { opacity: 0.88; }
+.et-btn-apply:disabled { box-shadow: none; }
+
+/* ── Nav bar layout ── */
+.et-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(8,9,13,0.8);
+  backdrop-filter: blur(8px);
+}
+.et-nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.et-nav-brand-text { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; color: var(--ink); }
+
+/* ── VIEW/EDIT mode toggle ── */
+.et-mode-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.et-mode-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.et-mode-btn:hover { color: var(--ink); }
+.et-mode-btn.is-active {
+  color: var(--ink);
+  background: rgba(6,212,248,0.14);
+  box-shadow: inset 0 0 0 1px rgba(6,212,248,0.32);
+}
+
+/* ── Setup snapshot card ── */
+.et-snapshot-card {
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.et-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 22px;
+}
+.et-snap-cell { display: flex; flex-direction: column; gap: 4px; }
+.et-snap-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.et-snap-val {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+/* ── Ladder trio (live $ at risk / target / R:R) ── */
+.et-ladder-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.et-trio-cell { display: flex; flex-direction: column; gap: 2px; }
+.et-trio-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.et-trio-val {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ── Drag handle styling ── */
+.et-ladder.is-editable .et-marker-drag {
+  cursor: grab;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.12s, transform 0.08s;
+}
+.et-ladder.is-editable .et-marker-drag:hover { background: rgba(255,255,255,0.06); }
+.et-ladder.is-editable .et-marker-drag.is-dragging {
+  cursor: grabbing;
+  background: rgba(6,212,248,0.10);
+  transform: scale(1.04);
+}
+.et-ladder.is-editable .et-marker-drag::after {
+  content: '⇔';
+  position: absolute;
+  right: -2px;
+  top: -10px;
+  font-size: 10px;
+  color: var(--ink-4);
+  opacity: 0.6;
+}
+
+/* Level number inputs under ladder */
+.et-level-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.et-level-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.et-level-input input {
+  padding: 8px 10px;
+  background: rgba(8,9,13,0.6);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+.et-level-input input:focus { outline: none; border-color: var(--cyan); background: rgba(6,212,248,0.06); }
+
+/* ── Manage forms (scale-out / close) ── */
+.et-manage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+.et-manage-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19,23,34,0.72);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.et-pct-row { display: flex; gap: 8px; }
+.et-pct-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.22);
+  color: var(--green-bright);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.et-pct-btn:hover { background: rgba(16,185,129,0.14); }
+.et-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+.et-form-field { display: flex; flex-direction: column; gap: 4px; }
+.et-form-field span {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.et-form-field input {
+  padding: 9px 11px;
+  background: rgba(8,9,13,0.6);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+.et-form-field input:focus { outline: none; border-color: var(--cyan); background: rgba(6,212,248,0.06); }
+.et-form-apply {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.et-form-apply:hover { opacity: 0.85; }
+.et-form-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  line-height: 1.5;
+}
+
+/* Footer middle (dirty indicator) */
+.et-footer-mid {
+  flex: 1;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.et-btn-save:disabled { cursor: not-allowed; }
+
+/* Running notes feed */
+.et-notes-feed {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.et-note-item {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: rgba(8,9,13,0.45);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+.et-note-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--ink-4);
+  padding-top: 2px;
+}
+.et-note-text {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.et-note-del {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.10);
+  color: var(--ink-4);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+.et-note-del:hover { color: var(--red-bright); border-color: var(--red-bright); }
+
+/* Tighten header breadcrumb inside cmdbar */
+.cmdbar .et-breadcrumb {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* ── Edit Trade Responsive ── */
 @media (max-width: 960px) {
@@ -4618,6 +4931,10 @@
   .et-action-row { grid-template-columns: 1fr 140px; gap: 12px; }
   .et-action-name { grid-column: 1 / -1; }
   .et-action-suggestion { text-align: left; }
+  .et-snapshot-grid { grid-template-columns: repeat(2, 1fr); }
+  .et-manage-grid { grid-template-columns: 1fr; }
+  .et-nav { grid-template-columns: auto 1fr auto; gap: 10px; padding: 10px 16px; }
+  .et-breadcrumb { display: none; }
 }
 
 @media (max-width: 720px) {
@@ -4628,8 +4945,10 @@
   .et-pnl-val { font-size: 24px; }
   .et-ladder-ctx { flex-direction: column; align-items: flex-start; gap: 8px; }
   .et-footer { flex-direction: column; align-items: stretch; padding: 16px; gap: 12px; }
-  .et-footer-right { flex-direction: column; align-items: stretch; }
-  .et-btn-back, .et-btn-save, .et-btn-apply { width: 100%; text-align: center; justify-content: center; }
+  .et-footer-right { flex-direction: column; align-items: stretch; gap: 8px; }
+  .et-footer .btn-primary, .et-footer .btn-secondary { width: 100%; }
+  .et-note-item { grid-template-columns: 1fr; gap: 4px; }
+  .et-note-del { justify-self: end; margin-top: -4px; }
   
   /* Stack the timeline log cleanly */
   .et-timeline-row { grid-template-columns: 66px 10px 1fr; gap: 10px; }
@@ -4642,6 +4961,14 @@
   .et-now-label { font-size: 9px; }
   .et-now-dot { gap: 3px; }
   .et-now-circle { width: 12px; height: 12px; box-shadow: 0 0 0 2px var(--bg, #08090d); }
+
+  .et-snapshot-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .et-level-inputs { grid-template-columns: 1fr; }
+  .et-form-row { grid-template-columns: 1fr 1fr; }
+  .et-form-apply { grid-column: 1 / -1; }
+  .et-footer-mid { display: none; }
+  .et-mode-toggle { padding: 2px; }
+  .et-mode-btn { padding: 5px 10px; font-size: 9px; }
 }
   /* Stack the timeline log cleanly */
   .et-timeline-row { grid-template-columns: 66px 10px 1fr; gap: 10px; }
