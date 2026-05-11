@@ -1815,7 +1815,8 @@
 
 /* ── Trade body ── */
 #panel-trade .trade-body {
-  margin-top: 28px;
+  margin-top: 0;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -2111,6 +2112,9 @@
 /* Responsive trade layout */
 @media (max-width: 1080px) {
   .trade-layout { grid-template-columns: 200px 1fr; gap: 18px; }
+}
+@media (max-width: 900px) {
+  .trade-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .trade-layout { grid-template-columns: 1fr; }
@@ -4056,28 +4060,8 @@
   .sett-regime-input { font-size: 28px; width: 70px; }
 }
 
-/* 960px — hero stacks, grids go 2-col, nav sub-text hidden */
+/* 960px — mobile list view replaces desktop sections */
 @media (max-width: 960px) {
-  .sett-nav { width: 160px; }
-  .sett-nav-sub { display: none; }
-  .sett-hero { padding: 18px 22px 20px; }
-  .sett-hero-body-row { flex-direction: column; gap: 16px; }
-  .sett-hero-left { flex: none; max-width: 100%; }
-  .sett-hero-body { max-width: 520px; font-size: 12px; }
-  .sett-hero-headline { font-size: clamp(26px, 3vw, 38px); }
-  .sett-hero-cards { grid-template-columns: repeat(3, 1fr); }
-  .sett-hero-card { padding: 12px 14px; }
-  .sett-hero-card-value { font-size: 20px; }
-  .sett-section { margin: 0 12px 10px; padding: 16px 18px 18px; }
-  .sett-section-title { font-size: 20px; }
-  .sett-grid-4 { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .sett-regime-grid { grid-template-columns: 1fr; gap: 8px; }
-  .sett-regime-card { padding: 12px 16px; }
-  .sett-regime-input { font-size: 32px; width: 80px; }
-}
-
-/* 900px — mobile list view replaces desktop sections */
-@media (max-width: 900px) {
   .sett-nav { display: none; }
   .sett-mobile-nav { display: none; } /* list view replaces pill nav */
   .sett-mv { display: block; }        /* show mobile list view */

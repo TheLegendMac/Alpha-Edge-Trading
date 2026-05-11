@@ -123,7 +123,7 @@ export function renderLogTable() {
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
               <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(t.status)}" style="font-size:9px; padding:2px 6px;">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(mode)} · ${esc(t.direction || '—')}</span>
+              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(mode)} · <span style="color: var(--${String(t.direction || '').toLowerCase() === 'short' ? 'red-bright' : 'green-bright'});">${esc(t.direction || '—')}</span></span>
             </span>
             <span class="home-trade-setup">
               ${esc(t.setup || 'No setup')}

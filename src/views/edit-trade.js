@@ -102,8 +102,13 @@ export function openEditTrade(tradeId) {
     navBar.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(8,9,13,0.8);backdrop-filter:blur(8px);">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--magenta));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#08090d;font-family:var(--display)">α</div>
-          <span style="font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:0.04em;">TRAPPER'S<span style="color:var(--ink-4)">EDGE</span></span>
+          <div style="display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 21H3"></path>
+              <path d="M3 14l5-5 4 4 9-9"></path>
+            </svg>
+          </div>
+          <span style="font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:0.04em;color:var(--ink);">TRAPPER'S <span style="color:var(--ink-4)">EDGE</span></span>
         </div>
         <div class="et-breadcrumb">
           <span>OPEN BOOK</span>

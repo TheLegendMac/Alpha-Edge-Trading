@@ -16,7 +16,7 @@ export function ensureAuthModal() {
     <div id="auth-modal" class="auth-modal-backdrop">
       <div class="auth-modal-card">
         <div class="auth-modal-head">
-          <div class="auth-modal-title">Alpha Edge Trading</div>
+          <div class="auth-modal-title">Trapper's Edge</div>
           <div class="auth-modal-subtitle">Sign in to sync across devices</div>
         </div>
         <div class="auth-field">

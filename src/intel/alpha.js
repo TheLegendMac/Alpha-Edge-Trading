@@ -398,7 +398,7 @@ function buildAlphaEdgeCard(closedWithPL, help) {
 // ──────────────────────────────────────────────────────────
 function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
   const n = closed.length;
-  const helpBtn = '<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
+  const helpBtn = '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
 
   // ── zero-data state ──────────────────────────────────────
   if (n === 0) {
@@ -589,7 +589,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
 //  reads it the same way no matter where they see it.
 // ──────────────────────────────────────────────────────────
 function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
-  const helpBtn = '<button type="button" class="ai-help-btn" onclick="openAIGlossary()" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
+  const helpBtn = '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
   const closed = (state.trades || []).filter(t => isClosedTrade(t));
   const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;

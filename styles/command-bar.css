@@ -43,8 +43,9 @@
   display: flex; align-items: center; gap: 10px;
   font-family: var(--display);
   font-weight: 800;
-  letter-spacing: 0.04em;
-  font-size: 13px;
+  letter-spacing: 0.10em;
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
   user-select: none;
   transition: opacity 0.15s;
@@ -52,17 +53,12 @@
 }
 .brand:hover { opacity: 0.85; }
 .brand-mark {
-  width: 28px; height: 28px;
-  background: linear-gradient(135deg, var(--cyan) 0%, var(--magenta) 100%);
+  width: 22px; height: 22px;
   display: grid; place-items: center;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--bg);
-  border-radius: 6px;
+  color: var(--ink);
   flex-shrink: 0;
 }
-.brand-name { color: var(--ink); letter-spacing: 0.04em; }
+.brand-name { color: var(--ink); letter-spacing: 0.10em; }
 .brand-name-dim { color: var(--ink-3); }
 
 /* Inline nav tabs */
@@ -80,11 +76,11 @@
 .cmdbar-nav .tab { flex: 0 0 auto; }
 .cmdbar-nav .tab {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  padding: 18px 12px;
+  padding: 20px 14px;
   color: var(--ink-4);
   background: transparent;
   border: none;
@@ -119,7 +115,7 @@
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.10em;
   color: var(--green-bright);
   text-transform: uppercase;
   transition: all 0.15s;
@@ -161,10 +157,10 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 999px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--ink-4);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;

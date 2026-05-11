@@ -742,7 +742,7 @@ function tfSwingStep4() {
         <div class="trade-section-head-stack">
           <div class="trade-section-title" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; letter-spacing:0;">
             <span style="font-family: var(--mono); font-size: 18px; letter-spacing: 0.06em;">${ticker}</span>
-            <span class="status ${dirClass}" style="font-size: 10px;">${dirLabel}</span>
+            <span class="status ${dirClass}" style="font-size: 10px; background: ${dirClass === 'short' ? 'var(--red-bg)' : 'var(--green-bg)'}; color: ${dirClass === 'short' ? 'var(--red-bright)' : 'var(--green-bright)'}; border: 1px solid ${dirClass === 'short' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'};">${dirLabel}</span>
             <span style="color: var(--ink-3); font-weight: 400; font-size: 13px;">${setupLabel}</span>
           </div>
           <div class="trade-section-subtitle">${ready ? 'Numbers below match what will be logged. Place the order, then GO.' : (st.reason || 'Resolve the missing fields and come back.')}</div>

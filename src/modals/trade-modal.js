@@ -400,15 +400,39 @@ function resetFlowSilent() {
 }
 
 window.editTrade = function(id) {
-  const t = state.trades.find(t => t.id === id);
-  if (t) window.openPositionEditor(t);
+  if (typeof window.openEditTrade === 'function') {
+    window.openEditTrade(id);
+  } else {
+    const t = state.trades.find(x => x.id === id);
+    if (t) window.openTradeModal(t);
+  }
 };
 
 window.reviewTrade = function(id) {
-  const t = state.trades.find(t => t.id === id);
-  if (!t) return;
-  window.openPositionEditor(t, 'journal');
+  if (typeof window.openEditTrade === 'function') {
+    window.openEditTrade(id);
+  } else {
+    const t = state.trades.find(x => x.id === id);
+    if (t) window.openTradeModal(t);
+  }
 };
+
+// Wire up the static modal buttons (since inline onclicks were removed)
+document.addEventListener('DOMContentLoaded', () => {
+  const saveBtn = document.getElementById('btn-save-trade');
+  if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveTrade(); });
+
+  const delBtn = document.getElementById('btn-delete-trade');
+  if (delBtn) delBtn.addEventListener('click', (e) => { e.preventDefault(); deleteTrade(); });
+
+  document.querySelectorAll('#modal-add [data-close]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.preventDefault(); closeTradeModal(); });
+  });
+
+  document.querySelectorAll('#t-instrument-row .flow-instrument-pill').forEach(btn => {
+    btn.addEventListener('click', () => setTradeInstrument(btn.dataset.tInstrument));
+  });
+});
 
 // ---------- Position Editor (simplified Execution Manager + Journal) ----------
 
