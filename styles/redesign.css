@@ -1380,6 +1380,7 @@
   .log-stat-strip { grid-template-columns: repeat(2, 1fr); }
   .cmdbar-nav .tab { padding: 16px 8px; font-size: 11px; letter-spacing: 0.06em; }
   .cmdbar-left { gap: 12px; }
+  .cmdbar-brand .brand-name { display: block !important; font-size: 13px; }
   .cmdbar-actions { flex: 0 0 auto; }
   .ref-ivr-grid { grid-template-columns: 1fr; }
   .trade-hero-grid { grid-template-columns: 1fr; }
