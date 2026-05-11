@@ -25,12 +25,9 @@ export function renderRegime() {
   if (text) text.textContent = data.text;
   const contextRegime = document.getElementById('cmdbar-context-regime');
   if (contextRegime) {
-    // Status pill: "RISK ON · CLEAR" / "NEUTRAL · WATCH" / "RISK OFF · KILL ON"
-    const suffix = state.regime === 'risk-on' ? 'CLEAR'
-                 : state.regime === 'neutral' ? 'WATCH'
-                 : 'KILL ON';
+    // Status pill: "RISK ON" / "NEUTRAL" / "RISK OFF"
     const labelText = data.text.replace('-', ' ');
-    contextRegime.textContent = `${labelText} · ${suffix}`;
+    contextRegime.textContent = labelText;
   }
 
   // Mode-aware rules text:

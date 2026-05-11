@@ -17,7 +17,7 @@ function tfSwingStep1() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Technical setup</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Technical setup</div>
           <div class="trade-section-subtitle">Pick one approved chart pattern. If none fit, stop here.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
@@ -52,7 +52,7 @@ function tfSwingContractSpecHtml() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> IV Rank → contract spec</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> IV Rank → contract spec</div>
           <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
         </div>
         <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
@@ -74,7 +74,7 @@ function tfSwingContractSpecHtml() {
     <div class="trade-section muted">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Stocks mode — IV doesn't apply</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Stocks mode — IV doesn't apply</div>
           <div class="trade-section-subtitle">Sizing math runs off share price in the size step.</div>
         </div>
       </div>
@@ -109,27 +109,23 @@ function tfSwingStep2() {
   const gates = window.tfEvaluateGates();
   const passed = ['01','02','03','05'].filter(k => gates[k]).length;
   const ticker = state.ticker || '';
-  const saUrl = ticker ? `https://seekingalpha.com/symbol/${ticker}` : 'https://seekingalpha.com';
-  const saLinks = ticker ? `
-    <div class="tf-sa-links">
-      <a href="https://seekingalpha.com/symbol/${ticker}" target="_blank" rel="noopener noreferrer">SA summary</a>
-      <a href="https://seekingalpha.com/symbol/${ticker}/ratings/quant-ratings" target="_blank" rel="noopener noreferrer">Quant ratings</a>
-      <a href="https://seekingalpha.com/symbol/${ticker}/earnings" target="_blank" rel="noopener noreferrer">Earnings</a>
-      <button type="button" data-tf-copy-sa="${ticker}">Copy paste format</button>
-    </div>` : '';
 
-  const gateRow = (k, name, rule, isManual) => {
+  const gateBadge = (k, isManual) => {
     const ok = gates[k];
-    return `
-      <button type="button" class="trade-row ${ok ? 'checked' : 'fail'}" data-tf-gate="${k}" ${!isManual ? 'data-tf-readonly="1"' : ''}>
-        <span class="trade-row-check">${ok ? '✓' : ''}</span>
-        <span class="trade-row-main">
-          <span class="trade-row-name"><small>GATE ${k}</small> ${name}</span>
-          <span class="trade-row-help">${rule}${isManual ? ` · <a href="${saUrl}" target="_blank" rel="noopener noreferrer">Verify on SA →</a>` : ''}</span>
-        </span>
-        <span class="trade-row-pill">${ok ? 'PASS' : (isManual ? 'CLICK TO MARK' : 'FAIL')}</span>
-      </button>`;
+    const cls = ok ? 'tight' : 'empty';
+    const txt = ok ? 'PASS' : (isManual ? 'MARK' : 'FAIL');
+    const cursor = isManual ? 'cursor: pointer;' : '';
+    return `<div class="trade-bracket ${cls}" data-tf-gate-badge="${k}" style="margin: 0; min-width: 52px; text-align: center; ${cursor}" ${isManual ? `title="Click to manually override"` : ''}>${txt}</div>`;
   };
+
+  const yesNoToggle = (key, stateVal) => `
+    <div class="tf-dir-btns" style="width: 140px;">
+      <button class="tf-dir-btn ${stateVal === true ? 'active' : ''}" data-tf-toggle="${key}" data-val="yes" type="button"
+        style="${stateVal === true ? 'background:rgba(16,185,129,0.14);border-color:rgba(16,185,129,0.40);color:var(--green-bright)' : ''}">YES</button>
+      <button class="tf-dir-btn ${stateVal === false ? 'active short' : ''}" data-tf-toggle="${key}" data-val="no" type="button"
+        style="${stateVal === false ? 'background:rgba(248,113,113,0.14);border-color:rgba(248,113,113,0.40);color:var(--red-bright)' : ''}">NO</button>
+    </div>
+  `;
 
   const noTickerWarn = !ticker ? `
     <p class="trade-row-help" style="color: var(--amber-bright); margin-bottom: 10px;">
@@ -165,65 +161,56 @@ function tfSwingStep2() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality inputs</div>
-          <div class="trade-section-subtitle">Pull these from Seeking Alpha. They drive the auto-passing gates below.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality inputs & gates</div>
+          <div class="trade-section-subtitle">Pull these from Seeking Alpha. All four gates must pass before you move on.</div>
         </div>
-        <div class="trade-section-counter ${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'complete' : ''}">${(state.saQuant !== null && state.saQuant !== undefined) && (state.daysToEarnings !== null && state.daysToEarnings !== undefined) ? 'ready' : 'fill SA'}</div>
+        <div class="trade-section-counter ${passed === 4 ? 'complete' : ''}" id="tf-swing-gates-counter">${passed} of 4 passed</div>
       </div>
       <div class="trade-section-body">
         ${noTickerWarn}
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">SA Quant Rating (1.00-5.00)</label>
-              <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
-                placeholder="SA Quant 1.00-5.00" value="${state.saQuant ?? ''}" />
-              <div class="input-help">Auto-passes Gate 01 when ≥ 3.50 (Buy or Strong Buy).</div>
+              <label class="input-label">SA Quant Rating</label>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="number" min="1" max="5" step="0.01" class="trade-input" id="tf-sa-quant"
+                  placeholder="1.00-5.00" value="${state.saQuant ?? ''}" />
+                ${gateBadge('01', false)}
+              </div>
+              <div class="input-help">Need ≥ 3.50 (Buy or Strong Buy).</div>
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Days to next earnings</label>
-              <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
-                placeholder="Days until earnings" value="${state.daysToEarnings ?? ''}" />
-              <div class="input-help">Auto-passes Gate 05 when ≥ 8. Don't hold through earnings.</div>
+              <label class="input-label">Days to earnings</label>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <input type="number" min="0" step="1" class="trade-input" id="tf-days-er"
+                  placeholder="Days" value="${state.daysToEarnings ?? ''}" />
+                ${gateBadge('05', false)}
+              </div>
+              <div class="input-help">Need ≥ 8 days.</div>
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Profitability grade</label>
-              <input type="text" maxlength="2" class="trade-input" id="tf-sa-profit"
-                placeholder="B-" value="${state.saProfitGrade ?? ''}" />
-              <div class="input-help">Auto-passes Gate 02 when B- or better.</div>
+              <label class="input-label">Profitability B- or better?</label>
+              <div style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
+                ${yesNoToggle('02', state.gateChecks['02'])}
+                ${gateBadge('02', false)}
+              </div>
+              <div class="input-help">Check SA Factor Grades.</div>
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Momentum grade</label>
-              <input type="text" maxlength="2" class="trade-input" id="tf-sa-momentum"
-                placeholder="B-" value="${state.saMomentumGrade ?? ''}" />
-              <div class="input-help">Auto-passes Gate 03 when B- or better.</div>
+              <label class="input-label">Momentum B- or better?</label>
+              <div style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
+                ${yesNoToggle('03', state.gateChecks['03'])}
+                ${gateBadge('03', false)}
+              </div>
+              <div class="input-help">Check SA Factor Grades.</div>
             </div>
           </div>
-        </div>
-        ${saLinks}
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Eligibility gates</div>
-          <div class="trade-section-subtitle">All four must pass before you move on. Manual gates need a click after verification.</div>
-        </div>
-        <div class="trade-section-counter ${passed === 4 ? 'complete' : ''}">${passed} of 4 passed</div>
-      </div>
-      <div class="trade-section-body">
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${gateRow('01', 'SA Quant Rating ≥ 3.50', 'Auto-passes from the input above.', false)}
-          ${gateRow('02', 'Profitability grade B- or better', 'Open SA → Factor Grades → confirm grade. Click to mark.', true)}
-          ${gateRow('03', 'Momentum grade B- or better', 'Same SA Factor Grades section. Click to mark once verified.', true)}
-          ${gateRow('05', 'Earnings ≥ 7 days away', 'Auto-passes when days-to-earnings input is 8+.', false)}
         </div>
       </div>
     </div>
@@ -277,6 +264,26 @@ function tfMountSwingStep2() {
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => applyPaste(pasteEl ? pasteEl.value : ''));
   }
+
+  const updateGateBadge = (gateKey, isManual) => {
+    const badge = document.querySelector(`#panel-trade [data-tf-gate-badge="${gateKey}"]`);
+    if (badge) {
+      const ok = window.tfEvaluateGates()[gateKey];
+      badge.className = `trade-bracket ${ok ? 'tight' : 'empty'}`;
+      badge.textContent = ok ? 'PASS' : (isManual ? 'MARK' : 'FAIL');
+    }
+  };
+
+  const updateCounters = () => {
+    const gates = window.tfEvaluateGates();
+    const passed = ['01','02','03','05'].filter(k => gates[k]).length;
+    const gatesCounter = document.getElementById('tf-swing-gates-counter');
+    if (gatesCounter) {
+      gatesCounter.classList.toggle('complete', passed === 4);
+      gatesCounter.textContent = `${passed} of 4 passed`;
+    }
+  };
+
   const sa = document.getElementById('tf-sa-quant');
   if (sa) {
     sa.addEventListener('input', e => {
@@ -284,6 +291,8 @@ function tfMountSwingStep2() {
       state.saQuant = isNaN(v) ? null : v;
       saveState();
       window.tfRefreshHeaderOnly();
+      updateGateBadge('01', false);
+      updateCounters();
     });
   }
   const der = document.getElementById('tf-days-er');
@@ -293,45 +302,38 @@ function tfMountSwingStep2() {
       state.daysToEarnings = isNaN(v) ? null : v;
       saveState();
       window.tfRefreshHeaderOnly();
+      updateGateBadge('05', false);
+      updateCounters();
     });
   }
-  const wireGrade = (id, key) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', e => {
-      state[key] = String(e.target.value || '').trim().toUpperCase();
+
+  document.querySelectorAll('#panel-trade [data-tf-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.tfToggle;
+      const val = btn.dataset.val === 'yes';
+      state.gateChecks[k] = val;
+      if (k === '02') state.saProfitGrade = val ? 'B-' : 'C';
+      if (k === '03') state.saMomentumGrade = val ? 'B-' : 'C';
       saveState();
       window.tfRefreshHeaderOnly();
-      const gateKey = key === 'saProfitGrade' ? '02' : '03';
-      const row = document.querySelector(`#panel-trade [data-tf-gate="${gateKey}"]`);
-      if (row) {
-        const ok = window.tfEvaluateGates()[gateKey];
-        row.classList.toggle('checked', !!ok);
-        row.classList.toggle('fail', !ok);
-        const check = row.querySelector('.trade-row-check');
-        if (check) check.textContent = ok ? '✓' : '';
-        const pill = row.querySelector('.trade-row-pill');
-        if (pill) pill.textContent = ok ? 'PASS' : 'CLICK TO MARK';
+      updateGateBadge(k, false);
+      updateCounters();
+      
+      const group = btn.closest('.tf-dir-btns');
+      if (group) {
+        group.querySelectorAll('.tf-dir-btn').forEach(b => {
+          const isYes = b.dataset.val === 'yes';
+          const isActive = (isYes && val) || (!isYes && !val);
+          b.className = `tf-dir-btn ${isActive ? (isYes ? 'active' : 'active short') : ''}`;
+          if (isActive) {
+            b.style.cssText = isYes 
+              ? 'background:rgba(16,185,129,0.14);border-color:rgba(16,185,129,0.40);color:var(--green-bright)'
+              : 'background:rgba(248,113,113,0.14);border-color:rgba(248,113,113,0.40);color:var(--red-bright)';
+          } else {
+            b.style.cssText = '';
+          }
+        });
       }
-    });
-  };
-  wireGrade('tf-sa-profit', 'saProfitGrade');
-  wireGrade('tf-sa-momentum', 'saMomentumGrade');
-  document.querySelectorAll('#panel-trade [data-tf-copy-sa]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const symbol = btn.dataset.tfCopySa || (state.ticker || '').toUpperCase();
-      const text = `${symbol} SA: QUANT=${state.saQuant ?? ''} PROFIT=${state.saProfitGrade ?? ''} MOMENTUM=${state.saMomentumGrade ?? ''} EARNINGS=${state.daysToEarnings ?? ''}d`;
-      if (navigator.clipboard) navigator.clipboard.writeText(text);
-      if (typeof window.toast === 'function') window.toast('SA paste format copied');
-    });
-  });
-  document.querySelectorAll('#panel-trade [data-tf-gate]').forEach(el => {
-    el.addEventListener('click', () => {
-      const k = el.dataset.tfGate;
-      if (k !== '02' && k !== '03') return;
-      state.gateChecks[k] = !state.gateChecks[k];
-      saveState();
-      window.tfRefreshAll();
     });
   });
 }

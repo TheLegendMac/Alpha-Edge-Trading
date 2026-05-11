@@ -1379,9 +1379,13 @@
   .home-stat-cards { grid-template-columns: repeat(2, 1fr); }
   .log-stat-strip { grid-template-columns: repeat(2, 1fr); }
   .cmdbar-nav .tab { padding: 16px 8px; font-size: 11px; letter-spacing: 0.06em; }
-  .cmdbar-left { gap: 12px; }
-  .cmdbar-brand .brand-name { display: block !important; font-size: 13px; }
-  .cmdbar-actions { flex: 0 0 auto; }
+  .cmdbar-left { gap: 8px; }
+  .cmdbar-brand .brand-name { display: block !important; font-size: 12px; }
+  .cmdbar-actions { flex: 0 0 auto; gap: 6px; }
+  .cmdbar-context-btn { padding: 5px 10px !important; font-size: 9px !important; letter-spacing: 0.08em; }
+  .cmdbar-sync { padding: 5px 8px !important; }
+  #sync-label { display: none; }
+  .main { padding: 20px 14px 80px; }
   .ref-ivr-grid { grid-template-columns: 1fr; }
   .trade-hero-grid { grid-template-columns: 1fr; }
   .ctx-panel-body { grid-template-columns: 1fr; }
@@ -1585,14 +1589,9 @@
   margin: 0;
 }
 
-/* ── Trade header: entirely hidden — ticker card is now in #trade-body ── */
-#panel-trade .trade-header  { display: none !important; }
-#trade-stepper              { display: none !important; }
-.trade-stepper-mobile       { display: none !important; }
-
 /* ── New Ticker card (rendered inside #trade-body) ── */
 .tf-ticker-card {
-  background: linear-gradient(180deg,rgba(255,255,255,0.022),transparent 30%),rgba(19,23,34,0.80);
+  background: linear-gradient(180deg,rgba(255,255,255,0.022),transparent 30%),rgba(19,23,34,0.96);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
   padding: 18px 22px 20px;
@@ -1626,7 +1625,7 @@
   gap: 24px;
   align-items: center;
 }
-.tf-ticker-input-row { display: flex; align-items: baseline; gap: 12px; }
+.tf-ticker-input-row { display: flex; align-items: center; gap: 16px; }
 .tf-ticker-meta-inline { color: var(--ink-3); font-weight: 600; letter-spacing: 0.10em; }
 .tf-pill-row {
   display: grid;

@@ -735,39 +735,6 @@ STRENGTH: 3/3</pre>
         </div>
       </div>
 
-      <header class="trade-header">
-        <div class="trade-header-top">
-          <!-- Mode toggle also in header for mobile / sticky context -->
-          <div class="trade-mode-toggle trade-header-mode-toggle" role="tablist" aria-label="Trade mode" aria-hidden="true" style="visibility:hidden;pointer-events:none;">
-            <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab" tabindex="-1">SWING</button>
-            <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab" tabindex="-1">INTRADAY</button>
-          </div>
-          <div class="trade-header-actions">
-            <button class="trade-header-btn trade-smart-paste-btn" id="trade-smart-paste-btn" type="button" title="Open smart paste" aria-label="Open smart paste">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-            </button>
-      <button class="trade-header-btn trade-header-reset-btn" type="button" title="Clear all fields and start over">Reset</button>
-          </div>
-        </div>
-        <nav class="trade-stepper" id="trade-stepper" aria-label="Trade flow steps"></nav>
-        <div class="trade-stepper-mobile" id="trade-stepper-mobile"></div>
-        <div class="trade-summary-row">
-          <div class="trade-summary-cell">
-            <div class="trade-summary-value" id="trade-summary-ticker"></div>
-          </div>
-          <div class="trade-summary-cell">
-            <div class="trade-summary-value" id="trade-summary-strategy"></div>
-          </div>
-          <div class="trade-summary-cell trade-summary-status" id="trade-summary-status-cell">
-            <div class="trade-summary-label">Status</div>
-            <div class="trade-summary-value" id="trade-summary-status">PICK A SETUP</div>
-          </div>
-        </div>
-      </header>
-
       <!-- 2-column layout: step rail (left) + step content (right) -->
       <div class="trade-layout">
         <aside class="trade-rail" id="trade-rail">

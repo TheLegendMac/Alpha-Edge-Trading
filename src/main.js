@@ -106,6 +106,27 @@ function on(id, event, handler) {
 function init() {
   loadState();
 
+  // Auto-focus ticker input when Trade tab becomes active.
+  const tradePanel = document.getElementById('panel-trade');
+  if (tradePanel) {
+    let wasActive = tradePanel.classList.contains('active');
+    const obs = new MutationObserver(m => {
+      m.forEach(mut => {
+        if (mut.attributeName === 'class') {
+          const isActive = tradePanel.classList.contains('active');
+          if (isActive && !wasActive) {
+            setTimeout(() => {
+              const input = document.getElementById('tf-ticker-card-input');
+              if (input) input.focus();
+            }, 100);
+          }
+          wasActive = isActive;
+        }
+      });
+    });
+    obs.observe(tradePanel, { attributes: true });
+  }
+
   // Wire inline nav tab buttons in the command bar.
   document.querySelectorAll('.cmdbar-nav .tab').forEach(btn => {
     btn.addEventListener('click', () => setTab(btn.dataset.tab));

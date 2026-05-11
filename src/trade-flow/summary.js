@@ -1,108 +1,7 @@
-// Trade-flow header summary controls + strategy preview.
+// Trade-flow strategy preview & capital deployed.
 
 import { state } from '../state/store.js';
-import { saveState } from '../state/persistence.js';
-import { TRADE_SETUP_TEMPLATES, TRADE_INTRADAY_SETUPS, newIntradayTicket } from '../config/constants.js';
 import { tradeQty, tradeMultiplier } from '../models/trade.js';
-
-function tfEnsureSummaryControls(mode) {
-  const tickerEl = document.getElementById('trade-summary-ticker');
-  const stratEl = document.getElementById('trade-summary-strategy');
-  if (!tickerEl || !stratEl) return;
-  if (tickerEl.dataset.summaryMode === mode && stratEl.dataset.summaryMode === mode) return;
-
-  tickerEl.dataset.summaryMode = mode;
-  tickerEl.innerHTML = `
-    <div class="summary-ticker-wrap">
-      <span class="trade-summary-label" style="margin:0;">Ticker</span>
-      <input type="text" maxlength="20" class="summary-ticker-input" id="tf-summary-ticker-input" placeholder="—" autocomplete="off" autocapitalize="characters" spellcheck="false" />
-      <div class="summary-ticker-memory" id="tf-summary-ticker-memory"></div>
-    </div>`;
-
-  stratEl.dataset.summaryMode = mode;
-  stratEl.innerHTML = `
-    <div class="summary-strategy-wrap">
-      <span class="trade-summary-label" style="margin:0;">Strategy</span>
-      <div class="summary-strategy-row">
-        <div class="summary-structure-pills" role="tablist" aria-label="Structure">
-          <button type="button" class="summary-structure-pill" data-tf-structure="stocks" role="tab">Stock</button>
-          <button type="button" class="summary-structure-pill" data-tf-structure="options" role="tab">Option</button>
-          <button type="button" class="summary-structure-pill" data-tf-structure="spread" role="tab">Spread</button>
-        </div>
-        <div class="summary-direction-toggle" role="group" aria-label="Direction">
-          <button type="button" class="summary-dir-btn long" data-tf-summary-dir="long" title="Long / call" aria-label="Bull / long">
-            <span class="summary-dir-arrow">▲</span><span class="summary-dir-text">BULL</span>
-          </button>
-          <button type="button" class="summary-dir-btn short" data-tf-summary-dir="short" title="Short / put" aria-label="Bear / short">
-            <span class="summary-dir-arrow">▼</span><span class="summary-dir-text">BEAR</span>
-          </button>
-        </div>
-      </div>
-    </div>`;
-
-  window.tfBindSummaryControls();
-}
-
-function tfBindSummaryControls() {
-  const tickerInput = document.getElementById('tf-summary-ticker-input');
-  if (tickerInput) {
-    tickerInput.addEventListener('input', e => {
-      const sym = (e.target.value || '').toUpperCase();
-      e.target.value = sym;
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') {
-        if (!state.intraday) state.intraday = newIntradayTicket();
-        state.intraday.ticker = sym;
-      } else {
-        state.ticker = sym;
-      }
-      saveState();
-      window.tfUpdateTickerMemory('tf-summary-ticker-memory', sym);
-      window.tfRenderStepper();
-      window.tfRenderActions();
-      window.tfUpdateSummaryStatus();
-    });
-  }
-  window.tfUpdateTickerMemory('tf-summary-ticker-memory',
-    ((state.tradeFlow && state.tradeFlow.mode) || 'swing') === 'intraday'
-      ? ((state.intraday && state.intraday.ticker) || '')
-      : (state.ticker || ''));
-
-  document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
-    b.addEventListener('click', () => {
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') window.tfSetIntradayStructure(b.dataset.tfStructure);
-      else window.tfSetSwingStructure(b.dataset.tfStructure);
-    });
-  });
-
-  document.querySelectorAll('#trade-summary-strategy [data-tf-summary-dir]').forEach(b => {
-    b.addEventListener('click', () => {
-      const dir = b.dataset.tfSummaryDir;
-      const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-      if (m === 'intraday') {
-        if (!state.intraday) state.intraday = newIntradayTicket();
-        state.intraday.direction = dir;
-      } else {
-        state.direction = dir;
-      }
-      saveState();
-      window.tfRefreshAll();
-    });
-  });
-}
-
-function tfUpdateSummaryStatus() {
-  const statusEl = document.getElementById('trade-summary-status');
-  const cell = document.getElementById('trade-summary-status-cell');
-  if (!statusEl || !cell) return;
-  const st = window.tfComputeStatus();
-  cell.classList.remove('ready', 'progress', 'blocked', 'clickable');
-  cell.classList.add(st.tone);
-  statusEl.textContent = st.tone === 'ready' ? 'Ready' : `Step ${st.step}: ${st.reason}`;
-  if (st.tone !== 'ready') cell.classList.add('clickable');
-  cell.dataset.tfStatusStep = st.step || '';
-}
 
 function tfRenderStrategyOutHtml(sObj) {
   if (!sObj) return '';
@@ -142,9 +41,6 @@ function tfCapitalDeployed() {
 }
 
 
-window.tfEnsureSummaryControls = tfEnsureSummaryControls;
-window.tfBindSummaryControls = tfBindSummaryControls;
-window.tfUpdateSummaryStatus = tfUpdateSummaryStatus;
 window.tfRenderStrategyOutHtml = tfRenderStrategyOutHtml;
 window.tfUpdateSwingStrategyPreview = tfUpdateSwingStrategyPreview;
 window.tfCapitalDeployed = tfCapitalDeployed;

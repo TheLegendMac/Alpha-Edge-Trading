@@ -37,26 +37,23 @@ function tfStepCompletion() {
     const isOptions = state.instrument !== 'stocks';
     const gates = window.tfEvaluateGates();
 
-    // 1 Quality — ticker plus SA Quant, factor-grade gates, and earnings gap.
+    // 1 Setup & Quality — ticker plus SA Quant, factor-grade gates, earnings gap, direction, setup, and IVR.
     const tickerReady = !!state.ticker;
     const qualityInputsDone = (state.saQuant !== null && state.saQuant !== undefined)
                            && (state.daysToEarnings !== null && state.daysToEarnings !== undefined);
     const qualityGatesOk = gates['01'] && gates['02'] && gates['03'] && gates['05'];
-    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk);
-
-    // 2 Technicals — direction + approved setup + IV Rank contract read.
     const ivrOk = !isOptions || (state.ivr !== null && state.ivr !== undefined && Number(state.ivr) < 70);
-    c[1] = !!(c[0] && state.direction && state.selectedSetup && ivrOk);
+    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk && state.direction && state.selectedSetup && ivrOk);
 
-    // 3 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
+    // 2 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
     const sizingFilled = isOptions
       ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
       : !!(state.premium > 0);
-    c[2] = !!(c[1] && gates['04'] && gates['06'] && sizingFilled);
+    c[1] = !!(c[0] && gates['04'] && gates['06'] && sizingFilled);
 
-    // 4 Log — flips green only when the whole swing ticket is ready.
+    // 3 Log — flips green only when the whole swing ticket is ready.
     const st = window.tfComputeStatus();
-    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
+    c[2] = c[0] && c[1] && st.tone === 'ready';
     return c;
   }
 
@@ -89,74 +86,6 @@ function tfStepCompletion() {
   return c;
 }
 
-function tfRenderStepper() {
-  const stepper = document.getElementById('trade-stepper');
-  const mob     = document.getElementById('trade-stepper-mobile');
-  if (!stepper) return;
-  // Single-screen mode: hide both stepper variants. Header still shows mode
-  // toggle + summary row. Status pill remains the navigation cue.
-  if (window.tfIsSingleScreen()) {
-    stepper.innerHTML = '';
-    stepper.style.display = 'none';
-    if (mob) mob.style.display = 'none';
-    return;
-  }
-  stepper.style.display = '';
-  if (mob) mob.style.display = '';
-  const names = window.tfStepNames();
-  const compl = window.tfStepCompletion();
-  const cur = state.tradeFlow.step || 1;
-  stepper.innerHTML = names.map((n, i) => {
-    const idx = i + 1;
-    const isComplete = compl[i];
-    const isActive = idx === cur;
-    const cls = isComplete ? 'complete' : isActive ? 'active' : (idx < cur ? '' : (compl.slice(0, i).every(Boolean) ? '' : 'locked'));
-    const inner = isComplete ? '✓' : idx;
-    return `<button class="trade-step ${cls}" data-trade-step="${idx}" type="button">
-      <span class="trade-step-node">${inner}</span>
-      <span class="trade-step-label">${n}</span>
-    </button>`;
-  }).join('');
-  if (stepper.dataset.tfBound !== '1') {
-    stepper.dataset.tfBound = '1';
-    stepper.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-trade-step]');
-      if (!btn || !stepper.contains(btn)) return;
-      const target = parseInt(btn.dataset.tradeStep, 10);
-      const nowCur = state.tradeFlow.step || 1;
-      if (target && target !== nowCur) window.tfGoToStep(target);
-    });
-  }
-  if (mob) {
-    // Mobile stepper — mirror desktop's clickable step pills in compact form
-    // so the user can skip between steps on mobile too. Replaces the older
-    // static "Step N · Name · count done" text-only readout.
-    const pillsHtml = names.map((n, i) => {
-      const idx = i + 1;
-      const isComplete = compl[i];
-      const isActive = idx === cur;
-      const isLocked = !isActive && !isComplete && !compl.slice(0, i).every(Boolean);
-      const cls = isComplete ? 'complete' : isActive ? 'active' : isLocked ? 'locked' : '';
-      const inner = isComplete ? '✓' : idx;
-      return `<button class="trade-step-mobile-pill ${cls}" data-trade-step-mobile="${idx}" type="button" aria-label="Step ${idx}: ${n}${isComplete ? ' (complete)' : isActive ? ' (current)' : ''}">
-        <span class="trade-step-mobile-node">${inner}</span>
-        <span class="trade-step-mobile-label">${n}</span>
-      </button>`;
-    }).join('');
-    mob.innerHTML = pillsHtml;
-    if (mob.dataset.tfBound !== '1') {
-      mob.dataset.tfBound = '1';
-      mob.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-trade-step-mobile]');
-        if (!btn || !mob.contains(btn)) return;
-        const target = parseInt(btn.dataset.tradeStepMobile, 10);
-        const nowCur = state.tradeFlow.step || 1;
-        if (target && target !== nowCur) window.tfGoToStep(target);
-      });
-    }
-  }
-}
-
 // ── Vertical step rail (left sidebar) ──────────────────────────
 function tfRenderRail() {
   const rail = document.getElementById('trade-rail');
@@ -181,7 +110,6 @@ function tfRenderRail() {
           const idx = i + 1;
           const done   = compl[i];
           const active = idx === cur;
-          const locked = !done && !active && !compl.slice(0, i).every(Boolean);
           const nodeStyle = active
             ? `background:${accentColor};border-color:${accentColor};color:#0a0e1a;font-weight:800;`
             : done
@@ -190,7 +118,7 @@ function tfRenderRail() {
           const labelStyle = active
             ? `color:${accentColor};font-weight:700;font-size:13px;`
             : done ? `color:#94a3b8;` : `color:rgba(148,163,184,0.45);`;
-          return `<button class="trade-rail-step${active ? ' active' : done ? ' done' : locked ? ' locked' : ''}"
+          return `<button class="trade-rail-step${active ? ' active' : done ? ' done' : ''}"
                     type="button" data-rail-step="${idx}">
             <span class="trade-rail-node" style="${nodeStyle}">${done ? '✓' : idx}</span>
             <span class="trade-rail-name" style="${labelStyle}">${n}</span>
@@ -211,41 +139,8 @@ function tfRenderRail() {
   }
 }
 
-function tfBindHeaderScroll() {
-  const header = document.querySelector('#panel-trade .trade-header');
-  if (!header || header.dataset.tfScrollBound === '1') return;
-  header.dataset.tfScrollBound = '1';
-  const onScroll = () => {
-    const y = window.scrollY || document.documentElement.scrollTop || 0;
-    header.classList.toggle('collapsed', y > 24);
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-}
-
 function tfRenderHeader() {
-  const tickerEl = document.getElementById('trade-summary-ticker');
-  const stratEl  = document.getElementById('trade-summary-strategy');
-  if (!tickerEl || !stratEl) return;
-  window.tfBindHeaderScroll();
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  window.tfEnsureSummaryControls(m);
-
-  const ticker = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
-  const tickerInput = document.getElementById('tf-summary-ticker-input');
-  if (tickerInput && document.activeElement !== tickerInput) tickerInput.value = ticker;
-  window.tfUpdateTickerMemory('tf-summary-ticker-memory', ticker);
-
-  const struct = window.tfStructureValue(m);
-  document.querySelectorAll('#trade-summary-strategy [data-tf-structure]').forEach(b => {
-    b.classList.toggle('active', b.dataset.tfStructure === struct);
-  });
-  const dir = m === 'intraday' ? ((state.intraday && state.intraday.direction) || '') : (state.direction || '');
-  document.querySelectorAll('#trade-summary-strategy [data-tf-summary-dir]').forEach(b => {
-    b.classList.toggle('selected', b.dataset.tfSummaryDir === dir);
-  });
-
-  window.tfUpdateSummaryStatus();
   // Mode toggle highlight
   document.querySelectorAll('#panel-trade [data-trade-mode]').forEach(b => {
     b.classList.toggle('active', b.dataset.tradeMode === m);
@@ -337,7 +232,7 @@ function tfRenderActions() {
     backBtn.textContent = '← Home';
     contBtn.classList.add('go');
     contLbl.textContent = 'GO';
-    contBtn.disabled = st.tone !== 'ready';
+    contBtn.disabled = false;
     return;
   }
 
@@ -349,12 +244,11 @@ function tfRenderActions() {
   if (isLast) {
     contBtn.classList.add('go');
     contLbl.textContent = 'GO';
-    contBtn.disabled = st.tone !== 'ready';
+    contBtn.disabled = false;
   } else {
     contBtn.classList.remove('go');
     contLbl.textContent = 'Continue';
-    const stepOk = compl.slice(0, cur).every(Boolean);
-    contBtn.disabled = !stepOk;
+    contBtn.disabled = false;
   }
 }
 
@@ -463,10 +357,9 @@ function tfStepBody(step) {
         <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
         ${html}
       </div>`;
-    return wrap(0, window.tfSwingStep2())
-         + wrap(1, window.tfSwingStep1() + window.tfSwingContractSpecHtml())
-         + wrap(2, window.tfSwingStep3())
-         + wrap(3, window.tfSwingStep4());
+    return wrap(0, window.tfSwingStep2() + window.tfSwingStep1() + window.tfSwingContractSpecHtml())
+         + wrap(1, window.tfSwingStep3())
+         + wrap(2, window.tfSwingStep4());
   }
   // Intraday — single screen.
   const wrap = (idx, html) => `
@@ -503,7 +396,6 @@ function tfMountStep(step) {
 
 function tfRefreshHeaderOnly() {
   window.tfRenderHeader();
-  window.tfRenderStepper();
   window.tfRenderActions();
 }
 
@@ -513,6 +405,13 @@ function tfRefreshAll() {
 }
 
 function tfContinue() {
+  const st = window.tfComputeStatus();
+  if (st.tone !== 'ready' && st.step) {
+    if (typeof window.toast === 'function') window.toast(st.reason || 'Missing required fields.', true);
+    window.tfGoToStep(st.step);
+    return;
+  }
+
   // Both modes are single-screen — GO button logs the trade.
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   if (m === 'swing') window.tfLogSwingDirect();
@@ -876,8 +775,10 @@ function tfRenderTickerCard() {
       </div>
     </div>` : '';
 
-  const instrumentHtml = m === 'swing' ? (() => {
-    const struct = state.structure || state.instrument || 'options';
+  const instrumentHtml = (() => {
+    const struct = m === 'intraday'
+      ? ((state.intraday && state.intraday.instrument) === 'stocks' ? 'stocks' : 'options')
+      : (state.instrument === 'stocks' ? 'stocks' : 'options');
     const isStock = struct === 'stocks';
     return `<div class="tf-pill-section">
       <span class="tf-card-lbl">INSTRUMENT</span>
@@ -888,19 +789,19 @@ function tfRenderTickerCard() {
           style="${!isStock?'background:'+accentBg+';border-color:'+accentLine+';color:'+accentColor:''}">OPTION</button>
       </div>
     </div>`;
-  })() : '';
+  })();
 
   return `
     <div class="tf-ticker-card">
       <div class="tf-ticker-card-hdr">
         <span class="tf-card-lbl">TICKER${meta ? ' · <span class="tf-ticker-meta-inline">'+meta+'</span>' : ''}</span>
-        <span class="tf-card-hint">ENTER OR PASTE</span>
       </div>
       <div class="tf-ticker-input-row">
         <input class="tf-ticker-main-input" id="tf-ticker-card-input"
           type="text" value="${ticker}" placeholder="—"
           autocomplete="off" spellcheck="false" maxlength="10"
           style="${ticker ? 'color:'+accentColor : ''}">
+        <a href="https://seekingalpha.com/symbol/${ticker}" id="tf-card-sa-link" target="_blank" rel="noopener noreferrer" style="display:${ticker ? 'inline-flex' : 'none'}; align-items:center; padding:6px 12px; border-radius:8px; border:1px solid ${accentLine}; background:${accentBg}; color:${accentColor}; font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:0.1em; text-decoration:none; transition:opacity 0.15s; white-space:nowrap;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">CHECK SA ↗</a>
       </div>
       ${biasHtml}
       <div class="tf-pill-row">
@@ -928,6 +829,15 @@ function tfMountTickerCard() {
       if (m === 'intraday') { if (!state.intraday) state.intraday = {}; state.intraday.ticker = v; }
       else { state.ticker = v; }
       window.tfRenderHeader();
+      const saLink = document.getElementById('tf-card-sa-link');
+      if (saLink) {
+        if (v) {
+          saLink.href = `https://seekingalpha.com/symbol/${v}`;
+          saLink.style.display = 'inline-flex';
+        } else {
+          saLink.style.display = 'none';
+        }
+      }
     });
     inp.addEventListener('blur', () => {
       saveState();
@@ -945,10 +855,26 @@ function tfMountTickerCard() {
   document.querySelectorAll('#trade-body [data-tf-struct]').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = btn.dataset.tfStruct;
-      state.structure = s;
-      state.instrument = s;
-      saveState();
-      window.renderTrade();
+      if (m === 'intraday') {
+        if (typeof window.tfSetIntradayStructure === 'function') {
+          window.tfSetIntradayStructure(s);
+        } else {
+          if (!state.intraday) state.intraday = {};
+          state.intraday.structure = s;
+          state.intraday.instrument = s;
+          saveState();
+          window.renderTrade();
+        }
+      } else {
+        if (typeof window.tfSetSwingStructure === 'function') {
+          window.tfSetSwingStructure(s);
+        } else {
+          state.structure = s;
+          state.instrument = s;
+          saveState();
+          window.renderTrade();
+        }
+      }
     });
   });
 }
@@ -958,7 +884,6 @@ function renderTrade() {
   tfBindTradePanelStaticOnce();
   const step = state.tradeFlow.step || 1;
   window.tfRenderHeader();
-  window.tfRenderStepper();
   window.tfRenderRail();
   const body = document.getElementById('trade-body');
   if (body) body.innerHTML = tfRenderMobileProgress() + tfRenderTickerCard() + window.tfStepBody(step);
@@ -976,8 +901,6 @@ window.tfStepCount = tfStepCount;
 window.tfStepNames = tfStepNames;
 window.tfIsSingleScreen = tfIsSingleScreen;
 window.tfStepCompletion = tfStepCompletion;
-window.tfRenderStepper = tfRenderStepper;
-window.tfBindHeaderScroll = tfBindHeaderScroll;
 window.tfRenderRail = tfRenderRail;
 window.tfRenderHeader = tfRenderHeader;
 window.tfRenderActions = tfRenderActions;
