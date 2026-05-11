@@ -327,30 +327,37 @@ function tfIntradayStep2() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry · stop · target</div>
-          <div class="trade-section-subtitle">${isOptions ? 'Auto-filled from bid/ask mid. Edit only when your actual limit, stop, or target differs.' : 'Share-price bracket. ORB alerts can fill this automatically for stock trades.'}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry · stop · limit</div>
+          <div class="trade-section-subtitle">Enter your three prices. Size auto-derives from your $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk unit ÷ stop distance.</div>
         </div>
         <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${isOptions ? 'Entry premium / mid $' : 'Entry price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Auto from quote' : 'Share entry price'}" />
+            <label class="input-label">Entry ${isOptions ? 'premium' : 'price'} $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Fill price' : 'Share entry'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${isOptions ? 'Stop premium $' : 'Stop price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Auto premium stop' : 'Invalidation price'}" />
+            <label class="input-label">
+              <span>Stop ${isOptions ? 'premium' : 'price'} $</span>
+              <button type="button" class="tf-auto-chip" id="tf-i-auto-stop">AUTO · ${(state.settings && state.settings.stopPct) || 50}%</button>
+            </label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Stop fill' : 'Invalidation price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${isOptions ? 'Target premium $' : 'Target price $'}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'Auto premium target' : 'Target price'}" />
+            <label class="input-label">Limit ${isOptions ? 'premium' : 'price'} $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'Take-profit fill' : 'Take-profit price'}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">
+              <span>${isOptions ? 'Contracts' : 'Shares'}</span>
+              <button type="button" class="tf-auto-chip" id="tf-i-auto-size">AUTO · risk unit</button>
+            </label>
+            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Blank = auto from risk" />
           </div></div>
         </div>
-        <div id="tf-i-rmult" style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-          <span class="trade-bracket ${rGood ? 'high' : (r !== null && isFinite(r) ? 'mid' : 'low')}" style="font-size: 11px; padding: 5px 10px;">${rText}</span>
-          <span class="input-help" style="margin:0;">Reward / risk · target ÷ stop distance.</span>
-        </div>
+        <div id="tf-i-estimates" style="margin-top:14px;">${window.tfRenderIntradayEstimatesHtml ? window.tfRenderIntradayEstimatesHtml() : ''}</div>
       </div>
     </div>
     ${orSection}
@@ -406,60 +413,71 @@ function tfMountIntradayStep2() {
   wire('tf-i-entry', 'entry');
   wire('tf-i-stop', 'stop');
   wire('tf-i-target', 'target');
+  wire('tf-i-contracts', 'contracts', true);
   wire('tf-i-orHi', 'orHi');
   wire('tf-i-orLo', 'orLo');
+
+  // AUTO stop — derive from settings.stopPct fraction of entry.
+  const autoStopBtn = document.getElementById('tf-i-auto-stop');
+  if (autoStopBtn) {
+    autoStopBtn.addEventListener('click', () => {
+      const it = state.intraday || {};
+      const entry = Number(it.entry);
+      if (!(entry > 0)) {
+        if (typeof window.toast === 'function') window.toast('Enter the entry first.', true);
+        return;
+      }
+      const stopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const dir = (it.direction || 'long').toLowerCase();
+      const isShort = dir.startsWith('s');
+      const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
+      state.intraday.stop = stop;
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
+      state.tradeFlow.intradayDraft.stop = String(stop);
+      const el = document.getElementById('tf-i-stop');
+      if (el) el.value = stop;
+      saveState();
+      window.tfUpdateIntradayRMult();
+      window.tfUpdateIntradaySizing();
+      window.tfRefreshHeaderOnly();
+    });
+  }
+  // AUTO size — fill contracts/shares from risk-unit ÷ stop distance.
+  const autoSizeBtn = document.getElementById('tf-i-auto-size');
+  if (autoSizeBtn) {
+    autoSizeBtn.addEventListener('click', () => {
+      const qty = window.tfApplyIntradayRiskSize();
+      if (!qty) {
+        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        return;
+      }
+      const el = document.getElementById('tf-i-contracts');
+      if (el) el.value = qty;
+      saveState();
+      window.tfUpdateIntradayRMult();
+      window.tfUpdateIntradaySizing();
+      window.tfRefreshHeaderOnly();
+    });
+  }
 }
 
 // ----- Intraday plan — Size: options bid/ask spread or stock share count -----
 function tfIntradayStep3() {
-  const it = state.intraday || {};
+  // Sizing is fully auto-derived from risk unit ÷ stop distance. No manual
+  // inputs — just a readout card showing the math + the gain/loss estimates.
   const isOptions = window.tfIntradayInstrument() !== 'stocks';
-  const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
-  const inputValue = (key) => (draft[key] !== undefined && draft[key] !== '') ? draft[key] : (it[key] ?? '');
-  const spread = window.tfDeriveIntradaySpread();
   const settings = state.settings || DEFAULT_SETTINGS;
-  const sizeLetter = isOptions ? 'A.' : 'C.';
-
-  const optionsSizing = `
-    ${window.tfOptionBidAskInputsHtml({
-      bidValue: inputValue('bid'),
-      askValue: inputValue('ask'),
-      bidAttrs: 'id="tf-i-bid"',
-      askAttrs: 'id="tf-i-ask"',
-      spread,
-      spreadMax: settings.intradayMaxSpreadPct || 5,
-    })}
-    <div class="trade-templates" style="margin-top:10px;">
-      <button type="button" class="trade-template-btn" id="tf-i-use-quote">Reset levels to quote</button>
-      <span class="trade-templates-label">Sets entry to mid, then rebuilds stop and target.</span>
-    </div>
-    <div class="trade-section-grid-2">
-      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-        <label class="input-label">Contracts override</label>
-        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Auto from risk, or override" />
-        <div class="input-help">Blank uses the suggested risk-unit size.</div>
-      </div></div>
-    </div>`;
-
-  const stockSizing = `
-    <div class="trade-section-grid-2">
-      <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-        <label class="input-label">Shares override</label>
-        <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Shares, or leave blank" />
-        <div class="input-help">Blank uses the suggested risk-unit size.</div>
-      </div></div>
-    </div>`;
-
+  const sizeLetter = isOptions ? 'C.' : 'C.';
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${sizeLetter}</span> ${isOptions ? 'Option quote & risk size' : 'Share risk size'}</div>
-          <div class="trade-section-subtitle">${isOptions ? `Bid/ask creates the mid entry and spread check. Quantity is suggested from your $${settings.intradayRiskPerTrade || 100} risk unit.` : `Quantity is suggested from your $${settings.intradayRiskPerTrade || 100} risk unit.`}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">${sizeLetter}</span> Auto-sized risk</div>
+          <div class="trade-section-subtitle">${isOptions ? 'Contracts' : 'Shares'} are derived from your $${settings.intradayRiskPerTrade || 100} risk unit ÷ stop distance.</div>
         </div>
       </div>
       <div class="trade-section-body">
-        ${isOptions ? optionsSizing : stockSizing}
         <div id="tf-i-sizing-card">${window.tfRenderIntradaySizingHtml()}</div>
       </div>
     </div>
@@ -467,64 +485,8 @@ function tfIntradayStep3() {
 }
 
 function tfMountIntradayStep3() {
-  const updateOptionDerived = ({ forceBracket = false } = {}) => {
-    const spread = window.tfDeriveIntradaySpread();
-    window.tfAutoFillIntradayOptionBracket({ force: forceBracket });
-    if (forceBracket) {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
-      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
-      ['entry', 'stop', 'target'].forEach(key => {
-        state.tradeFlow.intradayDraft[key] = state.intraday[key] ?? '';
-      });
-    }
-    ['entry', 'stop', 'target'].forEach(key => {
-      const el = document.getElementById(`tf-i-${key}`);
-      if (el && state.intraday[key] !== null && state.intraday[key] !== undefined) el.value = state.intraday[key];
-    });
-    window.tfUpdateIntradayRMult();
-    window.tfUpdateIntradaySizing();
-    const spreadRead = document.querySelector('#panel-trade #tf-i-bid')?.closest('.trade-section')?.querySelector('[data-tf-spread-read]');
-    if (spreadRead) spreadRead.innerHTML = window.tfSpreadReadHtml(spread);
-    const badge = document.querySelector('#panel-trade #tf-i-bid')?.closest('.trade-input-row')?.querySelector('.trade-bracket')
-      || document.querySelector('#panel-trade .trade-bracket');
-    if (badge) {
-      const b = window.tfSpreadBracket(state.intraday.spreadPct);
-      badge.className = `trade-bracket ${b.cls}`;
-      badge.textContent = b.text;
-    }
-  };
-  const wire = (id, key, isInt) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', e => {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
-      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
-      state.tradeFlow.intradayDraft[key] = e.target.value;
-      const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
-      state.intraday[key] = isNaN(v) ? null : v;
-      if (key === 'bid' || key === 'ask') updateOptionDerived();
-      saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateIntradaySizing();
-    });
-  };
-  wire('tf-i-bid', 'bid');
-  wire('tf-i-ask', 'ask');
-  wire('tf-i-contracts', 'contracts', true);
-  const quoteBtn = document.getElementById('tf-i-use-quote');
-  if (quoteBtn) {
-    quoteBtn.addEventListener('click', () => {
-      const spread = window.tfDeriveIntradaySpread();
-      if (spread === null) {
-        if (typeof toast === 'function') window.toast('Enter a valid bid and ask first.', true);
-        return;
-      }
-      updateOptionDerived({ forceBracket: true });
-      saveState();
-      window.tfRefreshHeaderOnly();
-    });
-  }
-  window.tfBindIntradayRiskSizeButton();
+  // No inputs anymore — the sizing card is fully derived from step 2's levels.
+  // Auto-update the card whenever levels change is already handled by step 2.
 }
 
 // ----- Intraday step 3 — Context: optional ThinkScript chips + guardrails -----

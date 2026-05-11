@@ -188,6 +188,7 @@ function renderEditTrade(trade) {
   const navBar = document.getElementById('edit-trade-nav-bar');
   if (navBar) {
     const regimeKey = (state.regime || 'risk-on').toLowerCase();
+    const regimeLabel = regimeKey === 'risk-off' ? 'RISK-OFF' : regimeKey === 'neutral' ? 'NEUTRAL' : 'RISK-ON';
     navBar.innerHTML = `
       <header class="cmdbar ${regimeKey}">
         <div class="cmdbar-inner">
@@ -201,20 +202,27 @@ function renderEditTrade(trade) {
               </span>
               <span class="brand-name">TRAPPER'S <span class="brand-name-dim">EDGE</span></span>
             </div>
-            <div class="et-breadcrumb">
-              <span>OPEN BOOK</span>
-              <span class="et-breadcrumb-sep">›</span>
-              <span class="et-breadcrumb-active">${(w.ticker || w.symbol || '—').toUpperCase()} ${(isLong ? 'LONG' : 'SHORT')}</span>
-              <span class="et-breadcrumb-sep">·</span>
-              <span>#${String(w.id || '').slice(-4).toUpperCase() || '—'}</span>
-            </div>
+            <nav class="cmdbar-nav" aria-label="Main navigation">
+              <button class="tab" data-et-tab="home" type="button">Home</button>
+              <button class="tab" data-et-tab="trade" type="button">Trade</button>
+              <button class="tab active" data-et-tab="log" type="button">Log</button>
+              <button class="tab" data-et-tab="stats" type="button">Stats</button>
+              <button class="tab" data-et-tab="reference" type="button">Reference</button>
+            </nav>
           </div>
           <div class="cmdbar-actions">
-            <div class="et-mode-toggle" role="tablist" aria-label="View or edit">
-              <button class="et-mode-btn ${!editMode ? 'is-active' : ''}" data-mode="view">VIEW</button>
-              <button class="et-mode-btn ${editMode ? 'is-active' : ''}" data-mode="edit">EDIT</button>
+            <button class="cmdbar-context-btn ${regimeKey}" id="et-regime-state" type="button" title="Open Market Context">
+              <span class="cmdbar-regime-dot"></span>
+              <span>${regimeLabel}</span>
+            </button>
+            <div class="cmdbar-sync" title="Local journal">
+              <span id="sync-dot"></span>
+              <span>SYNC · LOCAL</span>
             </div>
-            <button class="btn-secondary btn-compact" id="et-close-btn" title="Back to Book">← BACK</button>
+            <button class="cmdbar-kmk-btn" id="et-btn-settings" title="Settings" aria-label="Settings" type="button" style="display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <button class="cmdbar-kmk-btn" id="et-close-btn" title="Back to Book" type="button">← BACK</button>
           </div>
         </div>
       </header>`;
@@ -226,16 +234,23 @@ function renderEditTrade(trade) {
       closeEditTrade();
       if (typeof window.setTab === 'function') window.setTab('home');
     });
-    navBar.querySelectorAll('.et-mode-btn').forEach(btn => {
+    navBar.querySelectorAll('[data-et-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const target = btn.dataset.mode;
-        if (target === 'edit' && !editMode) enterEditMode(trade);
-        else if (target === 'view' && editMode) {
-          if (draftDirty() && !confirm('Discard unsaved edits?')) return;
-          exitEditMode(trade);
+        if (editMode && draftDirty()) {
+          if (!confirm('Discard unsaved edits and leave?')) return;
         }
+        closeEditTrade();
+        if (typeof window.setTab === 'function') window.setTab(btn.dataset.etTab);
       });
     });
+    navBar.querySelector('#et-regime-state')?.addEventListener('click', () => {
+      if (typeof window.openContextPanel === 'function') window.openContextPanel();
+    });
+    navBar.querySelector('#et-btn-settings')?.addEventListener('click', () => {
+      if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+      else if (typeof window.openSettings === 'function') window.openSettings();
+    });
+    // Mode toggle now lives in the body toolbar — wired in wireEvents().
   }
 
   // ── body html ───────────────────────────────────────────────────────────
@@ -313,7 +328,6 @@ function renderEditTrade(trade) {
     <section class="et-ladder-card">
       <div class="et-card-heading">
         <h2 class="et-card-title">Price ladder${editMode ? ' <span class="et-card-meta" style="margin-left:8px;">DRAG TO ADJUST</span>' : ''}</h2>
-        <div class="et-card-meta">STOP → ENTRY → TARGET</div>
       </div>
       <div class="et-ladder ${editMode ? 'is-editable' : ''}" id="et-ladder">
         <div class="et-ladder-track">
@@ -322,8 +336,7 @@ function renderEditTrade(trade) {
         <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="stop" style="left:${stopX}%;top:2px;">
           <div class="et-marker-label" style="color:var(--red-bright)">STOP</div>
           <div class="et-marker-price">$${stop.toFixed(2)}</div>
-          <div class="et-marker-pnl" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
-          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:18px;position:absolute;top:52px;"></div>
+          <div class="et-marker-line" style="background:var(--red-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
         </div>
         <div class="et-marker et-marker-entry ${editMode ? 'et-marker-drag' : ''}" data-handle="entry" style="left:${entryX}%;top:50px;">
           <div class="et-marker-line" style="background:${a.c};opacity:0.6;height:18px;position:absolute;top:-20px;"></div>
@@ -334,8 +347,7 @@ function renderEditTrade(trade) {
         <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;${nearTarget ? 'opacity:0.35;' : ''}">
           <div class="et-marker-label" style="color:var(--green-bright)">TARGET</div>
           <div class="et-marker-price">$${target.toFixed(2)}</div>
-          <div class="et-marker-pnl" style="color:var(--green-bright)">+$${targetDollars.toLocaleString()}</div>
-          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:52px;"></div>
+          <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:18px;position:absolute;top:36px;"></div>
         </div>` : `
         <div class="et-marker ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:2px;opacity:0.6;">
           <div class="et-marker-label" style="color:var(--amber-bright,#fbbf24)">TARGET</div>
@@ -349,21 +361,20 @@ function renderEditTrade(trade) {
       </div>
       <div class="et-ladder-trio">
         <div class="et-trio-cell">
-          <div class="et-trio-label">$ at risk</div>
+          <div class="et-trio-label">Target price</div>
+          <div class="et-trio-val">${hasTarget ? '$' + target.toFixed(2) : '—'}</div>
+          <div class="et-trio-sub">${hasTarget ? `${plannedRR.toFixed(2)}:1 R:R` : 'not set'}</div>
+        </div>
+        <div class="et-trio-cell">
+          <div class="et-trio-label">If sold now</div>
+          <div class="et-trio-val" style="color:${tone}">${pl >= 0 ? '+$' : '−$'}${Math.abs(Math.round(pl)).toLocaleString()}</div>
+          <div class="et-trio-sub" style="color:${tone}">${plPct >= 0 ? '+' : '−'}${Math.abs(plPct).toFixed(2)}%</div>
+        </div>
+        <div class="et-trio-cell">
+          <div class="et-trio-label">If stopped</div>
           <div class="et-trio-val" style="color:var(--red-bright)">−$${oneR.toLocaleString()}</div>
+          <div class="et-trio-sub" style="color:var(--red-bright)">${entry ? '−' + Math.abs((stop - entry) / entry * 100).toFixed(2) + '%' : '—'}</div>
         </div>
-        <div class="et-trio-cell">
-          <div class="et-trio-label">$ at target</div>
-          <div class="et-trio-val" style="color:var(--green-bright)">${hasTarget ? '+$' + targetDollars.toLocaleString() : '—'}</div>
-        </div>
-        <div class="et-trio-cell">
-          <div class="et-trio-label">R:R planned</div>
-          <div class="et-trio-val">${plannedRR ? plannedRR.toFixed(2) + ':1' : '—'}</div>
-        </div>
-      </div>
-      <div class="et-ladder-ctx">
-        <span>${ctxLeft}</span>
-        <span class="et-ladder-ctx-right">Highest mark today: $${highestMark.toFixed(2)}</span>
       </div>
       ${editMode ? `
       <div class="et-level-inputs">
@@ -411,26 +422,22 @@ function renderEditTrade(trade) {
     </section>
   `;
 
-  // Footer / save bar
+  // Footer — matches the settings sticky-footer pattern (ghost + primary buttons).
   const footer = document.createElement('div');
-  footer.className = 'et-footer';
+  footer.className = 'sett-sticky-footer et-sticky-footer';
   if (editMode) {
     const dirty = draftDirty();
     footer.innerHTML = `
-      <button class="btn-secondary" id="et-footer-back">← BACK</button>
+      <button class="sett-btn-ghost" id="et-footer-back">← Back</button>
       <div class="et-footer-mid" style="color:${dirty ? 'var(--amber-bright,#fbbf24)' : 'var(--ink-4)'}">
         ${dirty ? '● UNSAVED EDITS' : 'NO CHANGES'}
       </div>
-      <div class="et-footer-right">
-        <button class="btn-secondary" id="et-discard-btn" ${dirty ? '' : 'disabled'}>DISCARD</button>
-        <button class="btn-primary" id="et-save-btn" ${dirty ? '' : 'disabled'}>SAVE CHANGES</button>
-      </div>`;
+      <button class="sett-btn-ghost" id="et-discard-btn" ${dirty ? '' : 'disabled'}>Discard</button>
+      <button class="sett-btn-primary" id="et-save-btn" ${dirty ? '' : 'disabled'}>Save changes →</button>`;
   } else {
     footer.innerHTML = `
-      <button class="btn-secondary" id="et-footer-back">← BACK TO BOOK</button>
-      <div class="et-footer-right">
-        <button class="btn-primary" id="et-enter-edit">EDIT TRADE →</button>
-      </div>`;
+      <button class="sett-btn-ghost" id="et-footer-back">← Back to book</button>
+      <button class="sett-btn-primary" id="et-enter-edit">Edit trade →</button>`;
   }
   mainEl.appendChild(footer);
 
@@ -628,7 +635,7 @@ function wireEvents(trade, w, ctx) {
   }
 
   // Footer actions
-  const footer = mainEl.querySelector('.et-footer');
+  const footer = mainEl.querySelector('.et-sticky-footer');
   footer?.querySelector('#et-footer-back')?.addEventListener('click', handleBack(trade));
   footer?.querySelector('#et-enter-edit')?.addEventListener('click', () => enterEditMode(trade));
   footer?.querySelector('#et-save-btn')?.addEventListener('click', () => {

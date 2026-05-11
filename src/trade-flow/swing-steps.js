@@ -348,6 +348,10 @@ function tfSwingStep3() {
   const premium = state.premium;
   const atr     = state.atr;
   const upx     = state.underlyingPrice;
+  const swingStop    = state.swingStop;
+  const swingTarget  = state.swingTarget;
+  const swingQty     = state.swingQty;
+  const stopPctLabel = (state.settings && state.settings.stopPct) || 50;
   const liquidityInputs = [
     { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
     { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
@@ -362,26 +366,20 @@ function tfSwingStep3() {
       </div>
     </div>`;
 
-  const quote = window.tfOptionSpreadFromBidAsk(liq.bid, liq.ask);
-  const quoteInputs = window.tfOptionBidAskInputsHtml({
-    bidValue: liq.bid ?? '',
-    askValue: liq.ask ?? '',
-    bidAttrs: 'data-tf-liq="bid"',
-    askAttrs: 'data-tf-liq="ask"',
-    spread: quote ? quote.spreadPct : null,
-    spreadMax: 5,
-  });
+  // Bid/ask + quote-mid block removed — entry premium is user-typed.
+  const quoteInputs = '';
 
   // Sizing card + Gate 06 row — surgically updated by window.tfUpdateSwingSizing().
   const sizingCard = `<div id="tf-sizing-card">${window.tfRenderSwingSizingHtml()}</div>`;
+  const stopOk = Number(swingStop) > 0;
   const stopGateRow = `
-    <div id="tf-stop-gate" class="trade-row ${gates['06'] ? 'checked' : 'fail'}" data-tf-readonly="1">
-      <span class="trade-row-check">${gates['06'] ? '✓' : ''}</span>
+    <div id="tf-stop-gate" class="trade-row ${stopOk ? 'checked' : 'fail'}" data-tf-readonly="1">
+      <span class="trade-row-check">${stopOk ? '✓' : ''}</span>
       <span class="trade-row-main">
         <span class="trade-row-name"><small>GATE 06</small> Stop level set before entry</span>
-        <span class="trade-row-help">Auto-passes when ATR(14) and underlying price are both filled.</span>
+        <span class="trade-row-help">Passes when you've entered a stop premium.</span>
       </span>
-      <span class="trade-row-pill">${gates['06'] ? 'PASS' : 'FAIL'}</span>
+      <span class="trade-row-pill">${stopOk ? 'PASS' : 'FAIL'}</span>
     </div>`;
 
   if (!isOptions) {
@@ -423,46 +421,53 @@ function tfSwingStep3() {
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">${liquidityGrid}</div>
-        <div style="margin-top:12px;">${quoteInputs}</div>
       </div>
     </div>
 
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Entry, stop & size</div>
-          <div class="trade-section-subtitle">Entry premium follows quote mid until you override it. ATR and price set the underlying stop.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Entry · stop · limit</div>
+          <div class="trade-section-subtitle">Type your three prices. Size auto-derives from your regime risk unit ÷ stop distance.</div>
         </div>
-        <div class="trade-section-counter ${premium > 0 && atr > 0 && upx > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${premium > 0 && atr > 0 && upx > 0 ? 'ready' : 'fill 3'}</div>
+        <div class="trade-section-counter ${premium > 0 && swingStop > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${premium > 0 && swingStop > 0 ? 'ready' : 'fill 2'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Entry premium / limit ($)</label>
+              <label class="input-label">Entry ${isOptions ? 'premium' : 'price'} ($)</label>
               <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-                placeholder="Auto from quote mid" value="${premium ?? ''}" />
-              <div class="input-help">Type here only when your real limit is different from mid.</div>
+                placeholder="${isOptions ? 'Premium fill' : 'Share entry'}" value="${premium ?? ''}" />
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">ATR(14) on the underlying</label>
-              <input type="number" min="0" step="0.01" class="trade-input ${(!atr || atr <= 0) ? 'required-empty' : ''}" id="tf-atr"
-                placeholder="ATR(14) from chart" value="${atr ?? ''}" />
+              <label class="input-label">
+                <span>Stop ${isOptions ? 'premium' : 'price'} ($)</span>
+                <button type="button" class="tf-auto-chip" id="tf-swing-auto-stop">AUTO · ${stopPctLabel}%</button>
+              </label>
+              <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop"
+                placeholder="Stop fill" value="${swingStop ?? ''}" />
             </div>
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Underlying current price ($)</label>
-              <input type="number" min="0" step="0.01" class="trade-input ${(!upx || upx <= 0) ? 'required-empty' : ''}" id="tf-upx"
-                placeholder="Current underlying price" value="${upx ?? ''}" />
+              <label class="input-label">Limit ${isOptions ? 'premium' : 'price'} ($)</label>
+              <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target"
+                placeholder="Take-profit fill" value="${swingTarget ?? ''}" />
             </div>
           </div>
-        </div>
-        <div class="trade-templates" style="margin-top:10px;">
-          <button type="button" class="trade-template-btn" id="tf-swing-use-mid">Use quote mid</button>
-          <span class="trade-templates-label">Resets entry premium from bid/ask.</span>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">
+                <span>${isOptions ? 'Contracts' : 'Shares'}</span>
+                <button type="button" class="tf-auto-chip" id="tf-swing-auto-size">AUTO · risk unit</button>
+              </label>
+              <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty"
+                placeholder="Blank = auto from risk" value="${swingQty ?? ''}" />
+            </div>
+          </div>
         </div>
         <div style="margin-top:10px;">${stopGateRow}</div>
         ${sizingCard}
@@ -517,18 +522,54 @@ function tfMountSwingStep3() {
     });
   };
   wireNum('tf-premium', 'premium');
-  wireNum('tf-atr', 'atr');
-  wireNum('tf-upx', 'underlyingPrice');
-  const useMidBtn = document.getElementById('tf-swing-use-mid');
-  if (useMidBtn) {
-    useMidBtn.addEventListener('click', () => {
-      const mid = window.tfSetSwingPremiumFromQuote();
-      if (mid === null) {
-        if (typeof toast === 'function') window.toast('Enter valid bid and ask first.', true);
+  wireNum('tf-swing-stop', 'swingStop');
+  wireNum('tf-swing-target', 'swingTarget');
+  wireNum('tf-swing-qty', 'swingQty');
+
+  // AUTO stop — settings.stopPct of entry premium. Long: entry × (1 − stopPct). Short: × (1 + stopPct).
+  const autoStopBtn = document.getElementById('tf-swing-auto-stop');
+  if (autoStopBtn) {
+    autoStopBtn.addEventListener('click', () => {
+      const entry = Number(state.premium);
+      if (!(entry > 0)) {
+        if (typeof window.toast === 'function') window.toast('Enter the entry premium first.', true);
         return;
       }
-      const premiumEl = document.getElementById('tf-premium');
-      if (premiumEl) premiumEl.value = mid;
+      const stopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
+      const isShort = (state.direction || 'long').toLowerCase().startsWith('s');
+      const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
+      state.swingStop = stop;
+      const el = document.getElementById('tf-swing-stop');
+      if (el) el.value = stop;
+      saveState();
+      window.tfRefreshHeaderOnly();
+      window.tfUpdateSwingSizing();
+    });
+  }
+  // AUTO size — regime-frozen risk ÷ stop distance.
+  const autoSizeBtn = document.getElementById('tf-swing-auto-size');
+  if (autoSizeBtn) {
+    autoSizeBtn.addEventListener('click', () => {
+      const entry = Number(state.premium);
+      const stop  = Number(state.swingStop);
+      if (!(entry > 0 && stop > 0)) {
+        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        return;
+      }
+      const isOptions = state.instrument !== 'stocks';
+      const mult = isOptions ? 100 : 1;
+      const settings = state.settings || {};
+      const account = settings.account || 10000;
+      let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
+      if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+      const deployed = (typeof window.tfCapitalDeployed === 'function') ? window.tfCapitalDeployed() : 0;
+      const available = Math.max(0, account - deployed);
+      const riskDollars = Math.round(available * riskPct);
+      const stopDist = Math.abs(entry - stop);
+      const qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, stopDist * mult)));
+      state.swingQty = qty;
+      const el = document.getElementById('tf-swing-qty');
+      if (el) el.value = qty;
       saveState();
       window.tfRefreshHeaderOnly();
       window.tfUpdateSwingSizing();
@@ -562,21 +603,28 @@ function tfComputeSwingReviewPlan() {
   let defaultLimitSell = null;
   let underlyingStop = null;
 
+  // Prefer user-entered swing stop / target / qty when set; fall back to settings-derived defaults.
+  const userStop   = Number(state.swingStop);
+  const userTarget = Number(state.swingTarget);
+  const userQty    = parseInt(state.swingQty, 10);
+
   if (entry > 0) {
     if (isOptions) {
-      const maxLossPerContract = entry * stopFraction * 100;
-      defaultQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, maxLossPerContract)));
-      defaultStopSell = +(entry * (1 - stopFraction)).toFixed(2);
-      defaultLimitSell = +(entry * (1 + targetFraction)).toFixed(2);
+      defaultStopSell  = userStop   > 0 ? userStop   : +(entry * (1 - stopFraction)).toFixed(2);
+      defaultLimitSell = userTarget > 0 ? userTarget : +(entry * (1 + targetFraction)).toFixed(2);
+      const lossPerContract = Math.abs(entry - defaultStopSell) * 100;
+      const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerContract)));
+      defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
       if (atr > 0 && upx > 0) {
         const dist = atr * 1.5;
         underlyingStop = +(direction === 'short' ? upx + dist : upx - dist).toFixed(2);
       }
     } else {
-      const maxLossPerShare = entry * stopFraction;
-      defaultQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, maxLossPerShare)));
-      defaultStopSell = +(direction === 'short' ? entry * (1 + stopFraction) : entry * (1 - stopFraction)).toFixed(2);
-      defaultLimitSell = +(direction === 'short' ? entry * (1 - targetFraction) : entry * (1 + targetFraction)).toFixed(2);
+      defaultStopSell  = userStop   > 0 ? userStop   : +(direction === 'short' ? entry * (1 + stopFraction) : entry * (1 - stopFraction)).toFixed(2);
+      defaultLimitSell = userTarget > 0 ? userTarget : +(direction === 'short' ? entry * (1 - targetFraction) : entry * (1 + targetFraction)).toFixed(2);
+      const lossPerShare = Math.abs(entry - defaultStopSell);
+      const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerShare)));
+      defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
     }
   }
 

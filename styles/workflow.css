@@ -544,6 +544,83 @@
   color: var(--ink);
 }
 
+/* AUTO chip — sits inline with the input label, right-aligned. Keeps the form rows
+   identical in height regardless of whether a field has an auto-fill helper. */
+#panel-trade .trade-input-row .input-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#panel-trade .tf-auto-chip {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--cyan);
+  background: rgba(6,212,248,0.06);
+  border: 1px solid rgba(6,212,248,0.28);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.2;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+#panel-trade .tf-auto-chip:hover {
+  background: rgba(6,212,248,0.16);
+  border-color: var(--cyan);
+  color: var(--ink);
+}
+#panel-trade .tf-auto-chip:active { transform: translateY(1px); }
+
+/* Live gain/loss estimates (intraday Plan & Size) */
+#panel-trade .tf-i-est {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding-top: 4px;
+}
+#panel-trade .tf-i-est-cell {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+#panel-trade .tf-i-est-loss { border-color: rgba(239,68,68,0.30); background: rgba(239,68,68,0.05); }
+#panel-trade .tf-i-est-gain { border-color: rgba(16,185,129,0.30); background: rgba(16,185,129,0.05); }
+#panel-trade .tf-i-est-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+#panel-trade .tf-i-est-val {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+#panel-trade .tf-i-est-loss .tf-i-est-val { color: var(--red-bright); }
+#panel-trade .tf-i-est-gain .tf-i-est-val { color: var(--green-bright); }
+#panel-trade .tf-i-est-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-4);
+}
+#panel-trade .tf-i-est-loss .tf-i-est-sub { color: var(--red-bright); opacity: 0.85; }
+#panel-trade .tf-i-est-gain .tf-i-est-sub { color: var(--green-bright); opacity: 0.85; }
+@media (max-width: 720px) {
+  #panel-trade .tf-i-est { grid-template-columns: 1fr 1fr; }
+  #panel-trade .tf-i-est-cell:last-child { grid-column: 1 / -1; }
+}
+
 #panel-trade .tf-risk-profile {
   margin-top: 12px;
   padding-top: 12px;

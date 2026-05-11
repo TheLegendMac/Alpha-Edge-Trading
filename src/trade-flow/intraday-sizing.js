@@ -81,31 +81,67 @@ function tfRenderIntradaySizingHtml() {
   if (!auto) {
     return `<div class="input-help" style="margin-top:8px;">Fill entry and stop to auto-size ${isOptions ? 'contracts' : 'shares'}.</div>`;
   }
-  const manualQty = Number(it.contracts);
-  const manualRisk = manualQty > 0 ? Math.round(manualQty * auto.stopDist * auto.mult) : null;
-  const profileQty = manualQty > 0 ? manualQty : auto.qty;
-  const qtyLine = manualQty > 0
-    ? `${manualQty} ${auto.label}${manualQty === 1 ? '' : 's'} in the override field · estimated risk $${manualRisk}.`
-    : `Blank quantity is fine: GO logs the suggested ${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'}.`;
   const perUnit = auto.stopDist * auto.mult;
-  const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: profileQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
+  const manualQty = Number(it.contracts);
+  const useQty = manualQty > 0 ? manualQty : auto.qty;
+  const realizedRisk = Math.round(useQty * auto.stopDist * auto.mult);
+  const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">Entry & risk unit</div>
-      <div class="trade-output-main">${auto.qty} ${auto.label}${auto.qty === 1 ? '' : 's'} suggested</div>
-      <div class="trade-output-rationale">Entry, stop, target, and quantity are tied to your $${auto.riskBudget} intraday risk unit. ${qtyLine}</div>
+      <div class="trade-output-title">${manualQty > 0 ? 'Sized (override)' : 'Auto-sized'}</div>
+      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}</div>
+      <div class="trade-output-rationale">${manualQty > 0 ? `Override risk: $${realizedRisk}. AUTO sets to ${auto.qty} for $${auto.riskBudget} risk unit.` : `Sized from your $${auto.riskBudget} risk unit ÷ stop distance. GO logs this size.`}</div>
       <div class="trade-output-grid">
         <div class="trade-output-cell"><span class="trade-output-cell-label">Entry</span><span class="trade-output-cell-value">${window.tfMoneyText(it.entry)}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">${window.tfMoneyText(it.stop)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${window.tfMoneyText(it.target)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Limit</span><span class="trade-output-cell-value">${window.tfMoneyText(it.target)}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Risk unit</span><span class="trade-output-cell-value">$${auto.riskBudget}</span></div>
         <div class="trade-output-cell"><span class="trade-output-cell-label">Risk / ${isOptions ? 'ct' : 'share'}</span><span class="trade-output-cell-value">$${perUnit.toFixed(isOptions ? 0 : 2)}</span></div>
-        <div class="trade-output-cell"><span class="trade-output-cell-label">Suggested risk</span><span class="trade-output-cell-value">$${Math.round(auto.risk)}</span></div>
+        <div class="trade-output-cell"><span class="trade-output-cell-label">Realized risk</span><span class="trade-output-cell-value">$${realizedRisk}</span></div>
       </div>
-      ${profileHtml || '<div class="input-help" style="margin-top:10px;">Add a target to draw the visual risk profile.</div>'}
-      <div class="trade-templates" style="margin-top:10px;">
-        <button type="button" class="trade-template-btn" id="tf-i-use-risk-size">Use suggested size</button>
-        <span class="trade-templates-label">Optional. Leaving the override blank already uses this size.</span>
+      ${profileHtml || ''}
+    </div>`;
+}
+
+// Live gain/loss estimate card — $ + % + R for both outcomes.
+// Reads from state.intraday and refreshes whenever a level changes.
+function tfRenderIntradayEstimatesHtml() {
+  const it = state.intraday || {};
+  const isOptions = window.tfIntradayInstrument() !== 'stocks';
+  const entry  = Number(it.entry);
+  const stop   = Number(it.stop);
+  const target = Number(it.target);
+  if (!(entry > 0 && stop > 0)) {
+    return `<div class="input-help">Enter entry and stop to see live gain / loss estimates.</div>`;
+  }
+  const auto = window.tfComputeIntradayRiskSize();
+  const manualQty = Number(it.contracts);
+  const qty  = manualQty > 0 ? manualQty : (auto ? auto.qty : 0);
+  const mult = isOptions ? 100 : 1;
+  const riskDist = Math.abs(entry - stop);
+  const rewardDist = target > 0 ? Math.abs(target - entry) : 0;
+  const lossDollar = Math.round(riskDist * mult * qty);
+  const gainDollar = Math.round(rewardDist * mult * qty);
+  const lossPct = entry > 0 ? -(riskDist / entry * 100) : 0;
+  const gainPct = entry > 0 && target > 0 ? (rewardDist / entry * 100) : 0;
+  const rValue  = (lossDollar > 0 && gainDollar > 0) ? (gainDollar / lossDollar) : null;
+  const fmtPct = (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+  return `
+    <div class="tf-i-est">
+      <div class="tf-i-est-cell tf-i-est-loss">
+        <div class="tf-i-est-label">If stopped</div>
+        <div class="tf-i-est-val">−$${lossDollar.toLocaleString()}</div>
+        <div class="tf-i-est-sub">${fmtPct(lossPct)} · −1.00R</div>
+      </div>
+      <div class="tf-i-est-cell tf-i-est-gain">
+        <div class="tf-i-est-label">If limit hits</div>
+        <div class="tf-i-est-val">${target > 0 ? '+$' + gainDollar.toLocaleString() : '—'}</div>
+        <div class="tf-i-est-sub">${target > 0 ? `${fmtPct(gainPct)} · ${rValue ? '+' + rValue.toFixed(2) + 'R' : '—'}` : 'add a limit price'}</div>
+      </div>
+      <div class="tf-i-est-cell">
+        <div class="tf-i-est-label">Size</div>
+        <div class="tf-i-est-val">${qty || '—'}</div>
+        <div class="tf-i-est-sub">${auto ? auto.label + (qty === 1 ? '' : 's') : ''}</div>
       </div>
     </div>`;
 }
@@ -167,21 +203,11 @@ function tfUpdateIntradaySizing() {
   window.tfBindMoonshotSliders();
 }
 
-// Intraday R-multiple block — surgical update on entry/stop/target change.
-// Compact pill style matches the inline render in tfIntradayStep2.
+// Live gain/loss estimates — surgical refresh on entry/stop/target change.
 function tfUpdateIntradayRMult() {
-  const el = document.getElementById('tf-i-rmult');
+  const el = document.getElementById('tf-i-estimates');
   if (!el) return;
-  const it = state.intraday || {};
-  const r = (it.entry && it.stop && it.target)
-    ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
-    : null;
-  const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
-  const rGood = r !== null && isFinite(r) && r >= 1.5;
-  const rOk = r !== null && isFinite(r);
-  el.innerHTML = `
-    <span class="trade-bracket ${rGood ? 'high' : (rOk ? 'mid' : 'low')}" style="font-size: 11px; padding: 5px 10px;">${rText}</span>
-    <span class="input-help" style="margin:0;">Reward / risk · target ÷ stop distance.</span>`;
+  el.innerHTML = window.tfRenderIntradayEstimatesHtml();
 }
 
 // Spread bracket for intraday — single word.
@@ -208,6 +234,7 @@ window.tfDeriveIntradaySpread = tfDeriveIntradaySpread;
 window.tfAutoFillIntradayOptionBracket = tfAutoFillIntradayOptionBracket;
 window.tfAutoFillIntradayStockFromOR = tfAutoFillIntradayStockFromOR;
 window.tfRenderIntradaySizingHtml = tfRenderIntradaySizingHtml;
+window.tfRenderIntradayEstimatesHtml = tfRenderIntradayEstimatesHtml;
 window.tfComputeIntradayRiskSize = tfComputeIntradayRiskSize;
 window.tfApplyIntradayRiskSize = tfApplyIntradayRiskSize;
 window.tfBindIntradayRiskSizeButton = tfBindIntradayRiskSizeButton;

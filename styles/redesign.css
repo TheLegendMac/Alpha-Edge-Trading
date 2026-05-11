@@ -4206,7 +4206,8 @@
   position: fixed;
   inset: 0;
   background: var(--bg, #08090d);
-  z-index: 400;
+  /* Above the site cmdbar (z-index 600) so the overlay owns the full-screen chrome. */
+  z-index: 700;
   display: none;
   flex-direction: column;
   overflow: hidden;
@@ -4348,14 +4349,7 @@
 }
 
 /* Ladder track */
-.et-ladder { position: relative; height: 108px; margin: 4px 0; }
-.et-marker-pnl {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  margin-top: 2px;
-}
+.et-ladder { position: relative; height: 92px; margin: 4px 0; }
 .et-ladder-track {
   position: absolute;
   left: 4%; right: 4%; top: 38px; height: 12px;
@@ -4635,35 +4629,6 @@
 .et-nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .et-nav-brand-text { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; color: var(--ink); }
 
-/* ── VIEW/EDIT mode toggle ── */
-.et-mode-toggle {
-  display: inline-flex;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
-}
-.et-mode-btn {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  padding: 6px 14px;
-  border-radius: 999px;
-  color: var(--ink-3);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-.et-mode-btn:hover { color: var(--ink); }
-.et-mode-btn.is-active {
-  color: var(--ink);
-  background: rgba(6,212,248,0.14);
-  box-shadow: inset 0 0 0 1px rgba(6,212,248,0.32);
-}
-
 /* ── Setup snapshot card ── */
 .et-snapshot-card {
   border-radius: 12px;
@@ -4715,9 +4680,17 @@
 }
 .et-trio-val {
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink);
+  line-height: 1.2;
+}
+.et-trio-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-4);
+  margin-top: 2px;
 }
 
 /* ── Drag handle styling ── */
@@ -4849,17 +4822,22 @@
   line-height: 1.5;
 }
 
-/* Footer middle (dirty indicator) */
+/* Edit-trade sticky footer — extends the settings pattern with a status indicator */
+.et-sticky-footer { justify-content: flex-end; gap: 10px; align-items: center; }
 .et-footer-mid {
-  flex: 1;
-  text-align: center;
+  margin-right: auto;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.et-btn-save:disabled { cursor: not-allowed; }
+.sett-btn-ghost:disabled,
+.sett-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 /* Running notes feed */
 .et-notes-feed {
@@ -4967,8 +4945,6 @@
   .et-form-row { grid-template-columns: 1fr 1fr; }
   .et-form-apply { grid-column: 1 / -1; }
   .et-footer-mid { display: none; }
-  .et-mode-toggle { padding: 2px; }
-  .et-mode-btn { padding: 5px 10px; font-size: 9px; }
 }
   /* Stack the timeline log cleanly */
   .et-timeline-row { grid-template-columns: 66px 10px 1fr; gap: 10px; }
