@@ -415,21 +415,34 @@ export function renderHome() {
   const empty = document.getElementById('home-portfolio-empty');
   if (empty) {
     const allTrades = (state.trades || []);
+    const strictOpenTrades = allTrades.filter(t => t.status === 'open');
     const showingOpen = state.homePortfolioView === 'open';
     const filterIso = state.homeCalendarFilter || null;
-    let sourceTrades = showingOpen ? openTrades : allTrades;
+    
+    let sourceTrades = showingOpen ? strictOpenTrades : allTrades;
     if (filterIso) {
-      // Calendar day filter — match either entry date or exit date.
-      const daySet = new Set(tradeIndex.byAnyDate.get(filterIso) || []);
-      sourceTrades = sourceTrades.filter(t => daySet.has(t));
+      sourceTrades = sourceTrades.filter(t => (t.date === filterIso || t.exit_date === filterIso));
     }
+    
     const toggle = document.getElementById('home-portfolio-toggle');
     if (toggle) {
-      toggle.textContent = showingOpen ? 'Recent activity' : `Open positions (${openTrades.length})`;
-      toggle.title = showingOpen ? 'Show recent activity' : 'Show open positions';
+      toggle.textContent = showingOpen
+        ? `All positions (${allTrades.length})`
+        : `Open positions (${strictOpenTrades.length})`;
+      toggle.title = showingOpen ? 'Show all positions' : 'Show only open positions';
     }
-    const sourceSet = new Set(sourceTrades);
-    const listTrades = tradeIndex.recent.filter(t => sourceSet.has(t)).slice(0, 8);
+    
+    // Create a fresh sorted array. Pin open trades to the top of the All Positions list.
+    const sortedSource = [...sourceTrades].sort((a, b) => {
+      if (a.status === 'open' && b.status !== 'open') return -1;
+      if (b.status === 'open' && a.status !== 'open') return 1;
+      return (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || '');
+    });
+    
+    // Guarantee all open positions stay visible, plus a few recent closed trades
+    const listOpenCount = sortedSource.filter(t => t.status === 'open').length;
+    const listTrades = showingOpen ? sortedSource : sortedSource.slice(0, Math.max(8, listOpenCount + 3));
+    
     // Filter banner — shows the active day filter and a reset button.
     const filterBanner = filterIso ? `
       <div class="home-portfolio-filter">
@@ -442,7 +455,7 @@ export function renderHome() {
       if (filterIso) {
         empty.innerHTML = `${filterBanner}<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No trades on this day.</em><strong>Pick another day on the calendar</strong></div></div>`;
       } else if (showingOpen) {
-        empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No open positions.</em><strong>Review recent activity</strong></div></div>`;
+        empty.innerHTML = `<div class="home-activity-empty"><div><div style="font-size:28px; color:rgba(139,148,158,0.25);">⌁</div><em>No open positions.</em><strong>Review all positions</strong></div></div>`;
       } else if (allTrades.length === 0) {
         empty.innerHTML = `
           <div class="home-activity-empty">
@@ -486,7 +499,7 @@ export function renderHome() {
           ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`
           : (t.status === 'open' ? 'open' : '—');
         return `
-          <button class="home-trade-row" type="button" data-review-trade="${attr(t.id)}">
+          <button class="home-trade-row ${attr(statusClass)}" type="button" data-review-trade="${attr(t.id)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
               <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>

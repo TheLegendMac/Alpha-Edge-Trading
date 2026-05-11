@@ -8,15 +8,29 @@ import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
 function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
 
 function updateLiveHints() {
-  const acct  = parseFloat(document.getElementById('set-account')?.value) || 50000;
-  // read from regime slider first, fall back to account-section base risk input
-  const rOn   = parseFloat(document.getElementById('set-risk-on-r')?.value)
-             || parseFloat(document.getElementById('set-risk-on')?.value)
-             || 0.5;
-  const prem  = parseFloat(document.getElementById('set-max-premium')?.value) || 12;
-  const risk  = parseFloat(document.getElementById('set-max-risk')?.value) || 6;
-
   const el = (id) => document.getElementById(id);
+  const acct  = parseFloat(el('set-account')?.value) || 50000;
+  
+  // read from regime slider
+  let rOn   = parseFloat(el('set-risk-on-r')?.value) || 0.5;
+  let rNeu  = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
+  let rOff  = parseFloat(el('set-risk-off-r')?.value) || 0.15;
+
+  // Enforce cascade hierarchy: Risk-On >= Neutral >= Risk-Off
+  if (rNeu > rOn) {
+    rNeu = rOn;
+    if (el('set-risk-neutral-r')) el('set-risk-neutral-r').value = rNeu;
+    if (el('sett-sl-neutral')) el('sett-sl-neutral').value = rNeu;
+  }
+  if (rOff > rNeu) {
+    rOff = rNeu;
+    if (el('set-risk-off-r')) el('set-risk-off-r').value = rOff;
+    if (el('sett-sl-off')) el('sett-sl-off').value = rOff;
+  }
+
+  const prem  = parseFloat(el('set-max-premium')?.value) || 12;
+  const risk  = parseFloat(el('set-max-risk')?.value) || 6;
+
   if (el('sett-live-equity'))      el('sett-live-equity').textContent      = '$' + acct.toLocaleString();
   if (el('sett-live-base1r'))      el('sett-live-base1r').textContent      = fmt$(acct * rOn / 100);
   if (el('sett-live-base1r-sub'))  el('sett-live-base1r-sub').textContent  = `${rOn.toFixed(2)}% of equity`;
@@ -25,8 +39,6 @@ function updateLiveHints() {
   if (el('sett-hint-base1r'))      el('sett-hint-base1r').textContent      = `= ${fmt$(acct * rOn / 100)} · 1R`;
 
   // Regime equiv labels
-  const rNeu = parseFloat(document.getElementById('set-risk-neutral-r')?.value) || 0.25;
-  const rOff = parseFloat(document.getElementById('set-risk-off-r')?.value) || 0.15;
   if (el('sett-eqv-on'))      el('sett-eqv-on').textContent      = `= ${fmt$(acct * rOn / 100)}`;
   if (el('sett-eqv-neutral')) el('sett-eqv-neutral').textContent = `= ${fmt$(acct * rNeu / 100)}`;
   if (el('sett-eqv-off'))     el('sett-eqv-off').textContent     = `= ${fmt$(acct * rOff / 100)}`;
@@ -38,9 +50,9 @@ function updateLiveHints() {
   ['sett-live-risk-cap','sett-live-risk-cap-b'].forEach(id => { if (el(id)) el(id).textContent = riskCap; });
 
   // Slider fill
-  syncSlider('sett-sl-on',      rOn,   0.1, 2,   'on');
-  syncSlider('sett-sl-neutral', rNeu,  0.1, 2,   'neutral');
-  syncSlider('sett-sl-off',     rOff,  0.1, 2,   'off');
+  syncSlider('sett-sl-on',      rOn,   0.1, 100, 'on');
+  syncSlider('sett-sl-neutral', rNeu,  0.1, 100, 'neutral');
+  syncSlider('sett-sl-off',     rOff,  0.1, 100, 'off');
   syncSlider('sett-sl-pos',     parseFloat(document.getElementById('set-max-positions')?.value)||4, 1, 20, 'cap');
   syncSlider('sett-sl-prem',    prem,  5,  100,  'cap');
   syncSlider('sett-sl-risk',    risk,  1,   50,  'cap');
@@ -52,7 +64,7 @@ function updateMobileView(acct, rOn) {
   const el = (id) => document.getElementById(id);
   if (!el('sett-mv')) return;
   const a = acct || parseFloat(el('set-account')?.value) || 50000;
-  const r = rOn  || parseFloat(el('set-risk-on-r')?.value) || parseFloat(el('set-risk-on')?.value) || 0.5;
+  const r = rOn  || parseFloat(el('set-risk-on-r')?.value) || 0.5;
   const rNeu = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
   const rOff = parseFloat(el('set-risk-off-r')?.value) || 0.15;
   const maxPos  = parseInt(el('set-max-positions')?.value) || 4;
@@ -113,16 +125,15 @@ function openSettings() {
 
   // Populate all inputs from state
   if (el('set-account'))        el('set-account').value        = s.account        || DEFAULT_SETTINGS.account;
-  // Regime risk — all three inputs (slider, regime -r input, account base-risk) kept in sync
+  
+  // Regime risk — stored and displayed as percentage (e.g. 0.50)
   const rOn  = s.riskOn      || DEFAULT_SETTINGS.riskOn;
   const rNeu = s.riskNeutral || DEFAULT_SETTINGS.riskNeutral;
   const rOff = s.riskOff     || DEFAULT_SETTINGS.riskOff;
+
   if (el('set-risk-on-r'))      el('set-risk-on-r').value      = rOn;
   if (el('set-risk-neutral-r')) el('set-risk-neutral-r').value = rNeu;
   if (el('set-risk-off-r'))     el('set-risk-off-r').value     = rOff;
-  if (el('set-risk-on'))        el('set-risk-on').value        = rOn;   // account base risk field
-  if (el('set-risk-neutral'))   el('set-risk-neutral').value   = rNeu;
-  if (el('set-risk-off'))       el('set-risk-off').value       = rOff;
 
   if (el('set-max-positions'))  el('set-max-positions').value  = s.maxPositions   || DEFAULT_SETTINGS.maxPositions;
   if (el('set-max-premium'))    el('set-max-premium').value    = s.maxPremiumPct  || DEFAULT_SETTINGS.maxPremiumPct;
@@ -132,9 +143,9 @@ function openSettings() {
   const overlay = document.getElementById('modal-settings');
   if (!overlay.dataset.wired) {
     overlay.dataset.wired = '1';
-    wireSliderInput('sett-sl-on',      'set-risk-on-r',      0.1, 2,   'on',      'set-risk-on');
-    wireSliderInput('sett-sl-neutral', 'set-risk-neutral-r', 0.1, 2,   'neutral', 'set-risk-neutral');
-    wireSliderInput('sett-sl-off',     'set-risk-off-r',     0.1, 2,   'off',     'set-risk-off');
+    wireSliderInput('sett-sl-on',      'set-risk-on-r',      0.1, 100, 'on');
+    wireSliderInput('sett-sl-neutral', 'set-risk-neutral-r', 0.1, 100, 'neutral');
+    wireSliderInput('sett-sl-off',     'set-risk-off-r',     0.1, 100, 'off');
     wireSliderInput('sett-sl-pos',     'set-max-positions',  1,   20,  'cap');
     wireSliderInput('sett-sl-prem',    'set-max-premium',    5,   100, 'cap');
     wireSliderInput('sett-sl-risk',    'set-max-risk',       1,   50,  'cap');
@@ -142,19 +153,6 @@ function openSettings() {
     // account input triggers all hints
     const acctEl = el('set-account');
     if (acctEl) acctEl.addEventListener('input', updateLiveHints);
-
-    // Wire account-section base-risk input (set-risk-on) → regime slider + hints
-    const acctRiskEl = el('set-risk-on');
-    if (acctRiskEl) {
-      acctRiskEl.addEventListener('input', () => {
-        const val = parseFloat(acctRiskEl.value) || 0;
-        const rOnR = el('set-risk-on-r');
-        const slOn = el('sett-sl-on');
-        if (rOnR) rOnR.value = val;
-        if (slOn) { slOn.value = val; syncSlider('sett-sl-on', val, 0.1, 2, 'on'); }
-        updateLiveHints();
-      });
-    }
 
     // Sidebar nav highlight on scroll
     const mainScroll = el('sett-main-scroll');
@@ -243,29 +241,29 @@ function saveSettings() {
     return el ? el.checked : false;
   };
 
-  // Regime risk — read from new -r inputs (which stay synced with old IDs via wireSliderInput)
-  const riskOn      = v('set-risk-on-r',      null) || v('set-risk-on',      DEFAULT_SETTINGS.riskOn);
-  const riskNeutral = v('set-risk-neutral-r', null) || v('set-risk-neutral', DEFAULT_SETTINGS.riskNeutral);
-  const riskOff     = v('set-risk-off-r',     null) || v('set-risk-off',     DEFAULT_SETTINGS.riskOff);
+  // Regime risk — read and store as percentage (e.g. 0.50 for 0.5%)
+  const riskOn      = v('set-risk-on-r',      DEFAULT_SETTINGS.riskOn);
+  const riskNeutral = v('set-risk-neutral-r', DEFAULT_SETTINGS.riskNeutral);
+  const riskOff     = v('set-risk-off-r',     DEFAULT_SETTINGS.riskOff);
+
+  if (riskNeutral > riskOn || riskOff > riskOn) {
+    if (typeof window.toast === 'function') window.toast('Risk-On must be the highest risk tier (or equal).', true);
+    return;
+  }
+  if (riskOff > riskNeutral) {
+    if (typeof window.toast === 'function') window.toast('Risk-Off cannot be higher than Neutral risk.', true);
+    return;
+  }
 
   const newSettings = {
+    ...state.settings,
     account:                  v('set-account',      DEFAULT_SETTINGS.account),
     riskOn,
     riskNeutral,
     riskOff,
-    stopPct:                  state.settings?.stopPct            ?? DEFAULT_SETTINGS.stopPct,
-    targetPct:                state.settings?.targetPct          ?? DEFAULT_SETTINGS.targetPct,
     maxPositions:             vi('set-max-positions', DEFAULT_SETTINGS.maxPositions),
     maxPremiumPct:            v('set-max-premium',  DEFAULT_SETTINGS.maxPremiumPct),
     maxRiskPct:               v('set-max-risk',     DEFAULT_SETTINGS.maxRiskPct),
-    longOnlyMode:             state.settings?.longOnlyMode       ?? DEFAULT_SETTINGS.longOnlyMode,
-    intradayRiskPerTrade:     state.settings?.intradayRiskPerTrade    ?? DEFAULT_SETTINGS.intradayRiskPerTrade,
-    intradayMaxDailyLoss:     state.settings?.intradayMaxDailyLoss    ?? DEFAULT_SETTINGS.intradayMaxDailyLoss,
-    intradayMaxSpreadPct:     state.settings?.intradayMaxSpreadPct    ?? DEFAULT_SETTINGS.intradayMaxSpreadPct,
-    intradayDefaultDelta:     state.settings?.intradayDefaultDelta    ?? DEFAULT_SETTINGS.intradayDefaultDelta,
-    killSwitchDays:           state.settings?.killSwitchDays          ?? DEFAULT_SETTINGS.killSwitchDays,
-    killSwitchFloor:          state.settings?.killSwitchFloor         ?? DEFAULT_SETTINGS.killSwitchFloor,
-    dailyMaxLossPct:          state.settings?.dailyMaxLossPct         ?? DEFAULT_SETTINGS.dailyMaxLossPct,
   };
 
   state.settings = newSettings;
@@ -277,14 +275,14 @@ function saveSettings() {
   if (typeof window.renderRegime === 'function')        window.renderRegime();
   if (typeof window.renderPretradeCheck === 'function') window.renderPretradeCheck();
   if (typeof window.renderLogStats === 'function')      window.renderLogStats();
-  if (typeof renderReference === 'function')            renderReference();
+  if (typeof window.renderReference === 'function')     window.renderReference();
   if (typeof window.renderTrade === 'function')         window.renderTrade();
   window.toast('Settings saved');
 }
 
 // ── reset ─────────────────────────────────────────────────────────────
 function resetSettingsToDefaults() {
-  if (!confirm('Reset all settings to v3 defaults?')) return;
+  if (!confirm('Reset all settings to defaults?')) return;
   state.settings = { ...DEFAULT_SETTINGS };
   openSettings();
   window.toast('Defaults loaded — click Save to apply');

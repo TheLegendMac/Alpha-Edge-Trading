@@ -181,6 +181,6 @@ window.reviewTrade = function(id) {
 // ---------- Position Editor (simplified Execution Manager + Journal) ----------
 
 window.addTestTrades = addTestTrades;
-// Onboarding shortcut — 30 trades, no confirm prompt.
-window.loadDemoData = () => addTestTrades(30, true);
+// Onboarding shortcut — 30 trades, with confirm prompt.
+window.loadDemoData = () => addTestTrades(30, false);
 window.resetFlowSilent = resetFlowSilent;

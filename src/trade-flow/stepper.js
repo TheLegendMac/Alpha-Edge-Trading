@@ -173,17 +173,19 @@ function tfRenderHeader() {
       : (m === 'swing' ? 'Build a swing trade.' : 'Take an intraday trade.');
   }
   if (heroSub) {
+    const modeColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
+    const modeTag = `<strong style="color:${modeColor};letter-spacing:0.06em;">${m === 'intraday' ? 'INTRADAY' : 'SWING'}</strong>`;
     let blurb = m === 'swing'
-      ? 'Hold target 3–10 days · max 4 swings open · risk 0.5% / trade.'
-      : 'Same-day exit · max 2 intraday open · cut by 15:55 ET.';
+      ? `${modeTag} · Hold target 3–10 days · max 4 swings open · risk 0.5% / trade.`
+      : `${modeTag} · Same-day exit · max 2 intraday open · cut by 15:55 ET.`;
 
     const setup = m === 'swing' ? state.selectedSetup : ((state.intraday && state.intraday.setup) || '');
     const dir = m === 'swing' ? state.direction : ((state.intraday && state.intraday.direction) || '');
-    
+
     if (setup) {
       const dirKey = (dir || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
       const dirLabel = dirKey === 'short' ? 'Short' : 'Long';
-      
+
       let setupLabel = setup;
       if (m === 'intraday' && typeof window.tfFindIntradaySetup === 'function') {
          const def = window.tfFindIntradaySetup(setup);
@@ -196,20 +198,23 @@ function tfRenderHeader() {
         return t.setup === setup && tDir === dirKey;
       });
 
+      const setupHead = `<strong style="color:${modeColor};">${setupLabel} · ${dirLabel}:</strong>`;
+
       if (peers.length >= 2) {
         const wins = peers.filter(t => (calcPL(t) || 0) > 0).length;
         const wr = Math.round(wins / peers.length * 100);
         const totalR = peers.reduce((s, x) => s + (calcR(x) || 0), 0);
         const avgR = totalR / peers.length;
-        const tone = avgR >= 0.4 ? 'var(--green-bright)' : avgR >= 0 ? 'var(--cyan)' : 'var(--red-bright)';
-        blurb = `<strong style="color:var(--ink);">${setupLabel} · ${dirLabel}:</strong> ${peers.length} prior, ${wr}% wins, <span style="color:${tone}; font-weight:700;">${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg</span>.`;
+        const tone = avgR >= 0.4 ? 'var(--green-bright)' : avgR >= 0 ? modeColor : 'var(--red-bright)';
+        blurb = `${setupHead} ${peers.length} prior, ${wr}% wins, <span style="color:${tone}; font-weight:700;">${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg</span>.`;
       } else if (peers.length === 1) {
-        blurb = `<strong style="color:var(--ink);">${setupLabel} · ${dirLabel}:</strong> Only 1 prior trade. Log this one to build your sample size.`;
+        blurb = `${setupHead} Only 1 prior trade. Log this one to build your sample size.`;
       } else {
-        blurb = `<strong style="color:var(--ink);">${setupLabel} · ${dirLabel}:</strong> First one of your career. Trust the setup criteria.`;
+        blurb = `${setupHead} First one of your career. Trust the setup criteria.`;
       }
     }
 
+    heroSub.className = `trade-hero-sub ${m}`;
     heroSub.innerHTML = blurb;
   }
 }

@@ -19,6 +19,12 @@
 }
 .toast.show { opacity: 1; transform: translateY(0); }
 
+@media (max-width: 720px) {
+  .toast {
+    left: 16px; right: 16px; bottom: 16px; width: auto;
+  }
+}
+
 /* ============ MOBILE ============ */
 @media (max-width: 720px) {
   .main { padding: 16px; }
@@ -400,4 +406,3 @@
   .flow-instrument-pills { width: 100%; }
   .flow-instrument-pill { flex: 1; min-width: 0; align-items: center; padding: 8px 10px; }
 }
-

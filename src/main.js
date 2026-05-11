@@ -77,6 +77,7 @@ import './trade-flow/intraday-steps.js';
 
 // ---------- Tabs + autocomplete ----------
 import { setTab, attachTickerAutocomplete } from './tabs.js';
+window.setTab = setTab;
 
 // ---------- Bootstrap ----------
 // Direct imports for things init() calls immediately. Everything else is
@@ -106,6 +107,18 @@ function on(id, event, handler) {
 function init() {
   loadState();
 
+  const checkAndCloseSettings = () => {
+    const modal = document.getElementById('modal-settings');
+    if (modal && modal.classList.contains('show')) {
+      if (window._settingsChanged && !confirm('You have unsaved adjustments. Continue without saving?')) return false;
+      window._settingsChanged = false;
+      if (typeof window.closeSettingsModal === 'function') window.closeSettingsModal();
+      else if (typeof window.closeSettings === 'function') window.closeSettings();
+    }
+    return true;
+  };
+  window.checkAndCloseSettings = checkAndCloseSettings;
+
   // Auto-focus ticker input when Trade tab becomes active.
   const tradePanel = document.getElementById('panel-trade');
   if (tradePanel) {
@@ -129,7 +142,9 @@ function init() {
 
   // Wire inline nav tab buttons in the command bar.
   document.querySelectorAll('.cmdbar-nav .tab').forEach(btn => {
-    btn.addEventListener('click', () => setTab(btn.dataset.tab));
+    btn.addEventListener('click', () => {
+      if (checkAndCloseSettings()) setTab(btn.dataset.tab);
+    });
   });
 
   // Mobile hamburger menu — toggles a dropdown panel of the same nav items.
@@ -153,6 +168,7 @@ function init() {
     menuPanel.addEventListener('click', (e) => {
       const item = e.target.closest('[data-menu-tab]');
       if (!item) return;
+      if (!checkAndCloseSettings()) return;
       setTab(item.dataset.menuTab);
       closeMenu();
     });
@@ -168,8 +184,6 @@ function init() {
 
   // Wire the home actions early. If a later optional renderer fails, these
   // buttons still work and the user can navigate out of the bad state.
-  on('home-portfolio-toggle', 'click', window.toggleHomePortfolioView);
-  on('btn-home-new-analysis', 'click', () => setTab('trade'));
   on('brand-home', 'click', () => setTab('home'));
 
   // Log filter strip — mode tab buttons.
@@ -182,16 +196,13 @@ function init() {
     if (typeof window.renderLogTable === 'function') window.renderLogTable();
   });
 
-  // Settings ⌘K button opens settings.
-  document.getElementById('btn-settings')?.addEventListener('click', () => {
-    if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
-  });
-
   // Context panel — regime cluster click opens the two-in-one panel.
   const ctxTrigger = document.getElementById('regime-state');
   if (ctxTrigger) {
     ctxTrigger.style.cursor = 'pointer';
-    ctxTrigger.addEventListener('click', window.openContextPanel);
+    ctxTrigger.addEventListener('click', () => {
+      if (checkAndCloseSettings() && typeof window.openContextPanel === 'function') window.openContextPanel();
+    });
   }
   document.getElementById('ctx-backdrop')?.addEventListener('click', window.closeContextPanel);
   document.getElementById('ctx-close')?.addEventListener('click', window.closeContextPanel);
@@ -221,7 +232,10 @@ function init() {
   });
 
   // Ticker autocomplete for the edit modal. New Trade flow fields render dynamically.
-  attachTickerAutocomplete(document.getElementById('t-ticker'));
+  const legacyTickerInput = document.getElementById('t-ticker');
+  if (legacyTickerInput) {
+    attachTickerAutocomplete(legacyTickerInput);
+  }
 
   // Alpha Intel glossary panel — close on backdrop click / × / Esc.
   document.getElementById('ai-glossary-close')?.addEventListener('click', window.closeAIGlossary);
@@ -282,29 +296,74 @@ function init() {
 
   // Trade modal.
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', window.closeTradeModal));
-  document.getElementById('modal-add').addEventListener('click', e => {
+  document.getElementById('modal-add')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) window.closeTradeModal();
   });
   // Position editor modal (Execution Manager + Journal).
   if (typeof window._wirePositionEditor === 'function') window._wirePositionEditor();
-  document.getElementById('btn-save-trade').addEventListener('click', window.saveTrade);
-  document.getElementById('btn-delete-trade').addEventListener('click', window.deleteTrade);
-  document.getElementById('t-mode').addEventListener('change', e => {
-    window.populateTradeModalSetups(e.target.value);
-  });
-  document.querySelectorAll('#t-instrument-row .flow-instrument-pill').forEach(btn => {
-    btn.addEventListener('click', () => window.setTradeInstrument(btn.dataset.tInstrument));
-  });
-  document.getElementById('t-bias')?.addEventListener('change', e => window.setTradeBias(e.target.value));
 
   // Settings modal.
-  document.getElementById('btn-settings').addEventListener('click', window.openSettings);
-  document.querySelectorAll('[data-close-settings]').forEach(b => b.addEventListener('click', window.closeSettings));
-  document.getElementById('modal-settings').addEventListener('click', e => {
-    if (e.target === e.currentTarget) window.closeSettings();
+  window._settingsChanged = false;
+  document.getElementById('modal-settings')?.addEventListener('input', () => { window._settingsChanged = true; });
+
+  // Settings sidebar nav (desktop)
+  document.querySelectorAll('.sett-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.sett-nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+    });
   });
-  document.getElementById('btn-save-settings').addEventListener('click', window.saveSettings);
-  document.getElementById('btn-reset-settings').addEventListener('click', window.resetSettingsToDefaults);
+
+  // Settings list menu (mobile)
+  document.querySelectorAll('.sett-mv-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const secId = row.dataset.mvSec;
+      const sec = document.getElementById(secId);
+      if (!sec) return;
+      
+      document.getElementById('sett-mv').style.display = 'none';
+      sec.classList.add('sett-mv-open');
+      
+      if (!sec.querySelector('.sett-mv-back')) {
+        const backBtn = document.createElement('button');
+        backBtn.className = 'sett-mv-back';
+        backBtn.textContent = '← BACK TO MENU';
+        backBtn.type = 'button';
+        backBtn.addEventListener('click', () => {
+          sec.classList.remove('sett-mv-open');
+          document.getElementById('sett-mv').style.display = 'block';
+        });
+        sec.insertBefore(backBtn, sec.firstChild);
+      }
+    });
+  });
+  
+  const triggerOpenSettings = () => {
+    window._settingsChanged = false;
+    if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+    else if (typeof window.openSettings === 'function') window.openSettings();
+  };
+
+  document.getElementById('btn-settings')?.addEventListener('click', triggerOpenSettings);
+
+  // Restore the Cmd+K / Ctrl+K keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      triggerOpenSettings();
+    }
+  });
+
+  document.querySelectorAll('[data-close-settings]').forEach(b => b.addEventListener('click', checkAndCloseSettings));
+  document.getElementById('modal-settings')?.addEventListener('click', e => { if (e.target === e.currentTarget) checkAndCloseSettings(); });
+  document.getElementById('btn-save-settings')?.addEventListener('click', () => {
+    window._settingsChanged = false;
+    if (typeof window.saveSettingsModal === 'function') window.saveSettingsModal();
+    else if (typeof window.saveSettings === 'function') window.saveSettings();
+  });
+  document.getElementById('btn-reset-settings')?.addEventListener('click', () => {
+    if (typeof window.resetSettingsToDefaults === 'function') window.resetSettingsToDefaults();
+  });
   document.getElementById('btn-clear-all-data')?.addEventListener('click', window.clearAllTradesAndData);
 
   // Sunday checklists.
@@ -344,16 +403,7 @@ function init() {
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
   if (typeof window.ensureAuthModal === 'function') window.ensureAuthModal();
-  document.getElementById('auth-signin-btn')?.addEventListener('click', window.handleSignIn);
-  document.getElementById('auth-signup-btn')?.addEventListener('click', window.handleSignUp);
-  document.getElementById('auth-skip-btn')?.addEventListener('click', window.handleSkipAuth);
-  ['auth-email','auth-password'].forEach(id => {
-    document.getElementById(id)?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') window.handleSignIn();
-    });
-  });
   document.getElementById('btn-reference')?.addEventListener('click', () => setTab('reference'));
-  document.getElementById('sync-pill')?.addEventListener('click', window.showSyncMenu);
   // Boot the auth flow (async, non-blocking).
   window.bootstrapAuth();
   // Stale backup nudge — delay so it doesn't pop during initial bootstrap chaos.

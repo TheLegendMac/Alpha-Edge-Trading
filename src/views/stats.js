@@ -262,7 +262,7 @@ export function renderStats() {
   }
   const streakStr = streakN > 0 ? `${streakN}${streakT}` : '—';
 
-  // Alpha Intelligence card text
+  // Edge Intelligence card text
   const winStreakN = (() => {
     let n = 0;
     for (let i = sortedForStreak.length - 1; i >= 0; i--) {
@@ -332,12 +332,12 @@ export function renderStats() {
   const rDistLossCount = losses.length;
   const rDistWinCount = wins.length;
 
-  // Alpha Intelligence card — all variables now defined
+  // Edge Intelligence card — all variables now defined
   const alphaIntelHtml = `
     <div class="stats-alpha-intel">
       <div class="stats-alpha-hdr">
         <span class="stats-alpha-title">
-          <span class="stats-alpha-dot-main"></span>Alpha Intelligence
+          <span class="stats-alpha-dot-main"></span>Edge Intelligence
         </span>
         <button class="stats-ei-enlarge-btn" type="button" data-ei-enlarge>Enlarge →</button>
       </div>
@@ -430,7 +430,7 @@ export function renderStats() {
   </div>`).join('');
 
   shell.innerHTML = `
-    <!-- Hero: Alpha Intelligence (left) | Equity Curve (right) — equal height -->
+    <!-- Hero: Edge Intelligence (left) | Equity Curve (right) — equal height -->
     <section class="stats-hero">
       <div class="stats-edge-intel-wrap">${alphaIntelHtml}</div>
       <div class="stats-equity-card">

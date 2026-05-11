@@ -17,6 +17,7 @@ export function ensureAuthModal() {
       <div class="auth-modal-card">
         <div class="auth-modal-head">
           <div class="auth-modal-title">Trapper's Edge</div>
+          <div style="font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--cyan); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">Take Risk &amp; Prosper</div>
           <div class="auth-modal-subtitle">Sign in to sync across devices</div>
         </div>
         <div class="auth-field">
@@ -38,6 +39,15 @@ export function ensureAuthModal() {
       </div>
     </div>
   `);
+
+  document.getElementById('auth-signin-btn')?.addEventListener('click', handleSignIn);
+  document.getElementById('auth-signup-btn')?.addEventListener('click', handleSignUp);
+  document.getElementById('auth-skip-btn')?.addEventListener('click', handleSkipAuth);
+  ['auth-email', 'auth-password'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleSignIn();
+    });
+  });
 }
 
 export function showAuthModal() {

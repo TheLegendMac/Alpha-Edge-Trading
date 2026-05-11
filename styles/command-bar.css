@@ -1,6 +1,6 @@
 /* ============ COMMAND BAR — Trapper's Edge nav + regime ============ */
 .cmdbar {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: 0; z-index: 600;
   background: rgba(8, 9, 13, 0.85);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -267,4 +267,3 @@
 }
 
 .cmdbar-context-regime { display: none; }
-
