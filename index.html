@@ -804,130 +804,6 @@ STRENGTH: 3/3</pre>
   in your broker. Verify every number before clicking Buy.
 </footer>
 
-<!-- ============ ADD TRADE MODAL — TWO-MODE: Entry / Review ============ -->
-<div class="modal-backdrop" id="modal-add">
-  <div class="modal modal-trade">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-title">Log Trade</div>
-        <div class="modal-subtitle" id="modal-subtitle">Capture the entry plan. Close, scale, and grade the trade in the Position Editor after.</div>
-      </div>
-      <button class="modal-close" data-close>×</button>
-    </div>
-
-    <div class="modal-body">
-      <form id="trade-form">
-        <input type="hidden" id="t-id" />
-        <!-- Entry-only modal — closed/win/loss is set via the Position Editor's executions log. -->
-        <input type="hidden" id="t-status" value="open" />
-        <!-- Vestigial hidden fields kept so legacy code paths don't crash. Position Editor owns these now. -->
-        <input type="hidden" id="t-exit" />
-        <input type="hidden" id="t-grade" value="" />
-        <input type="hidden" id="t-followed-plan" value="" />
-        <input type="hidden" id="t-emotion" value="" />
-        <input type="hidden" id="t-exit-reason" value="" />
-        <input type="hidden" id="t-lesson" value="" />
-
-        <!-- ============ ENTRY ============ -->
-        <div class="modal-pane active" data-trade-pane="entry">
-          <!-- Stock vs Option toggle — drives unit labels and how Entry / Qty are interpreted -->
-          <div class="flow-instrument-row" id="t-instrument-row" role="tablist" aria-label="Trading instrument" style="margin-bottom: 14px;">
-            <span class="flow-instrument-label">Trading</span>
-            <div class="flow-instrument-pills">
-              <button type="button" class="flow-instrument-pill active" data-t-instrument="options" role="tab" aria-selected="true">
-                <span class="flow-instrument-pill-name">Options</span>
-                <span class="flow-instrument-pill-detail">Calls / puts</span>
-              </button>
-              <button type="button" class="flow-instrument-pill" data-t-instrument="stocks" role="tab" aria-selected="false">
-                <span class="flow-instrument-pill-name">Stocks</span>
-                <span class="flow-instrument-pill-detail">Shares</span>
-              </button>
-            </div>
-            <input type="hidden" id="t-instrument" value="options" />
-          </div>
-          <div class="form-grid">
-            <div class="input-group">
-              <label class="input-label">Mode</label>
-              <select class="input-field" id="t-mode" required>
-                <option value="swing">Swing</option>
-                <option value="intraday">Intraday</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Date</label>
-              <input type="date" class="input-field" id="t-date" required />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Ticker</label>
-              <input type="text" class="input-field" id="t-ticker" required
-                     placeholder="Ticker symbol" autocomplete="off" autocapitalize="characters" style="text-transform: uppercase;" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Setup</label>
-              <select class="input-field" id="t-setup" required>
-                <option value="">Select...</option>
-                <!-- Options populated by JS based on selected mode -->
-              </select>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Bias</label>
-              <select class="input-field" id="t-bias" required>
-                <option value="bullish">Bullish (up move)</option>
-                <option value="bearish">Bearish (down move)</option>
-              </select>
-              <!-- Mirrors bias into the legacy direction field for back-compat with stats -->
-              <input type="hidden" id="t-direction" value="Long" />
-            </div>
-            <div class="input-group">
-              <label class="input-label" id="t-entry-label">Entry Premium</label>
-              <input type="number" step="0.01" class="input-field" id="t-entry" required />
-            </div>
-            <div class="input-group">
-              <label class="input-label" id="t-contracts-label">Contracts</label>
-              <input type="number" class="input-field" id="t-contracts" required />
-            </div>
-            <div class="input-group" id="t-ivr-group">
-              <label class="input-label">IVR @ Entry</label>
-              <input type="number" min="0" max="100" class="input-field" id="t-ivr" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Regime @ Entry</label>
-              <select class="input-field" id="t-regime">
-                <option>RISK-ON</option>
-                <option>NEUTRAL</option>
-                <option>RISK-OFF</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Stop Level (underlying $)</label>
-              <input type="number" step="0.01" class="input-field" id="t-stop" />
-            </div>
-            <div class="input-group full">
-              <label class="input-label">Thesis (1 sentence)</label>
-              <textarea class="input-field" id="t-thesis"
-                        placeholder="Entry thesis: setup, trigger, expected move"></textarea>
-            </div>
-            <div class="input-group full">
-              <label class="input-label">Pre-mortem (if it loses, why?)</label>
-              <textarea class="input-field" id="t-premortem" placeholder="Invalidation: what proves this trade wrong?"></textarea>
-            </div>
-          </div>
-          <div class="modal-pane-hint">
-            Saves as an open position. After exit, click the trade in your log to open the Position Editor — that's where you log fills, tag the outcome, and journal the lesson.
-          </div>
-        </div>
-      </form>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-danger" id="btn-delete-trade" data-edit-only style="display:none;">Delete</button>
-      <div style="flex: 1;"></div>
-      <button class="btn-ghost" data-close>Cancel</button>
-      <button class="btn-primary" id="btn-save-trade">Save</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============ SETTINGS OVERLAY (full-page) ============ -->
 <div class="sett-overlay" id="modal-settings">
 
@@ -1486,7 +1362,10 @@ STRENGTH: 3/3</pre>
         if (typeof window.exportJSON === 'function') window.exportJSON();
       }
       if (e.target.closest('.log-add-btn') || e.target.closest('#btn-home-new-analysis')) {
-        if (typeof window.openTradeModal === 'function') window.openTradeModal();
+        if (typeof window.setTab === 'function') {
+          window.setTab('trade');
+          if (typeof window.resetFlowSilent === 'function') window.resetFlowSilent();
+        }
       }
       if (e.target.closest('#home-portfolio-toggle')) {
         if (typeof window.toggleHomePortfolioView === 'function') window.toggleHomePortfolioView();
