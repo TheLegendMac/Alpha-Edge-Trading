@@ -558,37 +558,34 @@ export function renderHome() {
         const qtyStr = `${tradeQty(t) || 0} ${qtyUnit} @ $${entry.toFixed(2)}`;
         const markStr = mark > 0 ? `mark $${mark.toFixed(2)}` : '';
         const plStr = t.status === 'open'
-          ? (mark > 0 ? `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}` : `risk $${risk}`)
+          ? (mark > 0 ? `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}` : '—')
           : `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}`;
-        const targetN = Number(t.target);
-        const refPx = mark > 0 ? mark : entry;
-        const targetStr = (Number.isFinite(targetN) && targetN > 0 && refPx > 0)
-          ? `→ $${targetN.toFixed(2)} · ${(Math.abs(targetN - refPx) / refPx * 100).toFixed(1)}%`
-          : 'open';
         const rStr = r !== null && Number.isFinite(r)
           ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`
-          : (t.status === 'open' ? targetStr : '—');
+          : (t.status === 'open' ? 'open' : '—');
+        const dirRaw = String(t.direction || '').toLowerCase();
+        const dirColor = dirRaw === 'short' ? 'red-bright' : 'green-bright';
+        const statusLabel = t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss';
         return `
           <button class="home-trade-row ${attr(statusClass)}" type="button" data-review-trade="${attr(t.id)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
-              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · <span style="color: var(--${String(t.direction || '').toLowerCase() === 'short' ? 'red-bright' : 'green-bright'});">${esc(t.direction || '—')}</span></span>
+              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${statusLabel}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · <span style="color: var(--${dirColor});">${esc(t.direction || '—')}</span> · ${esc(mode)}</span>
             </span>
-            <span class="home-trade-mode ${attr(mode)}">${esc(mode)}</span>
             <span class="home-trade-setup">
               ${esc(t.setup || 'No setup')}
               <span class="home-trade-detail">${esc(qtyStr)}</span>
             </span>
+            <span class="home-trade-risk">
+              <span class="home-trade-risk-val">$${risk.toLocaleString()}</span>
+              <span class="home-trade-detail">${t.status === 'open' ? 'risk' : 'risk taken'}</span>
+            </span>
             <span class="home-trade-value ${attr(statusClass)}">
               ${esc(plStr)}
-              <span class="home-trade-detail">${esc(rStr)}${markStr ? ' · ' + esc(markStr) : ''}</span>
+              <span class="home-trade-detail">${esc(rStr)}</span>
             </span>
-            <span class="home-trade-open-dot" style="${t.status !== 'open' ? 'display:none' : ''}">
-              <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--cyan);"></span>
-              open
-            </span>
-            <span class="home-trade-action">Review →</span>
+            <span class="home-trade-action">EDIT →</span>
           </button>
         `;
       }).join('');

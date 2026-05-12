@@ -256,11 +256,11 @@
   border-bottom: none;
 }
 
-/* Trade Book trade rows — 7-column table layout */
+/* Trade Book trade rows — 6-column table layout */
 .home-trade-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 4px 110px 90px 1fr 110px 90px 80px;
+  grid-template-columns: 4px minmax(140px, 1.1fr) minmax(170px, 1.5fr) 90px 110px 88px;
   gap: 16px;
   align-items: center;
   padding: 14px 22px;
@@ -329,6 +329,23 @@
 .home-trade-value.loss { color: var(--red-bright); }
 .home-trade-value.open { color: var(--cyan); }
 .home-trade-value .home-trade-detail { display: block; text-align: right; font-weight: 500; font-size: 10px; }
+.home-trade-risk {
+  min-width: 0;
+  text-align: right;
+  font-family: var(--mono);
+}
+.home-trade-risk-val {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+.home-trade-risk .home-trade-detail {
+  display: block;
+  text-align: right;
+  font-size: 10px;
+  margin-top: 3px;
+}
 .home-trade-action {
   justify-self: end;
   font-family: var(--mono);
@@ -1374,8 +1391,34 @@
   .ref-regime-grid { grid-template-columns: 1fr; }
   .ref-ivr-grid { grid-template-columns: repeat(2, 1fr); }
   .log-filter-strip { grid-template-columns: 1fr 1fr; }
-  .home-trade-row { grid-template-columns: 4px 100px 80px 1fr 90px; }
-  .home-trade-value, .home-trade-action { display: none; }
+  .home-trade-row {
+    grid-template-columns: 4px minmax(120px, 1fr) minmax(140px, 1.2fr) 80px 90px 72px;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+@media (max-width: 720px) {
+  .home-trade-row {
+    grid-template-columns: 4px 1fr auto;
+    grid-template-areas:
+      "stripe main  value"
+      "stripe setup risk";
+    row-gap: 6px;
+    column-gap: 12px;
+    padding: 12px 14px;
+    align-items: start;
+  }
+  .home-trade-row .home-trade-stripe { grid-area: stripe; height: 100%; min-height: 44px; align-self: stretch; }
+  .home-trade-row .home-trade-main   { grid-area: main; min-width: 0; }
+  .home-trade-row .home-trade-setup  { grid-area: setup; min-width: 0; font-size: 12px; }
+  .home-trade-row .home-trade-risk   { grid-area: risk; }
+  .home-trade-row .home-trade-value  { grid-area: value; }
+  .home-trade-row .home-trade-action { display: none; }
+  .home-trade-row .home-trade-ticker { font-size: 14px; }
+  .home-trade-row .home-trade-meta,
+  .home-trade-row .home-trade-detail { font-size: 10px; }
+  .home-trade-row .home-trade-risk-val { font-size: 12px; }
+  .home-trade-row .home-trade-value { font-size: 14px; }
 }
 @media (max-width: 720px) {
   .home-stat-cards { grid-template-columns: repeat(2, 1fr); }

@@ -9,7 +9,6 @@ import {
   tradeQty,
   tradeInstrument,
   normalizeProcessQuality,
-  processQualityLabel,
   tradeRiskDollars,
   calcR,
 } from '../models/trade.js';
@@ -113,31 +112,35 @@ export function renderLogTable() {
         const entry = Number(t.entry || 0);
         const exit = t.exit ? Number(t.exit) : null;
         const risk = Number(t.riskDollars) || tradeRiskDollars(t) || 0;
-        const valueText = t.status === 'open' ? `$${Math.round(risk)}` : formatMoney(pl || 0);
-        const processLabel = processQualityLabel(t.grade);
+        const valueText = t.status === 'open'
+          ? '—'
+          : formatMoney(pl || 0);
         const valueDetail = t.status === 'open'
-          ? 'risk open'
-          : `${formatR(r)}${processLabel ? ` · ${processLabel}` : ''}`;
+          ? 'open'
+          : formatR(r);
+        const dirRaw = String(t.direction || '').toLowerCase();
+        const dirColor = dirRaw === 'short' ? 'red-bright' : 'green-bright';
+        const qtyStr = `${t.contracts || 0} ${sizeUnit} @ $${entry.toFixed(2)}`;
         return `
-          <button class="home-trade-row log-trade-row" type="button" data-edit-trade="${attr(t.id)}">
+          <button class="home-trade-row log-trade-row ${attr(statusClass)}" type="button" data-edit-trade="${attr(t.id)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
-              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(t.status)}" style="font-size:9px; padding:2px 6px;">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
-              <span class="home-trade-meta">${formatDate(t.date)} · ${esc(mode)} · <span style="color: var(--${String(t.direction || '').toLowerCase() === 'short' ? 'red-bright' : 'green-bright'});">${esc(t.direction || '—')}</span></span>
+              <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>
+              <span class="home-trade-meta">${formatDate(t.date)} · <span style="color: var(--${dirColor});">${esc(t.direction || '—')}</span> · ${esc(mode)}</span>
             </span>
             <span class="home-trade-setup">
               ${esc(t.setup || 'No setup')}
-              <span class="home-trade-detail">Entry $${entry.toFixed(2)} · Exit ${exit !== null ? '$' + exit.toFixed(2) : '—'} · ${t.contracts || 0} ${sizeUnit}</span>
+              <span class="home-trade-detail">${esc(qtyStr)}</span>
             </span>
-            <span class="log-trade-risk">
-              ${formatR(r)}
-              <span class="home-trade-detail">Risk $${Math.round(risk)}</span>
+            <span class="home-trade-risk">
+              <span class="home-trade-risk-val">$${Math.round(risk).toLocaleString()}</span>
+              <span class="home-trade-detail">${t.status === 'open' ? 'risk' : 'risk taken'}</span>
             </span>
             <span class="home-trade-value ${attr(statusClass)}">
               ${valueText}
               <span class="home-trade-detail">${valueDetail}</span>
             </span>
-            <span class="log-trade-action-btn">Edit</span>
+            <span class="home-trade-action">EDIT →</span>
           </button>
         `;
       }).join('')}

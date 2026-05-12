@@ -152,10 +152,10 @@
 }
 .log-trade-header {
   display: grid;
-  grid-template-columns: 9px minmax(126px, 1.1fr) minmax(170px, 1.45fr) minmax(118px, 0.8fr) minmax(88px, 0.65fr) 72px;
-  gap: 12px;
+  grid-template-columns: 4px minmax(140px, 1.1fr) minmax(170px, 1.5fr) 90px 110px 88px;
+  gap: 16px;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px 22px;
   border-bottom: 1px solid var(--line);
   background: rgba(255,255,255,0.025);
   font-family: var(--mono);
@@ -165,76 +165,30 @@
   text-transform: uppercase;
   color: var(--ink-4);
 }
-.log-trade-header span:nth-child(5),
+.log-trade-header span:nth-child(4),
+.log-trade-header span:nth-child(5) {
+  text-align: right;
+}
 .log-trade-header span:nth-child(6) {
   text-align: right;
 }
 .log-trade-row {
-  grid-template-columns: 9px minmax(126px, 1.1fr) minmax(170px, 1.45fr) minmax(118px, 0.8fr) minmax(88px, 0.65fr) 72px;
-  padding: 13px 16px;
+  /* Inherits .home-trade-row grid columns; nothing to override on desktop. */
 }
-.log-trade-row .home-trade-value {
-  min-width: 0;
-}
-.log-trade-risk {
-  min-width: 0;
-  font-family: var(--mono);
-  color: var(--ink-2);
-  font-weight: 800;
-}
-.log-trade-risk .home-trade-detail {
-  display: block;
-  font-weight: 600;
-}
-.log-trade-action-btn {
-  justify-self: end;
-  border: 1px solid rgba(6, 212, 248, 0.28);
-  background: rgba(6, 212, 248, 0.06);
-  color: var(--cyan);
-  border-radius: var(--r-sm);
-  padding: 6px 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.log-trade-action-btn:hover {
-  border-color: var(--cyan);
-  color: var(--ink);
-}
-@media (max-width: 980px) {
-  .log-toolbar {
-    align-items: stretch;
-  }
-  .log-toolbar-actions,
-  #log-trade-search {
-    width: 100% !important;
-  }
-  .log-toolbar-actions {
-    justify-content: flex-start;
-  }
+.log-trade-row .home-trade-value { min-width: 0; }
+@media (max-width: 1100px) {
   .log-trade-header {
-    grid-template-columns: 8px minmax(0, 1fr) auto;
-    gap: 10px;
+    grid-template-columns: 4px minmax(120px, 1fr) minmax(140px, 1.2fr) 80px 90px 72px;
+    gap: 12px;
+    padding: 10px 16px;
   }
-  .log-trade-header span:nth-child(3),
-  .log-trade-header span:nth-child(4),
-  .log-trade-header span:nth-child(6) {
-    display: none;
-  }
-  .log-trade-header span:nth-child(5) {
-    text-align: right;
-  }
-  .log-trade-row {
-    grid-template-columns: 8px minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-  .log-trade-row .home-trade-setup,
-  .log-trade-row .log-trade-risk,
-  .log-trade-row .log-trade-action-btn {
-    display: none;
-  }
+}
+@media (max-width: 720px) {
+  .log-toolbar { align-items: stretch; }
+  .log-toolbar-actions,
+  #log-trade-search { width: 100% !important; }
+  .log-toolbar-actions { justify-content: flex-start; }
+  .log-trade-header { display: none; }
 }
 
 /* --- Sunday Prep: cards & sector grid --- */
