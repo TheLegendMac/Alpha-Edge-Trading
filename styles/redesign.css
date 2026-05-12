@@ -4976,3 +4976,15 @@
   .et-now-dot { gap: 3px; }
   .et-now-circle { width: 12px; height: 12px; box-shadow: 0 0 0 2px var(--bg, #08090d); }
 }
+
+/* Home stat cards: larger title, no sub line, oversized value */
+.home-stat-label { font-size: 12px !important; }
+.home-stat-card .home-stat-sub { display: none !important; }
+.home-stat-value {
+  font-size: 32px !important;
+  line-height: 1.0 !important;
+  letter-spacing: -0.025em;
+}
+@media (max-width: 720px) {
+  .home-stat-value { font-size: 28px !important; }
+}

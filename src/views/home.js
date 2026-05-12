@@ -339,20 +339,36 @@ export function renderHome() {
   if (sessionPlEl) {
     const v = `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`;
     sessionPlEl.textContent = v;
-    sessionPlEl.className = `ae-stat-value ${sessionPL > 0 ? 'green' : sessionPL < 0 ? 'red' : ''}`;
+    sessionPlEl.className = `home-stat-value ${sessionPL > 0 ? 'green' : sessionPL < 0 ? 'red' : ''}`;
   }
   setText('home-session-sub', `${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R · realized ${todayPL >= 0 ? '$' : '-$'}${Math.abs(Math.round(todayPL))} · open ${openUnrealized >= 0 ? '$' : '-$'}${Math.abs(Math.round(openUnrealized))}`);
 
   // New stat card IDs
   setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`);
-  setText('home-realized', `${realizedAll >= 0 ? '+$' : '-$'}${Math.abs(Math.round(realizedAll)).toLocaleString()}`);
-  setText('home-unrealized', `${openUnrealized >= 0 ? '+$' : '-$'}${Math.abs(Math.round(openUnrealized)).toLocaleString()}`);
   setText('home-win-rate', winRate > 0 ? `${winRate}%` : '—');
   const wrSub = document.getElementById('home-win-rate-sub');
   if (wrSub) wrSub.textContent = closed.length ? `${wins.length} / ${closed.length} closed` : 'all time';
-  setText('home-trades-left', tradesLeft > 0 ? String(tradesLeft) : '0');
   setText('home-buffer', `$${Math.round(openRisk).toLocaleString()}`);
-  setText('home-risk-unit', `1R = $${nextRisk}`);
+  const openRiskR = nextRisk > 0 ? openRisk / nextRisk : 0;
+  setText('home-risk-unit', `${openRiskR.toFixed(1)}R open`);
+
+  // Edge per $1 risk: average R multiple across all closed trades
+  const avgR = closed.length
+    ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length
+    : 0;
+  const edgeEl = document.getElementById('home-edge-ratio');
+  if (edgeEl) {
+    if (!closed.length) {
+      edgeEl.textContent = '—';
+      edgeEl.className = 'home-stat-value';
+    } else {
+      edgeEl.textContent = avgR >= 0
+        ? `$${avgR.toFixed(2)}`
+        : `-$${Math.abs(avgR).toFixed(2)}`;
+      edgeEl.className = `home-stat-value ${avgR > 0 ? 'green' : avgR < 0 ? 'red' : ''}`;
+    }
+  }
+  setText('home-edge-ratio-sub', `${closed.length} closed trade${closed.length === 1 ? '' : 's'}`);
 
   // Status dot colour mirrors headline tone
   const dot = document.getElementById('home-status-dot');

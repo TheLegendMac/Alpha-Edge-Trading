@@ -104,13 +104,23 @@ function tfMoonshotR() {
   return window.tfClampMoonshotR(tf.moonshotR);
 }
 
-function tfRenderMoonshotSliderHtml(moonshotR) {
+function tfRenderMoonshotSliderHtml(moonshotR, ctx = {}) {
   const r = window.tfClampMoonshotR(moonshotR);
+  const e = Number(ctx.entry);
+  const s = Number(ctx.stop);
+  const t = Number(ctx.target);
+  let priceText = '';
+  if (e > 0 && s > 0) {
+    const direction = window.tfRiskDirection({ entry: e, stop: s, target: t });
+    const stopDist = Math.abs(e - s);
+    const price = e + direction * stopDist * r;
+    priceText = window.tfMoneyText(price);
+  }
   return `
     <div class="tf-moonshot-control">
       <div class="tf-moonshot-head">
         <span>Adjust moon shot target</span>
-        <output data-tf-moonshot-value>${window.tfFormatR(r)}</output>
+        <output data-tf-moonshot-value>${priceText || '—'}</output>
       </div>
       <input type="range" min="2" max="6" step="0.25" value="${r}" class="tf-moonshot-slider" data-tf-moonshot-slider aria-label="Adjust moon shot target" />
     </div>`;
@@ -165,9 +175,10 @@ function tfRiskRailHtml({ entry, stop, target, qty, mult = 1, moonshotR = null }
   if (!(loss > 0 && reward > 0)) return '';
   const targetR = reward / loss;
   const moonR = window.tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? window.tfMoonshotR() : moonshotR);
+  const moonPrice = e + direction * stopDist * moonR;
   const milestones = [
-    { cls: 'target', r: targetR, label: `${targetR.toFixed(2)}R`, pnl: reward },
-    { cls: 'moon', r: moonR, label: window.tfFormatR(moonR), pnl: loss * moonR },
+    { cls: 'target', r: targetR, label: `${targetR.toFixed(2)}R`, pnl: reward, price: t },
+    { cls: 'moon',   r: moonR,   label: window.tfFormatR(moonR), pnl: loss * moonR, price: moonPrice },
   ].sort((a, b) => a.r - b.r);
   const firstVisual = Math.max(0.45, Math.min(2.5, milestones[0].r || 1));
   const secondVisual = Math.max(firstVisual + 0.65, Math.min(3.25, milestones[1].r || (milestones[0].r + 1)));
@@ -176,20 +187,20 @@ function tfRiskRailHtml({ entry, stop, target, qty, mult = 1, moonshotR = null }
   const lossPct = (1 / total) * 100;
   const firstPct = (firstVisual / total) * 100;
   const secondPct = Math.max(12, 100 - lossPct - firstPct);
-  const moonCaption = milestones[1].cls === 'moon' ? 'Moon shot' : 'Closing @ Target';
-  const firstCaption = milestones[0].cls === 'moon' ? 'Moon shot' : 'Closing @ Target';
+  const captionFor = (cls) => cls === 'moon' ? 'Moon shot' : 'Closing @ Target';
+  const zone = (cls, widthPct, caption, price, pnlText, rLabel) => `
+    <div class="tf-risk-zone ${cls}" style="width:${widthPct.toFixed(2)}%;">
+      <span class="tf-risk-chip">${rLabel}</span>
+      <em class="tf-risk-caption">${caption}</em>
+      <strong>${window.tfMoneyText(price)}</strong>
+      <span>${pnlText}</span>
+    </div>`;
   return `
     <div class="tf-risk-rail">
-      <div class="tf-risk-zone loss" style="width:${lossPct.toFixed(2)}%;">
-        <div><em class="tf-risk-caption">Closing @ Stop</em><strong>-1R</strong><span>-${window.tfAbsMoneyText(loss, 2)}</span></div>
-      </div>
-      <div class="tf-risk-zone ${milestones[0].cls}" style="width:${firstPct.toFixed(2)}%;">
-        <div><em class="tf-risk-caption">${firstCaption}</em><strong>${milestones[0].label}</strong><span>${window.tfSignedMoneyText(milestones[0].pnl, 2)}</span></div>
-      </div>
-      <div class="tf-risk-zone ${milestones[1].cls}" style="width:${secondPct.toFixed(2)}%;">
-        <div><em class="tf-risk-caption">${moonCaption}</em><strong>${milestones[1].label}</strong><span>${window.tfSignedMoneyText(milestones[1].pnl, 2)}</span></div>
-      </div>
-      <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"></div>
+      ${zone('loss', lossPct, 'Closing @ Stop', s, `-${window.tfAbsMoneyText(loss, 2)}`, '-1R')}
+      ${zone(milestones[0].cls, firstPct, captionFor(milestones[0].cls), milestones[0].price, window.tfSignedMoneyText(milestones[0].pnl, 2), milestones[0].label)}
+      ${zone(milestones[1].cls, secondPct, captionFor(milestones[1].cls), milestones[1].price, window.tfSignedMoneyText(milestones[1].pnl, 2), milestones[1].label)}
+      <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"><span class="tf-risk-entry-label">ENTRY ${window.tfMoneyText(e)}</span></div>
     </div>`;
 }
 
@@ -298,13 +309,9 @@ function tfRenderRiskProfileHtml({ entry, stop, target, qty, mult = 1, title = '
   const moonR = window.tfClampMoonshotR(moonshotR === null || moonshotR === undefined ? window.tfMoonshotR() : moonshotR);
   return `
     <div class="tf-risk-profile" data-tf-risk-entry="${e}" data-tf-risk-stop="${s}" data-tf-risk-target="${t}" data-tf-risk-qty="${q}" data-tf-risk-mult="${m}" data-tf-risk-unit="${rUnit}">
-      <div class="tf-risk-profile-head">
-        <div class="tf-risk-profile-title">${title}</div>
-        <div class="tf-risk-profile-meta" data-tf-risk-meta>Risk unit ${window.tfAbsMoneyText(plannedRiskUnit)} · stop risk ${window.tfAbsMoneyText(loss)} · ${q} ${unitLabel}${q === 1 ? '' : 's'} · ${displayR.toFixed(2)}R target</div>
-      </div>
       <div data-tf-risk-rail-wrap>${window.tfRiskRailHtml({ entry, stop, target, qty, mult, moonshotR: moonR })}</div>
       ${window.tfRenderPriceLevelSlidersHtml({ entry, stop, target, qty, mult })}
-      ${window.tfRenderMoonshotSliderHtml(moonR)}
+      ${window.tfRenderMoonshotSliderHtml(moonR, { entry, stop, target })}
     </div>`;
 }
 
@@ -323,10 +330,19 @@ function tfRiskArgsFromProfile(profile, moonshotR) {
 
 function tfRefreshMoonshotProfile(profile, moonshotR) {
   if (!profile) return;
-  const value = profile.querySelector('[data-tf-moonshot-value]');
-  if (value) value.textContent = window.tfFormatR(moonshotR);
-  const railWrap = profile.querySelector('[data-tf-risk-rail-wrap]');
   const args = window.tfRiskArgsFromProfile(profile, moonshotR);
+  const value = profile.querySelector('[data-tf-moonshot-value]');
+  if (value) {
+    let priceText = '';
+    if (args && args.entry > 0 && args.stop > 0) {
+      const direction = window.tfRiskDirection({ entry: args.entry, stop: args.stop, target: args.target });
+      const stopDist = Math.abs(args.entry - args.stop);
+      const price = args.entry + direction * stopDist * moonshotR;
+      priceText = window.tfMoneyText(price);
+    }
+    value.textContent = priceText || '—';
+  }
+  const railWrap = profile.querySelector('[data-tf-risk-rail-wrap]');
   if (railWrap && args) railWrap.innerHTML = window.tfRiskRailHtml(args);
 }
 
@@ -375,8 +391,6 @@ function tfRefreshPriceSliderReadout(slider) {
     }
   }
   const loss = Math.abs(args.entry - stop) * qty * mult;
-  const reward = Math.abs(target - args.entry) * qty * mult;
-  const direction = window.tfRiskDirection({ entry: args.entry, stop, target });
   profile.dataset.tfRiskStop = stop;
   profile.dataset.tfRiskTarget = target;
   profile.dataset.tfRiskQty = qty;
@@ -388,14 +402,17 @@ function tfRefreshPriceSliderReadout(slider) {
     const rowOutput = profile.querySelector(`[data-tf-price-output="${rowKind}"]`);
     if (rowOutput) rowOutput.textContent = window.tfMoneyText(rowPrice);
   });
-  const meta = profile.querySelector('[data-tf-risk-meta]');
-  if (meta) {
-    const targetR = loss > 0 ? reward / loss : 0;
-    meta.textContent = `Stop risk ${window.tfAbsMoneyText(loss)} · ${qty} unit${qty === 1 ? '' : 's'} · ${targetR.toFixed(2)}R target`;
-  }
   const railWrap = profile.querySelector('[data-tf-risk-rail-wrap]');
   const moonshotR = window.tfMoonshotR();
   if (railWrap) railWrap.innerHTML = window.tfRiskRailHtml({ entry: args.entry, stop, target, qty, mult, moonshotR });
+  // Moon shot readout also depends on entry/stop distance — refresh its price.
+  const moonOut = profile.querySelector('[data-tf-moonshot-value]');
+  if (moonOut) {
+    const direction = window.tfRiskDirection({ entry: args.entry, stop, target });
+    const stopDist = Math.abs(args.entry - stop);
+    const moonPrice = args.entry + direction * stopDist * moonshotR;
+    moonOut.textContent = window.tfMoneyText(moonPrice);
+  }
 }
 
 function tfBindPriceLevelSliders() {

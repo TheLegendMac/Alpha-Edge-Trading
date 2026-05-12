@@ -107,7 +107,12 @@
           <div class="home-stat-card">
             <div class="home-stat-label">Net P/L</div>
             <div class="home-stat-value" id="home-session-pl">+$0</div>
-            <div class="home-stat-sub"><span id="home-realized">$0</span> realized · <span id="home-unrealized">$0</span> open</div>
+            <div class="home-stat-sub" aria-hidden="true">&nbsp;</div>
+          </div>
+          <div class="home-stat-card">
+            <div class="home-stat-label">Open risk</div>
+            <div class="home-stat-value" id="home-buffer">$0</div>
+            <div class="home-stat-sub" id="home-risk-unit">0.0R open</div>
           </div>
           <div class="home-stat-card">
             <div class="home-stat-label">Win Rate</div>
@@ -115,13 +120,9 @@
             <div class="home-stat-sub" id="home-win-rate-sub">all time</div>
           </div>
           <div class="home-stat-card">
-            <div class="home-stat-label">Slots open</div>
-            <div class="home-stat-value" id="home-trades-left">—</div>
-          </div>
-          <div class="home-stat-card">
-            <div class="home-stat-label">Open risk</div>
-            <div class="home-stat-value" id="home-buffer">$0</div>
-            <div class="home-stat-sub" id="home-risk-unit">1R = $0</div>
+            <div class="home-stat-label">Risking $1 to make</div>
+            <div class="home-stat-value" id="home-edge-ratio">—</div>
+            <div class="home-stat-sub" id="home-edge-ratio-sub">0 closed trades</div>
           </div>
         </div>
       </section>

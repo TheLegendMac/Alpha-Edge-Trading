@@ -651,19 +651,39 @@
   position: relative;
   display: flex;
   min-height: 72px;
-  overflow: hidden;
+  margin-top: 24px; /* reserve space for the ENTRY label above the rail */
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg);
 }
 #panel-trade .tf-risk-zone {
-  display: grid;
-  place-items: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-width: 72px;
-  padding: 10px;
+  padding: 14px 10px 10px;
   text-align: center;
   border-right: 1px solid rgba(255,255,255,0.06);
 }
+#panel-trade .tf-risk-chip {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+#panel-trade .tf-risk-zone.loss .tf-risk-chip   { color: var(--red-bright); background: rgba(239,68,68,0.16); }
+#panel-trade .tf-risk-zone.target .tf-risk-chip { color: var(--green-bright); background: rgba(16,185,129,0.16); }
+#panel-trade .tf-risk-zone.moon .tf-risk-chip   { color: var(--green-bright); background: rgba(16,185,129,0.12); opacity: 0.9; }
 #panel-trade .tf-risk-zone:last-child { border-right: 0; }
 #panel-trade .tf-risk-zone.loss {
   background: linear-gradient(90deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05));
@@ -691,17 +711,18 @@
 #panel-trade .tf-risk-zone strong {
   display: block;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--ink);
 }
 #panel-trade .tf-risk-zone span {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.92;
 }
 #panel-trade .tf-risk-zone.loss span { color: var(--red-bright); }
 #panel-trade .tf-risk-zone.target span { color: var(--green-bright); }
@@ -714,12 +735,12 @@
   background: var(--ink);
   box-shadow: 0 0 12px rgba(255,255,255,0.35);
 }
-#panel-trade .tf-risk-entry-marker::before {
-  content: 'ENTRY';
+#panel-trade .tf-risk-entry-label {
   position: absolute;
-  top: 6px;
+  top: -22px;
   left: 50%;
   transform: translateX(-50%);
+  white-space: nowrap;
   padding: 2px 7px;
   border-radius: var(--r-sm);
   background: var(--bg-elev);
@@ -728,7 +749,7 @@
   font-family: var(--mono);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.10em;
 }
 #panel-trade .tf-price-adjust {
   display: grid;
@@ -871,13 +892,13 @@
   }
   #panel-trade .tf-risk-table-head { display: none; }
   /* Rail: shrink zone min-widths and content so it fits a phone */
-  #panel-trade .tf-risk-rail { min-height: 84px; }
-  #panel-trade .tf-risk-zone { min-width: 0; padding: 8px 6px; }
-  #panel-trade .tf-risk-caption { font-size: 8px; letter-spacing: 0.08em; margin-bottom: 2px; }
-  #panel-trade .tf-risk-zone strong { font-size: 11px; }
-  #panel-trade .tf-risk-zone span { font-size: 11px; margin-top: 2px; }
-  #panel-trade .tf-risk-profile-head { flex-direction: column; align-items: flex-start; gap: 6px; }
-  #panel-trade .tf-risk-profile-meta { font-size: 10px; }
+  #panel-trade .tf-risk-rail { min-height: 88px; }
+  #panel-trade .tf-risk-zone { min-width: 0; padding: 16px 4px 8px; }
+  #panel-trade .tf-risk-chip { top: 3px; right: 3px; font-size: 8px; padding: 1px 4px; }
+  #panel-trade .tf-risk-caption { font-size: 8px; letter-spacing: 0.06em; margin-bottom: 2px; }
+  #panel-trade .tf-risk-zone strong { font-size: 12px; letter-spacing: 0; }
+  #panel-trade .tf-risk-zone span { font-size: 10px; margin-top: 1px; }
+  #panel-trade .tf-risk-entry-label { font-size: 8px; padding: 1px 5px; }
 }
 
 #panel-trade .tf-scenario-review {
