@@ -206,7 +206,7 @@
   letter-spacing: -0.01em;
 }
 
-/* Open Book section */
+/* Trade Book section */
 .home-openbook {
   background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -256,7 +256,7 @@
   border-bottom: none;
 }
 
-/* Open book trade rows — 7-column table layout */
+/* Trade Book trade rows — 7-column table layout */
 .home-trade-row {
   width: 100%;
   display: grid;
@@ -357,7 +357,7 @@
 .home-trade-ticker .status.win { background: var(--green-bg); color: var(--green-bright); }
 .home-trade-ticker .status.loss { background: var(--red-bg); color: var(--red-bright); }
 
-/* Open book mode badge */
+/* Trade Book mode badge */
 .home-trade-mode {
   display: inline-flex;
   align-items: center;
@@ -4751,6 +4751,20 @@
   padding: 4px 6px;
   border-radius: 6px;
   transition: background 0.12s, transform 0.08s;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (hover: none) and (pointer: coarse) {
+  .et-ladder.is-editable .et-marker-drag {
+    padding: 10px 12px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 }
 .et-ladder.is-editable .et-marker-drag:hover { background: rgba(255,255,255,0.06); }
 .et-ladder.is-editable .et-marker-drag.is-dragging {
@@ -4978,8 +4992,13 @@
 }
 
 /* Home stat cards: larger title, no sub line, oversized value */
-.home-stat-label { font-size: 12px !important; }
+.home-stat-label {
+  font-size: 12px !important;
+  line-height: 1.2;
+  min-height: 2.4em;
+}
 .home-stat-card .home-stat-sub { display: none !important; }
+.home-stat-card { justify-content: space-between; }
 .home-stat-value {
   font-size: 32px !important;
   line-height: 1.0 !important;

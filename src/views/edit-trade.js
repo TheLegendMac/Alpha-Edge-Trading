@@ -353,7 +353,7 @@ function renderEditTrade(trade) {
           <div class="et-marker-price">$${target.toFixed(2)}</div>
           <div class="et-marker-line" style="background:var(--green-bright);opacity:0.6;height:28px;position:absolute;top:${targetLineTop}px;"></div>
         </div>` : `
-        <div class="et-marker et-marker-above ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:12px;opacity:0.6;">
+        <div class="et-marker ${nearTarget ? 'et-marker-below' : 'et-marker-above'} ${editMode ? 'et-marker-drag' : ''}" data-handle="target" style="left:${targetX}%;top:${targetLaneTop}px;opacity:0.6;">
           <div class="et-marker-label" style="color:var(--amber-bright,#fbbf24)">TARGET</div>
           <div class="et-marker-price" style="color:var(--ink-4);">—</div>
         </div>`}
@@ -702,7 +702,7 @@ function wireDragHandles(trade, w, ctx) {
       e.preventDefault();
       const which = handle.dataset.handle;
       const rect = ladder.getBoundingClientRect();
-      handle.setPointerCapture?.(e.pointerId);
+      try { handle.setPointerCapture?.(e.pointerId); } catch {}
       handle.classList.add('is-dragging');
 
       const onMove = (ev) => {
@@ -713,20 +713,19 @@ function wireDragHandles(trade, w, ctx) {
         if (which === 'stop')   draft.stop = price;
         if (which === 'entry')  draft.entry = price;
         if (which === 'target') draft.target = price;
-        // Live update the price label without re-rendering the whole view.
         const label = handle.querySelector('.et-marker-price');
         if (label) label.textContent = '$' + price.toFixed(2);
       };
       const onUp = () => {
         handle.classList.remove('is-dragging');
-        handle.removeEventListener('pointermove', onMove);
-        handle.removeEventListener('pointerup', onUp);
-        handle.removeEventListener('pointercancel', onUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
         renderEditTrade(trade);
       };
-      handle.addEventListener('pointermove', onMove);
-      handle.addEventListener('pointerup', onUp);
-      handle.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointermove', onMove, { passive: true });
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     });
   });
 }

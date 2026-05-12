@@ -383,7 +383,7 @@ export function renderHome() {
   const intelCard = document.getElementById('home-intel-card');
   if (intelCard) intelCard.classList.toggle('risk-off', killActive || state.regime === 'risk-off');
 
-  // Open book meta line
+  // Trade Book meta line
   const meta = document.getElementById('home-openbook-meta');
   if (meta) meta.textContent = openTrades.length
     ? `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} · open risk $${Math.round(openRisk).toLocaleString()}`
@@ -560,9 +560,14 @@ export function renderHome() {
         const plStr = t.status === 'open'
           ? (mark > 0 ? `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}` : `risk $${risk}`)
           : `${pl >= 0 ? '+$' : '-$'}${Math.abs(pl || 0).toFixed(0)}`;
+        const targetN = Number(t.target);
+        const refPx = mark > 0 ? mark : entry;
+        const targetStr = (Number.isFinite(targetN) && targetN > 0 && refPx > 0)
+          ? `→ $${targetN.toFixed(2)} · ${(Math.abs(targetN - refPx) / refPx * 100).toFixed(1)}%`
+          : 'open';
         const rStr = r !== null && Number.isFinite(r)
           ? `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`
-          : (t.status === 'open' ? 'open' : '—');
+          : (t.status === 'open' ? targetStr : '—');
         return `
           <button class="home-trade-row ${attr(statusClass)}" type="button" data-review-trade="${attr(t.id)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
