@@ -2129,6 +2129,10 @@
   .trade-hero   { grid-template-columns: 1fr; }
   .trade-hero-toggle { align-self: flex-start; }
 }
+@media (max-width: 720px) {
+  /* Match .main mobile padding (14px) instead of stacking another 28px */
+  #panel-trade .trade-shell { padding: 0 0 80px; }
+}
 
 /* ── IVR strategy card ── */
 .ivr-strategy-card {

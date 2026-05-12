@@ -10,13 +10,21 @@ import { renderLogTable } from './views/log.js';
 import { renderStats } from './views/stats.js';
 import { _buildTickerHistory, rememberTicker } from './trade-flow/ticker-memory.js';
 
-export function setTab(name) {
+export function setTab(name, opts = {}) {
   if (name === 'decision' || name === 'intraday') name = 'trade';
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   document.querySelectorAll('.cmdbar-menu-item').forEach(t => t.classList.toggle('active', t.dataset.menuTab === name));
   state.activeMode = name;
   saveState();
+  // Mirror tab into history so the native browser back button navigates
+  // between tabs instead of leaving the app (which would 404 on mobile).
+  if (!opts.fromPopstate && typeof window !== 'undefined' && window.history) {
+    const url = '#' + name;
+    const cur = (window.history.state && window.history.state.tab) || null;
+    if (cur === null) window.history.replaceState({ tab: name }, '', url);
+    else if (cur !== name) window.history.pushState({ tab: name }, '', url);
+  }
   // Refresh regime banner so its rules text matches the active mode.
   renderRegime();
   // Refresh dynamic content when navigating.
@@ -116,3 +124,14 @@ export function attachTickerAutocomplete(input, opts = {}) {
 // Bridge to inline onclick handlers in markup that still reference setTab().
 window.setTab = setTab;
 window.attachTickerAutocomplete = attachTickerAutocomplete;
+
+// Native browser back/forward — route to the appropriate tab without
+// leaving the SPA (which would 404 on hosts that don't fall back to /).
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (e) => {
+    const tab = (e.state && e.state.tab)
+      || (window.location.hash || '').replace(/^#/, '')
+      || 'home';
+    setTab(tab, { fromPopstate: true });
+  });
+}

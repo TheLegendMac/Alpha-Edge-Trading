@@ -400,7 +400,7 @@ function tfMountIntradayStep2() {
       state.intraday[key] = isNaN(v) ? null : v;
       saveState();
       window.tfRefreshHeaderOnly();
-      if (key === 'entry' || key === 'stop' || key === 'target') {
+      if (key === 'entry' || key === 'stop' || key === 'target' || key === 'contracts') {
         window.tfUpdateIntradayRMult();
         window.tfUpdateIntradaySizing();
       }
