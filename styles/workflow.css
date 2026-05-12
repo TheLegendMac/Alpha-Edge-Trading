@@ -870,6 +870,14 @@
     grid-template-columns: 1fr 1fr;
   }
   #panel-trade .tf-risk-table-head { display: none; }
+  /* Rail: shrink zone min-widths and content so it fits a phone */
+  #panel-trade .tf-risk-rail { min-height: 84px; }
+  #panel-trade .tf-risk-zone { min-width: 0; padding: 8px 6px; }
+  #panel-trade .tf-risk-caption { font-size: 8px; letter-spacing: 0.08em; margin-bottom: 2px; }
+  #panel-trade .tf-risk-zone strong { font-size: 11px; }
+  #panel-trade .tf-risk-zone span { font-size: 11px; margin-top: 2px; }
+  #panel-trade .tf-risk-profile-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  #panel-trade .tf-risk-profile-meta { font-size: 10px; }
 }
 
 #panel-trade .tf-scenario-review {

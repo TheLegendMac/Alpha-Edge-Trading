@@ -1390,7 +1390,12 @@
   .main { padding: 20px 14px 80px; }
   .ref-ivr-grid { grid-template-columns: 1fr; }
   .trade-hero-grid { grid-template-columns: 1fr; }
-  .ctx-panel-body { grid-template-columns: 1fr; }
+  .ctx-body { grid-template-columns: 1fr; padding: 14px 16px; }
+  .ctx-hero { grid-template-columns: 1fr; padding: 16px 16px 14px; gap: 12px; }
+  .ctx-regime-row { flex-direction: row; flex-wrap: wrap; align-items: stretch; }
+  .ctx-regime-btn { flex: 1 1 auto; min-width: 0; }
+  #ctx-hero-h1 { font-size: 24px; }
+  .ctx-panel { width: calc(100vw - 16px); border-radius: 12px; max-height: calc(100vh - 24px); }
 }
 
 /* ═══════════════════════════════════════════════
@@ -2132,6 +2137,9 @@
 @media (max-width: 720px) {
   /* Match .main mobile padding (14px) instead of stacking another 28px */
   #panel-trade .trade-shell { padding: 0 0 80px; }
+  /* Tighten section padding so cards don't squeeze inner content */
+  #panel-trade .trade-section-head { padding: 12px 14px; }
+  #panel-trade .trade-section-body { padding: 14px 14px; }
 }
 
 /* ── IVR strategy card ── */
@@ -4911,6 +4919,15 @@
 }
 
 @media (max-width: 720px) {
+  /* Edit-trade overlay cmdbar — match the global cmdbar mobile behaviour
+     (hide nav tabs and sync chip, keep brand + regime + back). */
+  .edit-trade-overlay .cmdbar-nav { display: none; }
+  .edit-trade-overlay .cmdbar-sync { display: none; }
+  .edit-trade-overlay .cmdbar-inner { padding: 10px 14px; gap: 8px; min-height: 52px; }
+  .edit-trade-overlay .cmdbar-brand .brand-name { font-size: 12px; }
+  .edit-trade-overlay .cmdbar-actions { gap: 6px; }
+  .edit-trade-overlay .cmdbar-context-btn { padding: 5px 10px; font-size: 9px; letter-spacing: 0.08em; }
+  .edit-trade-overlay .cmdbar-kmk-btn { padding: 6px 10px; font-size: 10px; }
   .edit-trade-main { padding: 16px 14px 40px; }
   .et-action-row { grid-template-columns: 1fr; gap: 8px; padding: 14px; }
   .et-action-suggestion { text-align: left; }
