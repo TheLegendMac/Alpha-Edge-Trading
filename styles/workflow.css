@@ -178,6 +178,9 @@
   border-radius: 999px;
 }
 #panel-trade .trade-section-counter.complete { color: var(--green-bright); border-color: var(--green-dim); background: var(--green-bg); }
+#panel-trade .trade-section-counter.optional { color: var(--ink-3); border-color: var(--line); background: transparent; }
+#panel-trade .trade-section-counter.required { color: var(--amber, var(--ink-2)); border-color: var(--amber-dim, var(--line)); background: var(--amber-bg, var(--bg-elev)); }
+#panel-trade .trade-section-counter.required.complete { color: var(--green-bright); border-color: var(--green-dim); background: var(--green-bg); }
 #panel-trade .trade-section-body { padding: 16px 18px; }
 #panel-trade .trade-section-body > * + * { margin-top: 10px; }
 
@@ -683,7 +686,6 @@
 }
 #panel-trade .tf-risk-zone.loss .tf-risk-chip   { color: var(--red-bright); background: rgba(239,68,68,0.16); }
 #panel-trade .tf-risk-zone.target .tf-risk-chip { color: var(--green-bright); background: rgba(16,185,129,0.16); }
-#panel-trade .tf-risk-zone.moon .tf-risk-chip   { color: var(--green-bright); background: rgba(16,185,129,0.12); opacity: 0.9; }
 #panel-trade .tf-risk-zone:last-child { border-right: 0; }
 #panel-trade .tf-risk-zone.loss {
   background: linear-gradient(90deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05));
@@ -692,10 +694,6 @@
 #panel-trade .tf-risk-zone.target {
   background: linear-gradient(90deg, rgba(16,185,129,0.10), rgba(16,185,129,0.05));
   box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
-}
-#panel-trade .tf-risk-zone.moon {
-  background: rgba(16,185,129,0.08);
-  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.14);
 }
 #panel-trade .tf-risk-caption {
   display: block;
@@ -726,7 +724,6 @@
 }
 #panel-trade .tf-risk-zone.loss span { color: var(--red-bright); }
 #panel-trade .tf-risk-zone.target span { color: var(--green-bright); }
-#panel-trade .tf-risk-zone.moon span { color: var(--green-bright); opacity: 0.86; }
 #panel-trade .tf-risk-entry-marker {
   position: absolute;
   top: 0;
@@ -809,36 +806,6 @@
 }
 #panel-trade .tf-price-adjust-result .pos { color: var(--green-bright); }
 #panel-trade .tf-price-adjust-result .neg { color: var(--red-bright); }
-#panel-trade .tf-moonshot-control {
-  margin-top: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: rgba(6, 212, 248, 0.06);
-}
-#panel-trade .tf-moonshot-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--cyan);
-}
-#panel-trade .tf-moonshot-head output {
-  color: var(--ink);
-  letter-spacing: 0.04em;
-}
-#panel-trade .tf-moonshot-slider {
-  width: 100%;
-  height: 18px;
-  accent-color: var(--cyan);
-  cursor: pointer;
-}
 #panel-trade .tf-risk-table {
   margin-top: 12px;
   overflow: hidden;
@@ -876,13 +843,10 @@
 #panel-trade .tf-risk-table-row.stop { background: rgba(239,68,68,0.10); }
 #panel-trade .tf-risk-table-row.entry { background: rgba(148,163,184,0.08); }
 #panel-trade .tf-risk-table-row.target { background: rgba(16,185,129,0.07); }
-#panel-trade .tf-risk-table-row.moon { background: rgba(16,185,129,0.11); }
 #panel-trade .tf-risk-table-row.stop .level,
 #panel-trade .tf-risk-table-row.stop .neg { color: var(--red-bright); }
 #panel-trade .tf-risk-table-row.target .level,
-#panel-trade .tf-risk-table-row.target .pos,
-#panel-trade .tf-risk-table-row.moon .level,
-#panel-trade .tf-risk-table-row.moon .pos { color: var(--green-bright); }
+#panel-trade .tf-risk-table-row.target .pos { color: var(--green-bright); }
 @media (max-width: 760px) {
   #panel-trade .tf-price-adjust {
     grid-template-columns: 1fr;

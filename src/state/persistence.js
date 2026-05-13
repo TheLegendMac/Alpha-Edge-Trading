@@ -62,12 +62,12 @@ export function loadState() {
     if (!Array.isArray(state.backtestReports)) state.backtestReports = [];
     if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
     // Migrate tradeFlow
-    if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+    if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
     if (!state.tradeFlow.mode) state.tradeFlow.mode = 'swing';
     if (!state.tradeFlow.step) state.tradeFlow.step = 1;
     if (state.tradeFlow.thesis === undefined) state.tradeFlow.thesis = '';
     if (state.tradeFlow.preMortem === undefined) state.tradeFlow.preMortem = '';
-    if (state.tradeFlow.moonshotR === undefined) state.tradeFlow.moonshotR = 3;
+    if (state.tradeFlow.moonshotR !== undefined) delete state.tradeFlow.moonshotR;
   } catch (e) {
     console.warn('Load failed:', e);
   }

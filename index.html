@@ -711,15 +711,9 @@ STRENGTH: 3/3</pre>
   <section class="tab-panel" id="panel-trade" aria-label="Unified trade entry">
     <div class="trade-shell">
 
-      <!-- Trade hero — mode toggle lives here, right-aligned -->
+      <!-- Trade hero — chrome row (scrolls away). Mode toggle + actions only. -->
       <div class="trade-hero" id="trade-hero">
         <div class="trade-hero-text">
-          <div class="trade-hero-eyebrow swing" id="trade-hero-eyebrow">
-            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
-            NEW TRADE · <span id="trade-hero-mode-label">SWING MODE</span>
-          </div>
-          <h1 class="trade-hero-heading" id="trade-hero-heading">Build your trade.</h1>
-          <div class="trade-hero-sub swing" id="trade-hero-pnl">Fill entry, stop, and limit to see win / loss.</div>
           <div class="trade-hero-actions">
             <button class="trade-hero-reset-btn" id="trade-reset-btn" type="button">↺ Reset</button>
             <button class="trade-hero-paste-btn" id="trade-hero-paste-btn" type="button" title="Smart paste TOS alert">
@@ -732,6 +726,16 @@ STRENGTH: 3/3</pre>
           <button class="trade-mode-btn active" data-trade-mode="swing" type="button" role="tab">SWING</button>
           <button class="trade-mode-btn" data-trade-mode="intraday" type="button" role="tab">INTRADAY</button>
         </div>
+      </div>
+
+      <!-- Sticky header — eyebrow + ticker heading + risk-to-make sub. Pinned below cmdbar while scrolling. -->
+      <div class="trade-hero-sticky" id="trade-hero-sticky">
+        <div class="trade-hero-eyebrow swing" id="trade-hero-eyebrow">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
+          NEW TRADE · <span id="trade-hero-mode-label">SWING MODE</span>
+        </div>
+        <h1 class="trade-hero-heading" id="trade-hero-heading">Build your trade.</h1>
+        <div class="trade-hero-sub swing" id="trade-hero-pnl">Fill entry, stop, and limit to see win / loss.</div>
       </div>
 
       <!-- 2-column layout: step rail (left) + step content (right) -->
@@ -776,15 +780,19 @@ STRENGTH: 3/3</pre>
     <nav class="sett-nav-list">
       <a class="sett-nav-item active" href="#sett-s01" data-sett-nav="s01">
         <span class="sett-nav-num">01</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Account &amp; equity</span><span class="sett-nav-sub">Capital base · base 1R</span></span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Account</span><span class="sett-nav-sub">Equity · max positions</span></span>
       </a>
       <a class="sett-nav-item" href="#sett-s02" data-sett-nav="s02">
         <span class="sett-nav-num">02</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Risk rules</span><span class="sett-nav-sub">Regime sizing</span></span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Risk by regime</span><span class="sett-nav-sub">% per trade</span></span>
+      </a>
+      <a class="sett-nav-item" href="#sett-s03" data-sett-nav="s03">
+        <span class="sett-nav-num">03</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Auto-Stop &amp; Auto-Limit</span><span class="sett-nav-sub">Chip defaults</span></span>
       </a>
       <a class="sett-nav-item" href="#sett-s04" data-sett-nav="s04">
-        <span class="sett-nav-num">03</span>
-        <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups · danger</span></span>
+        <span class="sett-nav-num">04</span>
+        <span class="sett-nav-info"><span class="sett-nav-title">Data &amp; export</span><span class="sett-nav-sub">CSV · backups</span></span>
       </a>
     </nav>
     <!-- Unsaved override banner -->
@@ -818,7 +826,8 @@ STRENGTH: 3/3</pre>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-On sizing</div><div class="sett-mv-sub sett-mv-green" id="smv-s-rOn">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Neutral sizing</div><div class="sett-mv-sub sett-mv-amber" id="smv-s-rNeu">—</div></div><span class="sett-mv-chev">›</span></div>
         <div class="sett-mv-row" data-mv-sec="sett-s02"><span class="sett-mv-num">02</span><div class="sett-mv-body"><div class="sett-mv-title">Risk-Off sizing</div><div class="sett-mv-sub sett-mv-red" id="smv-s-rOff">—</div></div><span class="sett-mv-chev">›</span></div>
-        <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s03"><span class="sett-mv-num">03</span><div class="sett-mv-body"><div class="sett-mv-title">Auto-Stop &amp; Auto-Limit</div><div class="sett-mv-sub" id="smv-s03">—</div></div><span class="sett-mv-chev">›</span></div>
+        <div class="sett-mv-row" data-mv-sec="sett-s04"><span class="sett-mv-num">04</span><div class="sett-mv-body"><div class="sett-mv-title">Data &amp; export</div><div class="sett-mv-sub">Backups · danger zone</div></div><span class="sett-mv-chev">›</span></div>
       </div>
     </div>
 
@@ -828,23 +837,19 @@ STRENGTH: 3/3</pre>
       <div class="sett-hero-body-row">
         <div class="sett-hero-left">
           <h1 class="sett-hero-headline">The rules <span class="sett-hero-accent">that<br>protect you.</span></h1>
-          <p class="sett-hero-body">Dollar amounts recompute live from your equity. Changes apply on save — open positions keep their entry rules.</p>
         </div>
-        <div class="sett-hero-cards">
-          <div class="sett-hero-card">
-            <div class="sett-hero-card-label">EQUITY</div>
-            <div class="sett-hero-card-value" id="sett-live-equity">—</div>
-            <div class="sett-hero-card-sub">last reconciled</div>
+        <div class="home-stat-cards sett-hero-cards">
+          <div class="home-stat-card">
+            <div class="home-stat-label">EQUITY</div>
+            <div class="home-stat-value" id="sett-live-equity">—</div>
           </div>
-          <div class="sett-hero-card">
-            <div class="sett-hero-card-label">BASE 1R</div>
-            <div class="sett-hero-card-value sett-hero-card-green" id="sett-live-base1r">—</div>
-            <div class="sett-hero-card-sub" id="sett-live-base1r-sub">0.50% of equity</div>
+          <div class="home-stat-card">
+            <div class="home-stat-label">RISK PER TRADE</div>
+            <div class="home-stat-value" id="sett-live-base1r">—</div>
           </div>
-          <div class="sett-hero-card">
-            <div class="sett-hero-card-label">OPEN LIMIT</div>
-            <div class="sett-hero-card-value sett-hero-card-cyan" id="sett-live-cap">—</div>
-            <div class="sett-hero-card-sub" id="sett-live-cap-sub">max open positions</div>
+          <div class="home-stat-card">
+            <div class="home-stat-label">MAX OPEN POSITIONS</div>
+            <div class="home-stat-value" id="sett-live-cap">—</div>
           </div>
         </div>
       </div>
@@ -852,8 +857,8 @@ STRENGTH: 3/3</pre>
 
     <!-- ── SECTION 01: ACCOUNT ── -->
     <section class="sett-section" id="sett-s01">
-      <h2 class="sett-section-title">Account &amp; open positions</h2>
-      <p class="sett-section-desc">Anchor sizing to one equity number and set the only portfolio-wide gate: max open positions.</p>
+      <h2 class="sett-section-title">Account</h2>
+      <p class="sett-section-desc">Your equity and max open positions.</p>
 
       <div class="sett-fields-grid sett-grid-2">
         <div class="sett-field-group">
@@ -869,14 +874,12 @@ STRENGTH: 3/3</pre>
         <div class="sett-cap-col">
           <div class="sett-cap-labels">
             <span class="sett-cap-lbl">MAX OPEN POSITIONS</span>
-            <span class="sett-cap-tag">EXIT-ONLY PAST LIMIT</span>
           </div>
           <div class="sett-cap-box">
             <div class="sett-cap-box-left">
               <input type="number" min="1" max="20" step="1" class="sett-cap-input" id="set-max-positions" value="4" />
               <span class="sett-cap-unit">open</span>
             </div>
-            <span class="sett-cap-box-right">exit-only past limit</span>
           </div>
           <input type="range" min="1" max="20" step="1" class="sett-slider sett-slider-cap" id="sett-sl-pos" value="4" />
           <div class="sett-cap-range"><span>1</span><span>20</span></div>
@@ -886,8 +889,8 @@ STRENGTH: 3/3</pre>
 
     <!-- ── SECTION 02: RISK RULES ── -->
     <section class="sett-section" id="sett-s02">
-      <h2 class="sett-section-title">Sizing by regime</h2>
-      <p class="sett-section-desc">Three lanes. Risk-On is your green light. Risk-Off is the kill switch. Neutral is the slow lane — half size, both directions allowed.</p>
+      <h2 class="sett-section-title">Risk by regime</h2>
+      <p class="sett-section-desc">Risk % per trade. Smaller in weaker tape.</p>
       <button class="sett-btn-ghost sett-reset-inline" id="btn-reset-settings-inline">RESET TO DEFAULTS</button>
 
       <div class="sett-regime-grid">
@@ -945,12 +948,56 @@ STRENGTH: 3/3</pre>
       </div>
     </section>
 
+    <!-- ── SECTION 03: Smart-Stop & Smart-Limit ── -->
+    <section class="sett-section" id="sett-s03">
+      <h2 class="sett-section-title">Auto-Stop &amp; Auto-Limit</h2>
+      <p class="sett-section-desc">Defaults used by the auto-fill chips on the trade screen.</p>
+
+      <div class="sett-fields-grid sett-grid-2">
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">Smart-Stop %</label>
+          <div class="sett-field-box">
+            <div class="sett-dollar-wrap">
+              <input type="number" min="0.1" max="100" step="0.1" class="sett-input" id="set-stop-pct" placeholder="50" />
+              <span class="sett-dollar-sign" style="left:auto;right:12px;">%</span>
+            </div>
+            <div class="sett-field-hint">Base stop distance (% of entry). Tightened by regime multiplier.</div>
+          </div>
+        </div>
+
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">Smart-Limit (R MULTIPLE)</label>
+          <div class="sett-field-box">
+            <div class="sett-dollar-wrap">
+              <input type="number" min="0.5" max="20" step="0.1" class="sett-input" id="set-target-r" placeholder="2" />
+              <span class="sett-dollar-sign" style="left:auto;right:12px;">R</span>
+            </div>
+            <div class="sett-field-hint">Reward:risk ratio for auto target. 2 = take profit at 2× the stop distance.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── SECTION 04: DATA & EXPORT ── -->
     <section class="sett-section" id="sett-s04">
       <h2 class="sett-section-title">Data &amp; export</h2>
-      <p class="sett-section-desc">Export your trade log and manage your data. Danger zone actions cannot be undone.</p>
+      <p class="sett-section-desc">Export your log. Danger zone is irreversible.</p>
 
       <div class="sett-data-rows">
+        <div class="sett-data-row">
+          <div class="sett-data-info">
+            <div class="sett-data-name">Export trade log</div>
+            <div class="sett-data-desc">Download all trades as CSV for spreadsheets or external review.</div>
+          </div>
+          <button class="sett-btn-ghost" id="btn-export-csv">EXPORT CSV</button>
+        </div>
+        <div class="sett-data-row">
+          <div class="sett-data-info">
+            <div class="sett-data-name">Report feedback</div>
+            <div class="sett-data-desc">Send a bug report or feature request.</div>
+          </div>
+          <button class="sett-btn-ghost" id="btn-report-feedback">REPORT FEEDBACK</button>
+        </div>
         <div class="sett-data-row">
           <div class="sett-data-info">
             <div class="sett-data-name">Reset to defaults</div>
@@ -966,6 +1013,7 @@ STRENGTH: 3/3</pre>
           <button class="sett-btn-danger" id="btn-clear-all-data">CLEAR ALL DATA</button>
         </div>
       </div>
+      <div class="sett-version-footer" id="sett-version-footer">Version <span id="sett-version">—</span></div>
     </section>
 
     <!-- sticky footer -->
@@ -1145,7 +1193,7 @@ STRENGTH: 3/3</pre>
 
       <div class="ai-glossary-term">
         <h4>Kill switch</h4>
-        <p>Auto-stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>-7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
+        <p>Smart-Stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>-7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
         <code>kill = (Σ pl over last N days) / account ≤ -7%</code>
       </div>
 

@@ -124,6 +124,8 @@ function openSettings() {
   if (el('set-risk-off-r'))     el('set-risk-off-r').value     = rOff;
 
   if (el('set-max-positions'))  el('set-max-positions').value  = s.maxPositions   || DEFAULT_SETTINGS.maxPositions;
+  if (el('set-stop-pct'))       el('set-stop-pct').value       = s.stopPct        ?? DEFAULT_SETTINGS.stopPct;
+  if (el('set-target-r'))       el('set-target-r').value       = s.targetRMultiple ?? DEFAULT_SETTINGS.targetRMultiple;
 
   // Wire sliders (only first time — guard with dataset flag)
   const overlay = document.getElementById('modal-settings');
@@ -138,11 +140,28 @@ function openSettings() {
     const acctEl = el('set-account');
     if (acctEl) acctEl.addEventListener('input', updateLiveHints);
 
+    // Export CSV — reuse the existing global handler.
+    const exportBtn = el('btn-export-csv');
+    if (exportBtn) exportBtn.addEventListener('click', () => {
+      if (typeof window.exportCSV === 'function') window.exportCSV();
+      else if (typeof window.toast === 'function') window.toast('Export unavailable right now.', true);
+    });
+
+    // Report feedback — placeholder for now.
+    const feedbackBtn = el('btn-report-feedback');
+    if (feedbackBtn) feedbackBtn.addEventListener('click', () => {
+      if (typeof window.toast === 'function') window.toast('Feedback channel coming soon.');
+    });
+
+    // Version footer — injected at build time via Vite define.
+    const verEl = el('sett-version');
+    if (verEl) verEl.textContent = (typeof __APP_VERSION__ !== 'undefined') ? __APP_VERSION__ : '—';
+
     // Sidebar nav highlight on scroll
     const mainScroll = el('sett-main-scroll');
     if (mainScroll) {
       mainScroll.addEventListener('scroll', () => {
-        const sections = ['sett-s01','sett-s02','sett-s04'];
+        const sections = ['sett-s01','sett-s02','sett-s03','sett-s04'];
         let active = sections[0];
         sections.forEach(id => {
           const sec = el(id);
@@ -246,6 +265,8 @@ function saveSettings() {
     riskNeutral,
     riskOff,
     maxPositions:             vi('set-max-positions', DEFAULT_SETTINGS.maxPositions),
+    stopPct:                  v('set-stop-pct',      DEFAULT_SETTINGS.stopPct),
+    targetRMultiple:          v('set-target-r',      DEFAULT_SETTINGS.targetRMultiple),
   };
   delete newSettings.maxPremiumPct;
   delete newSettings.maxRiskPct;
@@ -321,7 +342,7 @@ function clearAllTradesAndData() {
     logSearch: '',
     logSetupFilter: '',
     homePortfolioView: 'recent',
-    tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 },
+    tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
   });
 
   ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']

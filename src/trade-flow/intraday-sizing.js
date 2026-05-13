@@ -52,7 +52,9 @@ function tfAutoFillIntradayOptionBracket({ force = false } = {}) {
     it.stop = +(entry * (1 - ((settings.stopPct || 50) / 100))).toFixed(2);
   }
   if (force || !it.target) {
-    it.target = +(entry * (1 + ((settings.targetPct || 50) / 100))).toFixed(2);
+    const targetR = Number(settings.targetRMultiple) > 0 ? Number(settings.targetRMultiple) : 2;
+    const stopDist = Math.abs(entry - Number(it.stop));
+    it.target = +(entry + targetR * stopDist).toFixed(2);
   }
 }
 
@@ -79,17 +81,33 @@ function tfRenderIntradaySizingHtml() {
   const isOptions = window.tfIntradayInstrument() !== 'stocks';
   const auto = window.tfComputeIntradayRiskSize();
   if (!auto) {
-    return `<div class="input-help" style="margin-top:8px;">Fill entry and stop to auto-size ${isOptions ? 'contracts' : 'shares'}.</div>`;
+    return `<div class="input-help" style="margin-top:8px;">Enter a price to Smart-Size ${isOptions ? 'contracts' : 'shares'}.</div>`;
   }
   const manualQty = Number(it.contracts);
   const useQty = manualQty > 0 ? manualQty : auto.qty;
   const realizedRisk = Math.round(useQty * auto.stopDist * auto.mult);
+  const target = Number(it.target);
+  const entry = Number(it.entry);
+  const profitDollars = (target > 0 && entry > 0)
+    ? Math.round(Math.abs(target - entry) * useQty * auto.mult)
+    : null;
   const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
+  const rUnitNote = auto.derivedStop
+    ? `Sized from your <strong>$${auto.riskBudget} R-unit</strong> ÷ default stop distance (no stop set).`
+    : `Sized from your <strong>$${auto.riskBudget} R-unit</strong> ÷ stop distance.`;
+  const pnlLine = `
+    <div class="trade-output-pnl" style="display:flex; gap:14px; margin-top:8px; font-family:var(--mono); font-size:12px;">
+      <span style="color: var(--red-bright);">Risking <strong>$${realizedRisk.toLocaleString()}</strong></span>
+      ${profitDollars !== null
+        ? `<span style="color: var(--green-bright);">Profit at limit <strong>$${profitDollars.toLocaleString()}</strong></span>`
+        : `<span style="color: var(--ink-4);">Set a limit price to see profit</span>`}
+    </div>`;
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">${manualQty > 0 ? 'Sized (override)' : 'Auto-sized'}</div>
-      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'} · risk $${realizedRisk}</div>
-      <div class="trade-output-rationale">${manualQty > 0 ? `Override risk: $${realizedRisk}. AUTO sets to ${auto.qty} for $${auto.riskBudget} risk unit.` : `Sized from your $${auto.riskBudget} risk unit ÷ stop distance. GO logs this size.`}</div>
+      <div class="trade-output-title">${manualQty > 0 ? 'Sized (override)' : 'Smart-Sized'}</div>
+      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}</div>
+      ${pnlLine}
+      <div class="trade-output-rationale" style="margin-top:8px;">${manualQty > 0 ? `Override risk: $${realizedRisk}. AUTO sets to ${auto.qty} for $${auto.riskBudget} R-unit.` : `${rUnitNote} GO logs this size.`}</div>
       ${profileHtml || ''}
     </div>`;
 }
@@ -143,14 +161,29 @@ function tfComputeIntradayRiskSize() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = window.tfIntradayInstrument() !== 'stocks';
   const entry = Number(it.entry);
-  const stop = Number(it.stop);
-  if (!(entry > 0 && stop > 0)) return null;
-  const stopDist = Math.abs(entry - stop);
-  if (!(stopDist > 0)) return null;
+  if (!(entry > 0)) return null;
   const mult = isOptions ? 100 : 1;
-  const baseRisk = settings.intradayRiskPerTrade || 100;
-  const regimeMult = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
-  const riskBudget = Math.round(baseRisk * regimeMult);
+  // 1R = account × regime risk% (pure R-unit, independent of deployed capital).
+  const account = settings.account || 10000;
+  const riskPct = (typeof window.getRiskPctForRegime === 'function')
+    ? window.getRiskPctForRegime(state.regime || 'risk-on')
+    : 0.02;
+  const riskBudget = Math.round(account * riskPct);
+  // Stop is optional — derive a default from settings.stopPct × regime
+  // multiplier when missing so Smart-Size can still compute.
+  let stop = Number(it.stop);
+  let stopDist = stop > 0 ? Math.abs(entry - stop) : 0;
+  let derivedStop = false;
+  if (!(stopDist > 0)) {
+    const baseStopPct = ((settings.stopPct || 50) / 100);
+    const regimeMult = (typeof window.getRegimeRiskMultiplier === 'function')
+      ? window.getRegimeRiskMultiplier(state.regime)
+      : 1;
+    const effStopPct = baseStopPct * regimeMult;
+    stopDist = entry * effStopPct;
+    derivedStop = true;
+  }
+  if (!(stopDist > 0)) return null;
   const qty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, stopDist * mult)));
   return {
     qty,
@@ -158,6 +191,7 @@ function tfComputeIntradayRiskSize() {
     riskBudget,
     stopDist,
     mult,
+    derivedStop,
     label: isOptions ? 'contract' : 'share',
   };
 }
@@ -167,7 +201,7 @@ function tfApplyIntradayRiskSize() {
   if (!auto) return null;
   if (!state.intraday) state.intraday = newIntradayTicket();
   state.intraday.contracts = auto.qty;
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
   if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
   state.tradeFlow.intradayDraft.contracts = String(auto.qty);
   return auto.qty;
@@ -195,7 +229,6 @@ function tfUpdateIntradaySizing() {
   if (card) card.innerHTML = window.tfRenderIntradaySizingHtml();
   window.tfBindIntradayRiskSizeButton();
   window.tfBindPriceLevelSliders();
-  window.tfBindMoonshotSliders();
 }
 
 // Live gain/loss estimates — surgical refresh on entry/stop/target change.

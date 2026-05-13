@@ -613,7 +613,7 @@ function wireEvents(trade, w, ctx) {
   mainEl.querySelector('#et-repeat-setup-btn')?.addEventListener('click', () => {
     if (!w.setup) return;
     const mode = w.mode || 'swing';
-    if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+    if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
     state.tradeFlow.mode = mode;
     state.tradeFlow.step = 1;
     if (mode === 'intraday') {

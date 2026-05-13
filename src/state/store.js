@@ -43,7 +43,7 @@ export const state = {
   statsExpanded: false,         // log-page advanced analytics expanded?
   marketContextUpdatedAt: null,
   // Unified trade flow
-  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 },
+  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
 };
 
 // Helper: % risk for current regime as a decimal (e.g. 0.02 for 2%).
@@ -55,7 +55,7 @@ export function getRiskPctForRegime(regime) {
   return s.riskOn / 100;
 }
 
-// Regime size/stop multiplier — scales both the auto-stop pct and any
+// Regime size/stop multiplier — scales both the Smart-Stop pct and any
 // fixed-dollar risk unit (e.g. intradayRiskPerTrade). risk-on = full, neutral =
 // half, risk-off = quarter. Drives "tighter stops + smaller size" in weaker tape.
 export function getRegimeRiskMultiplier(regime) {

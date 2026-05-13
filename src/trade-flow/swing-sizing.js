@@ -23,6 +23,7 @@ function tfRenderSwingSizingHtml() {
     ? ` Capital deployed in open positions $${Math.round(deployed).toLocaleString()} subtracted; available $${Math.round(available).toLocaleString()}.`
     : '';
   const halfSizeNote = halfSize ? ' Edge Reversal is half size.' : '';
+  const targetR = Number(settings.targetRMultiple) > 0 ? Number(settings.targetRMultiple) : 2;
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
     const defaultStopPrem = premium * (1 - stopFraction);
@@ -31,7 +32,8 @@ function tfRenderSwingSizingHtml() {
     const autoContracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
     const contracts = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoContracts;
     const totalRisk = contracts * maxLossPerContract;
-    const defaultTarget = premium * (1 + (settings.targetPct || 50) / 100);
+    const stopDistPrem = Math.abs(premium - stopPrem);
+    const defaultTarget = +(premium + targetR * stopDistPrem).toFixed(2);
     const target = manualTarget > 0 ? manualTarget : defaultTarget;
     return `
       <div class="trade-output">
@@ -42,10 +44,12 @@ function tfRenderSwingSizingHtml() {
       </div>`;
   }
   const stopPct = (settings.stopPct || 5) / 100;
-  const targetPct = (settings.targetPct || 50) / 100;
   const defaultStopPrice = state.direction === 'short' ? premium * (1 + stopPct) : premium * (1 - stopPct);
-  const defaultTargetPrice = state.direction === 'short' ? premium * (1 - targetPct) : premium * (1 + targetPct);
   const stopPrice = manualStop > 0 ? manualStop : defaultStopPrice;
+  const stopDistShares = Math.abs(premium - stopPrice);
+  const defaultTargetPrice = state.direction === 'short'
+    ? +(premium - targetR * stopDistShares).toFixed(2)
+    : +(premium + targetR * stopDistShares).toFixed(2);
   const targetPrice = manualTarget > 0 ? manualTarget : defaultTargetPrice;
   const maxLossPerShare = Math.abs(premium - stopPrice);
   const autoShares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
@@ -112,7 +116,6 @@ function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
   if (card) card.innerHTML = window.tfRenderSwingSizingHtml();
   window.tfBindPriceLevelSliders();
-  window.tfBindMoonshotSliders();
   const premiumCounter = document.getElementById('tf-premium-counter');
   if (premiumCounter) {
     const ok = Number(state.premium) > 0;

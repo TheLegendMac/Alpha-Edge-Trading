@@ -19,8 +19,8 @@ function tfStepCount() {
 }
 function tfStepNames() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
-  if (m === 'swing') return ['Quality', 'Technicals', 'Size', 'Log'];
-  return ['Setup', 'Plan & Size', 'Context'];
+  if (m === 'swing') return ['Quality', 'Setup', 'Size', 'Review'];
+  return ['Setup', 'Size', 'Review'];
 }
 function tfIsSingleScreen() {
   return true; // Both swing and intraday use single-screen layout with side rail
@@ -66,19 +66,13 @@ function tfStepCompletion() {
   const headerReady = !!(it.ticker && it.setup && it.direction);
   c[0] = headerReady;
 
-  const isOptions = (it.instrument || 'options') !== 'stocks';
-  const levelsOk = !!(headerReady && it.entry && it.stop && it.target);
-  if (isOptions) {
-    // 2 Plan & Size — spread comes from bid/ask; levels and quantity derive from there.
-    const spreadPct = window.tfDeriveIntradaySpread();
-    const spreadOk = spreadPct !== null && spreadPct !== undefined
-                  && Number(spreadPct) >= 0
-                  && Number(spreadPct) <= settings.intradayMaxSpreadPct;
-    c[1] = !!(headerReady && spreadOk && levelsOk);
-  } else {
-    // Share count itself is optional because it auto-sizes from entry/stop.
-    c[1] = levelsOk;
-  }
+  const levelsOk = !!(headerReady && it.entry);
+  // Plan & Size completes on entry/stop/target alone — spread (from bid/ask)
+  // is informational and only blocks when a known spread exceeds the cap.
+  const spreadPct = window.tfDeriveIntradaySpread();
+  const spreadBlocks = spreadPct !== null && spreadPct !== undefined && spreadPct !== ''
+    && Number(spreadPct) > settings.intradayMaxSpreadPct;
+  c[1] = !!(headerReady && levelsOk && !spreadBlocks);
 
   // 3 Context — guardrails pass (status not blocked).
   const st = window.tfComputeStatus();
@@ -96,8 +90,16 @@ function tfRenderRail() {
   rail.style.display = '';
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   const names = window.tfStepNames();
-  const compl = window.tfStepCompletion();
+  const complRaw = window.tfStepCompletion();
   const cur = state.tradeFlow.step || 1;
+  // Track visited steps so the rail only marks green for steps the user has
+  // actually navigated to. The current step counts as visited.
+  if (!Array.isArray(state.tradeFlow.visited) || state.tradeFlow.visited.length !== names.length) {
+    state.tradeFlow.visited = Array(names.length).fill(false);
+  }
+  state.tradeFlow.visited[cur - 1] = true;
+  const visited = state.tradeFlow.visited;
+  const compl = complRaw.map((ok, i) => ok && !!visited[i]);
   const accentColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
   const accentBg    = m === 'intraday' ? 'rgba(236,72,153,0.12)' : 'rgba(6,212,248,0.12)';
   const accentLine  = m === 'intraday' ? 'rgba(236,72,153,0.40)' : 'rgba(6,212,248,0.40)';
@@ -167,9 +169,9 @@ function tfRenderHeader() {
     const accentColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
     heroHeading.innerHTML = ticker
       ? (m === 'swing'
-          ? `Build a swing on <span style="color:${accentColor}">${ticker}</span>.`
-          : `Take an intraday on <span style="color:${accentColor}">${ticker}</span>.`)
-      : (m === 'swing' ? 'Build a swing trade.' : 'Take an intraday trade.');
+          ? `Build a swing trade on <span style="color:${accentColor}">${ticker}</span>.`
+          : `Build an intraday trade on <span style="color:${accentColor}">${ticker}</span>.`)
+      : (m === 'swing' ? 'Build a swing trade.' : 'Build an intraday trade.');
   }
   const heroPnl = document.getElementById('trade-hero-pnl');
   if (heroPnl) {
@@ -177,8 +179,20 @@ function tfRenderHeader() {
     heroPnl.classList.toggle('intraday', m === 'intraday');
     const p = window.tfComputeHeroPnl ? window.tfComputeHeroPnl() : null;
     if (p && p.risk > 0 && p.reward > 0) {
-      const rr = p.risk > 0 ? (p.reward / p.risk) : 0;
-      heroPnl.innerHTML = `Risking <span style="color:var(--red-bright);font-weight:700;">$${Math.round(p.risk).toLocaleString()}</span> to make <span style="color:var(--green-bright);font-weight:700;">$${Math.round(p.reward).toLocaleString()}</span> <span style="color:var(--ink-3);">(${rr.toFixed(2)}R · ${p.qty} ${p.label}${p.qty === 1 ? '' : 's'})</span>`;
+      let setupName = '';
+      if (m === 'swing') {
+        const swingId = state.selectedSetup;
+        const swingDef = swingId && Array.isArray(window.TRADE_SWING_SETUPS)
+          ? window.TRADE_SWING_SETUPS.find(s => s.id === swingId)
+          : null;
+        setupName = swingDef ? (swingDef.name || swingDef.id) : (swingId || '');
+      } else {
+        const setupId = state.intraday && state.intraday.setup;
+        const def = setupId ? TRADE_INTRADAY_SETUPS.find(s => s.id === setupId) : null;
+        setupName = def ? def.name : '';
+      }
+      const setupSuffix = setupName ? ` with the <span style="color:var(--cyan);font-weight:700;">${setupName}</span> setup` : '';
+      heroPnl.innerHTML = `Risking <span style="color:var(--red-bright);font-weight:700;">$${Math.round(p.risk).toLocaleString()}</span> to make <span style="color:var(--green-bright);font-weight:700;">$${Math.round(p.reward).toLocaleString()}</span> profit${setupSuffix}.`;
     } else {
       heroPnl.textContent = 'Fill entry, stop, and limit to see win / loss.';
     }
@@ -214,7 +228,7 @@ function tfComputeHeroPnl() {
   const isOptions = state.instrument !== 'stocks';
   const mult = isOptions ? 100 : 1;
   const label = isOptions ? 'contract' : 'share';
-  // Auto-size mirrors the logic in swing-sizing.js.
+  // Smart-Size mirrors the logic in swing-sizing.js.
   const settings = state.settings || {};
   const account = settings.account || 10000;
   const deployed = (typeof window.tfCapitalDeployed === 'function') ? window.tfCapitalDeployed() : 0;
@@ -288,13 +302,18 @@ function tfGoToStep(n) {
   // Track step for rail highlight without re-rendering the whole body.
   const max = window.tfStepCount();
   state.tradeFlow.step = Math.max(1, Math.min(max, n));
+  // Mark visited — only steps the user has explicitly navigated to count.
+  if (!Array.isArray(state.tradeFlow.visited) || state.tradeFlow.visited.length !== max) {
+    state.tradeFlow.visited = Array(max).fill(false);
+  }
+  state.tradeFlow.visited[state.tradeFlow.step - 1] = true;
   saveState();
   window.tfRenderRail();
 }
 
 function tfSetMode(mode) {
   if (mode !== 'swing' && mode !== 'intraday') return;
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
   state.tradeFlow.mode = mode;
   state.tradeFlow.step = 1;
   saveState();
@@ -353,7 +372,6 @@ function tfReset() {
     state.tradeFlow.thesis = '';
     state.tradeFlow.preMortem = '';
     state.tradeFlow.intradayDraft = {};
-    state.tradeFlow.moonshotR = 3;
     saveState();
     window.renderTrade();
   };
@@ -623,7 +641,7 @@ function tfLogIntradayDirect() {
     if (typeof toast === 'function') window.toast(st.reason || 'Intraday ticket is not ready yet.', true);
     return;
   }
-  if (!ticker || !it.setup || !it.entry || !it.stop || !it.target) {
+  if (!ticker || !it.setup || !it.entry) {
     if (typeof toast === 'function') window.toast('Missing required field — go back and check.', true);
     return;
   }
@@ -644,11 +662,19 @@ function tfLogIntradayDirect() {
         it.vwapValue ? `VWAP ${esc(it.vwapValue)}` : ''
       ].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>`
     : '';
-  const optionRows = isOptions ? `
-      <div class="row"><span class="k">Bid / Ask</span><span>${it.bid ? '$' + esc(it.bid) : '—'} / ${it.ask ? '$' + esc(it.ask) : '—'}${it.mid ? ` · mid $${esc(it.mid)}` : ''}</span></div>
-      <div class="row"><span class="k">Spread</span><span>${it.spreadPct != null ? esc(it.spreadPct) + '%' : '—'}</span></div>
-      <div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`
+  const hasQuote = isOptions && (it.bid || it.ask);
+  const quoteRow = hasQuote
+    ? `<div class="row"><span class="k">Bid / Ask</span><span>${it.bid ? '$' + esc(it.bid) : '—'} / ${it.ask ? '$' + esc(it.ask) : '—'}${it.mid ? ` · mid $${esc(it.mid)}` : ''}</span></div>`
+    : '';
+  const spreadRow = (isOptions && it.spreadPct != null && it.spreadPct !== '')
+    ? `<div class="row"><span class="k">Spread</span><span>${esc(it.spreadPct)}%</span></div>`
+    : '';
+  const optionRows = isOptions
+    ? `${quoteRow}${spreadRow}<div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`
     : `<div class="row"><span class="k">Shares</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`;
+  const edgeIntelHtml = (typeof window.buildTradeFlowEdgeIntel === 'function')
+    ? window.buildTradeFlowEdgeIntel({ mode: 'intraday', setup: it.setup, direction: it.direction, instrument: it.instrument, inModal: true })
+    : '';
   const bodyHtml = `
     <p style="margin: 0 0 6px;">This intraday trade will be added to the log as <strong>open</strong>.</p>
     <div class="tf-confirm-summary">
@@ -663,6 +689,7 @@ function tfLogIntradayDirect() {
       ${orRow}
       ${ctxRow}
     </div>
+    ${edgeIntelHtml}
   `;
   window.tfShowConfirm({
     title: `Log ${ticker} ${setupLabel}?`,
@@ -902,7 +929,7 @@ function tfMountTickerCard() {
 }
 
 function renderTrade() {
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
   tfBindTradePanelStaticOnce();
   const step = state.tradeFlow.step || 1;
   window.tfRenderHeader();

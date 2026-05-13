@@ -1455,8 +1455,27 @@
 }
 .trade-rail {
   position: sticky;
-  top: 110px; /* below header */
+  /* Pin below the cmdbar (56px) + the rendered hero-sticky strip (~135px). */
+  top: 190px;
 }
+@media (max-width: 1100px) {
+  .trade-rail { top: 170px; }
+}
+.trade-hero-sticky {
+  position: sticky;
+  top: 56px;
+  z-index: 4;
+  background: var(--bg, #08090d);
+  padding: 10px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trade-hero-sticky .trade-hero-eyebrow { margin: 0; }
+.trade-hero-sticky .trade-hero-heading { margin: 0; }
+.trade-hero-sticky .trade-hero-sub { margin: 0; }
 .trade-rail-inner {
   background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -3917,6 +3936,17 @@
 
 /* ── Data & export ── */
 .sett-data-rows { display: flex; flex-direction: column; gap: 0; }
+.sett-version-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
 .sett-data-row {
   display: flex;
   align-items: center;

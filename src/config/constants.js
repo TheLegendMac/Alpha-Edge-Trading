@@ -11,7 +11,8 @@ export const DEFAULT_SETTINGS = {
   riskNeutral: 1.0,    // % per trade in NEUTRAL
   riskOff: 0.5,        // % per trade in RISK-OFF
   stopPct: 50,         // % of premium = stop loss
-  targetPct: 50,       // % of premium gain = profit target
+  targetPct: 50,       // % of premium gain = profit target (legacy fallback)
+  targetRMultiple: 2,  // default reward:risk ratio for auto targets (target distance = N × stop distance)
   maxPositions: 5,
   longOnlyMode: false, // when true, hides spread recommendations and converts spread zones to "skip"
   // ---- INTRADAY ----
@@ -98,11 +99,11 @@ export const REGIME_DATA = {
 
 // ---------- Trade-flow catalogues ----------
 export const TRADE_SWING_SETUPS = [
-  { id: '21-EMA Pullback',  num: '01', desc: 'Stock in clear uptrend pulls back to its 21-day MA, then prints a green/up bar.', bias: 'long' },
-  { id: 'Base Breakout',    num: '02', desc: 'Trading flat in a tight range for 15+ days, then breaks above on 1.5×+ avg volume.', bias: 'long' },
-  { id: 'Breakout Retest',  num: '03', desc: 'Stock breaks out, pulls back to retest the breakout level, then bounces.', bias: 'long' },
-  { id: '9-EMA Reclaim',    num: '04', desc: 'Intraday wick below the 9-day MA closes back above by EOD — dip-buyers showed up.', bias: 'long' },
-  { id: 'Edge Reversal',    num: '05', desc: 'Counter-trend trade at trend exhaustion. HALF size — lower probability.', halfSize: true, bias: 'either' },
+  { id: '21-EMA Pullback',  num: '01', name: 'Pullback Buy',    desc: 'Stock in an uptrend dips to its 21-day moving average, then turns green. Buy the dip.', bias: 'long' },
+  { id: 'Base Breakout',    num: '02', name: 'Range Breakout',  desc: 'Stock trades flat for 15+ days, then breaks above the range on heavy volume.', bias: 'long' },
+  { id: 'Breakout Retest',  num: '03', name: 'Breakout Retest', desc: 'After a breakout, price pulls back to the broken level and bounces off it.', bias: 'long' },
+  { id: '9-EMA Reclaim',    num: '04', name: 'Bounce-Back',     desc: 'Intraday dip under the 9-day moving average closes back above by end of day. Dip buyers showed up.', bias: 'long' },
+  { id: 'Edge Reversal',    num: '05', name: 'Trend Reversal',  desc: 'Counter-trend trade at trend exhaustion. Half size — lower-odds play.', halfSize: true, bias: 'either' },
 ];
 
 export const TRADE_STRUCTURES = [
@@ -113,11 +114,11 @@ export const TRADE_STRUCTURES = [
 
 // Intraday setups mirror the user's ThinkScript outputs exactly.
 export const TRADE_INTRADAY_SETUPS = [
-  { id: 'orb-up-break',  num: '01', name: 'ORB UP-BREAK',  desc: 'Break above the opening range high.', bias: 'long',  isOrb: true },
-  { id: 'orb-dn-break',  num: '02', name: 'ORB DN-BREAK',  desc: 'Break below the opening range low.',  bias: 'short', isOrb: true },
-  { id: 'above-vwap-up', num: '03', name: 'ABOVE VWAP UP', desc: 'Above VWAP, EMA stack bullish, momentum up.', bias: 'long' },
-  { id: 'below-vwap-dn', num: '04', name: 'BELOW VWAP DN', desc: 'Below VWAP, EMA stack bearish, momentum down.', bias: 'short' },
-  { id: 'vwap-mean-rv',  num: '05', name: 'VWAP MEAN-RV',  desc: 'Within 0.25% of VWAP — fade extremes back to mean.', bias: 'either' },
+  { id: 'orb-up-break',  num: '01', name: 'Range Break Up',   desc: 'Price breaks above the opening range high on volume. Buy the move.', bias: 'long',  isOrb: true },
+  { id: 'orb-dn-break',  num: '02', name: 'Range Break Down', desc: 'Price breaks below the opening range low on volume. Short the move.', bias: 'short', isOrb: true },
+  { id: 'above-vwap-up', num: '03', name: 'VWAP Uptrend',     desc: 'Price holding above VWAP with EMAs stacked bullish. Buy the trend.', bias: 'long' },
+  { id: 'below-vwap-dn', num: '04', name: 'VWAP Downtrend',   desc: 'Price holding below VWAP with EMAs stacked bearish. Short the trend.', bias: 'short' },
+  { id: 'vwap-mean-rv',  num: '05', name: 'VWAP Fade',        desc: 'Price hugging VWAP within ~0.25%. Fade the extremes back to the mean.', bias: 'either' },
 ];
 
 export const TRADE_SETUP_TEMPLATES = {

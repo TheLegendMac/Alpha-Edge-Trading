@@ -160,7 +160,6 @@ function resetFlowSilent() {
   state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
   if (state.tradeFlow) {
     state.tradeFlow.swingPremiumManual = false;
-    state.tradeFlow.moonshotR = 3;
   }
   saveState();
   if (typeof renderTrade === 'function') window.renderTrade();

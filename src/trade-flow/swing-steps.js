@@ -19,7 +19,7 @@ function tfSwingStep1() {
     return `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
       <span class="trade-setup-card-num">${s.num} · ${biasTag}${s.halfSize ? ' <span class="tf-bias-tag neutral" style="margin-left:4px;">½ SIZE</span>' : ''}</span>
-      <span class="trade-setup-card-name">${s.id}</span>
+      <span class="trade-setup-card-name">${s.name || s.id}</span>
       <span class="trade-setup-card-detail">${s.desc}</span>
     </button>`;
   }).join('');
@@ -380,7 +380,13 @@ function tfSwingStep3() {
   const swingStop    = state.swingStop;
   const swingTarget  = state.swingTarget;
   const swingQty     = state.swingQty;
-  const stopPctLabel = (state.settings && state.settings.stopPct) || 50;
+  const _baseStopPct = (state.settings && state.settings.stopPct) || 50;
+  const _stopRegimeMult = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+  const _effStopPct = _baseStopPct * _stopRegimeMult;
+  const stopPctLabel = Number.isInteger(_effStopPct) ? String(_effStopPct) : _effStopPct.toFixed(1);
+  const targetRLabel = (Number(state.settings && state.settings.targetRMultiple) > 0)
+    ? Number(state.settings.targetRMultiple)
+    : 2;
   const liquidityInputs = [
     { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
     { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
@@ -474,7 +480,7 @@ function tfSwingStep3() {
             <div>
               <label class="input-label">
                 <span>Stop ${isOptions ? 'premium' : 'price'} ($)</span>
-                <button type="button" class="tf-auto-chip" id="tf-swing-auto-stop">AUTO · ${stopPctLabel}%</button>
+                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Stop">Smart-Stop</button>
               </label>
               <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop"
                 placeholder="Stop fill" value="${swingStop ?? ''}" />
@@ -482,7 +488,10 @@ function tfSwingStep3() {
           </div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;">
             <div>
-              <label class="input-label">Limit ${isOptions ? 'premium' : 'price'} ($)</label>
+              <label class="input-label">
+                <span>Limit ${isOptions ? 'premium' : 'price'} ($)</span>
+                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Target">Smart-Limit</button>
+              </label>
               <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target"
                 placeholder="Take-profit fill" value="${swingTarget ?? ''}" />
             </div>
@@ -491,7 +500,7 @@ function tfSwingStep3() {
             <div>
               <label class="input-label">
                 <span>${isOptions ? 'Contracts' : 'Shares'}</span>
-                <button type="button" class="tf-auto-chip" id="tf-swing-auto-size">AUTO · risk unit</button>
+                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Size">Smart-Size</button>
               </label>
               <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty"
                 placeholder="Blank = auto from risk" value="${swingQty ?? ''}" />
@@ -541,7 +550,7 @@ function tfMountSwingStep3() {
     el.addEventListener('input', e => {
       const v = parseFloat(e.target.value);
       if (key === 'premium') {
-        if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+        if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
         state.tradeFlow.swingPremiumManual = !isNaN(v) && v > 0;
       }
       state[key] = isNaN(v) ? null : v;
@@ -556,7 +565,7 @@ function tfMountSwingStep3() {
   wireNum('tf-swing-qty', 'swingQty');
 
   // AUTO stop — settings.stopPct of entry premium. Long: entry × (1 − stopPct). Short: × (1 + stopPct).
-  const autoStopBtn = document.getElementById('tf-swing-auto-stop');
+  const autoStopBtn = document.getElementById('tf-swing-Smart-Stop');
   if (autoStopBtn) {
     autoStopBtn.addEventListener('click', () => {
       const entry = Number(state.premium);
@@ -577,8 +586,36 @@ function tfMountSwingStep3() {
       window.tfUpdateSwingSizing();
     });
   }
+  // AUTO limit — entry ± N × stop distance (N = settings.targetRMultiple, default 2).
+  const autoTargetBtn = document.getElementById('tf-swing-Smart-Target');
+  if (autoTargetBtn) {
+    autoTargetBtn.addEventListener('click', () => {
+      const entry = Number(state.premium);
+      const stop  = Number(state.swingStop);
+      if (!(entry > 0 && stop > 0)) {
+        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        return;
+      }
+      const targetR = Number(state.settings && state.settings.targetRMultiple) > 0
+        ? Number(state.settings.targetRMultiple)
+        : 2;
+      const isOptions = state.instrument !== 'stocks';
+      const isShort = (state.direction || 'long').toLowerCase().startsWith('s');
+      const stopDist = Math.abs(entry - stop);
+      // Options: target is always above the entry premium (long-premium trade), regardless of underlying direction.
+      const target = isOptions
+        ? +(entry + targetR * stopDist).toFixed(2)
+        : +(isShort ? entry - targetR * stopDist : entry + targetR * stopDist).toFixed(2);
+      state.swingTarget = target;
+      const el = document.getElementById('tf-swing-target');
+      if (el) el.value = target;
+      saveState();
+      window.tfRefreshHeaderOnly();
+      window.tfUpdateSwingSizing();
+    });
+  }
   // AUTO size — regime-frozen risk ÷ stop distance.
-  const autoSizeBtn = document.getElementById('tf-swing-auto-size');
+  const autoSizeBtn = document.getElementById('tf-swing-Smart-Size');
   if (autoSizeBtn) {
     autoSizeBtn.addEventListener('click', () => {
       const entry = Number(state.premium);
@@ -608,7 +645,6 @@ function tfMountSwingStep3() {
   }
   // Bind sliders on initial render — tfUpdateSwingSizing handles rebinds after rebuilds.
   if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
-  if (typeof window.tfBindMoonshotSliders === 'function')  window.tfBindMoonshotSliders();
 }
 
 // ----- Swing step 4 — Final review & send -----
@@ -630,7 +666,7 @@ function tfComputeSwingReviewPlan() {
   const direction = state.direction || 'long';
   const mult = isOptions ? 100 : 1;
   const stopFraction = ((settings.stopPct || (isOptions ? 50 : 5)) / 100);
-  const targetFraction = ((settings.targetPct || 50) / 100);
+  const targetR = Number(settings.targetRMultiple) > 0 ? Number(settings.targetRMultiple) : 2;
 
   let defaultQty = null;
   let defaultStopSell = null;
@@ -645,8 +681,9 @@ function tfComputeSwingReviewPlan() {
   if (entry > 0) {
     if (isOptions) {
       defaultStopSell  = userStop   > 0 ? userStop   : +(entry * (1 - stopFraction)).toFixed(2);
-      defaultLimitSell = userTarget > 0 ? userTarget : +(entry * (1 + targetFraction)).toFixed(2);
-      const lossPerContract = Math.abs(entry - defaultStopSell) * 100;
+      const stopDist = Math.abs(entry - defaultStopSell);
+      defaultLimitSell = userTarget > 0 ? userTarget : +(entry + targetR * stopDist).toFixed(2);
+      const lossPerContract = stopDist * 100;
       const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerContract)));
       defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
       if (atr > 0 && upx > 0) {
@@ -655,8 +692,9 @@ function tfComputeSwingReviewPlan() {
       }
     } else {
       defaultStopSell  = userStop   > 0 ? userStop   : +(direction === 'short' ? entry * (1 + stopFraction) : entry * (1 - stopFraction)).toFixed(2);
-      defaultLimitSell = userTarget > 0 ? userTarget : +(direction === 'short' ? entry * (1 - targetFraction) : entry * (1 + targetFraction)).toFixed(2);
-      const lossPerShare = Math.abs(entry - defaultStopSell);
+      const stopDist = Math.abs(entry - defaultStopSell);
+      defaultLimitSell = userTarget > 0 ? userTarget : +(direction === 'short' ? entry - targetR * stopDist : entry + targetR * stopDist).toFixed(2);
+      const lossPerShare = stopDist;
       const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerShare)));
       defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
     }
@@ -902,7 +940,7 @@ function tfMountSwingStep4() {
 
   document.querySelectorAll('#panel-trade [data-tf-s-review]').forEach(el => {
     el.addEventListener('input', e => {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
       if (!state.tradeFlow.swingScenario) state.tradeFlow.swingScenario = {};
       state.tradeFlow.swingScenario[e.target.dataset.tfSReview] = e.target.value;
       saveState();
@@ -1106,7 +1144,7 @@ function tfDemoFillSwing() {
     state.premium = upx;
   }
   // Land the user on the last step so they can verify the review card.
-  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+  if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
   state.tradeFlow.step = window.tfStepCount();
   saveState();
   if (typeof window.toast === 'function') window.toast('Demo trade filled');

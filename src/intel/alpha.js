@@ -409,7 +409,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
         </div>
         <div class="ai-empty-body">
           <div class="ai-empty-icon">⌁</div>
-          <div class="ai-empty-msg"><strong>No closed trades yet.</strong> Log a few exits — wins or losses — and this card will surface your strongest pattern, biggest leak, and any stop-trading alerts.</div>
+          <div class="ai-empty-msg"><strong>No closed trades yet.</strong> Once you log a few exits — wins or losses — this card will tell you what's working, what's not, and when to slow down.</div>
         </div>
       </div>`;
   }
@@ -588,8 +588,8 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
 //  with the same visual language as the home Edge Intel card so the user
 //  reads it the same way no matter where they see it.
 // ──────────────────────────────────────────────────────────
-function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
-  const helpBtn = '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
+function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal = false } = {}) {
+  const helpBtn = inModal ? '' : '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
   const closed = (state.trades || []).filter(t => isClosedTrade(t));
   const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
@@ -597,7 +597,76 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
 
   const bullets = [];
 
-  // 1. Setup × direction history — "this exact pattern has been a winner / loser".
+  // Friendly setup name — fall back to whatever was stored.
+  const setupDef = (typeof window.tfFindIntradaySetup === 'function' && mode === 'intraday') ? window.tfFindIntradaySetup(setup) : null;
+  const setupLabel = setupDef ? setupDef.name : (setup || 'this setup');
+  const dirWord = dirKey === 'short' ? 'short' : 'long';
+
+  // Reward vs. risk.
+  const ticket = mode === 'intraday' ? (state.intraday || {}) : null;
+  const entry  = ticket ? Number(ticket.entry)  : Number(state.premium);
+  const stop   = ticket ? Number(ticket.stop)   : null;
+  const target = ticket ? Number(ticket.target) : null;
+  if (entry > 0 && stop > 0 && target > 0) {
+    const rr = Math.abs((target - entry) / (entry - stop));
+    if (isFinite(rr)) {
+      if (rr >= 2) {
+        bullets.push({ tone: 'good', icon: '🎯', text: `<strong>Good payoff:</strong> you could win about $${rr.toFixed(1)} for every $1 you risk.` });
+      } else if (rr >= 1.5) {
+        bullets.push({ tone: 'info', icon: '🎯', text: `<strong>Okay payoff:</strong> winning about $${rr.toFixed(1)} per $1 risked. Tight — only take it if you're confident.` });
+      } else {
+        bullets.push({ tone: 'bad', icon: '🎯', text: `<strong>Skinny payoff:</strong> only $${rr.toFixed(1)} reward per $1 risked. Most pros pass on this.` });
+      }
+    }
+  }
+
+  // How much of the account is on the line.
+  if (mode === 'intraday') {
+    const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+    const it = state.intraday || {};
+    const settings = state.settings || {};
+    const account = Number(settings.account) || 0;
+    const isOptions = (it.instrument || 'options') !== 'stocks';
+    const qty = Number(it.contracts) || (auto ? auto.qty : 0);
+    const stopDist = (entry > 0 && stop > 0) ? Math.abs(entry - stop) : 0;
+    const riskDollars = qty && stopDist ? qty * stopDist * (isOptions ? 100 : 1) : (auto ? auto.risk : 0);
+    if (account > 0 && riskDollars > 0) {
+      const pct = (riskDollars / account) * 100;
+      if (pct > 2) {
+        bullets.push({ tone: 'bad', icon: '💰', text: `<strong>Too much on the line:</strong> $${Math.round(riskDollars).toLocaleString()} is ${pct.toFixed(1)}% of your account — bigger than your usual trade. Cut the size.` });
+      } else if (pct > 1) {
+        bullets.push({ tone: 'warn', icon: '💰', text: `<strong>Heavy size:</strong> $${Math.round(riskDollars).toLocaleString()} (${pct.toFixed(1)}% of account). At the top of your normal range.` });
+      } else {
+        bullets.push({ tone: 'good', icon: '💰', text: `<strong>Risk in check:</strong> $${Math.round(riskDollars).toLocaleString()} on the line — ${pct.toFixed(1)}% of your account, well within your rules.` });
+      }
+    } else if (qty > 0) {
+      bullets.push({ tone: 'neutral', icon: '💰', text: `<strong>${qty} ${isOptions ? 'contract' : 'share'}${qty > 1 ? 's' : ''} planned.</strong> Add an account size in Settings to see how much you're really risking.` });
+    }
+  }
+
+  // Does the rest of the picture agree with the direction.
+  if (mode === 'intraday') {
+    const it = state.intraday || {};
+    if (it.confluence || it.breadth) {
+      const conflictConf = (dirKey === 'long' && it.confluence === 'short-bias') || (dirKey === 'short' && it.confluence === 'long-bias');
+      const conflictBr   = (dirKey === 'long' && it.breadth === 'down')          || (dirKey === 'short' && it.breadth === 'up');
+      if (conflictConf || conflictBr) {
+        bullets.push({ tone: 'bad', icon: '⚠️', text: `<strong>You're fighting the tape:</strong> the market is pointing the other way. Flip the direction or skip the trade.` });
+      } else {
+        const aligned = [
+          it.confluence && ((dirKey === 'long' && it.confluence === 'long-bias') || (dirKey === 'short' && it.confluence === 'short-bias')),
+          it.breadth && ((dirKey === 'long' && it.breadth === 'up') || (dirKey === 'short' && it.breadth === 'down')),
+        ].filter(Boolean).length;
+        if (aligned > 0) {
+          bullets.push({ tone: 'good', icon: '✅', text: `<strong>The tape agrees with you:</strong> the broader market is leaning ${dirWord} too. Good backdrop.` });
+        }
+      }
+    } else {
+      bullets.push({ tone: 'neutral', icon: '◌', text: `<strong>No market context tagged.</strong> Add confluence or breadth next time — it makes these reads sharper later.` });
+    }
+  }
+
+  // What history says about this exact play.
   if (setup) {
     const peers = closedWithPL.filter(x => {
       const t = x.trade;
@@ -609,73 +678,73 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
       const wr = Math.round(wins / peers.length * 100);
       const avgR = peers.reduce((s, x) => s + x.r, 0) / peers.length;
       const totalPL = peers.reduce((s, x) => s + x.pl, 0);
-      const tone = avgR >= 0.4 ? 'good' : avgR >= 0 ? 'info' : 'bad';
-      const verdict = avgR >= 0.4 ? 'edge confirmed' : avgR >= 0 ? 'mixed read' : 'historical leak';
-      bullets.push({
-        tone, icon: avgR >= 0 ? '📈' : '📉',
-        text: `<strong>${setup} · ${dirKey === 'short' ? 'Short' : 'Long'}:</strong> ${peers.length} prior trades, ${wr}% wins, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg (${$(totalPL)}). <em>${verdict}.</em>`,
-      });
+      const totalSign = totalPL >= 0 ? '+' : '−';
+      const totalAbs = `$${Math.abs(Math.round(totalPL)).toLocaleString()}`;
+      if (avgR >= 0.4) {
+        bullets.push({ tone: 'good', icon: '📈', text: `<strong>This setup has been good to you:</strong> ${peers.length} past trades, you won ${wr}% of them, ${totalSign}${totalAbs} total. Looks like a real edge.` });
+      } else if (avgR >= 0) {
+        bullets.push({ tone: 'info', icon: '📊', text: `<strong>Mixed history:</strong> ${peers.length} past trades, ${wr}% wins, roughly break-even (${totalSign}${totalAbs}). No strong edge yet — trade carefully.` });
+      } else {
+        bullets.push({ tone: 'bad', icon: '📉', text: `<strong>This setup has been losing money:</strong> ${peers.length} past trades, only ${wr}% wins, ${totalSign}${totalAbs} total. Maybe skip until you find what's missing.` });
+      }
     } else if (peers.length === 1) {
-      bullets.push({
-        tone: 'info', icon: '🆕',
-        text: `<strong>Only 1 prior ${setup} ${dirKey}.</strong> Sample is too small for an edge read — log this one and watch for a pattern.`,
-      });
+      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it — stick to the playbook.` });
     } else {
-      bullets.push({
-        tone: 'info', icon: '🆕',
-        text: `<strong>First ${setup} ${dirKey} of your career.</strong> No history to lean on — trust the setup criteria.`,
-      });
+      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet — go by the rules of the setup.` });
     }
   }
 
-  // 2. Regime alignment.
+  // SA quant history (swing only).
   const saBucket = alphaSaQuantBucket({ saQuant: state.saQuant });
   if (mode === 'swing' && saBucket) {
     const peers = closedWithPL.filter(x => alphaSaQuantBucket(x.trade) === saBucket);
     if (peers.length >= 3) {
-      const avgR = peers.reduce((s, x) => s + x.r, 0) / peers.length;
       const totalPL = peers.reduce((s, x) => s + x.pl, 0);
+      const totalSign = totalPL >= 0 ? '+' : '−';
+      const totalAbs = `$${Math.abs(Math.round(totalPL)).toLocaleString()}`;
       bullets.push({
-        tone: avgR >= 0 ? 'good' : 'bad', icon: 'SA',
-        text: `<strong>${saBucket} history:</strong> ${peers.length} prior trades, ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R avg (${$(totalPL)}).`,
+        tone: totalPL >= 0 ? 'good' : 'bad', icon: '📚',
+        text: totalPL >= 0
+          ? `<strong>${saBucket}-rated names have worked for you</strong> — ${peers.length} prior trades, ${totalSign}${totalAbs} total.`
+          : `<strong>${saBucket}-rated names have lost money:</strong> ${peers.length} prior trades, ${totalSign}${totalAbs}. Be picky here.`,
       });
     }
   }
 
-  // 3. Regime alignment.
+  // Market regime warnings.
   const regime = state.regime || 'risk-on';
   if (regime === 'risk-off' && dirKey === 'long') {
     bullets.push({
       tone: 'bad', icon: '🛑',
-      text: `<strong>Risk-off tape — long bias is fighting the trend.</strong> Your defensive rules call for puts on Avoid sectors, half size only.`,
+      text: `<strong>The market is in risk-off mode and you're buying.</strong> You're swimming upstream — cut the size in half or wait it out.`,
     });
   } else if (regime === 'neutral') {
     bullets.push({
       tone: 'warn', icon: '⚖️',
-      text: `<strong>Neutral regime → half size.</strong> Both directions OK only on confirmed setups.`,
+      text: `<strong>Choppy market — go half size.</strong> Both directions are tricky right now; only take rock-solid setups.`,
     });
   } else if (state.selectedSetup === 'Edge Reversal' && mode === 'swing') {
     bullets.push({
       tone: 'warn', icon: '⚠️',
-      text: `<strong>Edge Reversal is half-size by rule.</strong> Counter-trend trades fail more often — keep size honest.`,
+      text: `<strong>Edge Reversal trades fail more often.</strong> Use half your usual size — that's the rule for catching turns.`,
     });
   }
 
-  // 4. Rolling drawdown warning (kill switch).
+  // Recent drawdown / kill switch.
   const rolling = computeRollingPL();
   if (rolling.pct <= -7) {
     bullets.push({
       tone: 'bad', icon: '⚡',
-      text: `<strong>Kill switch active.</strong> Last ${rolling.days}d at ${rolling.pct.toFixed(1)}% — pause until P/L recovers.`,
+      text: `<strong>Cool-off time.</strong> You're down ${Math.abs(rolling.pct).toFixed(1)}% over the last ${rolling.days} days — step away until things turn around.`,
     });
   } else if (rolling.pct <= -4 && rolling.count > 0) {
     bullets.push({
       tone: 'warn', icon: '⏱',
-      text: `Rolling P/L is <strong>${rolling.pct.toFixed(1)}% over ${rolling.days}d</strong>. Watch for the -7% line.`,
+      text: `<strong>You've been losing lately</strong> (down ${Math.abs(rolling.pct).toFixed(1)}% over ${rolling.days} days). Tighten things up before you hit the ${'-'}7% pause line.`,
     });
   }
 
-  // 5. Friction (intraday-specific): spread + daily loss budget.
+  // Friction + daily loss budget (intraday).
   if (mode === 'intraday') {
     const it = state.intraday || {};
     const settings = state.settings || {};
@@ -686,7 +755,9 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
       if (spread > max * 0.7) {
         bullets.push({
           tone: spread > max ? 'bad' : 'warn', icon: '💧',
-          text: `<strong>Spread ${spread.toFixed(1)}%</strong> — friction will eat ~${(spread / 2).toFixed(1)}% of your edge per round trip.`,
+          text: spread > max
+            ? `<strong>Spread is too wide</strong> (${spread.toFixed(1)}%). You'd lose a big chunk just getting in and out — pass on this one.`
+            : `<strong>Wide spread</strong> (${spread.toFixed(1)}%). It'll eat into the move — need a bigger run than usual to come out ahead.`,
         });
       }
     }
@@ -697,29 +768,39 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument } = {}) {
       if (remaining < cap * 0.4 && dayPL < 0) {
         bullets.push({
           tone: remaining <= 0 ? 'bad' : 'warn', icon: '🔒',
-          text: `<strong>Loss budget: ${$(remaining)} left of $${cap}.</strong> ${remaining <= 0 ? 'Stop for the day.' : 'One more loss puts you out.'}`,
+          text: remaining <= 0
+            ? `<strong>You've hit your daily loss limit.</strong> Stop trading for today.`
+            : `<strong>Only $${Math.round(remaining).toLocaleString()} left in your daily loss budget.</strong> One more loss and you're done for the day.`,
         });
       }
     }
   }
 
-  // Empty fallback.
+  // All clear.
   if (!bullets.length) {
     bullets.push({
       tone: 'info', icon: '✅',
-      text: `Nothing flagged from history or context — proceed when ready.`,
+      text: `Nothing to worry about here — the setup looks clean. Trade it when you're ready.`,
     });
   }
 
-  // Render with the same green-card language as the home Edge Intel card.
+  // Worst tone across bullets sets the card's accent stripe.
+  const toneRank = { bad: 4, warn: 3, info: 2, neutral: 1, good: 0 };
+  const worst = bullets.reduce((acc, b) => (toneRank[b.tone] || 0) > (toneRank[acc] || 0) ? b.tone : acc, 'good');
+  const accent = worst === 'bad' ? 'red' : worst === 'warn' ? 'amber' : worst === 'neutral' ? 'neutral' : worst === 'info' ? 'cyan' : 'green';
+  const accentTitleColor = accent === 'red' ? '#ff8b8b' : accent === 'amber' ? '#ffd166' : accent === 'cyan' ? '#67e8f9' : accent === 'neutral' ? 'var(--ink-2)' : '#7ee787';
+  const kicker = inModal ? 'Final read before GO' : 'Pre-trade read';
+  const cardMargin = inModal ? 'margin: 14px 0 0;' : 'margin: 0;';
+
+  // Render with the same Edge Intelligence card language used on Home / Stats.
   return `
-    <div class="home-card green trade-edge-intel" style="margin: 0;">
+    <div class="home-card ${accent} trade-edge-intel" style="${cardMargin}">
       <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
-        <div class="home-card-kicker" style="margin: 0;">Pre-trade read</div>
+        <div class="home-card-title" style="color:${accentTitleColor}; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
+        <div class="home-card-kicker" style="margin: 0;">${kicker}</div>
       </div>
       <ul class="home-intel-points">
-        ${bullets.slice(0, 4).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
+        ${bullets.slice(0, 5).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
       </ul>
     </div>`;
 }

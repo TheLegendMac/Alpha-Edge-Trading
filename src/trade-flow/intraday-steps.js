@@ -182,7 +182,7 @@ function tfIntradayStep1() {
           <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
             <span style="color: var(--cyan); font-size: 16px;">⚡</span> Smart paste
           </div>
-          <div class="trade-section-subtitle">Paste your TOS alert text — auto-fills setup, OR levels, bid/ask, entry/stop/target. Cmd+V into the box.</div>
+          <div class="trade-section-subtitle">Paste TOS alert text to auto-fill fields.</div>
         </div>
       </div>
       <div class="trade-section-body" style="padding-top: 4px;">
@@ -196,15 +196,85 @@ function tfIntradayStep1() {
       </div>
     </div>`;
 
+  // ORB levels — only when an ORB setup is selected. Otherwise hidden.
+  const filled = (v) => v !== null && v !== undefined && v !== '';
+  const inputValue = (key) => (it[key] ?? '');
+  const orFilledN = [filled(it.orHi), filled(it.orLo)].filter(Boolean).length;
+  const rngText = (filled(it.orHi) && filled(it.orLo) && Number(it.orHi) >= Number(it.orLo))
+    ? `RNG ${(+(Number(it.orHi) - Number(it.orLo)).toFixed(2))}`
+    : 'RNG —';
+  const orSection = (it.setup && isOrb) ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> OR levels</div>
+          <div class="trade-section-subtitle">From your ORB cloud alert. RNG auto-derives.</div>
+        </div>
+        <div class="trade-section-counter optional">optional</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">OR_HI $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orHi" value="${inputValue('orHi')}" placeholder="OR_HI from TOS alert" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">OR_LO $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="OR_LO from TOS alert" />
+          </div></div>
+        </div>
+        <div style="margin-top:10px;">
+          <span class="trade-bracket low" style="font-size: 11px; padding: 5px 10px;" id="tf-i-orRng-readout">${rngText}</span>
+        </div>
+      </div>
+    </div>` : '';
+
+  // Context chips — only after a setup is selected.
+  const confChips = TRADE_CONFLUENCE_OPTIONS.map(c => `
+    <button type="button" class="tf-chip ${it.confluence === c.id ? 'selected ' + (c.bias || 'neutral') : ''}" data-tf-i-conf="${c.id}">${c.label}</button>
+  `).join('');
+  const breadthChips = TRADE_BREADTH_OPTIONS.map(b => `
+    <button type="button" class="tf-chip ${it.breadth === b.id ? 'selected ' + (b.id === 'up' ? 'long' : b.id === 'down' ? 'short' : 'neutral') : ''}" data-tf-i-breadth="${b.id}">${b.label}</button>
+  `).join('');
+  const hasContext = it.confluence || it.breadth || it.vwapValue || it.notes;
+  const contextSection = it.setup ? `
+    <div class="trade-section">
+      <div class="trade-section-head">
+        <div class="trade-section-head-stack">
+          <div class="trade-section-title"><span class="trade-section-title-icon">${isOrb ? 'C.' : 'B.'}</span> Context</div>
+          <div class="trade-section-subtitle">Adds chart context to the journal.</div>
+        </div>
+        <div class="trade-section-counter optional">optional</div>
+      </div>
+      <div class="trade-section-body">
+        <div class="tf-chip-row" style="row-gap:6px;">
+          <span class="tf-chip-row-label">Confluence:</span>
+          ${confChips}
+        </div>
+        <div class="tf-chip-row" style="margin-top:8px; row-gap:6px;">
+          <span class="tf-chip-row-label">Breadth:</span>
+          ${breadthChips}
+        </div>
+        <div class="trade-section-grid-2" style="margin-top:12px;">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;">
+            <div>
+              <label class="input-label">VWAP value</label>
+              <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="From VWAP label" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>` : '';
+
   return `
     ${smartPaste}
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">1.</span> Pick the setup</div>
-          <div class="trade-section-subtitle">Mirrors your ThinkScript labels. Direction auto-aligns from the picked pattern's bias.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Pick setup</div>
+          <div class="trade-section-subtitle">Direction auto-aligns from setup bias.</div>
         </div>
-        <div class="trade-section-counter ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
+        <div class="trade-section-counter required ${it.setup ? 'complete' : ''}">${it.setup ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-setup-grid">${cards}</div>
@@ -212,6 +282,8 @@ function tfIntradayStep1() {
         ${orbChips}
       </div>
     </div>
+    ${orSection}
+    ${contextSection}
   `;
 }
 
@@ -298,85 +370,53 @@ function tfIntradayStep2() {
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
   const filled = (v) => v !== null && v !== undefined && v !== '';
   const inputValue = (key) => (draft[key] !== undefined && draft[key] !== '') ? draft[key] : (it[key] ?? '');
-  const lvlN = [filled(it.entry), filled(it.stop), filled(it.target)].filter(Boolean).length;
+  const entryOk = filled(it.entry);
+  const qtyOk = filled(it.contracts);
+  const reqN = [entryOk, qtyOk].filter(Boolean).length;
   const r = (it.entry && it.stop && it.target)
     ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
     : null;
   const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
   const rGood = r !== null && isFinite(r) && r >= 1.5;
 
-  const setupDef = window.tfFindIntradaySetup(it.setup);
-  const isOrb = !!(setupDef && setupDef.isOrb);
-  const orFilledN = [filled(it.orHi), filled(it.orLo)].filter(Boolean).length;
-  const rngText = (filled(it.orHi) && filled(it.orLo) && Number(it.orHi) >= Number(it.orLo))
-    ? `RNG ${(+(Number(it.orHi) - Number(it.orLo)).toFixed(2))}`
-    : 'RNG —';
   const levelsLetter = 'A.';
-  const orLetter = 'B.';
   const sizingHtml = (typeof window.tfRenderIntradaySizingHtml === 'function')
     ? window.tfRenderIntradaySizingHtml()
     : '';
-
-  // ORB section is optional ("bypass if not shown" — only present when an
-  // ORB pattern is the picked setup, and even then the user can leave it
-  // empty without blocking GO). RNG auto-derives from HI − LO and renders
-  // as a read-only badge — one fewer field to type.
-  const orSection = isOrb ? `
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${orLetter}</span> Opening Range levels</div>
-          <div class="trade-section-subtitle">From your ORB cloud alert: <code>OR_HI=… | OR_LO=…</code>. Optional — RNG auto-derives.</div>
-        </div>
-        <div class="trade-section-counter">${orFilledN} of 2 (optional)</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">OR_HI $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orHi" value="${inputValue('orHi')}" placeholder="OR_HI from TOS alert" />
-          </div></div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">OR_LO $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-orLo" value="${inputValue('orLo')}" placeholder="OR_LO from TOS alert" />
-          </div></div>
-        </div>
-        <div style="margin-top:10px;">
-          <span class="trade-bracket low" style="font-size: 11px; padding: 5px 10px;" id="tf-i-orRng-readout">${rngText}</span>
-        </div>
-      </div>
-    </div>` : '';
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry · stop · limit · auto-sized risk</div>
-          <div class="trade-section-subtitle">Enter your three prices, or drag the sliders. Size auto-derives from your $${(state.settings && state.settings.intradayRiskPerTrade) || 100} risk unit ÷ stop distance.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry, stop & limit</div>
+          <div class="trade-section-subtitle">Size auto-derives from risk % ÷ stop distance.</div>
         </div>
-        <div class="trade-section-counter ${lvlN === 3 ? 'complete' : ''}">${lvlN} of 3</div>
+        <div class="trade-section-counter required ${reqN === 2 ? 'complete' : ''}" id="tf-i-lvl-counter">${reqN === 2 ? 'ready' : `${reqN} of 2`}</div>
       </div>
       <div class="trade-section-body">
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Entry ${isOptions ? 'premium' : 'price'} $</label>
+            <label class="input-label">Entry Price $</label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Fill price' : 'Share entry'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">
-              <span>Stop ${isOptions ? 'premium' : 'price'} $</span>
-              <button type="button" class="tf-auto-chip" id="tf-i-auto-stop">AUTO · ${(state.settings && state.settings.stopPct) || 50}%</button>
+              <span>Stop price $</span>
+              <button type="button" class="tf-auto-chip" id="tf-i-Smart-Stop">Smart-Stop</button>
             </label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Stop fill' : 'Invalidation price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Limit ${isOptions ? 'premium' : 'price'} $</label>
+            <label class="input-label">
+              <span>Limit Price $</span>
+              <button type="button" class="tf-auto-chip" id="tf-i-Smart-Target">Smart-Limit</button>
+            </label>
             <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-target" value="${inputValue('target')}" placeholder="${isOptions ? 'Take-profit fill' : 'Take-profit price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">
               <span>${isOptions ? 'Contracts' : 'Shares'}</span>
-              <button type="button" class="tf-auto-chip" id="tf-i-auto-size">AUTO · risk unit</button>
+              <button type="button" class="tf-auto-chip" id="tf-i-Smart-Size">Smart-Size</button>
             </label>
             <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Blank = auto from risk" />
           </div></div>
@@ -384,8 +424,17 @@ function tfIntradayStep2() {
         <div id="tf-i-sizing-card" style="margin-top:14px;">${sizingHtml}</div>
       </div>
     </div>
-    ${orSection}
   `;
+}
+
+function tfUpdateIntradayLvlCounter() {
+  const counter = document.getElementById('tf-i-lvl-counter');
+  if (!counter) return;
+  const f = (v) => v !== null && v !== undefined && v !== '';
+  const it = state.intraday || {};
+  const n = [f(it.entry), f(it.contracts)].filter(Boolean).length;
+  counter.textContent = n === 2 ? 'ready' : `${n} of 2`;
+  counter.classList.toggle('complete', n === 2);
 }
 
 function tfMountIntradayStep2() {
@@ -393,7 +442,7 @@ function tfMountIntradayStep2() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', e => {
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
       if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
       state.tradeFlow.intradayDraft[key] = e.target.value;
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
@@ -403,6 +452,7 @@ function tfMountIntradayStep2() {
       if (key === 'entry' || key === 'stop' || key === 'target' || key === 'contracts') {
         window.tfUpdateIntradayRMult();
         window.tfUpdateIntradaySizing();
+        tfUpdateIntradayLvlCounter();
       }
       // RNG is derived (no input field) — recompute on every HI/LO edit.
       // The readout badge below the inputs reflects the live value.
@@ -442,7 +492,7 @@ function tfMountIntradayStep2() {
   wire('tf-i-orLo', 'orLo');
 
   // AUTO stop — settings.stopPct × regime multiplier (tightens in neutral / risk-off).
-  const autoStopBtn = document.getElementById('tf-i-auto-stop');
+  const autoStopBtn = document.getElementById('tf-i-Smart-Stop');
   if (autoStopBtn) {
     autoStopBtn.addEventListener('click', () => {
       const it = state.intraday || {};
@@ -458,7 +508,7 @@ function tfMountIntradayStep2() {
       const isShort = dir.startsWith('s');
       const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
       state.intraday.stop = stop;
-      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '', moonshotR: 3 };
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
       if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
       state.tradeFlow.intradayDraft.stop = String(stop);
       const el = document.getElementById('tf-i-stop');
@@ -466,11 +516,45 @@ function tfMountIntradayStep2() {
       saveState();
       window.tfUpdateIntradayRMult();
       window.tfUpdateIntradaySizing();
+      tfUpdateIntradayLvlCounter();
+      window.tfRefreshHeaderOnly();
+    });
+  }
+  // AUTO limit — entry ± N × stop distance (N = settings.targetRMultiple, default 2).
+  const autoTargetBtn = document.getElementById('tf-i-Smart-Target');
+  if (autoTargetBtn) {
+    autoTargetBtn.addEventListener('click', () => {
+      const it = state.intraday || {};
+      const entry = Number(it.entry);
+      const stop  = Number(it.stop);
+      if (!(entry > 0 && stop > 0)) {
+        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        return;
+      }
+      const targetR = Number(state.settings && state.settings.targetRMultiple) > 0
+        ? Number(state.settings.targetRMultiple)
+        : 2;
+      const isOptions = window.tfIntradayInstrument() !== 'stocks';
+      const isShort = (it.direction || 'long').toLowerCase().startsWith('s');
+      const stopDist = Math.abs(entry - stop);
+      const target = isOptions
+        ? +(entry + targetR * stopDist).toFixed(2)
+        : +(isShort ? entry - targetR * stopDist : entry + targetR * stopDist).toFixed(2);
+      state.intraday.target = target;
+      if (!state.tradeFlow) state.tradeFlow = { mode: 'intraday', step: 1, thesis: '', preMortem: '' };
+      if (!state.tradeFlow.intradayDraft) state.tradeFlow.intradayDraft = {};
+      state.tradeFlow.intradayDraft.target = String(target);
+      const el = document.getElementById('tf-i-target');
+      if (el) el.value = target;
+      saveState();
+      window.tfUpdateIntradayRMult();
+      window.tfUpdateIntradaySizing();
+      tfUpdateIntradayLvlCounter();
       window.tfRefreshHeaderOnly();
     });
   }
   // AUTO size — fill contracts/shares from risk-unit ÷ stop distance.
-  const autoSizeBtn = document.getElementById('tf-i-auto-size');
+  const autoSizeBtn = document.getElementById('tf-i-Smart-Size');
   if (autoSizeBtn) {
     autoSizeBtn.addEventListener('click', () => {
       const qty = window.tfApplyIntradayRiskSize();
@@ -483,6 +567,7 @@ function tfMountIntradayStep2() {
       saveState();
       window.tfUpdateIntradayRMult();
       window.tfUpdateIntradaySizing();
+      tfUpdateIntradayLvlCounter();
       window.tfRefreshHeaderOnly();
     });
   }
@@ -498,154 +583,57 @@ function tfMountIntradayStep3() {
   // Sizing card renders inline inside step 2. Bind the sliders so the
   // initial render (before any input change) is interactive.
   if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
-  if (typeof window.tfBindMoonshotSliders === 'function')  window.tfBindMoonshotSliders();
   if (typeof window.tfBindIntradayRiskSizeButton === 'function') window.tfBindIntradayRiskSizeButton();
 }
 
-// ----- Intraday step 3 — Context: optional ThinkScript chips + guardrails -----
-// Confluence + breadth chips capture what the user is reading off the chart
-// (MAC_Intraday_VWAP_Confluence + MAC_Intraday_Breadth labels). They flow
-// into the trade log; only an explicit confluence conflict blocks GO.
+// ----- Intraday step 3 — Review summary -----
+// Clean confirmation card. Context inputs and ORB levels now live in Step 1.
+// Guardrails removed per design — GO still respects the underlying status logic.
 function tfIntradayStep4() {
   const it = state.intraday || {};
   const isOptions = window.tfIntradayInstrument() !== 'stocks';
-  const settings = state.settings || DEFAULT_SETTINGS;
-  const inWin = (typeof isInIntradayWindow === 'function') ? window.isInIntradayWindow() : true;
-  const tov   = !!(state.intradayQuality && state.intradayQuality.timeOverride);
-  const dayPL = window.tfComputeIntradayDayPL();
-  const lossBudget = settings.intradayMaxDailyLoss + dayPL;
   const setupDef = window.tfFindIntradaySetup(it.setup);
-  const spreadPct = isOptions ? window.tfDeriveIntradaySpread() : null;
-
-  // Direction vs setup bias — explicit conflict (e.g. ORB UP-BREAK + Short).
-  const dirSetupOk = !setupDef || setupDef.bias === 'either' || it.direction === setupDef.bias;
-
-  // Direction vs confluence chip (LONG BIAS / SHORT BIAS / MIXED).
-  const conf = (TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || null);
-  const dirConfOk = !conf || conf.bias === 'either' || it.direction === conf.bias;
-
-  const checks = [
-    { key: 'dir-setup', step: 1, name: 'Setup bias', ok: dirSetupOk,
-      rule: setupDef ? `${setupDef.name} expects ${setupDef.bias === 'either' ? 'either direction' : setupDef.bias.toUpperCase()}.` : 'Pick a setup first.' },
-    { key: 'dir-conf',  step: 3, name: 'VWAP confluence', ok: dirConfOk,
-      rule: conf ? `Confluence chip is ${conf.label}.` : 'Optional — leave blank when you do not need it.' },
-    { key: 'spread',    step: 2, name: isOptions ? `Spread ≤ ${settings.intradayMaxSpreadPct}%` : 'Spread not needed for stock', ok: !isOptions || (spreadPct !== null && spreadPct <= settings.intradayMaxSpreadPct),
-      rule: isOptions ? 'Uses bid/ask from the quote section.' : 'Stock trades skip option-chain spread.' },
-    { key: 'window',    step: 3, name: 'Entry window', ok: inWin || tov,
-      rule: '09:35–11:30 or 14:00–15:30 local. Override for paper.' },
-    { key: 'budget',    step: 3, name: 'Daily loss budget', ok: lossBudget > 0,
-      rule: `Today: ${dayPL >= 0 ? '+$' : '-$'}${Math.abs(dayPL).toFixed(0)}. Cap: $${settings.intradayMaxDailyLoss}.` },
-  ];
-  const passed = checks.filter(c => c.ok).length;
-  const total  = checks.length;
-  const allGreen = passed === total;
-
-  // Guardrails — compact pill row when ready, expanded list of failing rows
-  // when not. Passing rows still appear as small badges so the user can see
-  // what was checked, but only the failing rows get the full button treatment.
-  const passingPills = checks.filter(c => c.ok).map(c => `
-    <span class="trade-bracket low" style="font-size: 10px; padding: 4px 8px;">✓ ${c.name}</span>
-  `).join('');
-  const failingRows = checks.filter(c => !c.ok).map(c => `
-    <button type="button" class="trade-row fail" data-tf-jump="${c.step}">
-      <span class="trade-row-check"></span>
-      <span class="trade-row-main">
-        <span class="trade-row-name">${c.name}</span>
-        <span class="trade-row-help">${c.rule}${c.key === 'window' && !inWin ? ` <span data-tf-i-tov style="margin-left:6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--cyan); font-family: var(--mono); font-size: 10px;">${tov ? 'Override on — turn off' : 'Override (paper)'}</span>` : ''}</span>
-      </span>
-      <span class="trade-row-pill">FIX</span>
-    </button>`).join('');
-
-  const banner = allGreen
-    ? `<div class="trade-output" style="border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 70%); padding: 12px 14px;">
-         <div class="trade-output-main" style="font-size: 14px;">All clear · ready to send</div>
-         <div class="trade-output-rationale" style="font-size: 12px; margin-top: 2px;">Place the bracket in TOS, then GO.</div>
-       </div>`
-    : `<div class="trade-output" style="padding: 12px 14px;">
-         <div class="trade-output-main" style="font-size: 14px;">${total - passed} blocking · ${passed}/${total} passed</div>
-         <div class="trade-output-rationale" style="font-size: 12px; margin-top: 2px;">Tap a row to jump to the field that fixes it.</div>
-       </div>`;
-
-  // Context chips — confluence + breadth in a single condensed row. The
-  // labels for confluence are long enough that we keep two visual rows on
-  // narrow widths via flex-wrap.
-  const confChips = TRADE_CONFLUENCE_OPTIONS.map(c => `
-    <button type="button" class="tf-chip ${it.confluence === c.id ? 'selected ' + (c.bias || 'neutral') : ''}" data-tf-i-conf="${c.id}">${c.label}</button>
-  `).join('');
-  const breadthChips = TRADE_BREADTH_OPTIONS.map(b => `
-    <button type="button" class="tf-chip ${it.breadth === b.id ? 'selected ' + (b.id === 'up' ? 'long' : b.id === 'down' ? 'short' : 'neutral') : ''}" data-tf-i-breadth="${b.id}">${b.label}</button>
-  `).join('');
-  const hasContext = it.confluence || it.breadth || it.vwapValue || it.notes;
+  const setupName = setupDef ? setupDef.name : '—';
+  const tickerStr = it.ticker || '—';
+  const dirStr = it.direction ? it.direction.toUpperCase() : '—';
+  const entryStr = it.entry ? `$${Number(it.entry).toFixed(2)}` : '—';
+  const stopStr  = it.stop  ? `$${Number(it.stop).toFixed(2)}`  : '—';
+  const tgtStr   = it.target ? `$${Number(it.target).toFixed(2)}` : '—';
+  const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+  const qty = Number(it.contracts) || (auto ? auto.qty : 0);
+  const qtyLabel = isOptions ? 'contracts' : 'shares';
+  const riskBudget = auto ? auto.riskBudget : 0;
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Guardrails</div>
-          <div class="trade-section-subtitle">${allGreen ? 'Setup bias, spread, time window, and loss budget all clear.' : 'Tap any failing check to jump to the field that fixes it.'}</div>
-        </div>
-        <div class="trade-section-counter ${allGreen ? 'complete' : ''}">${passed} of ${total}</div>
-      </div>
-      <div class="trade-section-body">
-        ${banner}
-        ${failingRows ? `<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">${failingRows}</div>` : ''}
-        ${passingPills ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:${failingRows ? '12px' : '12px'};">${passingPills}</div>` : ''}
-      </div>
-    </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Context (optional)</div>
-          <div class="trade-section-subtitle">${hasContext ? 'Captured to the trade log — only conflicting confluence blocks GO.' : 'Optional. Add chart context if it helps the journal.'}</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Review &amp; log</div>
+          <div class="trade-section-subtitle">Verify the plan, then GO.</div>
         </div>
       </div>
       <div class="trade-section-body">
-        <div class="tf-chip-row" style="row-gap:6px;">
-          <span class="tf-chip-row-label">Confluence:</span>
-          ${confChips}
-        </div>
-        <div class="tf-chip-row" style="margin-top:8px; row-gap:6px;">
-          <span class="tf-chip-row-label">Breadth:</span>
-          ${breadthChips}
-        </div>
-        <div class="trade-section-grid-2" style="margin-top:12px;">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">VWAP value</label>
-              <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-vwapValue" value="${it.vwapValue ?? ''}" placeholder="From VWAP label" />
-            </div>
+        <div class="trade-output" style="padding:14px 16px;">
+          <div class="trade-output-main" style="font-size:14px;">
+            <span style="color:var(--cyan);">${tickerStr}</span> · ${dirStr} · ${setupName}
           </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Trigger / invalidation</label>
-              <textarea class="trade-textarea" id="tf-i-notes" rows="2" placeholder="Trigger, invalidation, context">${it.notes || ''}</textarea>
-            </div>
+          <div class="trade-output-rationale" style="font-size:12px; margin-top:6px; line-height:1.6;">
+            Entry <strong>${entryStr}</strong> · Stop <strong>${stopStr}</strong> · Target <strong>${tgtStr}</strong><br/>
+            Size <strong>${qty || '—'} ${qtyLabel}</strong>${riskBudget ? ` · Budget <strong>$${riskBudget}</strong>` : ''}
+          </div>
+        </div>
+        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:14px;">
+          <div>
+            <label class="input-label">Notes</label>
+            <textarea class="trade-textarea" id="tf-i-notes" rows="3" placeholder="Trigger, invalidation, anything to remember">${it.notes || ''}</textarea>
           </div>
         </div>
       </div>
     </div>
-
-    ${typeof window.buildTradeFlowEdgeIntel === 'function' ? window.buildTradeFlowEdgeIntel({
-      mode: 'intraday',
-      setup: it.setup,
-      direction: it.direction,
-      instrument: it.instrument,
-    }) : ''}
   `;
 }
 
 function tfMountIntradayStep4() {
-  // Time-window override toggle.
-  document.querySelectorAll('#panel-trade [data-tf-i-tov]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      if (!state.intradayQuality) state.intradayQuality = { timeOverride: false };
-      state.intradayQuality.timeOverride = !state.intradayQuality.timeOverride;
-      saveState();
-      window.tfRefreshAll();
-    });
-  });
   // Jump-to-fix on each failing check.
   document.querySelectorAll('#panel-trade [data-tf-jump]').forEach(el => {
     el.addEventListener('click', () => {

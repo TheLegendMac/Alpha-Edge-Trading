@@ -88,29 +88,20 @@ function tfComputeStatus() {
       return { tone: 'blocked', reason: `${setupDef.name} expects ${setupDef.bias.toUpperCase()}`, step: 1 };
     }
     if (isOptions) {
-      // 2 Plan & Size — bid/ask derives spread and usually fills the bracket.
+      // Spread is informational only — checked if known, never blocks for missing bid/ask.
       const spreadPct = window.tfDeriveIntradaySpread();
-      if (spreadPct === null || spreadPct === undefined || spreadPct === '') {
-        return { tone: 'progress', reason: 'Add bid/ask to auto-fill entry', step: 2 };
-      }
-      if (Number(spreadPct) > s.intradayMaxSpreadPct) {
+      if (spreadPct !== null && spreadPct !== undefined && spreadPct !== '' && Number(spreadPct) > s.intradayMaxSpreadPct) {
         return { tone: 'blocked', reason: `Spread ${Number(spreadPct).toFixed(1)}% over ${s.intradayMaxSpreadPct}%`, step: 2 };
       }
     }
-    // Levels live in the same Plan & Size group as quote/sizing.
-    if (!it.entry)  return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add entry $', step: 2 };
-    if (!it.stop)   return { tone: 'progress', reason: 'Add stop $',   step: 2 };
-    if (!it.target) return { tone: 'progress', reason: 'Add target $', step: 2 };
-    // 3 Context — confluence-vs-direction conflict (only when chip is set), window, loss budget
+    // Only entry is required to fire — stop/limit are optional.
+    if (!it.entry) return { tone: 'progress', reason: 'Add entry $', step: 2 };
+    // 3 Context — confluence-vs-direction conflict (only when chip is set), loss budget
     if (it.confluence) {
       const confDef = TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || null;
       if (confDef && confDef.bias !== 'either' && it.direction !== confDef.bias) {
         return { tone: 'blocked', reason: `Confluence is ${confDef.label} — ${confDef.bias.toUpperCase()} only`, step: 3 };
       }
-    }
-    const inWin = (typeof isInIntradayWindow === 'function') ? window.isInIntradayWindow() : true;
-    if (!inWin && !(state.intradayQuality && state.intradayQuality.timeOverride)) {
-      return { tone: 'blocked', reason: 'Outside entry window (override available)', step: 3 };
     }
     const dayPL = window.tfComputeIntradayDayPL();
     const lossBudget = s.intradayMaxDailyLoss + dayPL;

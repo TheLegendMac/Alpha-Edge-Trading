@@ -23,8 +23,11 @@ function logIntradayTrade() {
   const instrument = t.instrument === 'stocks' ? 'stocks' : 'options';
   const multiplier = instrument === 'stocks' ? 1 : 100;
   const stopDist = Math.abs(t.entry - t.stop);
-  const qty = t.contracts ||
-    Math.max(1, Math.floor(state.settings.intradayRiskPerTrade / Math.max(0.01, stopDist * multiplier)));
+  // Size from the unified regime-aware risk budget (same logic as the live sizing widget).
+  const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+  const autoQty = auto && auto.qty > 0 ? auto.qty : 1;
+  const qty = t.contracts || autoQty;
+  const riskBudget = auto ? auto.riskBudget : 0;
   const bid = Number(t.bid);
   const ask = Number(t.ask);
   const mid = instrument === 'options'
@@ -62,7 +65,7 @@ function logIntradayTrade() {
     breadth:    t.breadth    || '',
     vwapValue:  t.vwapValue  ?? null,
     notes: t.notes,
-    riskDollars: state.settings.intradayRiskPerTrade,
+    riskDollars: riskBudget || Math.round(qty * stopDist * multiplier),
     inWindow: window.isInIntradayWindow(),
     tradeNumOfDay: window.todayIntradayTrades().length + 1,
     regime: state.regime,
