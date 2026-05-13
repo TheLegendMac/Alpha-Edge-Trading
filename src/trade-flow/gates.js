@@ -21,9 +21,7 @@ function tfEvaluateGates() {
     '03': !!state.gateChecks['03'] || (typeof window.tfGradePasses === 'function' && window.tfGradePasses(state.saMomentumGrade)),
     '04': liqOk,
     '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= 8,
-    '06': isOptions
-      ? state.atr !== null && state.atr > 0 && state.underlyingPrice !== null && state.underlyingPrice > 0
-      : state.premium !== null && state.premium > 0,
+    '06': state.swingStop !== null && state.swingStop !== undefined && state.swingStop > 0,
   };
 }
 
@@ -43,7 +41,7 @@ function tfComputeStatus() {
   }
 
   if (m === 'swing') {
-    // 1 Setup & Quality — ticker plus business/quality gates + Technicals.
+    // 1 Quality — ticker plus business/quality gates.
     if (!state.ticker)        return { tone: 'progress', reason: 'Add ticker',        step: 1 };
     if (state.saQuant === null || state.saQuant === undefined) return { tone: 'progress', reason: 'Add SA Quant rating', step: 1 };
     if (state.daysToEarnings === null || state.daysToEarnings === undefined) return { tone: 'progress', reason: 'Add days to earnings', step: 1 };
@@ -53,26 +51,24 @@ function tfComputeStatus() {
     if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 1 };
     if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 1 };
 
-    if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 1 };
-    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 1 };
+    // 2 Setup — setup, IV Rank, and liquidity/quote.
+    if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 2 };
+    if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 2 };
     const isOptions = state.instrument !== 'stocks';
-    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 1 };
-    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 1 };
-
-    // 2 Size — liquidity, quote/entry, and risk sizing.
+    if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
+    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
     if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 2 };
+
+    // 3 Size — entry/stop/limit.
     if (state.premium === null || state.premium === undefined || state.premium <= 0) {
-      return { tone: 'progress', reason: isOptions ? 'Review entry premium' : 'Add share price', step: 2 };
+      return { tone: 'progress', reason: isOptions ? 'Add entry price' : 'Add share price', step: 3 };
     }
-    if (isOptions && (state.atr === null || state.atr === undefined || state.atr <= 0)) {
-      return { tone: 'progress', reason: 'Add ATR(14)', step: 2 };
+    if (!g['06']) return { tone: 'progress', reason: 'Add stop price', step: 3 };
+    if (state.swingTarget === null || state.swingTarget === undefined || state.swingTarget <= 0) {
+      return { tone: 'progress', reason: 'Add limit price', step: 3 };
     }
-    if (isOptions && (state.underlyingPrice === null || state.underlyingPrice === undefined || state.underlyingPrice <= 0)) {
-      return { tone: 'progress', reason: 'Add underlying price', step: 2 };
-    }
-    if (!g['06']) return { tone: 'progress', reason: 'Stop level not set', step: 2 };
-    // 3 Log — every gate green; ready to fire.
-    return { tone: 'ready', reason: 'Ready to log', step: 3 };
+    // 4 Review — every gate green; ready to fire.
+    return { tone: 'ready', reason: 'Ready to log', step: 4 };
   }
 
   if (m === 'intraday') {

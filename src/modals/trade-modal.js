@@ -149,17 +149,30 @@ function addTestTrades(count = 25, skipConfirm = false) {
 
 function resetFlowSilent() {
   state.selectedSetup = null;
+  state.direction = null;
+  state.structure = 'options';
+  state.instrument = 'options';
   state.ivr = null;
   state.premium = null;
+  state.swingStop = null;
+  state.swingTarget = null;
+  state.swingQty = null;
   state.atr = null;
   state.underlyingPrice = null;
   state.ticker = null;
   state.saQuant = null;
   state.daysToEarnings = null;
+  state.saProfitGrade = '';
+  state.saMomentumGrade = '';
   state.gateChecks = {};
   state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
   if (state.tradeFlow) {
     state.tradeFlow.swingPremiumManual = false;
+    state.tradeFlow.swingScenario = {};
+    state.tradeFlow.notes = '';
+    state.tradeFlow.thesis = '';
+    state.tradeFlow.preMortem = '';
+    state.tradeFlow.visited = [];
   }
   saveState();
   if (typeof renderTrade === 'function') window.renderTrade();

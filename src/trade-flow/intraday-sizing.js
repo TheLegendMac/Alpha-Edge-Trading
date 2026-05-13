@@ -92,9 +92,6 @@ function tfRenderIntradaySizingHtml() {
     ? Math.round(Math.abs(target - entry) * useQty * auto.mult)
     : null;
   const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
-  const rUnitNote = auto.derivedStop
-    ? `Sized from your <strong>$${auto.riskBudget} R-unit</strong> ÷ default stop distance (no stop set).`
-    : `Sized from your <strong>$${auto.riskBudget} R-unit</strong> ÷ stop distance.`;
   const pnlLine = `
     <div class="trade-output-pnl" style="display:flex; gap:14px; margin-top:8px; font-family:var(--mono); font-size:12px;">
       <span style="color: var(--red-bright);">Risking <strong>$${realizedRisk.toLocaleString()}</strong></span>
@@ -104,10 +101,9 @@ function tfRenderIntradaySizingHtml() {
     </div>`;
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">${manualQty > 0 ? 'Sized (override)' : 'Smart-Sized'}</div>
+      <div class="trade-output-title">Position size</div>
       <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}</div>
       ${pnlLine}
-      <div class="trade-output-rationale" style="margin-top:8px;">${manualQty > 0 ? `Override risk: $${realizedRisk}. AUTO sets to ${auto.qty} for $${auto.riskBudget} R-unit.` : `${rUnitNote} GO logs this size.`}</div>
       ${profileHtml || ''}
     </div>`;
 }

@@ -37,23 +37,24 @@ function tfStepCompletion() {
     const isOptions = state.instrument !== 'stocks';
     const gates = window.tfEvaluateGates();
 
-    // 1 Setup & Quality — ticker plus SA Quant, factor-grade gates, earnings gap, direction, setup, and IVR.
+    // 1 Quality — ticker plus SA Quant, factor-grade gates, and earnings gap.
     const tickerReady = !!state.ticker;
     const qualityInputsDone = (state.saQuant !== null && state.saQuant !== undefined)
                            && (state.daysToEarnings !== null && state.daysToEarnings !== undefined);
     const qualityGatesOk = gates['01'] && gates['02'] && gates['03'] && gates['05'];
+    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk);
+
+    // 2 Setup — direction, setup, IVR, and liquidity/quote.
     const ivrOk = !isOptions || (state.ivr !== null && state.ivr !== undefined && Number(state.ivr) < 70);
-    c[0] = !!(tickerReady && qualityInputsDone && qualityGatesOk && state.direction && state.selectedSetup && ivrOk);
+    c[1] = !!(c[0] && state.direction && state.selectedSetup && ivrOk && gates['04']);
 
-    // 2 Size — liquidity (Gate 04) + price/stop inputs (Gate 06).
-    const sizingFilled = isOptions
-      ? !!(state.premium > 0 && state.atr > 0 && state.underlyingPrice > 0)
-      : !!(state.premium > 0);
-    c[1] = !!(c[0] && gates['04'] && gates['06'] && sizingFilled);
+    // 3 Size — entry/stop/target inputs.
+    const sizingFilled = !!(state.premium > 0 && state.swingStop > 0 && state.swingTarget > 0);
+    c[2] = !!(c[1] && sizingFilled);
 
-    // 3 Log — flips green only when the whole swing ticket is ready.
+    // 4 Review — flips green only when the whole swing ticket is ready.
     const st = window.tfComputeStatus();
-    c[2] = c[0] && c[1] && st.tone === 'ready';
+    c[3] = c[0] && c[1] && c[2] && st.tone === 'ready';
     return c;
   }
 
@@ -228,14 +229,10 @@ function tfComputeHeroPnl() {
   const isOptions = state.instrument !== 'stocks';
   const mult = isOptions ? 100 : 1;
   const label = isOptions ? 'contract' : 'share';
-  // Smart-Size mirrors the logic in swing-sizing.js.
-  const settings = state.settings || {};
-  const account = settings.account || 10000;
-  const deployed = (typeof window.tfCapitalDeployed === 'function') ? window.tfCapitalDeployed() : 0;
-  const available = Math.max(0, account - deployed);
-  let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
-  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-  const riskDollars = Math.round(available * riskPct);
+  let riskDollars = (typeof window.tfComputeSwingRiskBudget === 'function')
+    ? window.tfComputeSwingRiskBudget()
+    : Math.round((Number(state.settings && state.settings.account) || DEFAULT_SETTINGS.account || 10000) * ((typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02));
+  if (state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function') riskDollars = Math.round(riskDollars / 2);
   const perUnitRisk = Math.abs(premium - stop) * mult;
   const autoQty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, perUnitRisk)));
   const manualQty = Number(state.swingQty);
@@ -361,6 +358,11 @@ function tfReset() {
       state.premium = null;
       state.atr = null;
       state.underlyingPrice = null;
+      state.saQuant = null;
+      state.daysToEarnings = null;
+      state.swingStop = null;
+      state.swingTarget = null;
+      state.swingQty = null;
       state.gateChecks = {};
       state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
       state.tradeFlow.swingPremiumManual = false;
@@ -371,6 +373,9 @@ function tfReset() {
     state.tradeFlow.step = 1;
     state.tradeFlow.thesis = '';
     state.tradeFlow.preMortem = '';
+    state.tradeFlow.notes = '';
+    state.tradeFlow.swingScenario = {};
+    state.tradeFlow.visited = Array(window.tfStepCount()).fill(false);
     state.tradeFlow.intradayDraft = {};
     saveState();
     window.renderTrade();
@@ -395,9 +400,10 @@ function tfStepBody(step) {
         <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
         ${html}
       </div>`;
-    return wrap(0, window.tfSwingStep2() + window.tfSwingStep1() + window.tfSwingContractSpecHtml())
-         + wrap(1, window.tfSwingStep3())
-         + wrap(2, window.tfSwingStep4());
+    return wrap(0, window.tfSwingStep2())
+         + wrap(1, window.tfSwingStep1() + window.tfSwingContractSpecHtml() + window.tfSwingLiquidityStep())
+         + wrap(2, window.tfSwingStep3())
+         + wrap(3, window.tfSwingStep4());
   }
   // Intraday — single screen.
   const wrap = (idx, html) => `
@@ -497,11 +503,10 @@ function tfLogSwingDirect() {
   const atr = Number(state.atr);
   const upx = Number(state.underlyingPrice);
 
-  // Sizing: regime risk%, halved for Edge Reversal. Same math as the legacy
-  // calc — we replicate it inline to avoid a dependency on the modal.
-  let riskPct = getRiskPctForRegime(state.regime || 'risk-on');
-  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-  let riskDollars = settings.account * riskPct;
+  let riskDollars = (typeof window.tfComputeSwingRiskBudget === 'function')
+    ? window.tfComputeSwingRiskBudget()
+    : Math.round((Number(settings.account) || DEFAULT_SETTINGS.account || 10000) * getRiskPctForRegime(state.regime || 'risk-on'));
+  if (state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function') riskDollars = Math.round(riskDollars / 2);
   const stopFraction = (settings.stopPct || 50) / 100;
   const targetFraction = (settings.targetPct || 50) / 100;
   let contracts = reviewPlan && reviewPlan.qty ? reviewPlan.qty : 1;
@@ -540,9 +545,15 @@ function tfLogSwingDirect() {
   const sizeLine = isOptions
     ? `${premium.toFixed(2)} premium × ${contracts} contract${contracts > 1 ? 's' : ''}`
     : `$${premium.toFixed(2)} × ${contracts} share${contracts > 1 ? 's' : ''}`;
-  const thesisHtml = state.tradeFlow.thesis
-    ? `<div class="tf-confirm-thesis">${esc(state.tradeFlow.thesis)}</div>`
-    : `<div class="tf-confirm-thesis empty">Thesis is empty — log anyway?</div>`;
+  const edgeIntelHtml = (typeof window.buildTradeFlowEdgeIntel === 'function')
+    ? window.buildTradeFlowEdgeIntel({
+        mode: 'swing',
+        setup: state.selectedSetup,
+        direction: state.direction,
+        instrument: state.instrument,
+        inModal: true,
+      })
+    : '';
   const bodyHtml = `
     <p style="margin: 0 0 6px;">This trade will be added to the log as <strong>open</strong>.</p>
     <div class="tf-confirm-summary">
@@ -556,7 +567,7 @@ function tfLogSwingDirect() {
       ${targetPrice ? `<div class="row"><span class="k">Target</span><span>$${targetPrice}</span></div>` : ''}
       ${stopUnderlying ? `<div class="row"><span class="k">Underlying stop</span><span>$${stopUnderlying}</span></div>` : ''}
     </div>
-    ${thesisHtml}
+    ${edgeIntelHtml}
   `;
 
   // Capture values needed for the post-confirm path so the closure stays small.
@@ -570,10 +581,7 @@ function tfLogSwingDirect() {
 
 function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, stopSell, targetPrice, stopUnderlying, riskDollars, regimeText }) {
   const nowIso = new Date().toISOString();
-  const liq = state.liquidity || {};
-  const bid = Number(liq.bid);
-  const ask = Number(liq.ask);
-  const mid = isOptions && bid > 0 && ask > 0 ? (bid + ask) / 2 : null;
+  const setupLabel = state.selectedSetup || '';
   const trade = {
     id: genTradeId ? genTradeId() : ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
     mode: 'swing',
@@ -581,7 +589,7 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     structure: state.structure || (isOptions ? 'options' : 'stocks'),
     date: new Date().toISOString().split('T')[0],
     ticker,
-    setup: state.selectedSetup,
+    setup: setupLabel,
     direction: directionLabel,
     entry: premium,
     contracts,
@@ -590,15 +598,12 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
     saQuant: (state.saQuant === null || state.saQuant === undefined) ? null : Number(state.saQuant),
     saProfitGrade: state.saProfitGrade || null,
     saMomentumGrade: state.saMomentumGrade || null,
-    bid: isOptions ? (liq.bid ?? null) : null,
-    ask: isOptions ? (liq.ask ?? null) : null,
-    mid,
-    spreadPct: isOptions ? window.deriveSpreadPct(liq) : null,
     regime: regimeText,
     regimeAtEntry: state.regime || null,
     openedAt: nowIso,
-    thesis: state.tradeFlow.thesis || '',
-    premortem: state.tradeFlow.preMortem || '',
+    notes: state.tradeFlow.notes || '',
+    thesis: state.tradeFlow.notes || '',
+    premortem: '',
     stop: isOptions ? (stopSell || null) : stopPrice,
     stopUnderlying: isOptions ? (stopUnderlying || null) : null,
     target: targetPrice,
@@ -623,8 +628,10 @@ function tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOpti
   state.tradeFlow.step = 1;
   state.tradeFlow.thesis = '';
   state.tradeFlow.preMortem = '';
+  state.tradeFlow.notes = '';
+  state.tradeFlow.visited = Array(window.tfStepCount()).fill(false);
   saveState();
-  if (typeof toast === 'function') window.toast(`Logged ${ticker} ${state.selectedSetup || ''}`);
+  if (typeof toast === 'function') window.toast(`Logged ${ticker} ${setupLabel}`);
   if (typeof renderHome === 'function') window.renderHome();
   if (typeof renderLogStats === 'function') window.renderLogStats();
   if (typeof renderLogTable === 'function') window.renderLogTable();

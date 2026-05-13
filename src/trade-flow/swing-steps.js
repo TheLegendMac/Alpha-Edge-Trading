@@ -2,7 +2,7 @@
 
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { DEFAULT_SETTINGS, TRADE_SWING_SETUPS, TRADE_STRUCTURES, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
+import { DEFAULT_SETTINGS, TRADE_SWING_SETUPS } from '../config/constants.js';
 
 function tfSwingStep1() {
   const sel = state.selectedSetup;
@@ -32,8 +32,8 @@ function tfSwingStep1() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Pick the setup</div>
-          <div class="trade-section-subtitle">Pick one approved chart pattern. Only setups matching your direction are shown.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Pick setup</div>
+          <div class="trade-section-subtitle">Choose the chart pattern.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
       </div>
@@ -81,8 +81,8 @@ function tfSwingContractSpecHtml() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> IV Rank → contract spec</div>
-          <div class="trade-section-subtitle">From TOS Volatility tab. Drives strategy, delta target, DTE, and spread width.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> IV Rank</div>
+          <div class="trade-section-subtitle">Set volatility before picking the contract.</div>
         </div>
         <div class="trade-section-counter ${ivr !== null && ivr !== undefined ? 'complete' : ''}">${ivr !== null && ivr !== undefined ? '1 set' : 'fill 1'}</div>
       </div>
@@ -103,8 +103,8 @@ function tfSwingContractSpecHtml() {
     <div class="trade-section muted">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Stocks mode — IV doesn't apply</div>
-          <div class="trade-section-subtitle">Sizing math runs off share price in the size step.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Stock mode</div>
+          <div class="trade-section-subtitle">IV Rank is skipped for shares.</div>
         </div>
       </div>
     </div>`;
@@ -171,7 +171,7 @@ function tfSwingStep2() {
           <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
             <span style="color: var(--cyan); font-size: 16px;">⚡</span> Smart paste
           </div>
-          <div class="trade-section-subtitle">Paste your TOS/SA alert text — fills ticker, setup, IVR, ATR, premium, factor grades, liquidity. Cmd+V into the box.</div>
+          <div class="trade-section-subtitle">Paste alert text to fill the flow.</div>
         </div>
       </div>
       <div class="trade-section-body" style="padding-top: 4px;">
@@ -190,8 +190,8 @@ function tfSwingStep2() {
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality inputs & gates</div>
-          <div class="trade-section-subtitle">Pull these from Seeking Alpha. All four gates must pass before you move on.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Quality</div>
+          <div class="trade-section-subtitle">Confirm SA rating and earnings risk.</div>
         </div>
         <div class="trade-section-counter ${passed === 4 ? 'complete' : ''}" id="tf-swing-gates-counter">${passed} of 4 passed</div>
       </div>
@@ -367,30 +367,14 @@ function tfMountSwingStep2() {
   });
 }
 
-// ----- Swing size — liquidity + premium / ATR / underlying -----
-// Goal: prove the contract is tradable, then math out position size + stop.
-
-function tfSwingStep3() {
+function tfSwingLiquidityStep() {
   const isOptions = state.instrument !== 'stocks';
   const liq = state.liquidity || {};
   const gates = window.tfEvaluateGates();
-  const premium = state.premium;
-  const atr     = state.atr;
-  const upx     = state.underlyingPrice;
-  const swingStop    = state.swingStop;
-  const swingTarget  = state.swingTarget;
-  const swingQty     = state.swingQty;
-  const _baseStopPct = (state.settings && state.settings.stopPct) || 50;
-  const _stopRegimeMult = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
-  const _effStopPct = _baseStopPct * _stopRegimeMult;
-  const stopPctLabel = Number.isInteger(_effStopPct) ? String(_effStopPct) : _effStopPct.toFixed(1);
-  const targetRLabel = (Number(state.settings && state.settings.targetRMultiple) > 0)
-    ? Number(state.settings.targetRMultiple)
-    : 2;
   const liquidityInputs = [
-    { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '≥ 1,000,000', step: '1' },
-    { key: 'optionOI',  label: 'Option open interest',  rule: '≥ 500',       step: '1' },
-    { key: 'optionVol', label: 'Option volume today',   rule: '≥ 100',       step: '1' },
+    { key: 'stockVol',  label: 'Stock 30d avg volume',  rule: '>= 1,000,000', step: '1' },
+    { key: 'optionOI',  label: 'Option open interest',  rule: '>= 500',       step: '1' },
+    { key: 'optionVol', label: 'Option volume today',   rule: '>= 100',       step: '1' },
   ];
   const liqInputHtml = (f) => `
     <div class="trade-input-row" style="grid-template-columns: 1fr;">
@@ -400,150 +384,110 @@ function tfSwingStep3() {
           value="${liq[f.key] ?? ''}" />
       </div>
     </div>`;
-
-  // Bid/ask + quote-mid block removed — entry premium is user-typed.
-  const quoteInputs = '';
-
-  // Sizing card + Gate 06 row — surgically updated by window.tfUpdateSwingSizing().
-  const sizingCard = `<div id="tf-sizing-card">${window.tfRenderSwingSizingHtml()}</div>`;
-  const stopOk = Number(swingStop) > 0;
-  const stopGateRow = `
-    <div id="tf-stop-gate" class="trade-row ${stopOk ? 'checked' : 'fail'}" data-tf-readonly="1">
-      <span class="trade-row-check">${stopOk ? '✓' : ''}</span>
-      <span class="trade-row-main">
-        <span class="trade-row-name"><small>GATE 06</small> Stop level set before entry</span>
-        <span class="trade-row-help">Passes when you've entered a stop premium.</span>
-      </span>
-      <span class="trade-row-pill">${stopOk ? 'PASS' : 'FAIL'}</span>
-    </div>`;
-
-  if (!isOptions) {
-    return `
-      <div class="trade-section">
-        <div class="trade-section-head">
-          <div class="trade-section-head-stack">
-            <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Stock price & risk size</div>
-            <div class="trade-section-subtitle">Volume proves tradability. Share price drives the risk-unit size.</div>
-          </div>
-          <div class="trade-section-counter ${gates['04'] && premium > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${gates['04'] && premium > 0 ? 'ready' : 'fill 2'}</div>
-        </div>
-        <div class="trade-section-body">
-          <div class="trade-section-grid-2">
-            ${liqInputHtml(liquidityInputs[0])}
-            <div class="trade-input-row" style="grid-template-columns: 1fr;">
-              <div>
-                <label class="input-label">Share entry price ($)</label>
-                <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-                  placeholder="Share entry price" value="${premium ?? ''}" />
-              </div>
-            </div>
-          </div>
-          ${sizingCard}
-        </div>
-      </div>`;
-  }
-
-  const liquidityGrid = liquidityInputs.map(liqInputHtml).join('');
+  const visibleInputs = isOptions ? liquidityInputs : [liquidityInputs[0]];
 
   return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Liquidity & quote</div>
-          <div class="trade-section-subtitle">Stock volume, option activity, and bid/ask all decide whether this contract is tradable.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">C.</span> Liquidity</div>
+          <div class="trade-section-subtitle">${isOptions ? 'Confirm volume and option activity.' : 'Confirm stock volume.'}</div>
         </div>
-        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}" id="tf-swing-liq-counter">${gates['04'] ? 'pass' : 'fill quote'}</div>
+        <div class="trade-section-counter ${gates['04'] ? 'complete' : ''}" id="tf-swing-liq-counter">${gates['04'] ? 'pass' : (isOptions ? 'fill 3' : 'fill 1')}</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">${liquidityGrid}</div>
+        <div class="trade-section-grid-2">${visibleInputs.map(liqInputHtml).join('')}</div>
+      </div>
+    </div>`;
+}
+
+// ----- Swing size — entry / stop / limit -----
+// Mirrors the intraday Entry, stop & limit card so both modes use the same
+// mental model before review/log.
+
+function tfSwingStep3() {
+  const isOptions = state.instrument !== 'stocks';
+  const premium = state.premium;
+  const swingStop    = state.swingStop;
+  const swingTarget  = state.swingTarget;
+  const swingQty     = state.swingQty;
+
+  // Sizing card — surgically updated by window.tfUpdateSwingSizing().
+  const sizingCard = `<div id="tf-sizing-card">${window.tfRenderSwingSizingHtml()}</div>`;
+  const entryReady = premium > 0 && swingStop > 0 && swingTarget > 0;
+  const entryFields = `
+    <div class="trade-section-grid-2">
+      <div class="trade-input-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label class="input-label">Entry Price $</label>
+          <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
+            placeholder="${isOptions ? 'Fill price' : 'Share entry'}" value="${premium ?? ''}" />
+        </div>
+      </div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label class="input-label">
+            <span>Stop price $</span>
+            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Stop">Smart-Stop</button>
+          </label>
+          <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop"
+            placeholder="${isOptions ? 'Stop fill' : 'Invalidation price'}" value="${swingStop ?? ''}" />
+        </div>
+      </div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label class="input-label">
+            <span>Limit Price $</span>
+            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Target">Smart-Limit</button>
+          </label>
+          <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target"
+            placeholder="${isOptions ? 'Take-profit fill' : 'Take-profit price'}" value="${swingTarget ?? ''}" />
+        </div>
+      </div>
+      <div class="trade-input-row" style="grid-template-columns: 1fr;">
+        <div>
+          <label class="input-label">
+            <span>${isOptions ? 'Contracts' : 'Shares'}</span>
+            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Size">Smart-Size</button>
+          </label>
+          <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty"
+            placeholder="Blank = auto from risk" value="${swingQty ?? ''}" />
+        </div>
       </div>
     </div>
+    <div id="tf-swing-sizing-card" style="margin-top:14px;">${sizingCard}</div>`;
 
+  return `
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Entry · stop · limit</div>
-          <div class="trade-section-subtitle">Type your three prices. Size auto-derives from your regime risk unit ÷ stop distance.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Entry, stop &amp; limit</div>
+          <div class="trade-section-subtitle">Set prices and size.</div>
         </div>
-        <div class="trade-section-counter ${premium > 0 && swingStop > 0 ? 'complete' : ''}" id="tf-swing-risk-counter">${premium > 0 && swingStop > 0 ? 'ready' : 'fill 2'}</div>
+        <div class="trade-section-counter required ${entryReady ? 'complete' : ''}" id="tf-swing-risk-counter">${entryReady ? 'ready' : `${[premium > 0, swingStop > 0, swingTarget > 0].filter(Boolean).length} of 3`}</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Entry ${isOptions ? 'premium' : 'price'} ($)</label>
-              <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-                placeholder="${isOptions ? 'Premium fill' : 'Share entry'}" value="${premium ?? ''}" />
-            </div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">
-                <span>Stop ${isOptions ? 'premium' : 'price'} ($)</span>
-                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Stop">Smart-Stop</button>
-              </label>
-              <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop"
-                placeholder="Stop fill" value="${swingStop ?? ''}" />
-            </div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">
-                <span>Limit ${isOptions ? 'premium' : 'price'} ($)</span>
-                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Target">Smart-Limit</button>
-              </label>
-              <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target"
-                placeholder="Take-profit fill" value="${swingTarget ?? ''}" />
-            </div>
-          </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">
-                <span>${isOptions ? 'Contracts' : 'Shares'}</span>
-                <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Size">Smart-Size</button>
-              </label>
-              <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty"
-                placeholder="Blank = auto from risk" value="${swingQty ?? ''}" />
-            </div>
-          </div>
-        </div>
-        <div style="margin-top:10px;">${stopGateRow}</div>
-        ${sizingCard}
+        ${entryFields}
       </div>
     </div>
   `;
 }
 
 function tfMountSwingStep3() {
-  if (window.tfAutoFillSwingPremiumFromQuote()) {
-    const premiumEl = document.getElementById('tf-premium');
-    if (premiumEl) premiumEl.value = state.premium;
-    saveState();
-    window.tfRefreshHeaderOnly();
-    window.tfUpdateSwingSizing();
-  }
   // Liquidity inputs — silent state writes + surgical header refresh only.
   document.querySelectorAll('#panel-trade [data-tf-liq]').forEach(el => {
     el.addEventListener('input', e => {
       const k = e.target.dataset.tfLiq;
       const v = parseFloat(e.target.value);
       if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
-      const quoteChanged = k === 'bid' || k === 'ask';
-      const previousMid = quoteChanged ? window.tfSwingQuoteMid(state.liquidity) : null;
       state.liquidity[k] = isNaN(v) ? null : v;
-      const quote = window.tfOptionSpreadFromBidAsk(state.liquidity.bid, state.liquidity.ask);
-      state.liquidity.spreadPct = quote ? quote.spreadPct : null;
-      if (quoteChanged && window.tfAutoFillSwingPremiumFromQuote(previousMid)) {
-        const premiumEl = document.getElementById('tf-premium');
-        if (premiumEl) premiumEl.value = state.premium;
-      }
       saveState();
-      window.tfUpdateSwingSpreadLine();
+      window.tfUpdateSwingLiquidityCounter();
       window.tfUpdateSwingSizing();
       window.tfRefreshHeaderOnly();
     });
   });
-  // Premium / ATR / underlying — surgical sizing-card updates, no rebuild.
+  // Entry / stop / target / size — surgical sizing-card updates, no rebuild.
   const wireNum = (id, key) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -626,13 +570,10 @@ function tfMountSwingStep3() {
       }
       const isOptions = state.instrument !== 'stocks';
       const mult = isOptions ? 100 : 1;
-      const settings = state.settings || {};
-      const account = settings.account || 10000;
-      let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
-      if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-      const deployed = (typeof window.tfCapitalDeployed === 'function') ? window.tfCapitalDeployed() : 0;
-      const available = Math.max(0, account - deployed);
-      const riskDollars = Math.round(available * riskPct);
+      let riskDollars = (typeof window.tfComputeSwingRiskBudget === 'function')
+        ? window.tfComputeSwingRiskBudget()
+        : Math.round((Number(state.settings && state.settings.account) || DEFAULT_SETTINGS.account || 10000) * ((typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02));
+      if (state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function') riskDollars = Math.round(riskDollars / 2);
       const stopDist = Math.abs(entry - stop);
       const qty = Math.max(1, Math.floor(riskDollars / Math.max(0.01, stopDist * mult)));
       state.swingQty = qty;
@@ -647,22 +588,21 @@ function tfMountSwingStep3() {
   if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
 }
 
-// ----- Swing step 4 — Final review & send -----
-// Confident "send it" screen. Top card replays the computed plan (size,
-// risk, stop, target). Mid card pairs thesis + pre-mortem with templates.
-// Bottom card is a single-line TOS order reminder. The GO button at the
-// bottom of the panel handles the actual log/confirm.
+// ----- Swing step 4 — Review & log -----
+// Compact confirmation card matching intraday's final review.
 
 function tfComputeSwingReviewPlan() {
   const isOptions = state.instrument !== 'stocks';
   const settings = state.settings || DEFAULT_SETTINGS;
-  const account = settings.account || 10000;
   const entry = Number(state.premium);
   const atr = Number(state.atr);
   const upx = Number(state.underlyingPrice);
-  let riskPct = getRiskPctForRegime(state.regime || 'risk-on');
-  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
-  const riskBudget = Math.round(account * riskPct);
+  const riskBudget = (typeof window.tfComputeSwingRiskBudget === 'function')
+    ? window.tfComputeSwingRiskBudget()
+    : Math.round((Number(settings.account) || DEFAULT_SETTINGS.account || 10000) * getRiskPctForRegime(state.regime || 'risk-on'));
+  const normalizedRiskBudget = state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function'
+    ? Math.round(riskBudget / 2)
+    : riskBudget;
   const direction = state.direction || 'long';
   const mult = isOptions ? 100 : 1;
   const stopFraction = ((settings.stopPct || (isOptions ? 50 : 5)) / 100);
@@ -684,7 +624,7 @@ function tfComputeSwingReviewPlan() {
       const stopDist = Math.abs(entry - defaultStopSell);
       defaultLimitSell = userTarget > 0 ? userTarget : +(entry + targetR * stopDist).toFixed(2);
       const lossPerContract = stopDist * 100;
-      const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerContract)));
+      const autoQty = Math.max(1, Math.floor(normalizedRiskBudget / Math.max(0.01, lossPerContract)));
       defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
       if (atr > 0 && upx > 0) {
         const dist = atr * 1.5;
@@ -695,25 +635,15 @@ function tfComputeSwingReviewPlan() {
       const stopDist = Math.abs(entry - defaultStopSell);
       defaultLimitSell = userTarget > 0 ? userTarget : +(direction === 'short' ? entry - targetR * stopDist : entry + targetR * stopDist).toFixed(2);
       const lossPerShare = stopDist;
-      const autoQty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, lossPerShare)));
+      const autoQty = Math.max(1, Math.floor(normalizedRiskBudget / Math.max(0.01, lossPerShare)));
       defaultQty = Number.isFinite(userQty) && userQty > 0 ? userQty : autoQty;
     }
   }
 
-  const scenario = (state.tradeFlow && state.tradeFlow.swingScenario) || {};
-  const valueOrDefault = (value, fallback) => {
-    const n = Number(value);
-    return Number.isFinite(n) && n > 0 ? n : fallback;
-  };
-  const qtyOrDefault = (value, fallback) => {
-    const n = parseInt(value, 10);
-    return Number.isFinite(n) && n > 0 ? n : fallback;
-  };
-
-  const scenarioEntry = valueOrDefault(scenario.entry, entry);
-  const qty = qtyOrDefault(scenario.qty, defaultQty);
-  const stopSell = valueOrDefault(scenario.stopSell, defaultStopSell);
-  const limitSell = valueOrDefault(scenario.limitSell, defaultLimitSell);
+  const scenarioEntry = entry;
+  const qty = defaultQty;
+  const stopSell = defaultStopSell;
+  const limitSell = defaultLimitSell;
   const sign = !isOptions && direction === 'short' ? -1 : 1;
   const stopPL = (scenarioEntry > 0 && stopSell > 0 && qty > 0)
     ? sign * (stopSell - scenarioEntry) * mult * qty
@@ -721,7 +651,7 @@ function tfComputeSwingReviewPlan() {
   const limitPL = (scenarioEntry > 0 && limitSell > 0 && qty > 0)
     ? sign * (limitSell - scenarioEntry) * mult * qty
     : null;
-  const riskDollars = stopPL !== null && stopPL < 0 ? Math.round(Math.abs(stopPL)) : riskBudget;
+  const riskDollars = stopPL !== null && stopPL < 0 ? Math.round(Math.abs(stopPL)) : normalizedRiskBudget;
   const gainR = limitPL !== null && riskDollars > 0 ? limitPL / riskDollars : null;
   const lossR = stopPL !== null && riskDollars > 0 ? stopPL / riskDollars : null;
 
@@ -736,7 +666,7 @@ function tfComputeSwingReviewPlan() {
     limitSell,
     defaultLimitSell,
     underlyingStop,
-    riskBudget,
+    riskBudget: normalizedRiskBudget,
     riskDollars,
     stopPL,
     limitPL,
@@ -746,77 +676,8 @@ function tfComputeSwingReviewPlan() {
   };
 }
 
-function tfSwingScenarioReviewHtml(plan) {
-  const fmtDollar = v => (v === null || v === undefined || !Number.isFinite(Number(v))) ? '—' : `$${Number(v).toFixed(2)}`;
-  const fmtMoney = v => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return '—';
-    return `${n >= 0 ? '+$' : '-$'}${Math.abs(n).toFixed(2)}`;
-  };
-  const fmtR = v => Number.isFinite(Number(v)) ? `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}R` : '—';
-  const unit = plan.isOptions ? 'contracts' : 'shares';
-  const stopLabel = plan.isOptions ? 'Stop-loss sell price' : 'Stop-loss price';
-  const limitLabel = plan.isOptions ? 'Limit sell price' : 'Limit price';
-  return `
-    <div class="trade-section tf-scenario-review">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Scenario check</div>
-          <div class="trade-section-subtitle">Exact sell prices for the bracket. Adjust these to test the gain/loss before GO.</div>
-        </div>
-        <button type="button" class="trade-template-btn" id="tf-s-review-reset">Reset</button>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Entry price</label>
-            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="entry" value="${plan.entry || ''}" placeholder="${fmtDollar(plan.defaultEntry)}" />
-          </div></div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">Quantity (${unit})</label>
-            <input type="number" min="1" step="1" class="trade-input" data-tf-s-review="qty" value="${plan.qty || ''}" placeholder="${plan.defaultQty || '—'}" />
-          </div></div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${stopLabel}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="stopSell" value="${plan.stopSell || ''}" placeholder="${fmtDollar(plan.defaultStopSell)}" />
-          </div></div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
-            <label class="input-label">${limitLabel}</label>
-            <input type="number" min="0" step="0.01" class="trade-input" data-tf-s-review="limitSell" value="${plan.limitSell || ''}" placeholder="${fmtDollar(plan.defaultLimitSell)}" />
-          </div></div>
-        </div>
-        <div class="tf-scenario-result" id="tf-s-review-result">
-          <div class="tf-scenario-pill neg"><span>Potential loss</span><strong data-tf-s-review-loss>${fmtMoney(plan.stopPL)} · ${fmtR(plan.lossR)}</strong></div>
-          <div class="tf-scenario-pill pos"><span>Potential gain</span><strong data-tf-s-review-gain>${fmtMoney(plan.limitPL)} · ${fmtR(plan.gainR)}</strong></div>
-          ${plan.isOptions ? `<div class="tf-scenario-pill"><span>Underlying stop</span><strong data-tf-s-review-underlying>${fmtDollar(plan.underlyingStop)}</strong></div>` : ''}
-        </div>
-      </div>
-    </div>`;
-}
-
-function tfUpdateSwingScenarioReview() {
-  const plan = window.tfComputeSwingReviewPlan();
-  const fmtMoney = v => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return '—';
-    return `${n >= 0 ? '+$' : '-$'}${Math.abs(n).toFixed(2)}`;
-  };
-  const fmtR = v => Number.isFinite(Number(v)) ? `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}R` : '—';
-  const loss = document.querySelector('[data-tf-s-review-loss]');
-  const gain = document.querySelector('[data-tf-s-review-gain]');
-  if (loss) loss.textContent = `${fmtMoney(plan.stopPL)} · ${fmtR(plan.lossR)}`;
-  if (gain) gain.textContent = `${fmtMoney(plan.limitPL)} · ${fmtR(plan.gainR)}`;
-}
-
 function tfSwingStep4() {
   const isOptions = state.instrument !== 'stocks';
-  const tpl = state.selectedSetup ? (TRADE_SETUP_TEMPLATES[state.selectedSetup] || null) : null;
-  const thesis = state.tradeFlow.thesis || '';
-  const preMortem = state.tradeFlow.preMortem || '';
-  const thesisPh = tpl ? `Template: ${tpl.thesis}` : 'One sentence — what has to happen for this to work?';
-  const preMortemPh = tpl ? `Template: ${tpl.preMortem}` : 'What invalidates the thesis?';
-  const st = window.tfComputeStatus();
-  const ready = st.tone === 'ready';
 
   const plan = window.tfComputeSwingReviewPlan();
   const premium = plan.entry;
@@ -825,155 +686,53 @@ function tfSwingStep4() {
   const premiumTarget = plan.limitSell;
   const underlyingStop = plan.underlyingStop;
   const riskDollars = plan.riskDollars;
+  const notes = (state.tradeFlow && state.tradeFlow.notes) || '';
 
   const ticker = (state.ticker || '').toUpperCase() || '—';
   const setupLabel = state.selectedSetup || '—';
   const dirRaw = state.direction || '';
   const dirLabel = dirRaw === 'short' ? 'SHORT' : dirRaw === 'long' ? 'LONG' : '—';
-  const dirClass = dirRaw === 'short' ? 'short' : 'long';
   const sizeUnit = isOptions ? (qty === 1 ? 'contract' : 'contracts') : (qty === 1 ? 'share' : 'shares');
   const fmtDollar = v => (v === null || v === undefined || !Number.isFinite(Number(v))) ? '—' : `$${Number(v).toFixed(2)}`;
 
-  const summaryStripe = ready ? 'border-color: var(--green-dim); background: linear-gradient(135deg, var(--green-bg), var(--bg) 70%);' : '';
-  const summaryStatusBadge = ready
-    ? `<span class="status open" style="background: var(--green-bg); color: var(--green-bright); border-color: var(--green-dim); font-size: 10px;">READY</span>`
-    : `<span class="status loss" style="font-size: 10px;">${st.reason ? 'BLOCKED' : '—'}</span>`;
-
-  const stopCells = isOptions ? `
-    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop (premium)</span><span class="trade-output-cell-value">${fmtDollar(premiumStop)}</span></div>
-    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop (underlying)</span><span class="trade-output-cell-value">${fmtDollar(underlyingStop)}</span></div>
-    <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${fmtDollar(premiumTarget)}</span></div>
-  ` : `
-    <div class="trade-output-cell"><span class="trade-output-cell-label">Stop</span><span class="trade-output-cell-value">${fmtDollar(premiumStop)}</span></div>
-    <div class="trade-output-cell"><span class="trade-output-cell-label">Target</span><span class="trade-output-cell-value">${fmtDollar(premiumTarget)}</span></div>
-  `;
-
-  const templateChip = tpl ? `
-    <div class="trade-templates" style="border:0; padding:0; margin:0; background:transparent;">
-      <button type="button" class="trade-template-btn" data-tf-tpl="reset">Use template</button>
-      <button type="button" class="trade-template-btn" data-tf-tpl="clear">Clear</button>
-    </div>` : '';
-
-  const tosLine = isOptions
-    ? `TOS → Trade → <strong>${ticker}</strong> → Option Chain → right-click contract → <strong>Buy with OCO Bracket</strong>${qty ? ` · ${qty} ${sizeUnit}` : ''} · entry ${fmtDollar(premium)} · stop ${fmtDollar(premiumStop)} · target ${fmtDollar(premiumTarget)}`
-    : `TOS → Trade → <strong>${ticker}</strong>${qty ? ` · Buy ${qty} ${sizeUnit}` : ''} · entry ${fmtDollar(premium)} · stop ${fmtDollar(premiumStop)} · target ${fmtDollar(premiumTarget)}`;
-
   return `
-    <div class="trade-section" style="${summaryStripe}">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; letter-spacing:0;">
-            <span style="font-family: var(--mono); font-size: 18px; letter-spacing: 0.06em;">${ticker}</span>
-            <span class="status ${dirClass}" style="font-size: 10px; background: ${dirClass === 'short' ? 'var(--red-bg)' : 'var(--green-bg)'}; color: ${dirClass === 'short' ? 'var(--red-bright)' : 'var(--green-bright)'}; border: 1px solid ${dirClass === 'short' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'};">${dirLabel}</span>
-            <span style="color: var(--ink-3); font-weight: 400; font-size: 13px;">${setupLabel}</span>
-          </div>
-          <div class="trade-section-subtitle">${ready ? 'Numbers below match what will be logged. Place the order, then GO.' : (st.reason || 'Resolve the missing fields and come back.')}</div>
-        </div>
-        <div class="trade-section-counter ${ready ? 'complete' : ''}">${summaryStatusBadge}</div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-output-grid">
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Entry ${isOptions ? 'premium' : 'price'}</span><span class="trade-output-cell-value">${fmtDollar(premium)}</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Size</span><span class="trade-output-cell-value">${qty ? `${qty} ${sizeUnit}` : '—'}</span></div>
-          <div class="trade-output-cell"><span class="trade-output-cell-label">Risk</span><span class="trade-output-cell-value">$${riskDollars}</span></div>
-          ${stopCells}
-        </div>
-      </div>
-    </div>
-
-    ${window.tfSwingScenarioReviewHtml(plan)}
-
     <div class="trade-section">
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Thesis &amp; pre-mortem</div>
-          <div class="trade-section-subtitle">Saved with the trade. One sentence each is enough.</div>
+          <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Review &amp; log</div>
+          <div class="trade-section-subtitle">Verify the plan, then GO.</div>
         </div>
-        ${templateChip}
       </div>
       <div class="trade-section-body">
-        <div class="trade-section-grid-2">
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">Why is this on?</label>
-              <textarea class="trade-textarea" id="tf-thesis" rows="3" placeholder="${thesisPh.replace(/"/g, '&quot;')}">${thesis}</textarea>
-            </div>
+        <div class="trade-output" style="padding:14px 16px;">
+          <div class="trade-output-main" style="font-size:14px;">
+            <span style="color:var(--cyan);">${ticker}</span> · ${dirLabel} · ${setupLabel}
           </div>
-          <div class="trade-input-row" style="grid-template-columns: 1fr;">
-            <div>
-              <label class="input-label">If it loses, why?</label>
-              <textarea class="trade-textarea" id="tf-premortem" rows="3" placeholder="${preMortemPh.replace(/"/g, '&quot;')}">${preMortem}</textarea>
-            </div>
+          <div class="trade-output-rationale" style="font-size:12px; margin-top:6px; line-height:1.6;">
+            Entry <strong>${fmtDollar(premium)}</strong> · Stop <strong>${fmtDollar(premiumStop)}</strong> · Target <strong>${fmtDollar(premiumTarget)}</strong><br/>
+            Size <strong>${qty || '—'} ${sizeUnit}</strong> · Risk <strong>$${riskDollars || '—'}</strong>${isOptions && underlyingStop ? ` · Underlying stop <strong>${fmtDollar(underlyingStop)}</strong>` : ''}
+          </div>
+        </div>
+        <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:14px;">
+          <div>
+            <label class="input-label">Notes</label>
+            <textarea class="trade-textarea" id="tf-s-notes" rows="3" placeholder="Trigger, invalidation, anything to remember">${notes}</textarea>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="trade-section">
-      <div class="trade-section-head">
-        <div class="trade-section-head-stack">
-          <div class="trade-section-title"><span class="trade-section-title-icon">B.</span> Place the order</div>
-          <div class="trade-section-subtitle">OCO bracket so target and stop fire automatically. Then hit GO.</div>
-        </div>
-      </div>
-      <div class="trade-section-body">
-        <div class="trade-output" style="background: var(--bg-2);">
-          <div class="trade-output-rationale" style="font-size:13px; line-height:1.7;">${tosLine}</div>
-        </div>
-      </div>
-    </div>
-
-    ${typeof window.buildTradeFlowEdgeIntel === 'function' ? window.buildTradeFlowEdgeIntel({
-      mode: 'swing',
-      setup: state.selectedSetup,
-      direction: state.direction,
-      instrument: state.instrument,
-    }) : ''}
   `;
 }
 
 function tfMountSwingStep4() {
-  const t = document.getElementById('tf-thesis');
-  const p = document.getElementById('tf-premortem');
-  if (t) t.addEventListener('input', e => { state.tradeFlow.thesis = e.target.value; saveState(); });
-  if (p) p.addEventListener('input', e => { state.tradeFlow.preMortem = e.target.value; saveState(); });
-
-  document.querySelectorAll('#panel-trade [data-tf-s-review]').forEach(el => {
-    el.addEventListener('input', e => {
+  const t = document.getElementById('tf-s-notes');
+  if (t) {
+    t.addEventListener('input', e => {
       if (!state.tradeFlow) state.tradeFlow = { mode: 'swing', step: 1, thesis: '', preMortem: '' };
-      if (!state.tradeFlow.swingScenario) state.tradeFlow.swingScenario = {};
-      state.tradeFlow.swingScenario[e.target.dataset.tfSReview] = e.target.value;
+      state.tradeFlow.notes = e.target.value;
       saveState();
-      window.tfUpdateSwingScenarioReview();
-    });
-  });
-  const resetScenario = document.getElementById('tf-s-review-reset');
-  if (resetScenario) {
-    resetScenario.addEventListener('click', () => {
-      if (state.tradeFlow) state.tradeFlow.swingScenario = {};
-      saveState();
-      window.renderTrade();
     });
   }
-
-  document.querySelectorAll('#panel-trade [data-tf-tpl]').forEach(b => {
-    b.addEventListener('click', () => {
-      const action = b.dataset.tfTpl;
-      const tpl = TRADE_SETUP_TEMPLATES[state.selectedSetup];
-      if (action === 'reset' && tpl) {
-        state.tradeFlow.thesis = tpl.thesis;
-        state.tradeFlow.preMortem = tpl.preMortem;
-      } else if (action === 'clear') {
-        state.tradeFlow.thesis = '';
-        state.tradeFlow.preMortem = '';
-      }
-      saveState();
-      const ti = document.getElementById('tf-thesis');
-      const pi = document.getElementById('tf-premortem');
-      if (ti) ti.value = state.tradeFlow.thesis;
-      if (pi) pi.value = state.tradeFlow.preMortem;
-    });
-  });
 }
 
 // ----- Intraday steps (single-screen) -----
@@ -1041,15 +800,9 @@ function tfParseSwingPaste(text) {
   const stockVol = window.tfReadKeyNumber(raw, ['VOL', 'AVG\\s*VOL', 'STOCK\\s*VOL']);
   const optionOI = window.tfReadKeyNumber(raw, ['OI', 'OPEN\\s*INTEREST']);
   const optionVol = window.tfReadKeyNumber(raw, ['OVOL', 'OPT\\s*VOL', 'OPTION\\s*VOL']);
-  const bid = window.tfReadKeyNumber(raw, ['BID']);
-  const ask = window.tfReadKeyNumber(raw, ['ASK']);
-  const spread = window.tfReadKeyNumber(raw, ['SPR', 'SPREAD']);
   if (stockVol !== null) out.liquidity.stockVol = stockVol;
   if (optionOI !== null) out.liquidity.optionOI = optionOI;
   if (optionVol !== null) out.liquidity.optionVol = optionVol;
-  if (bid !== null) out.liquidity.bid = bid;
-  if (ask !== null) out.liquidity.ask = ask;
-  if (spread !== null) out.liquidity.spreadPct = spread;
 
   const strength = window.tfReadKeyNumber(raw, ['STRENGTH']);
   const stack = raw.match(/\bSTACK\s*(?:=|:)\s*(BULLISH|BEARISH|MIXED)\b/i);
@@ -1088,10 +841,6 @@ function tfApplySwingPaste(parsed) {
   });
   if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
   Object.assign(state.liquidity, parsed.liquidity || {});
-  if (state.liquidity.bid > 0 && state.liquidity.ask > 0) {
-    state.liquidity.spreadPct = window.deriveSpreadPct(state.liquidity);
-    if (!state.premium) state.premium = +(((Number(state.liquidity.bid) + Number(state.liquidity.ask)) / 2).toFixed(2));
-  }
   if (!state.gateChecks) state.gateChecks = {};
   Object.entries(parsed.gates || {}).forEach(([k, v]) => { if (v) state.gateChecks[k] = true; });
   saveState();
@@ -1124,18 +873,15 @@ function tfDemoFillSwing() {
   state.underlyingPrice = upx;
   state.atr = rand(1.5, 8.5, 2);
   if (isOptions) {
-    const mid = rand(2.5, 7.5, 2);
-    const half = +(mid * rand(0.006, 0.022, 3) / 2).toFixed(2);
     state.liquidity = {
       stockVol: Math.floor(rand(2_000_000, 50_000_000, 0)),
       optionOI: Math.floor(rand(800, 8000, 0)),
       optionVol: Math.floor(rand(200, 2000, 0)),
-      bid: +(mid - half).toFixed(2),
-      ask: +(mid + half).toFixed(2),
+      bid: null,
+      ask: null,
       spreadPct: null,
     };
-    state.liquidity.spreadPct = window.deriveSpreadPct(state.liquidity);
-    state.premium = mid;
+    state.premium = rand(2.5, 7.5, 2);
   } else {
     state.liquidity = {
       stockVol: Math.floor(rand(2_000_000, 50_000_000, 0)),
@@ -1153,12 +899,11 @@ function tfDemoFillSwing() {
 
 window.tfDemoFillSwing = tfDemoFillSwing;
 window.tfComputeSwingReviewPlan = tfComputeSwingReviewPlan;
-window.tfSwingScenarioReviewHtml = tfSwingScenarioReviewHtml;
-window.tfUpdateSwingScenarioReview = tfUpdateSwingScenarioReview;
 window.tfSwingStep1 = tfSwingStep1;
 window.tfMountSwingStep1 = tfMountSwingStep1;
 window.tfSwingContractSpecHtml = tfSwingContractSpecHtml;
 window.tfMountSwingContractSpec = tfMountSwingContractSpec;
+window.tfSwingLiquidityStep = tfSwingLiquidityStep;
 window.tfSwingStep2 = tfSwingStep2;
 window.tfMountSwingStep2 = tfMountSwingStep2;
 window.tfSwingStep3 = tfSwingStep3;

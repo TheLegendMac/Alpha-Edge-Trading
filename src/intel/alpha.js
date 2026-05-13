@@ -599,14 +599,17 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
 
   // Friendly setup name — fall back to whatever was stored.
   const setupDef = (typeof window.tfFindIntradaySetup === 'function' && mode === 'intraday') ? window.tfFindIntradaySetup(setup) : null;
-  const setupLabel = setupDef ? setupDef.name : (setup || 'this setup');
+  const swingSetupDef = (mode === 'swing' && Array.isArray(window.TRADE_SWING_SETUPS))
+    ? window.TRADE_SWING_SETUPS.find(s => s.id === setup)
+    : null;
+  const setupLabel = setupDef ? setupDef.name : (swingSetupDef ? (swingSetupDef.name || swingSetupDef.id) : (setup || 'this setup'));
   const dirWord = dirKey === 'short' ? 'short' : 'long';
 
   // Reward vs. risk.
   const ticket = mode === 'intraday' ? (state.intraday || {}) : null;
   const entry  = ticket ? Number(ticket.entry)  : Number(state.premium);
-  const stop   = ticket ? Number(ticket.stop)   : null;
-  const target = ticket ? Number(ticket.target) : null;
+  const stop   = ticket ? Number(ticket.stop)   : Number(state.swingStop);
+  const target = ticket ? Number(ticket.target) : Number(state.swingTarget);
   if (entry > 0 && stop > 0 && target > 0) {
     const rr = Math.abs((target - entry) / (entry - stop));
     if (isFinite(rr)) {
@@ -688,9 +691,9 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
         bullets.push({ tone: 'bad', icon: '📉', text: `<strong>This setup has been losing money:</strong> ${peers.length} past trades, only ${wr}% wins, ${totalSign}${totalAbs} total. Maybe skip until you find what's missing.` });
       }
     } else if (peers.length === 1) {
-      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it — stick to the playbook.` });
+      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it. Ask whether today's chart still matches the playbook.` });
     } else {
-      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet — go by the rules of the setup.` });
+      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet. Ask, don't assume: does the setup still meet every rule?` });
     }
   }
 
@@ -780,7 +783,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
   if (!bullets.length) {
     bullets.push({
       tone: 'info', icon: '✅',
-      text: `Nothing to worry about here — the setup looks clean. Trade it when you're ready.`,
+      text: `No logged-data warning yet. Ask the chart for confirmation before you treat this as clean.`,
     });
   }
 

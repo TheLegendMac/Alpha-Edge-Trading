@@ -1,28 +1,28 @@
-// Swing trade sizing: render premium/sizing widgets, auto-fill from quote, structure/instrument toggles.
+// Swing trade sizing: render premium/sizing widgets and structure/instrument toggles.
 
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { TRADE_STRUCTURES, DEFAULT_SETTINGS } from '../config/constants.js';
+import { DEFAULT_SETTINGS } from '../config/constants.js';
+
+function tfComputeSwingRiskBudget() {
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const account = Number(settings.account) || DEFAULT_SETTINGS.account || 10000;
+  let riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on')
+    : ((settings.riskOn || DEFAULT_SETTINGS.riskOn || 2) / 100);
+  if (state.selectedSetup === 'Edge Reversal') riskPct = riskPct / 2;
+  return Math.round(account * riskPct);
+}
 
 function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
   const premium = state.premium;
   if (!premium || premium <= 0) return '';
-  const account = settings.account || 10000;
-  const deployed = window.tfCapitalDeployed();
-  const available = Math.max(0, account - deployed);
   const manualStop = Number(state.swingStop);
   const manualTarget = Number(state.swingTarget);
   const manualQty = Number(state.swingQty);
-  let riskPct = (typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02;
-  const halfSize = state.selectedSetup === 'Edge Reversal';
-  if (halfSize) riskPct = riskPct / 2;
-  const riskDollars = Math.round(available * riskPct);
-  const deployedNote = deployed > 0
-    ? ` Capital deployed in open positions $${Math.round(deployed).toLocaleString()} subtracted; available $${Math.round(available).toLocaleString()}.`
-    : '';
-  const halfSizeNote = halfSize ? ' Edge Reversal is half size.' : '';
+  const riskDollars = window.tfComputeSwingRiskBudget();
   const targetR = Number(settings.targetRMultiple) > 0 ? Number(settings.targetRMultiple) : 2;
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
@@ -39,7 +39,6 @@ function tfRenderSwingSizingHtml() {
       <div class="trade-output">
         <div class="trade-output-title">Entry & risk unit</div>
         <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
-        <div class="trade-output-rationale">${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${manualQty > 0 ? ` Manual size would risk $${Math.round(totalRisk)}.` : ''}${halfSizeNote}${deployedNote}</div>
         ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
       </div>`;
   }
@@ -58,57 +57,16 @@ function tfRenderSwingSizingHtml() {
     <div class="trade-output">
       <div class="trade-output-title">Entry & risk unit</div>
       <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
-      <div class="trade-output-rationale">${(state.regime || 'risk-on').toUpperCase()} sets $${riskDollars} max planned risk.${halfSizeNote}${deployedNote}</div>
       ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
     </div>`;
 }
 
-function tfSwingQuoteMid(liq = (state.liquidity || {})) {
-  const bid = Number(liq.bid);
-  const ask = Number(liq.ask);
-  if (!(bid > 0 && ask > 0 && ask >= bid)) return null;
-  return +(((bid + ask) / 2).toFixed(2));
-}
-
-function tfCanAutoFillSwingPremium(previousMid = null) {
-  if (state.tradeFlow && state.tradeFlow.swingPremiumManual) return false;
-  const premium = Number(state.premium);
-  if (!(premium > 0)) return true;
-  return previousMid !== null && Math.abs(premium - previousMid) < 0.005;
-}
-
-function tfAutoFillSwingPremiumFromQuote(previousMid = null) {
-  if (state.instrument === 'stocks') return false;
-  const mid = window.tfSwingQuoteMid();
-  if (mid === null || !window.tfCanAutoFillSwingPremium(previousMid)) return false;
-  state.premium = mid;
-  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
-  return true;
-}
-
-function tfSetSwingPremiumFromQuote() {
-  const mid = window.tfSwingQuoteMid();
-  if (mid === null) return null;
-  state.premium = mid;
-  if (state.tradeFlow) state.tradeFlow.swingPremiumManual = false;
-  return mid;
-}
-
-function tfUpdateSwingSpreadLine() {
-  const quote = window.tfOptionSpreadFromBidAsk((state.liquidity || {}).bid, (state.liquidity || {}).ask);
-  const spreadRead = document.querySelector('#panel-trade [data-tf-liq="bid"]')?.closest('.trade-section')?.querySelector('[data-tf-spread-read]');
-  if (spreadRead) spreadRead.innerHTML = quote ? window.tfSpreadReadHtml(quote.spreadPct, 5) : '';
-  const badge = document.querySelector('#panel-trade [data-tf-liq="bid"]')?.closest('.trade-input-row')?.querySelector('.trade-bracket');
-  if (badge) {
-    const b = quote ? window.tfSpreadBracket(quote.spreadPct, 5) : { cls: 'empty', text: '—' };
-    badge.className = `trade-bracket ${b.cls}`;
-    badge.textContent = b.text;
-  }
+function tfUpdateSwingLiquidityCounter() {
   const liqCounter = document.getElementById('tf-swing-liq-counter');
   if (liqCounter) {
     const ok = window.tfEvaluateGates()['04'];
     liqCounter.classList.toggle('complete', !!ok);
-    liqCounter.textContent = ok ? 'pass' : 'fill quote';
+    liqCounter.textContent = ok ? 'pass' : (state.instrument === 'stocks' ? 'fill 1' : 'fill 3');
   }
 }
 
@@ -124,15 +82,12 @@ function tfUpdateSwingSizing() {
   }
   const riskCounter = document.getElementById('tf-swing-risk-counter');
   if (riskCounter) {
-    const isOptions = state.instrument !== 'stocks';
-    const gates = window.tfEvaluateGates();
-    const ready = isOptions
-      ? Number(state.premium) > 0 && Number(state.atr) > 0 && Number(state.underlyingPrice) > 0
-      : gates['04'] && Number(state.premium) > 0;
+    const fields = [Number(state.premium) > 0, Number(state.swingStop) > 0, Number(state.swingTarget) > 0];
+    const ready = fields.every(Boolean);
     riskCounter.classList.toggle('complete', !!ready);
-    riskCounter.textContent = ready ? 'ready' : (isOptions ? 'fill 3' : 'fill 2');
+    riskCounter.textContent = ready ? 'ready' : `${fields.filter(Boolean).length} of 3`;
   }
-  // Gate 06 row also reflects ATR + underlying — refresh in place.
+  // Legacy Gate 06 row may be absent; refresh it in place when present.
   const gateRow = document.getElementById('tf-stop-gate');
   if (gateRow) {
     const gates = window.tfEvaluateGates();
@@ -187,11 +142,8 @@ function tfSetSwingInstrument(instrument) {
 }
 
 window.tfRenderSwingSizingHtml = tfRenderSwingSizingHtml;
-window.tfSwingQuoteMid = tfSwingQuoteMid;
-window.tfCanAutoFillSwingPremium = tfCanAutoFillSwingPremium;
-window.tfAutoFillSwingPremiumFromQuote = tfAutoFillSwingPremiumFromQuote;
-window.tfSetSwingPremiumFromQuote = tfSetSwingPremiumFromQuote;
-window.tfUpdateSwingSpreadLine = tfUpdateSwingSpreadLine;
+window.tfComputeSwingRiskBudget = tfComputeSwingRiskBudget;
+window.tfUpdateSwingLiquidityCounter = tfUpdateSwingLiquidityCounter;
 window.tfUpdateSwingSizing = tfUpdateSwingSizing;
 window.tfInstrumentToggleHtml = tfInstrumentToggleHtml;
 window.tfStructureValue = tfStructureValue;

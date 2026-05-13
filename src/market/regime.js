@@ -256,15 +256,9 @@ export function liquidityOK() {
   if (state.instrument === 'stocks') {
     return Number(liq.stockVol) >= 1000000;
   }
-  const bid = Number(liq.bid);
-  const ask = Number(liq.ask);
-  if (!(bid > 0 && ask > 0 && ask >= bid)) return false;
-  const mid = (bid + ask) / 2;
-  const derivedSpread = mid > 0 ? ((ask - bid) / mid) * 100 : null;
   return Number(liq.stockVol) >= 1000000
       && Number(liq.optionOI) >= 500
-      && Number(liq.optionVol) >= 100
-      && derivedSpread !== null && derivedSpread <= 5;
+      && Number(liq.optionVol) >= 100;
 }
 
 // Bridge to legacy.js.
