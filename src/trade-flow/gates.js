@@ -15,12 +15,14 @@ function tfComputeRolling30dPL() {
 function tfEvaluateGates() {
   const liqOk = (typeof liquidityOK === 'function') ? window.liquidityOK() : !!state.gateChecks['04'];
   const isOptions = state.instrument !== 'stocks';
+  const settingMinEarningsDays = Number(state.settings && state.settings.minDaysToEarnings);
+  const minEarningsDays = Number.isFinite(settingMinEarningsDays) ? settingMinEarningsDays : DEFAULT_SETTINGS.minDaysToEarnings;
   return {
     '01': state.saQuant !== null && state.saQuant !== undefined && state.saQuant >= 3.5,
     '02': !!state.gateChecks['02'] || (typeof window.tfGradePasses === 'function' && window.tfGradePasses(state.saProfitGrade)),
     '03': !!state.gateChecks['03'] || (typeof window.tfGradePasses === 'function' && window.tfGradePasses(state.saMomentumGrade)),
     '04': liqOk,
-    '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= 8,
+    '05': state.daysToEarnings !== null && state.daysToEarnings !== undefined && state.daysToEarnings >= minEarningsDays,
     '06': state.swingStop !== null && state.swingStop !== undefined && state.swingStop > 0,
   };
 }
@@ -49,14 +51,15 @@ function tfComputeStatus() {
     if (!g['01']) return { tone: 'blocked',  reason: 'SA Quant < 3.50 — skip',         step: 1 };
     if (!g['02']) return { tone: 'progress', reason: 'Confirm profitability grade',    step: 1 };
     if (!g['03']) return { tone: 'progress', reason: 'Confirm momentum grade',         step: 1 };
-    if (!g['05']) return { tone: 'blocked',  reason: 'Earnings within 7 days',         step: 1 };
+    const minEarningsDays = Number.isFinite(Number(s.minDaysToEarnings)) ? Number(s.minDaysToEarnings) : DEFAULT_SETTINGS.minDaysToEarnings;
+    if (!g['05']) return { tone: 'blocked',  reason: `Earnings within ${minEarningsDays} days`, step: 1 };
 
     // 2 Setup — setup, IV Rank, and liquidity/quote.
     if (!state.direction)     return { tone: 'progress', reason: 'Pick direction',    step: 2 };
     if (!state.selectedSetup) return { tone: 'progress', reason: 'Pick a setup',      step: 2 };
     const isOptions = state.instrument !== 'stocks';
     if (isOptions && (state.ivr === null || state.ivr === undefined)) return { tone: 'progress', reason: 'Add IV Rank', step: 2 };
-    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR ≥ 70 — too rich, skip', step: 2 };
+    if (isOptions && state.ivr >= 70) return { tone: 'blocked', reason: 'IVR more than 70 — too rich, skip', step: 2 };
     if (!g['04']) return { tone: 'progress', reason: 'Liquidity inputs incomplete', step: 2 };
 
     // 3 Size — entry/stop/limit.

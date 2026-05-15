@@ -191,45 +191,6 @@
   .log-trade-header { display: none; }
 }
 
-/* --- Sunday Prep: cards & sector grid --- */
-.sector-panel-card {
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-.sector-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-.sector-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  padding: 12px 14px;
-  transition: all 0.2s ease;
-}
-.sector-card:hover { border-color: var(--line-soft); }
-.sector-card.strong { border-left: 3px solid var(--green); }
-.sector-card.neutral { border-left: 3px solid var(--amber); }
-.sector-card.weak { border-left: 3px solid var(--red); }
-
-/* Block cards (used in Sunday Prep blocks) */
-.block-card {
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  padding: 20px 24px;
-  margin-bottom: 16px;
-}
-.block-num {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
-  letter-spacing: 0.10em; color: var(--cyan);
-  text-transform: uppercase; margin-bottom: 8px;
-}
-
 /* --- Settings: cleaner section dividers --- */
 .settings-section {
   background: var(--bg-card);

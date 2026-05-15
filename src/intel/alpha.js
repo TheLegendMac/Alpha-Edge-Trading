@@ -505,7 +505,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   } else if (n < 5) {
     bullets.push({
       tone: 'info', icon: '📋',
-      text: `Setup-level breakdown unlocks at <strong>≥ 5 closed trades</strong>. Keep logging.`,
+      text: `Setup-level breakdown unlocks at <strong>more than 5 closed trades</strong>. Keep logging.`,
     });
   }
 

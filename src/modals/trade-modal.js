@@ -165,7 +165,7 @@ function resetFlowSilent() {
   state.saProfitGrade = '';
   state.saMomentumGrade = '';
   state.gateChecks = {};
-  state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+  state.liquidity = { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null };
   if (state.tradeFlow) {
     state.tradeFlow.swingPremiumManual = false;
     state.tradeFlow.swingScenario = {};

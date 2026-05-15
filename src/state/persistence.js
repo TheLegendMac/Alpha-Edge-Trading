@@ -23,7 +23,20 @@ export function loadState() {
     if (!state.sectorRatings) state.sectorRatings = {};
     if (!state.sectorRatedAt) state.sectorRatedAt = null;
     if (!state.marketContextUpdatedAt) state.marketContextUpdatedAt = state.sectorRatedAt || null;
-    if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+    if (!state.liquidity) state.liquidity = { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null };
+    if (state.liquidity.stockVolPass === undefined) {
+      state.liquidity.stockVolPass = state.liquidity.stockVol === null || state.liquidity.stockVol === undefined
+        ? null
+        : Number(state.liquidity.stockVol) >= 1000000;
+    }
+    if (state.liquidity.optionOIPass === undefined) {
+      state.liquidity.optionOIPass = state.liquidity.optionOI === null || state.liquidity.optionOI === undefined
+        ? null
+        : Number(state.liquidity.optionOI) >= 500;
+    }
+    delete state.liquidity.stockVol;
+    delete state.liquidity.optionOI;
+    delete state.liquidity['option' + 'Vol'];
     // Migrate older state that has spreadPct but no bid/ask
     if (state.liquidity.bid === undefined) state.liquidity.bid = null;
     if (state.liquidity.ask === undefined) state.liquidity.ask = null;
@@ -68,6 +81,8 @@ export function loadState() {
     if (state.tradeFlow.thesis === undefined) state.tradeFlow.thesis = '';
     if (state.tradeFlow.preMortem === undefined) state.tradeFlow.preMortem = '';
     if (state.tradeFlow.moonshotR !== undefined) delete state.tradeFlow.moonshotR;
+    // Sunday checklist was removed; drop any legacy field so it doesn't bloat the save payload.
+    delete state.sundayChecks;
   } catch (e) {
     console.warn('Load failed:', e);
   }

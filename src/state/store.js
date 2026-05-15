@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
 export const state = {
   settings: { ...DEFAULT_SETTINGS },
   regime: 'risk-on',
-  activeMode: 'home',     // 'home' | 'decision' | 'intraday' | 'sunday' | 'log'
+  activeMode: 'home',     // 'home' | 'trade' | 'log' | 'stats' | 'reference'
   trades: [],
   deletedTradeIds: {},
   backtestReports: [],
@@ -25,11 +25,10 @@ export const state = {
   daysToEarnings: null,
   gateChecks: {},
   pretradeChecks: { vix: true, news: true },
-  sundayChecks: {},
   sectorNotes: '',
   sectorRatings: {},
   sectorRatedAt: null,
-  liquidity: { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null },
+  liquidity: { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null },
   // Intraday
   intraday: newIntradayTicket(),
   intradayQuality: { timeOverride: false },
@@ -64,19 +63,16 @@ export function getRegimeRiskMultiplier(regime) {
   return 1.0;
 }
 
-// Refresh entire UI after state replacement. Render functions still live in
-// legacy.js, so we look them up via window — `typeof` is safe even if undefined.
+// Refresh entire UI after state replacement. Render functions are attached to
+// window by their respective modules — `typeof` is safe even if undefined.
 export function refreshAllUI() {
   if (typeof window.renderHome === 'function') window.renderHome();
-  if (typeof window.renderTabs === 'function') window.renderTabs(state.activeMode || 'swing');
   if (typeof window.renderTrade === 'function') window.renderTrade();
   if (typeof window.renderRegime === 'function') window.renderRegime();
   if (typeof window.renderPortfolioStatus === 'function') window.renderPortfolioStatus();
   if (typeof window.renderLogStats === 'function') window.renderLogStats();
   if (typeof window.renderLogTable === 'function') window.renderLogTable();
   if (typeof window.renderTickerBar === 'function') window.renderTickerBar();
-  if (typeof window.renderSectors === 'function') window.renderSectors();
-  if (typeof window.renderSectorStatusMini === 'function') window.renderSectorStatusMini();
   if (typeof window.renderContextPanel === 'function') window.renderContextPanel();
 }
 

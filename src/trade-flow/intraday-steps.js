@@ -392,7 +392,7 @@ function tfIntradayStep2() {
         <div class="trade-section-grid-2">
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">Entry Price $</label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Fill price' : 'Share entry'}" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-entry" value="${inputValue('entry')}" placeholder="${isOptions ? 'Avg Fill price' : 'Share entry'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">
@@ -413,7 +413,7 @@ function tfIntradayStep2() {
               <span>${isOptions ? 'Contracts' : 'Shares'}</span>
               <button type="button" class="tf-auto-chip" id="tf-i-Smart-Size">Smart-Size</button>
             </label>
-            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Blank = auto from risk" />
+            <input type="number" min="1" step="1" class="trade-input" id="tf-i-contracts" value="${inputValue('contracts')}" placeholder="Blank = smart-size" />
           </div></div>
         </div>
         <div id="tf-i-sizing-card" style="margin-top:14px;">${sizingHtml}</div>
@@ -532,6 +532,10 @@ function tfMountIntradayStep2() {
       const isOptions = window.tfIntradayInstrument() !== 'stocks';
       const isShort = (it.direction || 'long').toLowerCase().startsWith('s');
       const stopDist = Math.abs(entry - stop);
+      if (!(stopDist > 0)) {
+        if (typeof window.toast === 'function') window.toast('Stop must be different from entry.', true);
+        return;
+      }
       const target = isOptions
         ? +(entry + targetR * stopDist).toFixed(2)
         : +(isShort ? entry - targetR * stopDist : entry + targetR * stopDist).toFixed(2);
@@ -568,15 +572,9 @@ function tfMountIntradayStep2() {
   }
 }
 
-// Sizing now lives inline inside step 2 (Entry · stop · limit). Kept as a
-// stub so the stepper can still concatenate the two without changes.
-function tfIntradayStep3() {
-  return '';
-}
-
+// Sizing card renders inline inside step 2; mount binds its sliders so the
+// initial paint is interactive before any input change.
 function tfMountIntradayStep3() {
-  // Sizing card renders inline inside step 2. Bind the sliders so the
-  // initial render (before any input change) is interactive.
   if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
   if (typeof window.tfBindIntradayRiskSizeButton === 'function') window.tfBindIntradayRiskSizeButton();
 }
@@ -598,6 +596,20 @@ function tfIntradayStep4() {
   const qty = Number(it.contracts) || (auto ? auto.qty : 0);
   const qtyLabel = isOptions ? 'contracts' : 'shares';
   const riskBudget = auto ? auto.riskBudget : 0;
+  const mult = isOptions ? 100 : 1;
+  const totalCost = Number(it.entry) > 0 && qty > 0 ? Number(it.entry) * qty * mult : null;
+  const costText = totalCost !== null ? `$${Math.round(totalCost).toLocaleString()}` : '—';
+  const reviewMessage = (() => {
+    const entry = Number(it.entry);
+    const stop = Number(it.stop);
+    const target = Number(it.target);
+    if (!(entry > 0 && stop > 0 && target > 0 && qty > 0)) return 'Verify entry, stop, target, size, and final checks before GO.';
+    const risk = Math.abs(entry - stop) * qty * mult;
+    const reward = Math.abs(target - entry) * qty * mult;
+    const riskPct = Math.abs(entry - stop) / entry * 100;
+    const rewardPct = Math.abs(target - entry) / entry * 100;
+    return `Risking $${Math.round(risk).toLocaleString()} (${riskPct.toFixed(1)}%) to make $${Math.round(reward).toLocaleString()} (${rewardPct.toFixed(1)}%) profit with the ${setupName} setup.`;
+  })();
 
   return `
     <div class="trade-section">
@@ -613,14 +625,15 @@ function tfIntradayStep4() {
             <span style="color:var(--cyan);">${tickerStr}</span> · ${dirStr} · ${setupName}
           </div>
           <div class="trade-output-rationale" style="font-size:12px; margin-top:6px; line-height:1.6;">
+            ${reviewMessage}<br/>
             Entry <strong>${entryStr}</strong> · Stop <strong>${stopStr}</strong> · Target <strong>${tgtStr}</strong><br/>
-            Size <strong>${qty || '—'} ${qtyLabel}</strong>${riskBudget ? ` · Budget <strong>$${riskBudget}</strong>` : ''}
+            Size <strong>${qty || '—'} ${qtyLabel}</strong> · Total cost <strong>${costText}</strong>${riskBudget ? ` · Budget <strong>$${riskBudget}</strong>` : ''}
           </div>
         </div>
         <div class="trade-input-row" style="grid-template-columns: 1fr; margin-top:14px;">
           <div>
-            <label class="input-label">Notes</label>
-            <textarea class="trade-textarea" id="tf-i-notes" rows="3" placeholder="Trigger, invalidation, anything to remember">${it.notes || ''}</textarea>
+            <label class="input-label">Final check notes</label>
+            <textarea class="trade-textarea" id="tf-i-notes" rows="3" placeholder="Any additional notes...">${it.notes || ''}</textarea>
           </div>
         </div>
       </div>
@@ -672,55 +685,6 @@ function tfMountIntradayStep4() {
   }
 }
 
-// Dev utility — populate the intraday flow with realistic random data so
-// the rest of the UI can be exercised without typing every field.
-function tfDemoFillIntraday() {
-  const tickers = ['SPY','QQQ','AAPL','TSLA','NVDA','AMD','META','MSFT'];
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const rand = (min, max, dec = 2) => +(min + Math.random() * (max - min)).toFixed(dec);
-  const setupDef = pick(TRADE_INTRADAY_SETUPS);
-  const dir = setupDef.bias === 'either' ? (Math.random() < 0.5 ? 'long' : 'short') : setupDef.bias;
-  const isOptions = Math.random() < 0.7;
-  if (!state.intraday) state.intraday = newIntradayTicket();
-  const it = state.intraday;
-  it.ticker = pick(tickers);
-  it.setup = setupDef.id;
-  it.direction = dir;
-  it.instrument = isOptions ? 'options' : 'stocks';
-  it.structure = isOptions ? 'options' : 'stocks';
-  if (isOptions) {
-    const mid = rand(2.5, 7.5, 2);
-    const half = +(mid * rand(0.006, 0.022, 3) / 2).toFixed(2);
-    it.bid = +(mid - half).toFixed(2);
-    it.ask = +(mid + half).toFixed(2);
-    it.mid = mid;
-    it.entry = mid;
-    it.stop = +(mid * 0.55).toFixed(2);
-    it.target = +(mid * 1.6).toFixed(2);
-  } else {
-    const px = rand(80, 480, 2);
-    it.entry = px;
-    it.stop = +(px * (dir === 'long' ? 0.985 : 1.015)).toFixed(2);
-    it.target = +(px * (dir === 'long' ? 1.03 : 0.97)).toFixed(2);
-  }
-  if (setupDef.isOrb) {
-    const center = it.entry;
-    const rng = rand(0.5, 4, 2);
-    it.orHi = +(center + rng/2).toFixed(2);
-    it.orLo = +(center - rng/2).toFixed(2);
-    it.orRng = rng;
-    it.orbType = pick(['5','15','30']);
-  }
-  it.confluence = dir === 'long' ? 'long-bias' : 'short-bias';
-  it.breadth = dir === 'long' ? 'up' : 'down';
-  it.vwapValue = rand(80, 480, 2);
-  window.tfDeriveIntradaySpread();
-  saveState();
-  if (typeof window.toast === 'function') window.toast('Demo intraday filled');
-  window.renderTrade();
-}
-
-window.tfDemoFillIntraday = tfDemoFillIntraday;
 window.tfFindIntradaySetup = tfFindIntradaySetup;
 window.tfParseHumanNumber = tfParseHumanNumber;
 window.tfReadKeyNumber = tfReadKeyNumber;
@@ -731,7 +695,6 @@ window.tfIntradayStep1 = tfIntradayStep1;
 window.tfMountIntradayStep1 = tfMountIntradayStep1;
 window.tfIntradayStep2 = tfIntradayStep2;
 window.tfMountIntradayStep2 = tfMountIntradayStep2;
-window.tfIntradayStep3 = tfIntradayStep3;
 window.tfMountIntradayStep3 = tfMountIntradayStep3;
 window.tfIntradayStep4 = tfIntradayStep4;
 window.tfMountIntradayStep4 = tfMountIntradayStep4;

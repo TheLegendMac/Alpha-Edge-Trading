@@ -489,6 +489,32 @@
 #panel-trade .tf-spread-read.wide { color: var(--red-bright); border-color: var(--red-dim); background: var(--red-bg); }
 #panel-trade .tf-spread-read .v { color: var(--ink); letter-spacing: 0; }
 
+#panel-trade .tf-ivr-control {
+  display: grid;
+  gap: 10px;
+}
+#panel-trade .tf-ivr-control-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: end;
+}
+#panel-trade .tf-ivr-control-value {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+#panel-trade .tf-ivr-control-value .trade-input {
+  width: 92px;
+  text-align: right;
+}
+#panel-trade .tf-ivr-slider {
+  margin-top: 2px;
+}
+#panel-trade .tf-ivr-ticks {
+  margin-top: -4px;
+}
+
 /* strategy / sizing output card */
 #panel-trade .trade-output {
   margin-top: 14px;

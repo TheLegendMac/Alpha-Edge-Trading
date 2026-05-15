@@ -41,17 +41,14 @@ import './market/context-panel.js';
 import './intel/glossary.js';
 import './intel/rolling.js';
 import './intel/alpha.js';
-import './intel/clt-card.js';
 import './intel/backtest.js';
 import './intel/setup-scorecards.js';
-import './intel/ticker-dashboard.js';
-import './intel/setup-playbook.js';
 import './intel/weekly-report.js';
 
 // ---------- Views ----------
 import './views/home.js';
 import './views/log.js';
-import './views/sunday.js';
+import './views/sectors.js';
 import './views/reference.js';
 import './views/settings.js';
 import './views/stats.js';
@@ -221,8 +218,6 @@ function init() {
     window.saveState();
     window.renderContextPanel();
     if (typeof window.renderHome === 'function') window.renderHome();
-    if (typeof window.renderSectors === 'function') window.renderSectors();
-    if (typeof window.renderSectorStatusMini === 'function') window.renderSectorStatusMini();
     window.toast('Sector grades cleared');
   });
 
@@ -366,22 +361,7 @@ function init() {
   });
   document.getElementById('btn-clear-all-data')?.addEventListener('click', window.clearAllTradesAndData);
 
-  // Sunday checklists.
-  document.querySelectorAll('.checklist-item').forEach(el => {
-    el.addEventListener('click', () => window.toggleSunday(el));
-  });
-  document.getElementById('btn-reset-sunday')?.addEventListener('click', () => {
-    if (confirm('Reset Sunday checklist for next week?')) {
-      state.sundayChecks = {};
-      window.saveState();
-      if (typeof window.renderSunday === 'function') window.renderSunday();
-      window.toast('Sunday checklist reset');
-    }
-  });
-
-  // Sectors panel.
-  const clearBtn = document.getElementById('btn-clear-sectors');
-  if (clearBtn) clearBtn.addEventListener('click', window.clearSectors);
+  // Sector ratings now live entirely inside the Market Context panel.
 
   // Initial render pass. Keep each render isolated so one bad panel cannot
   // prevent button wiring or leave the home screen inert.
@@ -390,14 +370,12 @@ function init() {
   runSafe('renderPretradeCheck', window.renderPretradeCheck);
   runSafe('renderLogStats', window.renderLogStats);
   runSafe('renderLogTable', window.renderLogTable);
-  runSafe('renderSunday', window.renderSunday);
   runSafe('renderReference', window.renderReference);
-  runSafe('renderSectorStatusMini', window.renderSectorStatusMini);
 
   // Restore last-active mode.
   if (state.activeMode && ['home','log','stats','reference','trade'].includes(state.activeMode)) {
     runSafe('restoreTab', () => setTab(state.activeMode));
-  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday' || state.activeMode === 'sunday') {
+  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
     runSafe('restoreTradeTab', () => setTab('trade'));
   }
 

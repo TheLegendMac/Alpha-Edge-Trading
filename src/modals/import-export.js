@@ -101,7 +101,7 @@ function importJSON(file) {
       Object.keys(state).forEach(k => delete state[k]);
       Object.assign(state, data.state);
       // Re-init missing fields after import
-      if (!state.liquidity) state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      if (!state.liquidity) state.liquidity = { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null };
       if (!state.sectorRatings) state.sectorRatings = {};
       if (!state.pretradeChecks) state.pretradeChecks = { vix: true, news: true };
       saveState();

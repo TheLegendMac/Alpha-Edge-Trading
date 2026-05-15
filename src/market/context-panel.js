@@ -130,8 +130,6 @@ export function renderContextPanel() {
         }
         updateCtxSectorSummary();
         if (typeof window.renderHome === 'function') window.renderHome();
-        if (typeof window.renderSectors === 'function') window.renderSectors();
-        if (typeof window.renderSectorStatusMini === 'function') window.renderSectorStatusMini();
       });
     });
   }
@@ -139,7 +137,6 @@ export function renderContextPanel() {
 }
 
 export function updateCtxSectorSummary() {
-  // computeTop3 + computeAvoidList still live in legacy.js (sunday view).
   const top3 = (typeof window.computeTop3 === 'function') ? window.computeTop3() : [];
   const avoid = (typeof window.computeAvoidList === 'function') ? window.computeAvoidList() : [];
 

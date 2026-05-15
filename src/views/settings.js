@@ -126,6 +126,7 @@ function openSettings() {
   if (el('set-max-positions'))  el('set-max-positions').value  = s.maxPositions   || DEFAULT_SETTINGS.maxPositions;
   if (el('set-stop-pct'))       el('set-stop-pct').value       = s.stopPct        ?? DEFAULT_SETTINGS.stopPct;
   if (el('set-target-r'))       el('set-target-r').value       = s.targetRMultiple ?? DEFAULT_SETTINGS.targetRMultiple;
+  if (el('set-min-earnings-days')) el('set-min-earnings-days').value = s.minDaysToEarnings ?? DEFAULT_SETTINGS.minDaysToEarnings;
 
   // Wire sliders (only first time — guard with dataset flag)
   const overlay = document.getElementById('modal-settings');
@@ -239,6 +240,12 @@ function saveSettings() {
     const el = document.getElementById(id);
     return el ? (parseInt(el.value) || fallback) : fallback;
   };
+  const vi0 = (id, fallback) => {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    const n = parseInt(el.value, 10);
+    return Number.isFinite(n) ? Math.max(0, n) : fallback;
+  };
   const vc = (id) => {
     const el = document.getElementById(id);
     return el ? el.checked : false;
@@ -267,6 +274,7 @@ function saveSettings() {
     maxPositions:             vi('set-max-positions', DEFAULT_SETTINGS.maxPositions),
     stopPct:                  v('set-stop-pct',      DEFAULT_SETTINGS.stopPct),
     targetRMultiple:          v('set-target-r',      DEFAULT_SETTINGS.targetRMultiple),
+    minDaysToEarnings:        vi0('set-min-earnings-days', DEFAULT_SETTINGS.minDaysToEarnings),
   };
   delete newSettings.maxPremiumPct;
   delete newSettings.maxRiskPct;
@@ -330,12 +338,11 @@ function clearAllTradesAndData() {
     daysToEarnings: null,
     gateChecks: {},
     pretradeChecks: { vix: true, news: true },
-    sundayChecks: {},
     sectorNotes: '',
     sectorRatings: {},
     sectorRatedAt: null,
     marketContextUpdatedAt: deletedAt,
-    liquidity: { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null },
+    liquidity: { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null },
     intraday: newIntradayTicket(),
     intradayQuality: { timeOverride: false },
     logModeFilter: 'all',
@@ -364,8 +371,7 @@ function clearAllTradesAndData() {
   if (typeof window.renderPretradeCheck === 'function') window.renderPretradeCheck();
   if (typeof window.renderLogStats === 'function')      window.renderLogStats();
   if (typeof window.renderLogTable === 'function')      window.renderLogTable();
-  if (typeof window.renderSectors === 'function')       window.renderSectors();
-  if (typeof window.renderSectorStatusMini === 'function') window.renderSectorStatusMini();
+  if (typeof window.renderContextPanel === 'function')  window.renderContextPanel();
   window.toast('All trades and cockpit data cleared');
 }
 

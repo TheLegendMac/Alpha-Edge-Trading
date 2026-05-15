@@ -364,7 +364,7 @@ function tfReset() {
       state.swingTarget = null;
       state.swingQty = null;
       state.gateChecks = {};
-      state.liquidity = { stockVol: null, optionOI: null, optionVol: null, bid: null, ask: null, spreadPct: null };
+      state.liquidity = { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null };
       state.tradeFlow.swingPremiumManual = false;
     } else {
       state.intraday = newIntradayTicket();
@@ -411,9 +411,8 @@ function tfStepBody(step) {
       <div class="trade-step-group-eyebrow"><span>${idx + 1}</span> ${names[idx]}</div>
       ${html}
     </div>`;
-  const planAndSize = window.tfIntradayStep2() + window.tfIntradayStep3();
   return wrap(0, window.tfIntradayStep1())
-       + wrap(1, planAndSize)
+       + wrap(1, window.tfIntradayStep2())
        + wrap(2, window.tfIntradayStep4());
 }
 

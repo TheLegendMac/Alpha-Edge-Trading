@@ -29,6 +29,13 @@ function tfRenderSwingSizingHtml() {
     const defaultStopPrem = premium * (1 - stopFraction);
     const stopPrem = manualStop > 0 ? manualStop : defaultStopPrem;
     const maxLossPerContract = Math.abs(premium - stopPrem) * 100;
+    if (!(maxLossPerContract > 0)) {
+      return `
+        <div class="trade-output">
+          <div class="trade-output-title">Visual Risk Bar</div>
+          <div class="input-help">Set a stop price different from entry to calculate position size.</div>
+        </div>`;
+    }
     const autoContracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
     const contracts = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoContracts;
     const totalCost = contracts * premium * 100;
@@ -51,6 +58,13 @@ function tfRenderSwingSizingHtml() {
     : +(premium + targetR * stopDistShares).toFixed(2);
   const targetPrice = manualTarget > 0 ? manualTarget : defaultTargetPrice;
   const maxLossPerShare = Math.abs(premium - stopPrice);
+  if (!(maxLossPerShare > 0)) {
+    return `
+      <div class="trade-output">
+        <div class="trade-output-title">Visual Risk Bar</div>
+        <div class="input-help">Set a stop price different from entry to calculate position size.</div>
+      </div>`;
+  }
   const autoShares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
   const shares = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoShares;
   const totalCost = shares * premium;
@@ -66,8 +80,9 @@ function tfUpdateSwingLiquidityCounter() {
   const liqCounter = document.getElementById('tf-swing-liq-counter');
   if (liqCounter) {
     const ok = window.tfEvaluateGates()['04'];
+    const isOptions = state.instrument !== 'stocks';
     liqCounter.classList.toggle('complete', !!ok);
-    liqCounter.textContent = ok ? 'pass' : (state.instrument === 'stocks' ? 'fill 1' : 'fill 3');
+    liqCounter.textContent = ok ? 'pass' : (isOptions ? 'mark 2' : 'mark 1');
   }
 }
 
@@ -96,24 +111,6 @@ function tfUpdateSwingSizing() {
   }
 }
 
-function tfInstrumentToggleHtml(current, attrName) {
-  const cur = current === 'stocks' ? 'stocks' : 'options';
-  return `
-    <div class="flow-instrument-row" style="margin-bottom: 12px;">
-      <span class="flow-instrument-label">Trading</span>
-      <div class="flow-instrument-pills">
-        <button type="button" class="flow-instrument-pill ${cur === 'options' ? 'active' : ''}" ${attrName}="options">
-          <span class="flow-instrument-pill-name">Options</span>
-          <span class="flow-instrument-pill-detail">Calls / puts</span>
-        </button>
-        <button type="button" class="flow-instrument-pill ${cur === 'stocks' ? 'active' : ''}" ${attrName}="stocks">
-          <span class="flow-instrument-pill-name">Stock</span>
-          <span class="flow-instrument-pill-detail">Shares</span>
-        </button>
-      </div>
-    </div>`;
-}
-
 function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || 'swing')) {
   if (mode === 'intraday') {
     const it = state.intraday || {};
@@ -140,7 +137,6 @@ window.tfRenderSwingSizingHtml = tfRenderSwingSizingHtml;
 window.tfComputeSwingRiskBudget = tfComputeSwingRiskBudget;
 window.tfUpdateSwingLiquidityCounter = tfUpdateSwingLiquidityCounter;
 window.tfUpdateSwingSizing = tfUpdateSwingSizing;
-window.tfInstrumentToggleHtml = tfInstrumentToggleHtml;
 window.tfStructureValue = tfStructureValue;
 window.tfSetSwingStructure = tfSetSwingStructure;
 window.tfSetSwingInstrument = tfSetSwingInstrument;

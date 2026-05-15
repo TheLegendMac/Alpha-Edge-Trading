@@ -72,12 +72,10 @@
    ============================================================ */
 .home-card,
 .modal,
-.block-card,
 .ref-card,
 .log-table-wrap,
 .pretrade-check,
-.ticker-bar,
-.sector-status-mini {
+.ticker-bar {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%),
     rgba(19, 23, 34, 0.72);
@@ -129,12 +127,10 @@
 }
 /* Hover lift for primary cards */
 .home-card,
-.block-card,
 .ref-card {
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .home-card:hover,
-.block-card:hover,
 .ref-card:hover {
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow:

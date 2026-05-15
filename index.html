@@ -220,92 +220,6 @@
     </div>
   </section>
 
-  <!-- ===== SUNDAY PREP (hidden from nav, sector ratings accessible via Market Context panel) ===== -->
-  <section class="tab-panel" id="panel-sunday" aria-hidden="true">
-    <div class="sunday-grid">
-
-      <div class="block-card">
-        <div class="block-num">Block 01 / 03</div>
-        <div class="block-title">Macro Read</div>
-        <div class="block-time">2 min</div>
-        <div class="checklist" data-block="macro">
-          <div class="checklist-item" data-key="m1">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Open TOS → SPY daily chart → read the <strong>MAC_MacroRegime</strong> label (top-left of chart)</div>
-          </div>
-          <div class="checklist-item" data-key="m2">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Set the regime toggle in this dashboard to match (top-right buttons)</div>
-          </div>
-          <div class="checklist-item" data-key="m3">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Optional: open Excel macro tab to glance at FRED indicators (CPI, yield curve) for additional context</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ NEW SECTORS BLOCK ============ -->
-      <div class="block-card sector-panel-card">
-        <div class="block-num">Block 02 / 03</div>
-        <div class="block-title">Sectors (SA Quant Ratings)</div>
-        <div class="block-time">90 sec</div>
-
-        <div class="sector-instructions">
-          <strong>How to fill:</strong> On Seeking Alpha, search each ticker (e.g. "XLK"). The Quant Rating displays as a decimal between 1.00 and 5.00 (like 4.32 or 2.78) with a category label. Type the decimal exactly as shown. Cockpit auto-classifies using SA's published bands: <strong>4.50 to 5.00 = Strong Buy</strong>, <strong>3.50 to 4.49 = Buy</strong>, <strong>2.50 to 3.49 = Hold</strong>, <strong>1.50 to 2.49 = Sell</strong>, <strong>1.00 to 1.49 = Strong Sell</strong>. Cockpit groups Buy and Strong Buy as 🟢 STRONG, Hold as 🟡 NEUTRAL, and Sell/Strong Sell as 🔴 WEAK. Top 3 / Avoid lists update automatically.
-        </div>
-
-        <!-- Top 3 / Avoid auto-summary -->
-        <div class="sector-summary">
-          <div class="sector-summary-row">
-            <span class="sector-summary-label">🟢 Top 3 Long Targets:</span>
-            <span class="sector-summary-value" id="sector-top3">— rate sectors below to populate —</span>
-          </div>
-          <div class="sector-summary-row">
-            <span class="sector-summary-label">🔴 Avoid List:</span>
-            <span class="sector-summary-value" id="sector-avoid">—</span>
-          </div>
-          <div class="sector-summary-row">
-            <span class="sector-summary-label">📅 Last rated:</span>
-            <span class="sector-summary-value" id="sector-rated-at">— never —</span>
-          </div>
-        </div>
-
-        <!-- Sector grid -->
-        <div class="sector-grid" id="sector-grid">
-          <!-- populated by renderSectors() -->
-        </div>
-
-        <button class="btn-secondary" id="btn-clear-sectors" style="margin-top: 16px;">Clear all sector ratings</button>
-      </div>
-
-      <div class="block-card">
-        <div class="block-num">Block 03 / 03</div>
-        <div class="block-title">Set Alerts</div>
-        <div class="block-time">5 min</div>
-        <div class="checklist" data-block="alerts">
-          <div class="checklist-item" data-key="a1">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Run SA "v2 Swing Candidates" screener → filter to tickers in your Top 3 sectors → drop tickers in Avoid List</div>
-          </div>
-          <div class="checklist-item" data-key="a2">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Paste survivors into TOS "Weekly_Candidates" watchlist</div>
-          </div>
-          <div class="checklist-item" data-key="a3">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Right-click watchlist → Create Alert → Study condition <strong>MAC_AllSetups_Dashboard.Signal is greater than 0.5</strong> (Daily)</div>
-          </div>
-          <div class="checklist-item" data-key="a4">
-            <div class="checklist-checkbox"></div>
-            <div class="checklist-text">Confirm notifications enabled (popup + email + SMS)</div>
-          </div>
-        </div>
-        <button class="btn-secondary" id="btn-reset-sunday" style="margin-top: 16px;">Reset Sunday Checklist</button>
-      </div>
-
-    </div>
-  </section>
-
   <!-- ===== REFERENCE ===== -->
   <section class="tab-panel" id="panel-reference">
     <div class="ref-shell">
@@ -398,311 +312,6 @@
           </div>
         </div>
       </section>
-
-    </div>
-    <!-- hidden legacy grid kept so any stray ref-grid CSS doesn't break -->
-    <div class="ref-grid" style="display:none">
-
-      <!-- ============ SECTION A: ALERT-RESPONSE DECISION TREE ============ -->
-      <div class="ref-card" style="grid-column: 1 / -1; background: linear-gradient(135deg, var(--bg-card), var(--bg-elev));">
-        <div class="ref-card-header">
-          <div class="ref-card-title">A · Alert-Response Decision Tree</div>
-          <span class="ref-card-tag amber">WHEN ALERT FIRES</span>
-        </div>
-        <p style="font-size: 12px; color: var(--ink-3); margin: 0 0 14px;">A TOS alert just fired. Walk this tree. If anything fails, abort.</p>
-        <div class="decision-tree">
-          <div class="dt-step">
-            <div class="dt-step-num">1</div>
-            <div class="dt-step-body">
-              <strong>Read the alert message.</strong> It now contains: setup name, ticker, IVR, RVOL, strength score. If any of those are red on their face (IVR over 70, RVOL under 1, strength under 3), <span style="color: var(--red);">stop here</span> — don't even open the chart.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">2</div>
-            <div class="dt-step-body">
-              <strong>Confirm regime.</strong> Open the SPY chart. Read the MAC_MacroRegime label. RISK-OFF blocks longs (puts only at quarter size). NEUTRAL = half size. RISK-ON = full size.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">3</div>
-            <div class="dt-step-body">
-              <strong>Confirm sector.</strong> Glance at sector status mini-bar in cockpit (set Sundays). If ticker's sector is RED, only trade short setups.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">4</div>
-            <div class="dt-step-body">
-              <strong>Open the ticker chart in TOS.</strong> Verify: setup label matches alert, RSMK column is green or rising, RVOL is 1.5 or higher, ATR percent in normal range (2 to 4).
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">5</div>
-            <div class="dt-step-body">
-              <strong>Look up Seeking Alpha.</strong> Quant 3.5 or higher (longs) or 2.5 or lower (puts). Profitability B- or better. Momentum B- or better. Earnings more than 7 days away.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">6</div>
-            <div class="dt-step-body">
-              <strong>Paste into cockpit.</strong> Use the Smart Paste field at top of Swing tab. Verify the snapshot panel shows what you expected. Fill any missing fields manually.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num">7</div>
-            <div class="dt-step-body">
-              <strong>Walk the 5 steps.</strong> Cockpit locks each until prerequisites pass. If any gate stays red, you have your answer — don't take the trade.
-            </div>
-          </div>
-          <div class="dt-step">
-            <div class="dt-step-num" style="background: var(--green); color: white;">GO</div>
-            <div class="dt-step-body">
-              <strong>Place order in TOS.</strong> Bracket OCO: limit entry, profit target (+50% premium), stop trigger (close below invalidation). Then click GO in cockpit to log the trade.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ SECTION B: ROUTINES ============ -->
-      <div class="ref-card" style="grid-column: 1 / -1;">
-        <div class="ref-card-header">
-          <div class="ref-card-title">B · Routines (Sunday / Daily / Weekly)</div>
-          <span class="ref-card-tag green">CHECKLIST</span>
-        </div>
-        <div class="routine-grid">
-          <div class="routine-col">
-            <div class="routine-title">Sunday Prep · 8 min</div>
-            <ol class="routine-list">
-              <li>Open SPY chart → read regime label → click matching regime button in cockpit Sunday Prep tab</li>
-              <li>Visit seekingalpha.com/sectors → type Quant rating (1.0–5.0) for each of 11 sector ETFs into cockpit</li>
-              <li>Run SA "Swing Candidates" screener → export top 30 → drop tickers in red sectors</li>
-              <li>Paste survivors into TOS "Weekly Candidates" watchlist → verify columns are green</li>
-              <li>Confirm watchlist alert: <code>MAC_AllSetups_Dashboard().Signal != 0</code></li>
-            </ol>
-          </div>
-          <div class="routine-col">
-            <div class="routine-title">Daily Prep · 3 min</div>
-            <ol class="routine-list">
-              <li>8:45 AM: read MacroRegime — has it flipped overnight?</li>
-              <li>Check VIX pre-market: a pop of more than 15 percent is a warning; above 30 means no entries today</li>
-              <li>Check 8:30 AM econ release calendar — CPI/PPI/NFP/FOMC = wait until after the print</li>
-              <li>Open cockpit, glance at Today P/L pill — if red and large, walk away from screen</li>
-            </ol>
-          </div>
-          <div class="routine-col">
-            <div class="routine-title">Weekly Review · Saturday</div>
-            <ol class="routine-list">
-              <li>Trade Log → filter to last 7 days → R total + trade grades</li>
-              <li>Which setup made you money? Which lost? (Tag pattern)</li>
-              <li>Good grades should be 80 percent or more of reviewed trades</li>
-              <li>Note one rule you broke and one you followed well</li>
-              <li>Update Weekend Research hypothesis tracker if you noticed anything</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ SECTION C: PASTE FORMAT QUICK REFERENCE ============ -->
-      <div class="ref-card" style="grid-column: 1 / -1;">
-        <div class="ref-card-header">
-          <div class="ref-card-title">C · Smart Paste Format</div>
-          <span class="ref-card-tag cyan">QUICK COPY</span>
-        </div>
-        <p style="font-size: 12px; color: var(--ink-3); margin: 0 0 12px;">Use the smart paste field on the Swing tab. Both formats below work — paste either or mix them.</p>
-        <div class="paste-format-grid">
-          <div>
-            <div class="paste-format-title">Free-form (fastest)</div>
-            <pre class="paste-format-block">NVDA IVR=42 ATR=2.1 PX=185.50
-RSMK=+rising RVOL=1.8 STACK=BULLISH
-SETUP=BASE_BO REGIME=RISK-ON STRENGTH=3
-SA: QUANT=4.2 EARNINGS=18d
-LIQ: VOL=35M OI=2500 OVOL=800 SPR=2.1</pre>
-          </div>
-          <div>
-            <div class="paste-format-title">TOS chart labels (paste-as-is)</div>
-            <pre class="paste-format-block">REGIME: RISK-ON | Full Size 1.5-2%
-FIRE: BASE BO
-IVR: 42
-STRENGTH: 3/3</pre>
-            <p style="font-size: 11px; color: var(--ink-4); font-style: italic; margin-top: 4px;">Just select the labels with your mouse and paste. Parser handles the rest.</p>
-          </div>
-        </div>
-        <p style="font-size: 12px; color: var(--ink-3); margin: 14px 0 0; line-height: 1.5;">
-          <strong>Recognized keys:</strong> IVR, ATR, PX/PRICE, RVOL, RSMK (+/-/+rising/-rising or numeric), STACK (BULLISH/BEARISH/MIXED), STRENGTH (0-3), SETUP, REGIME, QUANT, EARNINGS, VOL (with k/M suffix), OI, OVOL, SPR. Keys are case-insensitive. Pairs can be space- or comma-separated.
-        </p>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">Your Sizing Rules</div>
-          <span class="ref-card-tag cyan">SETTINGS</span>
-        </div>
-        <div id="ref-sizing-content"></div>
-        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-4); font-family: var(--mono);">
-          Edit via gear icon ⚙ in top nav
-        </div>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">IV Rank → What to buy</div>
-          <span class="ref-card-tag cyan">CHEAT</span>
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 10px; line-height: 1.5;">
-          IV Rank (0–100) tells you whether option prices are cheap or expensive right now. Look it up in TOS → Trade tab → ticker → Volatility section.
-        </div>
-        <ul class="ref-list">
-          <li>
-            <span class="ref-key green">under 30</span>
-            <span class="ref-val"><strong>Buy a single call/put</strong> (in-the-money, 0.65–0.75 delta, 30–45 days to expiration). Options are cheap — get max leverage.</span>
-          </li>
-          <li>
-            <span class="ref-key cyan">30 – 50</span>
-            <span class="ref-val"><strong>Use a debit spread</strong> (buy one, sell one further out). Cuts your cost in half and limits your risk.</span>
-          </li>
-          <li>
-            <span class="ref-key amber">50 – 70</span>
-            <span class="ref-val"><strong>Spread + cut size in HALF</strong>. Options are expensive — extra caution required.</span>
-          </li>
-          <li>
-            <span class="ref-key red">over 70</span>
-            <span class="ref-val"><strong>Skip the trade</strong>. Options are too expensive — even if you\'re right on direction, the volatility crash will likely kill your gains.</span>
-          </li>
-        </ul>
-        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-4); line-height: 1.5;">
-          <strong>Delta</strong> = how much the option price moves for each $1 the stock moves (0.70 delta = ~70¢). <strong>Higher delta</strong> = more like owning the stock.
-        </div>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">Top 6 Don'ts</div>
-          <span class="ref-card-tag red">DANGER</span>
-        </div>
-        <ul class="ref-list">
-          <li><span class="ref-key red">01</span><span class="ref-val"><strong>Don\'t size up after a loss.</strong> Revenge trades blow accounts. Take the same size or smaller.</span></li>
-          <li><span class="ref-key red">02</span><span class="ref-val"><strong>Don\'t move your stop loss.</strong> If the stock hits your stop, exit. Period. "Just one more day" is how small losses become huge.</span></li>
-          <li><span class="ref-key red">03</span><span class="ref-val"><strong>Don\'t hold long options through earnings.</strong> Volatility crashes after the report — usually wipes out gains even when you\'re right.</span></li>
-          <li><span class="ref-key red">04</span><span class="ref-val"><strong>Don\'t trade illiquid options.</strong> If the bid-ask spread is more than 5% of the option\'s price, the market makers will eat your edge.</span></li>
-          <li><span class="ref-key red">05</span><span class="ref-val"><strong>Don\'t buy more of a losing position.</strong> Averaging down works for stocks, not options — your time decay accelerates.</span></li>
-          <li><span class="ref-key red">06</span><span class="ref-val"><strong>Don\'t hold options past 21 days to expiration.</strong> Time decay (theta) accelerates rapidly in the final 3 weeks. Take profit or cut losses earlier.</span></li>
-        </ul>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">Kill Switches — when to stop</div>
-          <span class="ref-card-tag red">STOP</span>
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 12px; line-height: 1.5;">
-          Hard rules that override everything else. If any trigger, follow the rule — no exceptions.
-        </div>
-        <div class="killswitch-item">
-          <strong>Account down 7%+ this month</strong> → stop trading for one week, review log, find the leak
-        </div>
-        <div class="killswitch-item">
-          <strong>3 losing weeks in a row</strong> → switch to paper trading until you string together 5 paper wins
-        </div>
-        <div class="killswitch-item">
-          <strong>Win rate under 45% over your last 20 trades</strong> → process is drifting; review every recent trade for pattern violations
-        </div>
-        <div class="killswitch-item">
-          <strong>VIX spikes 30%+ in one session</strong> → no new entries that day; markets are panicking
-        </div>
-        <div class="killswitch-item">
-          <strong>2 losses in the same trading day</strong> → done for the day; close laptop, go for a walk
-        </div>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">Your Portfolio Caps</div>
-          <span class="ref-card-tag amber">SETTINGS</span>
-        </div>
-        <ul class="ref-list" id="ref-caps-list"></ul>
-      </div>
-
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">The 5 Approved Setups</div>
-          <span class="ref-card-tag green">ONLY THESE</span>
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 10px; line-height: 1.5;">
-          If the chart doesn\'t fit one of these 5 patterns, don\'t trade it. EMA = exponential moving average (a smoothed price line).
-        </div>
-        <ul class="ref-list">
-          <li><span class="ref-key green">01</span><span class="ref-val"><strong>21-EMA Pullback</strong> — Stock in uptrend dips to its 21-day moving average, then prints a bullish reversal bar (your entry signal)</span></li>
-          <li><span class="ref-key green">02</span><span class="ref-val"><strong>Base Breakout</strong> — Stock has been flat in a tight range for 15+ days, then breaks above on 1.5× normal volume</span></li>
-          <li><span class="ref-key green">03</span><span class="ref-val"><strong>Breakout Retest</strong> — After a breakout, stock pulls back to test the breakout level (now support), bounces — confirming the move was real</span></li>
-          <li><span class="ref-key green">04</span><span class="ref-val"><strong>9-EMA Reclaim</strong> — Stock dips below the 9-day moving average intraday, then closes back above — showing dip-buyers stepped in</span></li>
-          <li><span class="ref-key green">05</span><span class="ref-val"><strong>Edge Reversal</strong> — Counter-trend trade after a long extended move shows exhaustion. Use HALF size; lower probability than the others</span></li>
-        </ul>
-      </div>
-
-      <!-- ============ NEW: TOS STUDIES EXPLAINED ============ -->
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div class="ref-card-title">Your TOS Studies — what each one does</div>
-          <span class="ref-card-tag cyan">TOS</span>
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.5;">
-          These are the three custom thinkScript studies the cockpit references. Each lives on a chart in Thinkorswim and tells you something specific. If a study isn't loaded, right-click any chart → Studies → Edit Studies → Import to add it.
-        </div>
-
-        <div class="study-card">
-          <div class="study-card-name">📊 MAC_MacroRegime</div>
-          <div class="study-card-where">Add to: SPY daily chart (top-left label)</div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What it shows</div>
-            <div class="study-card-section-body">A single label on your SPY chart that reads <strong>RISK-ON</strong>, <strong>NEUTRAL</strong>, or <strong>RISK-OFF</strong>. Looks at SPY trend, VIX level, and breadth to decide which environment you're in.</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What to look for</div>
-            <div class="study-card-section-body">RISK-ON = full size long trades allowed. NEUTRAL = half size, both directions. RISK-OFF = reduced size, longs blocked, puts only on weak sectors.</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">How to use it</div>
-            <div class="study-card-section-body">Glance at SPY chart every Sunday. Click the matching button at the top right of this cockpit (RISK-ON / NEUTRAL / RISK-OFF). Sets your sizing for the week.</div>
-          </div>
-        </div>
-
-        <div class="study-card">
-          <div class="study-card-name">🚦 MAC_AllSetups_Dashboard</div>
-          <div class="study-card-where">Add to: every ticker in your weekly watchlist</div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What it shows</div>
-            <div class="study-card-section-body">A composite signal that fires when ANY of your 5 approved setups triggers (21-EMA Pullback, Base Breakout, Breakout Retest, 9-EMA Reclaim, or Edge Reversal). The <strong>Signal</strong> output is a number between 0 and 1 — anything above 0.5 means a setup just printed.</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What to look for</div>
-            <div class="study-card-section-body">A green or amber arrow appears on the bar where the setup printed. The label shows which of the 5 setups triggered (e.g. "21-EMA PULLBACK").</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">How to use it</div>
-            <div class="study-card-section-body">Set an alert: right-click chart → Create Alert → Study condition → <strong>MAC_AllSetups_Dashboard.Signal is greater than 0.5</strong> (Daily timeframe). When the alert fires, open the chart, verify the setup matches one of the 5 patterns, and run through the 5 cockpit steps.</div>
-          </div>
-        </div>
-
-        <div class="study-card">
-          <div class="study-card-name">↩️ MAC_Setup_EdgeReversal</div>
-          <div class="study-card-where">Add to: tickers you've been tracking for extended trends</div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What it shows</div>
-            <div class="study-card-section-body">A specialized study just for setup #5 (Edge Reversal). Detects exhaustion bars after a long extended move — gap-up after weeks of rally, or gap-down after extended decline. Signal value <strong>not equal to 0</strong> means an exhaustion bar printed.</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">What to look for</div>
-            <div class="study-card-section-body">Positive signal value = exhaustion of an UPtrend (potential short / put play). Negative signal value = exhaustion of a DOWNtrend (potential long / call play).</div>
-          </div>
-          <div class="study-card-section">
-            <div class="study-card-section-title">How to use it</div>
-            <div class="study-card-section-body">Optional second alert layer. Edge Reversal is the lowest-probability of your 5 setups, so you trade it at HALF size. If you want extra confirmation, add this study and set an alert when its Signal is not equal to 0.</div>
-          </div>
-        </div>
-
-        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-4); line-height: 1.5;">
-          <strong>Tip:</strong> Save these three studies as a Chart Style in TOS so they auto-load on every new chart. Right-click chart → Style → Save Style → name it "v2 Setups."
-        </div>
-      </div>
 
     </div>
   </section>
@@ -975,6 +584,17 @@ STRENGTH: 3/3</pre>
             <div class="sett-field-hint">Reward:risk ratio for auto target. 2 = take profit at 2× the stop distance.</div>
           </div>
         </div>
+
+        <div class="sett-field-group">
+          <label class="sett-field-lbl">Minimum days to earnings</label>
+          <div class="sett-field-box">
+            <div class="sett-dollar-wrap">
+              <input type="number" min="0" max="120" step="1" class="sett-input" id="set-min-earnings-days" placeholder="8" />
+              <span class="sett-dollar-sign" style="left:auto;right:12px;">D</span>
+            </div>
+            <div class="sett-field-hint">Swing quality gate passes only when earnings are at least this many days away.</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1069,7 +689,7 @@ STRENGTH: 3/3</pre>
       <div class="ai-glossary-term">
         <h4>Last <span data-ai-glossary-window>30</span>-day P/L</h4>
         <p>Realized P/L over the rolling window you set in Settings. The kill switch fires when this number is worse than -7% of your account.</p>
-        <code>Σ pl(t) where exit_date ≥ today - killSwitchDays</code>
+        <code>Σ pl(t) where exit_date more than today - killSwitchDays</code>
       </div>
     </section>
 
@@ -1120,7 +740,7 @@ STRENGTH: 3/3</pre>
 
       <div class="ai-glossary-term">
         <h4>Best / Worst setup</h4>
-        <p>Pattern with the highest / lowest cumulative P/L across all closed trades. Needs ≥ 5 closed trades for the comparison to be meaningful.</p>
+        <p>Pattern with the highest / lowest cumulative P/L across all closed trades. Needs more than 5 closed trades for the comparison to be meaningful.</p>
       </div>
     </section>
 
@@ -1263,7 +883,7 @@ STRENGTH: 3/3</pre>
         <div class="ctx-sector-head">
           <h2>Sector ratings · SA Quant</h2>
           <div class="ctx-legend">
-            <span><span style="color: var(--green-bright);">●</span> ≥ 3.5 STRONG</span>
+            <span><span style="color: var(--green-bright);">●</span> more than 3.5 STRONG</span>
             <span><span style="color: var(--amber-bright);">●</span> 2.5–3.4 NEUTRAL</span>
             <span><span style="color: var(--red-bright);">●</span> &lt; 2.5 WEAK</span>
           </div>

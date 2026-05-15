@@ -81,7 +81,12 @@ function tfRenderIntradaySizingHtml() {
   const isOptions = window.tfIntradayInstrument() !== 'stocks';
   const auto = window.tfComputeIntradayRiskSize();
   if (!auto) {
-    return `<div class="input-help" style="margin-top:8px;">Enter a price to Smart-Size ${isOptions ? 'contracts' : 'shares'}.</div>`;
+    const entry = Number(it.entry);
+    const stop = Number(it.stop);
+    const msg = entry > 0 && stop > 0 && entry === stop
+      ? 'Set a stop price different from entry to calculate position size.'
+      : `Enter a price to Smart-Size ${isOptions ? 'contracts' : 'shares'}.`;
+    return `<div class="input-help" style="margin-top:8px;">${msg}</div>`;
   }
   const manualQty = Number(it.contracts);
   const useQty = manualQty > 0 ? manualQty : auto.qty;
@@ -155,8 +160,10 @@ function tfComputeIntradayRiskSize() {
   // Stop is optional — derive a default from settings.stopPct × regime
   // multiplier when missing so Smart-Size can still compute.
   let stop = Number(it.stop);
-  let stopDist = stop > 0 ? Math.abs(entry - stop) : 0;
+  const hasExplicitStop = stop > 0;
+  let stopDist = hasExplicitStop ? Math.abs(entry - stop) : 0;
   let derivedStop = false;
+  if (hasExplicitStop && !(stopDist > 0)) return null;
   if (!(stopDist > 0)) {
     const baseStopPct = ((settings.stopPct || 50) / 100);
     const regimeMult = (typeof window.getRegimeRiskMultiplier === 'function')
@@ -167,7 +174,9 @@ function tfComputeIntradayRiskSize() {
     derivedStop = true;
   }
   if (!(stopDist > 0)) return null;
-  const qty = Math.max(1, Math.floor(riskBudget / Math.max(0.01, stopDist * mult)));
+  const riskPerUnit = stopDist * mult;
+  if (!(riskPerUnit > 0)) return null;
+  const qty = Math.max(1, Math.floor(riskBudget / riskPerUnit));
   return {
     qty,
     risk: qty * stopDist * mult,

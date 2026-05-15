@@ -254,11 +254,10 @@ export function deriveSpreadPct(liq) {
 export function liquidityOK() {
   const liq = state.liquidity || {};
   if (state.instrument === 'stocks') {
-    return Number(liq.stockVol) >= 1000000;
+    return liq.stockVolPass === true;
   }
-  return Number(liq.stockVol) >= 1000000
-      && Number(liq.optionOI) >= 500
-      && Number(liq.optionVol) >= 100;
+  return liq.stockVolPass === true
+      && liq.optionOIPass === true;
 }
 
 // Bridge to legacy.js.

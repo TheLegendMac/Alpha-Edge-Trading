@@ -116,14 +116,14 @@ function logIntradayTrade() {
   if (state.tradeFlow) state.tradeFlow.intradayDraft = {};
   saveState();
   // Force immediate push of the new trade
-  if (typeof doPush === 'function') {
-    if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
-    doPush();
+  if (typeof window.doPush === 'function') {
+    if (window.SYNC && window.SYNC.pendingPush) { clearTimeout(window.SYNC.pendingPush); window.SYNC.pendingPush = null; }
+    window.doPush();
   }
   window.renderHome();
   window.renderLogStats();
-  if (typeof renderUniversalSidebar === 'function') renderUniversalSidebar();
-  if (typeof renderTrade === 'function') window.renderTrade();
+  if (typeof window.renderUniversalSidebar === 'function') window.renderUniversalSidebar();
+  if (typeof window.renderTrade === 'function') window.renderTrade();
   window.toast('Intraday trade logged');
 }
 

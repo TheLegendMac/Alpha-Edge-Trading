@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
   stopPct: 50,         // % of premium = stop loss
   targetPct: 50,       // % of premium gain = profit target (legacy fallback)
   targetRMultiple: 2,  // default reward:risk ratio for auto targets (target distance = N × stop distance)
+  minDaysToEarnings: 8, // minimum days before earnings for swing trades
   maxPositions: 5,
   longOnlyMode: false, // when true, hides spread recommendations and converts spread zones to "skip"
   // ---- INTRADAY ----
