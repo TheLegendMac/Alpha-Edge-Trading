@@ -373,11 +373,6 @@ function tfIntradayStep2() {
   const entryOk = filled(it.entry);
   const qtyOk = filled(it.contracts);
   const reqN = [entryOk, qtyOk].filter(Boolean).length;
-  const r = (it.entry && it.stop && it.target)
-    ? Math.abs((Number(it.target) - Number(it.entry)) / (Number(it.entry) - Number(it.stop)))
-    : null;
-  const rText = r !== null && isFinite(r) ? `${r.toFixed(2)}R reward / risk` : '—';
-  const rGood = r !== null && isFinite(r) && r >= 1.5;
 
   const levelsLetter = 'A.';
   const sizingHtml = (typeof window.tfRenderIntradaySizingHtml === 'function')
@@ -389,7 +384,7 @@ function tfIntradayStep2() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">${levelsLetter}</span> Entry, stop & limit</div>
-          <div class="trade-section-subtitle">Size auto-derives from risk % ÷ stop distance.</div>
+          <div class="trade-section-subtitle">Set prices and size.</div>
         </div>
         <div class="trade-section-counter required ${reqN === 2 ? 'complete' : ''}" id="tf-i-lvl-counter">${reqN === 2 ? 'ready' : `${reqN} of 2`}</div>
       </div>
@@ -404,7 +399,7 @@ function tfIntradayStep2() {
               <span>Stop price $</span>
               <button type="button" class="tf-auto-chip" id="tf-i-Smart-Stop">Smart-Stop</button>
             </label>
-            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Stop fill' : 'Invalidation price'}" />
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-i-stop" value="${inputValue('stop')}" placeholder="${isOptions ? 'Take-loss fill' : 'Invalidation price'}" />
           </div></div>
           <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
             <label class="input-label">

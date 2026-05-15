@@ -31,14 +31,14 @@ function tfRenderSwingSizingHtml() {
     const maxLossPerContract = Math.abs(premium - stopPrem) * 100;
     const autoContracts = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerContract)));
     const contracts = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoContracts;
-    const totalRisk = contracts * maxLossPerContract;
+    const totalCost = contracts * premium * 100;
     const stopDistPrem = Math.abs(premium - stopPrem);
     const defaultTarget = +(premium + targetR * stopDistPrem).toFixed(2);
     const target = manualTarget > 0 ? manualTarget : defaultTarget;
     return `
       <div class="trade-output">
-        <div class="trade-output-title">Entry & risk unit</div>
-        <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} · risk $${Math.round(totalRisk)}</div>
+        <div class="trade-output-title">Visual Risk Bar</div>
+        <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} for total cost of $${Math.round(totalCost).toLocaleString()}</div>
         ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
       </div>`;
   }
@@ -53,10 +53,11 @@ function tfRenderSwingSizingHtml() {
   const maxLossPerShare = Math.abs(premium - stopPrice);
   const autoShares = Math.max(1, Math.floor(riskDollars / Math.max(0.01, maxLossPerShare)));
   const shares = manualQty > 0 ? Math.max(1, Math.floor(manualQty)) : autoShares;
+  const totalCost = shares * premium;
   return `
     <div class="trade-output">
-      <div class="trade-output-title">Entry & risk unit</div>
-      <div class="trade-output-main">${shares} shares · risk $${Math.round(shares * maxLossPerShare)}</div>
+      <div class="trade-output-title">Visual Risk Bar</div>
+      <div class="trade-output-main">${shares} shares for total cost of $${Math.round(totalCost).toLocaleString()}</div>
       ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
     </div>`;
 }
@@ -74,18 +75,12 @@ function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
   if (card) card.innerHTML = window.tfRenderSwingSizingHtml();
   window.tfBindPriceLevelSliders();
-  const premiumCounter = document.getElementById('tf-premium-counter');
-  if (premiumCounter) {
-    const ok = Number(state.premium) > 0;
-    premiumCounter.classList.toggle('complete', ok);
-    premiumCounter.textContent = ok ? '1 set' : 'fill 1';
-  }
   const riskCounter = document.getElementById('tf-swing-risk-counter');
   if (riskCounter) {
-    const fields = [Number(state.premium) > 0, Number(state.swingStop) > 0, Number(state.swingTarget) > 0];
+    const fields = [Number(state.premium) > 0, Number(state.swingQty) > 0];
     const ready = fields.every(Boolean);
     riskCounter.classList.toggle('complete', !!ready);
-    riskCounter.textContent = ready ? 'ready' : `${fields.filter(Boolean).length} of 3`;
+    riskCounter.textContent = ready ? 'ready' : `${fields.filter(Boolean).length} of 2`;
   }
   // Legacy Gate 06 row may be absent; refresh it in place when present.
   const gateRow = document.getElementById('tf-stop-gate');

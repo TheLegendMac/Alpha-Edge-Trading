@@ -411,51 +411,14 @@ function tfSwingStep3() {
   const swingStop    = state.swingStop;
   const swingTarget  = state.swingTarget;
   const swingQty     = state.swingQty;
+  const filled = (v) => v !== null && v !== undefined && v !== '';
+  const entryOk = filled(premium);
+  const qtyOk = filled(swingQty);
+  const reqN = [entryOk, qtyOk].filter(Boolean).length;
 
-  // Sizing card — surgically updated by window.tfUpdateSwingSizing().
-  const sizingCard = `<div id="tf-sizing-card">${window.tfRenderSwingSizingHtml()}</div>`;
-  const entryReady = premium > 0 && swingStop > 0 && swingTarget > 0;
-  const entryFields = `
-    <div class="trade-section-grid-2">
-      <div class="trade-input-row" style="grid-template-columns: 1fr;">
-        <div>
-          <label class="input-label">Entry Price $</label>
-          <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium"
-            placeholder="${isOptions ? 'Fill price' : 'Share entry'}" value="${premium ?? ''}" />
-        </div>
-      </div>
-      <div class="trade-input-row" style="grid-template-columns: 1fr;">
-        <div>
-          <label class="input-label">
-            <span>Stop price $</span>
-            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Stop">Smart-Stop</button>
-          </label>
-          <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop"
-            placeholder="${isOptions ? 'Stop fill' : 'Invalidation price'}" value="${swingStop ?? ''}" />
-        </div>
-      </div>
-      <div class="trade-input-row" style="grid-template-columns: 1fr;">
-        <div>
-          <label class="input-label">
-            <span>Limit Price $</span>
-            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Target">Smart-Limit</button>
-          </label>
-          <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target"
-            placeholder="${isOptions ? 'Take-profit fill' : 'Take-profit price'}" value="${swingTarget ?? ''}" />
-        </div>
-      </div>
-      <div class="trade-input-row" style="grid-template-columns: 1fr;">
-        <div>
-          <label class="input-label">
-            <span>${isOptions ? 'Contracts' : 'Shares'}</span>
-            <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Size">Smart-Size</button>
-          </label>
-          <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty"
-            placeholder="Blank = auto from risk" value="${swingQty ?? ''}" />
-        </div>
-      </div>
-    </div>
-    <div id="tf-swing-sizing-card" style="margin-top:14px;">${sizingCard}</div>`;
+  const sizingHtml = (typeof window.tfRenderSwingSizingHtml === 'function')
+    ? window.tfRenderSwingSizingHtml()
+    : '';
 
   return `
     <div class="trade-section">
@@ -464,10 +427,37 @@ function tfSwingStep3() {
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Entry, stop &amp; limit</div>
           <div class="trade-section-subtitle">Set prices and size.</div>
         </div>
-        <div class="trade-section-counter required ${entryReady ? 'complete' : ''}" id="tf-swing-risk-counter">${entryReady ? 'ready' : `${[premium > 0, swingStop > 0, swingTarget > 0].filter(Boolean).length} of 3`}</div>
+        <div class="trade-section-counter required ${reqN === 2 ? 'complete' : ''}" id="tf-swing-risk-counter">${reqN === 2 ? 'ready' : `${reqN} of 2`}</div>
       </div>
       <div class="trade-section-body">
-        ${entryFields}
+        <div class="trade-section-grid-2">
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">Entry Price $</label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-premium" value="${premium ?? ''}" placeholder="${isOptions ? 'Fill price' : 'Share entry'}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">
+              <span>Stop price $</span>
+              <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Stop">Smart-Stop</button>
+            </label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-stop" value="${swingStop ?? ''}" placeholder="${isOptions ? 'Take-loss fill' : 'Invalidation price'}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">
+              <span>Limit Price $</span>
+              <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Target">Smart-Limit</button>
+            </label>
+            <input type="number" min="0" step="0.01" class="trade-input" id="tf-swing-target" value="${swingTarget ?? ''}" placeholder="${isOptions ? 'Take-profit fill' : 'Take-profit price'}" />
+          </div></div>
+          <div class="trade-input-row" style="grid-template-columns: 1fr;"><div>
+            <label class="input-label">
+              <span>${isOptions ? 'Contracts' : 'Shares'}</span>
+              <button type="button" class="tf-auto-chip" id="tf-swing-Smart-Size">Smart-Size</button>
+            </label>
+            <input type="number" min="1" step="1" class="trade-input" id="tf-swing-qty" value="${swingQty ?? ''}" placeholder="Blank = auto from risk" />
+          </div></div>
+        </div>
+        <div id="tf-sizing-card" style="margin-top:14px;">${sizingHtml}</div>
       </div>
     </div>
   `;

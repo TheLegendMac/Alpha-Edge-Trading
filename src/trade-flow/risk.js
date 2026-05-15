@@ -20,6 +20,12 @@ function tfSignedMoneyText(value, digits = 0) {
   return `${sign}$${Math.abs(n).toFixed(digits)}`;
 }
 
+function tfSignedPctText(value, digits = 1) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  return `${n >= 0 ? '+' : ''}${n.toFixed(digits)}%`;
+}
+
 function tfAbsMoneyText(value, digits = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? `$${Math.abs(n).toFixed(digits)}` : '—';
@@ -127,6 +133,15 @@ function tfRiskRailHtml({ entry, stop, target, qty, mult = 1 } = {}) {
   const reward = Math.abs(t - e) * q * m;
   if (!(loss > 0 && reward > 0)) return '';
   const targetR = reward / loss;
+  const direction = window.tfRiskDirection({ entry: e, stop: s, target: t });
+  const stopStat = window.tfRiskLevelStat({ entry: e, price: s, qty: q, mult: m, rBase: loss, direction });
+  const targetStat = window.tfRiskLevelStat({ entry: e, price: t, qty: q, mult: m, rBase: loss, direction });
+  const stopPnlText = stopStat
+    ? `${window.tfSignedMoneyText(stopStat.pnl, 2)} (${window.tfSignedPctText(stopStat.pct)})`
+    : `-${window.tfAbsMoneyText(loss, 2)}`;
+  const targetPnlText = targetStat
+    ? `${window.tfSignedMoneyText(targetStat.pnl, 2)} (${window.tfSignedPctText(targetStat.pct)})`
+    : window.tfSignedMoneyText(reward, 2);
   const targetVisual = Math.max(0.6, Math.min(3.0, targetR || 1));
   const total = 1 + targetVisual;
   const lossPct = (1 / total) * 100;
@@ -140,8 +155,8 @@ function tfRiskRailHtml({ entry, stop, target, qty, mult = 1 } = {}) {
     </div>`;
   return `
     <div class="tf-risk-rail">
-      ${zone('loss', lossPct, 'Closing @ Stop', s, `-${window.tfAbsMoneyText(loss, 2)}`, '-1R')}
-      ${zone('target', targetPct, 'Closing @ Target', t, window.tfSignedMoneyText(reward, 2), `${targetR.toFixed(2)}R`)}
+      ${zone('loss', lossPct, 'Closing @ Stop', s, stopPnlText, '-1R')}
+      ${zone('target', targetPct, 'Closing @ Target', t, targetPnlText, `${targetR.toFixed(2)}R`)}
       <div class="tf-risk-entry-marker" style="left:${lossPct.toFixed(2)}%;"><span class="tf-risk-entry-label">ENTRY ${window.tfMoneyText(e)}</span></div>
     </div>`;
 }
@@ -352,6 +367,7 @@ function tfBindPriceLevelSliders() {
 
 window.tfMoneyText = tfMoneyText;
 window.tfPctText = tfPctText;
+window.tfSignedPctText = tfSignedPctText;
 window.tfSignedMoneyText = tfSignedMoneyText;
 window.tfAbsMoneyText = tfAbsMoneyText;
 window.tfOptionSpreadFromBidAsk = tfOptionSpreadFromBidAsk;

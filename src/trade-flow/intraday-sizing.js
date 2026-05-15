@@ -85,25 +85,12 @@ function tfRenderIntradaySizingHtml() {
   }
   const manualQty = Number(it.contracts);
   const useQty = manualQty > 0 ? manualQty : auto.qty;
-  const realizedRisk = Math.round(useQty * auto.stopDist * auto.mult);
-  const target = Number(it.target);
-  const entry = Number(it.entry);
-  const profitDollars = (target > 0 && entry > 0)
-    ? Math.round(Math.abs(target - entry) * useQty * auto.mult)
-    : null;
+  const positionCost = Number(it.entry) > 0 ? Math.round(Number(it.entry) * useQty * auto.mult) : null;
   const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
-  const pnlLine = `
-    <div class="trade-output-pnl" style="display:flex; gap:14px; margin-top:8px; font-family:var(--mono); font-size:12px;">
-      <span style="color: var(--red-bright);">Risking <strong>$${realizedRisk.toLocaleString()}</strong></span>
-      ${profitDollars !== null
-        ? `<span style="color: var(--green-bright);">Profit at limit <strong>$${profitDollars.toLocaleString()}</strong></span>`
-        : `<span style="color: var(--ink-4);">Set a limit price to see profit</span>`}
-    </div>`;
   return `
     <div class="trade-output" style="margin-top:10px;">
-      <div class="trade-output-title">Position size</div>
-      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}</div>
-      ${pnlLine}
+      <div class="trade-output-title">Visual Risk Bar</div>
+      <div class="trade-output-main">${useQty} ${auto.label}${useQty === 1 ? '' : 's'}${positionCost !== null ? ` for total cost of $${positionCost.toLocaleString()}` : ''}</div>
       ${profileHtml || ''}
     </div>`;
 }

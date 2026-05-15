@@ -515,7 +515,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
   if (discCount >= 3 && discPL < 0) {
     bullets.push({
       tone: 'warn', icon: '🚪',
-      text: `Early exits (gut call or thesis-broke) cost <strong>${$(-Math.abs(discPL))}</strong> across ${discCount} trade${discCount === 1 ? '' : 's'}. Letting them run more often would change the curve.`,
+      text: `Early exits (gut call or thesis-broke) total cost <strong>${$(-Math.abs(discPL))}</strong> across ${discCount} trade${discCount === 1 ? '' : 's'}. Letting them run more often would change the curve.`,
     });
   } else if (gradeScore !== null && graded.length >= 5) {
     const tone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
