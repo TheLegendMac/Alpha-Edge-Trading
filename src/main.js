@@ -372,12 +372,9 @@ function init() {
   runSafe('renderLogTable', window.renderLogTable);
   runSafe('renderReference', window.renderReference);
 
-  // Restore last-active mode.
-  if (state.activeMode && ['home','log','stats','reference','trade'].includes(state.activeMode)) {
-    runSafe('restoreTab', () => setTab(state.activeMode));
-  } else if (state.activeMode === 'decision' || state.activeMode === 'intraday') {
-    runSafe('restoreTradeTab', () => setTab('trade'));
-  }
+  // Restore last-active mode. setTab() normalizes legacy values via
+  // normalizeActiveMode() in config/constants.js.
+  runSafe('restoreTab', () => setTab(state.activeMode));
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
   if (typeof window.ensureAuthModal === 'function') window.ensureAuthModal();

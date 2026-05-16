@@ -3,6 +3,7 @@
 
 import { state } from './state/store.js';
 import { saveState } from './state/persistence.js';
+import { normalizeActiveMode } from './config/constants.js';
 import { renderRegime } from './market/regime.js';
 import { renderHome } from './views/home.js';
 import { renderReference } from './views/reference.js';
@@ -11,7 +12,7 @@ import { renderStats } from './views/stats.js';
 import { _buildTickerHistory, rememberTicker } from './trade-flow/ticker-memory.js';
 
 export function setTab(name, opts = {}) {
-  if (name === 'decision' || name === 'intraday') name = 'trade';
+  name = normalizeActiveMode(name);
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   document.querySelectorAll('.cmdbar-menu-item').forEach(t => t.classList.toggle('active', t.dataset.menuTab === name));

@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
 export const state = {
   settings: { ...DEFAULT_SETTINGS },
   regime: 'risk-on',
-  activeMode: 'home',     // 'home' | 'trade' | 'log' | 'stats' | 'reference'
+  activeMode: 'home',     // see ACTIVE_MODES in config/constants.js
   trades: [],
   deletedTradeIds: {},
   backtestReports: [],
