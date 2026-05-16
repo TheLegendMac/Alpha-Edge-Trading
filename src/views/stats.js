@@ -333,33 +333,25 @@ export function renderStats() {
   const rDistLossCount = losses.length;
   const rDistWinCount = wins.length;
 
-  // Edge Intelligence card — all variables now defined
+  // Edge Intelligence compact — uses the shared alpha-intel-card style.
+  const formTone   = avgR >= 0.3 && (winRateNum||0) >= 50 ? 'good' : avgR >= 0 ? 'info' : 'warn';
+  const edgeTone   = topSetups.length ? 'good' : 'info';
+  const watchToneCls = watchTone === 'warn' ? 'bad' : 'good';
+  const actionTone = avgR >= 0.5 && (winRateNum||0) >= 55 ? 'good'
+    : avgR >= 0.25 && (winRateNum||0) >= 45 ? 'good'
+    : avgR >= 0 ? 'warn' : 'bad';
   const alphaIntelHtml = `
-    <div class="stats-alpha-intel">
-      <div class="stats-alpha-hdr">
-        <span class="stats-alpha-title">
-          <span class="stats-alpha-dot-main"></span>Edge Intelligence
-        </span>
+    <div class="alpha-intel-card stats-alpha-intel">
+      <div class="alpha-intel-eyebrow">
+        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span></span>
         <button class="stats-ei-enlarge-btn" type="button" data-ei-enlarge>Enlarge →</button>
       </div>
-      <div class="stats-alpha-rows">
-        <div class="stats-alpha-row">
-          <span class="stats-alpha-tag" data-tone="pos">FORM</span>
-          <span class="stats-alpha-text">${formText}</span>
-        </div>
-        <div class="stats-alpha-row">
-          <span class="stats-alpha-tag" data-tone="pos">EDGE</span>
-          <span class="stats-alpha-text">${edgeText}</span>
-        </div>
-        <div class="stats-alpha-row">
-          <span class="stats-alpha-tag" data-tone="${watchTone}">WATCH</span>
-          <span class="stats-alpha-text" style="${watchTone === 'warn' ? 'color: var(--red-bright);' : ''}">${watchText}</span>
-        </div>
-        <div class="stats-alpha-row">
-          <span class="stats-alpha-tag" data-tone="action">ACTION</span>
-          <span class="stats-alpha-text">${actionText}</span>
-        </div>
-      </div>
+      <ul class="alpha-intel-points">
+        <li class="alpha-intel-point tone-${formTone}"><span class="alpha-intel-chip">FORM</span><span class="alpha-intel-body">${formText}</span></li>
+        <li class="alpha-intel-point tone-${edgeTone}"><span class="alpha-intel-chip">EDGE</span><span class="alpha-intel-body">${edgeText}</span></li>
+        <li class="alpha-intel-point tone-${watchToneCls}"><span class="alpha-intel-chip">WATCH</span><span class="alpha-intel-body">${watchText}</span></li>
+        <li class="alpha-intel-point tone-${actionTone}"><span class="alpha-intel-chip">ACTION</span><span class="alpha-intel-body">${actionText}</span></li>
+      </ul>
     </div>`;
 
   // Setup performance table

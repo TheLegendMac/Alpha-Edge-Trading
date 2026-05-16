@@ -421,7 +421,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   return `
     <div class="alpha-intel-card">
       <div class="alpha-intel-eyebrow">
-        <span class="alpha-intel-eyebrow-l"><span>ALPHA INTELLIGENCE</span>${helpBtn}</span>
+        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
         <span class="alpha-intel-eyebrow-r">${kickerText}</span>
       </div>
       <h2 class="alpha-intel-headline tone-${headlineTone}">
@@ -666,7 +666,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   return `
     <div class="alpha-intel-card trade-edge-intel">
       <div class="alpha-intel-eyebrow">
-        <span class="alpha-intel-eyebrow-l"><span>ALPHA INTELLIGENCE</span>${helpBtn}</span>
+        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
         <span class="alpha-intel-eyebrow-r">${kicker}</span>
       </div>
       <h2 class="alpha-intel-headline tone-${headlineTone}">
