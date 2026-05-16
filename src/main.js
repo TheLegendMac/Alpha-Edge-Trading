@@ -22,6 +22,8 @@ import './config/constants.js';
 import './state/store.js';
 import './state/persistence.js';
 import './dom/html.js';
+import './dom/click-delegator.js';
+import './dom/service-worker.js';
 
 // ---------- Models ----------
 import './models/formatters.js';
