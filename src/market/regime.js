@@ -33,8 +33,9 @@ export function renderRegime() {
   // Mode-aware rules text:
   // - Swing (or anywhere except intraday): show regime-driven sizing %
   // - Intraday: show "context only" message + the fixed dollar risk
+  const inIntradayFlow = state.activeMode === 'trade' && state.tradeFlow?.mode === 'intraday';
   const rulesHtml = (() => {
-    if (state.activeMode === 'intraday') {
+    if (inIntradayFlow) {
       const dollar = state.settings.intradayRiskPerTrade;
       const tilt = state.regime === 'risk-on'
         ? 'Tilt long-side; same $ risk per trade'

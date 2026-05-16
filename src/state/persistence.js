@@ -7,6 +7,7 @@ import {
   DEFAULT_SETTINGS,
   newIntradayTicket,
   TRADE_INTRADAY_LEGACY_MAP,
+  normalizeActiveMode,
 } from '../config/constants.js';
 
 export function loadState() {
@@ -70,7 +71,7 @@ export function loadState() {
     if (state.logSearch === undefined) state.logSearch = '';
     if (state.logSetupFilter === undefined) state.logSetupFilter = '';
     if (!state.homePortfolioView) state.homePortfolioView = 'recent';
-    if (!state.activeMode || state.activeMode === 'swing') state.activeMode = 'home';
+    state.activeMode = normalizeActiveMode(state.activeMode);
     if (!state.deletedTradeIds) state.deletedTradeIds = {};
     if (!Array.isArray(state.backtestReports)) state.backtestReports = [];
     if (!Array.isArray(state.recentTickers)) state.recentTickers = [];

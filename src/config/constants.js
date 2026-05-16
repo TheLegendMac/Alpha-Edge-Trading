@@ -4,6 +4,23 @@
 export const STORAGE_KEY = 'mac_cockpit_v3_unified';
 export const OLD_STORAGE_KEY = 'v2_cockpit_state_v5';
 
+// ---------- Active modes (top-level tabs) ----------
+// Single source of truth for state.activeMode. Legacy values from older state
+// blobs are normalized to the canonical set on load.
+export const ACTIVE_MODES = ['home', 'trade', 'log', 'stats', 'reference'];
+
+const LEGACY_ACTIVE_MODES = {
+  decision: 'trade',
+  intraday: 'trade',
+  swing: 'home',
+};
+
+export function normalizeActiveMode(name) {
+  if (ACTIVE_MODES.includes(name)) return name;
+  if (LEGACY_ACTIVE_MODES[name]) return LEGACY_ACTIVE_MODES[name];
+  return 'home';
+}
+
 // ---------- DEFAULT SETTINGS ----------
 export const DEFAULT_SETTINGS = {
   account: 10000,
@@ -173,6 +190,8 @@ export const TRADE_BREADTH_OPTIONS = [
 // so unmoved code in legacy.js keeps resolving identifiers.
 window.STORAGE_KEY = STORAGE_KEY;
 window.OLD_STORAGE_KEY = OLD_STORAGE_KEY;
+window.ACTIVE_MODES = ACTIVE_MODES;
+window.normalizeActiveMode = normalizeActiveMode;
 window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
 window.INTRADAY_SETUPS = INTRADAY_SETUPS;
 window.newIntradayTicket = newIntradayTicket;
