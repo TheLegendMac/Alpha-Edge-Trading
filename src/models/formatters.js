@@ -30,12 +30,3 @@ export function dateOffsetISO(daysAgo) {
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().split('T')[0];
 }
-
-// Bridge to legacy.js (regular <script>): expose as globals so unmoved code keeps resolving.
-// These window assignments will be removed in Phase 12 along with the inline-onclick cleanup.
-window._fmtMoney = _fmtMoney;
-window._fmtMoneyPlain = _fmtMoneyPlain;
-window._toneClass = _toneClass;
-window.formatDate = formatDate;
-window.todayISO = todayISO;
-window.dateOffsetISO = dateOffsetISO;
