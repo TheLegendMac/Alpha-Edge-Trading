@@ -6,6 +6,7 @@ import {
   normalizeProcessQuality,
 } from '../models/trade.js';
 import { esc, attr, money } from '../dom/html.js';
+import { alphaSpreadValue } from './buckets.js';
 
 function pct(part, total) {
   return total ? Math.round(part / total * 100) : 0;
@@ -50,7 +51,7 @@ export function computeSetupScorecards(trades = state.trades || []) {
     }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
     const processBreaks = rows.filter(r => normalizeProcessQuality(r.trade.grade) === 'broken').length;
     const wideSpreads = rows.filter(r => {
-      const spread = typeof window.alphaSpreadValue === 'function' ? window.alphaSpreadValue(r.trade) : null;
+      const spread = alphaSpreadValue(r.trade);
       return Number.isFinite(spread) && spread > ((state.settings && state.settings.intradayMaxSpreadPct) || 5);
     }).length;
     const avgLossR = losses
