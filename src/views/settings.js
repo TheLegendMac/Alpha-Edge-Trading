@@ -1,7 +1,7 @@
 // Settings — full-page overlay open/close/save.
 
 import { state } from '../state/store.js';
-import { saveState } from '../state/persistence.js';
+import { saveState, setState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, createDefaultState } from '../config/constants.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
@@ -279,8 +279,7 @@ function saveSettings() {
   delete newSettings.maxPremiumPct;
   delete newSettings.maxRiskPct;
 
-  state.settings = newSettings;
-  saveState();
+  setState({ settings: newSettings });
   closeSettings();
 
   // Re-render everything that depends on settings

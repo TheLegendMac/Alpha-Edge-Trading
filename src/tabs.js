@@ -2,7 +2,7 @@
 // attachTickerAutocomplete (history-aware dropdown for the trade ticker input).
 
 import { state } from './state/store.js';
-import { saveState } from './state/persistence.js';
+import { setState } from './state/persistence.js';
 import { normalizeActiveMode } from './config/constants.js';
 import { renderRegime } from './market/regime.js';
 import { renderHome } from './views/home.js';
@@ -16,8 +16,7 @@ export function setTab(name, opts = {}) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
   document.querySelectorAll('.cmdbar-menu-item').forEach(t => t.classList.toggle('active', t.dataset.menuTab === name));
-  state.activeMode = name;
-  saveState();
+  setState({ activeMode: name });
   // Mirror tab into history so the native browser back button navigates
   // between tabs instead of leaving the app (which would 404 on mobile).
   if (!opts.fromPopstate && typeof window !== 'undefined' && window.history) {

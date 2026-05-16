@@ -1,7 +1,7 @@
 // Ticker memory + autocomplete suggestions for the trade flow ticker input.
 
 import { state } from '../state/store.js';
-import { saveState } from '../state/persistence.js';
+import { saveState, setState } from '../state/persistence.js';
 import { newIntradayTicket } from '../config/constants.js';
 import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
 
@@ -155,8 +155,7 @@ export function rememberTicker(sym) {
   if (!s || s.length > 6) return;
   if (!Array.isArray(state.recentTickers)) state.recentTickers = [];
   // Move-to-front, dedupe, cap at 30
-  state.recentTickers = [s, ...state.recentTickers.filter(x => x !== s)].slice(0, 30);
-  saveState();
+  setState({ recentTickers: [s, ...state.recentTickers.filter(x => x !== s)].slice(0, 30) });
 }
 
 // Wire an input to show ticker autocomplete suggestions. Dropdown is rendered as a

@@ -104,7 +104,28 @@ export function saveState() {
   if (typeof window.schedulePush === 'function') window.schedulePush();
 }
 
+// Safer alternative to `state.x = v; saveState()` for top-level field
+// updates: serialize the *candidate* state first; if the write fails,
+// the in-memory `state` is left untouched so we don't end up with
+// ghost state that won't survive a reload. Shallow patch only — for
+// deep mutations (state.tradeFlow.step = 2, etc.) use saveState().
+export function setState(patch) {
+  if (!patch || typeof patch !== 'object') return true;
+  const candidate = { ...state, ...patch };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+    localStorage.setItem('mac_cockpit_local_save_ts', String(Date.now()));
+  } catch (e) {
+    console.warn('setState: persist failed, in-memory state unchanged', e);
+    return false;
+  }
+  Object.assign(state, patch);
+  if (typeof window.schedulePush === 'function') window.schedulePush();
+  return true;
+}
+
 // Bridge to legacy.js.
 window.loadState = loadState;
 window.saveState = saveState;
 window.saveStateLocal = saveStateLocal;
+window.setState = setState;

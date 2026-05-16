@@ -273,8 +273,7 @@ function init() {
   if (logFilter) {
     logFilter.value = state.logModeFilter || 'all';
     logFilter.addEventListener('change', e => {
-      state.logModeFilter = e.target.value;
-      window.saveState();
+      window.setState({ logModeFilter: e.target.value });
       window.renderLogStats();
       window.renderLogTable();
     });
