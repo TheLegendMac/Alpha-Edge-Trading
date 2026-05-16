@@ -2,7 +2,7 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
+import { DEFAULT_SETTINGS, createDefaultState } from '../config/constants.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
@@ -317,39 +317,14 @@ function clearAllTradesAndData() {
     if (t && t.id) deletedTradeIds[t.id] = deletedAt;
   });
 
+  // Build fresh defaults, then preserve the user-configured settings and the
+  // tombstone log of deleted trade ids (so cloud sync won't resurrect them).
   const settings = { ...state.settings };
   Object.keys(state).forEach(k => delete state[k]);
-  Object.assign(state, {
+  Object.assign(state, createDefaultState(), {
     settings,
-    regime: 'risk-on',
-    activeMode: 'home',
-    homeFilterDate: null,
-    trades: [],
     deletedTradeIds,
-    selectedSetup: null,
-    instrument: 'options',
-    ivr: null,
-    direction: 'long',
-    premium: null,
-    atr: null,
-    underlyingPrice: null,
-    ticker: null,
-    saQuant: null,
-    daysToEarnings: null,
-    gateChecks: {},
-    pretradeChecks: { vix: true, news: true },
-    sectorNotes: '',
-    sectorRatings: {},
-    sectorRatedAt: null,
     marketContextUpdatedAt: deletedAt,
-    liquidity: { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null },
-    intraday: newIntradayTicket(),
-    intradayQuality: { timeOverride: false },
-    logModeFilter: 'all',
-    logSearch: '',
-    logSetupFilter: '',
-    homePortfolioView: 'recent',
-    tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
   });
 
   ['ivr-input','premium-input','atr-input','underlying-price-input','ticker-input','sa-quant-input','days-to-earnings-input']
