@@ -94,7 +94,10 @@ export function setSyncStatus(status, label) {
   const c = colors[status] || colors.local;
   dot.style.background = c.color;
   lbl.textContent = label || c.text;
-  pill.title = `Sync: ${c.text}${SYNC.user ? ` (${SYNC.user.email})` : ''}${SYNC.lastSyncAt ? ` — last ${new Date(SYNC.lastSyncAt).toLocaleTimeString()}` : ''}`;
+  // data-status drives the CSS state styling (pulse on error, mobile
+  // override so the pill stays visible when something is actually wrong).
+  pill.dataset.status = status;
+  pill.title = `Sync: ${c.text}${SYNC.user ? ` (${SYNC.user.email})` : ''}${SYNC.lastSyncAt ? ` — last ${new Date(SYNC.lastSyncAt).toLocaleTimeString()}` : ''}${SYNC.lastError && status === 'error' ? `\n${SYNC.lastError}` : ''}`;
 }
 
 export async function pullCloudState() {
@@ -370,6 +373,8 @@ export async function pullAndMergeIfNewer() {
     }
   } catch (e) {
     console.warn('[sync] Pull-and-merge failed:', e);
+    SYNC.lastError = e.message;
+    setSyncStatus('error', 'Sync failed');
   }
 }
 

@@ -172,6 +172,17 @@
   background: var(--ink-4);
   flex-shrink: 0;
 }
+.cmdbar-sync[data-status="error"] {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+.cmdbar-sync[data-status="error"] #sync-dot { animation: sync-pulse 1.6s ease-in-out infinite; }
+.cmdbar-sync[data-status="syncing"] #sync-dot { animation: sync-pulse 1.2s ease-in-out infinite; }
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
 
 /* ⌘K button */
 .cmdbar-kmk-btn {
