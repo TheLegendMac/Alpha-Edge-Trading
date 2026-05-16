@@ -14,6 +14,7 @@ import { renderHome } from '../views/home.js';
 import { renderLogTable } from '../views/log.js';
 import { setTab } from '../tabs.js';
 import { logIntradayTrade } from './intraday-helpers.js';
+import { tfRiskRailHtml } from './risk.js';
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { genTradeId, isClosedTrade, calcPL, calcR } from '../models/trade.js';
@@ -475,12 +476,26 @@ export function tfContinue() {
 
 // Styled confirm dialog. `bodyHtml` is trusted markup we build ourselves —
 // not user input — so innerHTML is safe here. Calls onConfirm() if user
-// clicks Confirm, drops if user cancels.
-export function tfShowConfirm({ title = 'Confirm', okLabel = 'Confirm', bodyHtml = '', onConfirm }) {
+// clicks Confirm, drops if user cancels. The optional `mode` / `chipLabel` /
+// `meta` / `subHtml` switch the modal into the styled trade-confirmation look
+// (mode-colored chip and Confirm button); omitting them keeps the legacy
+// header for prompts like Reset trade?
+export function tfShowConfirm({ title = 'Confirm', okLabel = 'Confirm', bodyHtml = '', onConfirm, mode = '', chipLabel = '', meta = '', subHtml = '' }) {
   const modal = document.getElementById('modal-tf-confirm');
   if (!modal) { if (onConfirm) onConfirm(); return; }
+  const card = document.getElementById('tf-confirm-modal');
+  if (card) card.dataset.mode = mode || '';
   document.getElementById('tf-confirm-title').textContent = title;
   document.getElementById('tf-confirm-body').innerHTML = bodyHtml;
+  const chipEl = document.getElementById('tf-confirm-chip');
+  if (chipEl) {
+    if (chipLabel) { chipEl.textContent = chipLabel; chipEl.hidden = false; }
+    else { chipEl.textContent = ''; chipEl.hidden = true; }
+  }
+  const metaEl = document.getElementById('tf-confirm-meta');
+  if (metaEl) metaEl.textContent = meta || '';
+  const subEl = document.getElementById('tf-confirm-sub');
+  if (subEl) subEl.innerHTML = subHtml || '';
   const okBtn = document.getElementById('tf-confirm-ok');
   okBtn.textContent = okLabel;
 
@@ -493,15 +508,121 @@ export function tfShowConfirm({ title = 'Confirm', okLabel = 'Confirm', bodyHtml
   const newCancel = fresh(cancel);
   const newX = fresh(xBtn);
 
-  const close = () => modal.classList.remove('show');
+  // Esc closes; Enter is handled by the focused OK button's default behavior.
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+  };
+  const close = () => {
+    modal.classList.remove('show');
+    document.removeEventListener('keydown', onKey);
+  };
   newOk.addEventListener('click', () => { close(); if (onConfirm) onConfirm(); });
   newCancel.addEventListener('click', close);
   newX.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
 
   modal.classList.add('show');
-  // Move focus to the OK button so Enter confirms, Esc cancels (browsers'
+  // Move focus to the OK button so Enter confirms (browsers'
   // default behavior on dialogs).
   setTimeout(() => { try { newOk.focus(); } catch (_) {} }, 30);
+}
+
+// Build the structured body for the trade confirmation modal: ticker block,
+// stop/entry/target bar, four stat cards, and the Edge Intelligence card.
+// Pure HTML construction — caller is responsible for wiring tfShowConfirm.
+export function tfBuildConfirmTradeBody({
+  mode,          // 'intraday' | 'swing'
+  ticker,
+  directionLabel,
+  setupLabel,
+  instrumentLabel,
+  qty,
+  qtyUnit,       // 'contracts' | 'shares'
+  entry,
+  stop,
+  target,
+  riskDollars,
+  rewardDollars,
+  rMultiple,
+  equity,
+  edgeIntelHtml = '',
+} = {}) {
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
+  const money = (v) => `$${Math.abs(Math.round(Number(v) || 0)).toLocaleString()}`;
+  const price = (v) => {
+    const n = Number(v);
+    if (!isFinite(n)) return '—';
+    return `$${n.toFixed(2)}`;
+  };
+  const pct = (num, den) => {
+    if (!den || !isFinite(num) || !isFinite(den)) return '';
+    return `${((num / den) * 100).toFixed(2)}%`;
+  };
+  const dirKey = (directionLabel || '').toLowerCase().startsWith('s') ? 'short' : 'long';
+  const dirClass = dirKey === 'short' ? 'short' : 'long';
+  const unitWord = (() => {
+    const u = qtyUnit || 'contracts';
+    if (qty === 1) return u.replace(/s$/, '');
+    return u;
+  })();
+  const qtyText = qty ? `${qty} ${unitWord}` : '';
+  const riskPct  = equity ? pct(riskDollars, equity)  : '';
+  const rewardPct = equity ? pct(rewardDollars, equity) : '';
+  const riskEach = (qty && qty > 0 && riskDollars) ? money(riskDollars / qty) : '';
+  const rText = (rMultiple != null && isFinite(rMultiple)) ? `${rMultiple.toFixed(2)}R` : '—';
+  const rPerOne = (rMultiple != null && isFinite(rMultiple)) ? `$${rMultiple.toFixed(2)} / $1` : '';
+  const mult = (qtyUnit === 'contracts') ? 100 : 1;
+  const barHtml = `<div class="tf-conf-rail">${tfRiskRailHtml({ entry, stop, target, qty, mult })}</div>`;
+  const statsHtml = `
+    <div class="tf-conf-stats">
+      <div class="tf-conf-stat">
+        <div class="tf-conf-stat-k">RISK</div>
+        <div class="tf-conf-stat-v tone-bad">${money(riskDollars)}</div>
+        <div class="tf-conf-stat-sub">${riskPct ? esc(riskPct) + ' of equity' : ''}</div>
+      </div>
+      <div class="tf-conf-stat">
+        <div class="tf-conf-stat-k">REWARD</div>
+        <div class="tf-conf-stat-v tone-good">${money(rewardDollars)}</div>
+        <div class="tf-conf-stat-sub">${rewardPct ? esc(rewardPct) + ' gain' : ''}</div>
+      </div>
+      <div class="tf-conf-stat">
+        <div class="tf-conf-stat-k">R-MULTIPLE</div>
+        <div class="tf-conf-stat-v tf-conf-accent">${esc(rText)}</div>
+        <div class="tf-conf-stat-sub">${esc(rPerOne)}</div>
+      </div>
+      <div class="tf-conf-stat">
+        <div class="tf-conf-stat-k">${esc((qtyUnit || 'CONTRACTS').toUpperCase())}</div>
+        <div class="tf-conf-stat-v">${qty || '—'}</div>
+        <div class="tf-conf-stat-sub">${riskEach ? esc(riskEach) + ' risk each' : ''}</div>
+      </div>
+    </div>`;
+  const headerLine = `
+    <div class="tf-conf-trade">
+      <div class="tf-conf-trade-l">
+        <span class="tf-conf-ticker">${esc(ticker || '')}</span>
+        <span class="tf-conf-dir-pill tf-conf-dir-${dirClass}">${esc((directionLabel || '').toUpperCase())}</span>
+        <span class="tf-conf-setup-pill">${esc((setupLabel || '').toUpperCase())}</span>
+      </div>
+      <div class="tf-conf-trade-r">${esc(instrumentLabel || '')}${qtyText ? ' · ' + esc(qtyText) : ''}</div>
+    </div>`;
+  return `
+    <div class="tf-conf-card" data-mode="${esc(mode || '')}">
+      ${headerLine}
+      ${barHtml}
+      ${statsHtml}
+      <div class="tf-conf-intel">${edgeIntelHtml}</div>
+    </div>
+  `;
+}
+
+// Compose the "WED · 14:23 ET" meta string shown beside the mode chip.
+function tfConfirmMetaNow() {
+  const d = new Date();
+  const dows = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const dow = dows[d.getDay()];
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${dow} · ${h}:${m} ET`;
 }
 
 // Build a swing trade record from current flow state and log it. Confirms
@@ -551,11 +672,7 @@ export function tfLogSwingDirect() {
     return;
   }
 
-  // Build a styled summary for the confirm modal.
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-  const sizeLine = isOptions
-    ? `${premium.toFixed(2)} premium × ${contracts} contract${contracts > 1 ? 's' : ''}`
-    : `$${premium.toFixed(2)} × ${contracts} share${contracts > 1 ? 's' : ''}`;
+  // Build the styled trade-confirmation card.
   const edgeIntelHtml = (typeof buildTradeFlowEdgeIntel === 'function')
     ? buildTradeFlowEdgeIntel({
         mode: 'swing',
@@ -565,27 +682,42 @@ export function tfLogSwingDirect() {
         inModal: true,
       })
     : '';
-  const bodyHtml = `
-    <p style="margin: 0 0 6px;">This trade will be added to the log as <strong>open</strong>.</p>
-    <div class="tf-confirm-summary">
-      <div class="row"><span class="k">Ticker</span><span>${esc(ticker)}</span></div>
-      <div class="row"><span class="k">Setup</span><span>${esc(state.selectedSetup)}</span></div>
-      <div class="row"><span class="k">Direction</span><span>${esc(directionLabel)}</span></div>
-      <div class="row"><span class="k">Size</span><span>${esc(sizeLine)}</span></div>
-      <div class="row"><span class="k">Risk</span><span>$${Math.round(riskDollars)} (${esc(regimeText)})</span></div>
-      ${isOptions && stopSell ? `<div class="row"><span class="k">Stop sell</span><span>$${stopSell}</span></div>` : ''}
-      ${stopPrice ? `<div class="row"><span class="k">Stop</span><span>$${stopPrice}</span></div>` : ''}
-      ${targetPrice ? `<div class="row"><span class="k">Target</span><span>$${targetPrice}</span></div>` : ''}
-      ${stopUnderlying ? `<div class="row"><span class="k">Underlying stop</span><span>$${stopUnderlying}</span></div>` : ''}
-    </div>
-    ${edgeIntelHtml}
-  `;
+  const stopForBar = isOptions ? Number(stopSell) : Number(stopPrice);
+  const entryForBar = Number(premium);
+  const targetForBar = Number(targetPrice);
+  const perUnit = isOptions ? 100 : 1;
+  const rewardDollars = (isFinite(entryForBar) && isFinite(targetForBar) && contracts)
+    ? Math.abs(targetForBar - entryForBar) * contracts * perUnit
+    : 0;
+  const rMultiple = (riskDollars > 0 && rewardDollars > 0) ? rewardDollars / riskDollars : null;
+  const equity = Number((state.settings || {}).account) || 0;
+  const bodyHtml = tfBuildConfirmTradeBody({
+    mode: 'swing',
+    ticker,
+    directionLabel,
+    setupLabel: state.selectedSetup || '',
+    instrumentLabel: isOptions ? 'Options' : 'Stock',
+    qty: contracts,
+    qtyUnit: isOptions ? 'contracts' : 'shares',
+    entry: entryForBar,
+    stop: stopForBar,
+    target: targetForBar,
+    riskDollars,
+    rewardDollars,
+    rMultiple,
+    equity,
+    edgeIntelHtml,
+  });
 
   // Capture values needed for the post-confirm path so the closure stays small.
   tfShowConfirm({
-    title: `Log ${ticker} ${state.selectedSetup}?`,
-    okLabel: 'Confirm & log',
+    title: 'Confirm trade',
+    okLabel: 'Confirm & log →',
     bodyHtml,
+    mode: 'swing',
+    chipLabel: 'SWING',
+    meta: tfConfirmMetaNow(),
+    subHtml: 'Will be added to the log as <strong>open</strong>.',
     onConfirm: () => tfLogSwingFinalize({ ticker, directionLabel, premium, contracts, isOptions, stopPrice, stopSell, targetPrice, stopUnderlying, riskDollars, regimeText }),
   });
 }
@@ -689,53 +821,50 @@ export function tfLogIntradayDirect() {
   const isOptions = tfIntradayInstrument() !== 'stocks';
   const setupDef   = TRADE_INTRADAY_SETUPS.find(s => s.id === it.setup) || null;
   const setupLabel = setupDef ? setupDef.name : it.setup;
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-  const dir = (it.direction || '').toUpperCase();
-  const orRow = (setupDef && setupDef.isOrb && (it.orHi || it.orLo || it.orRng))
-    ? `<div class="row"><span class="k">OR (${esc(it.orbType || '30')}-min)</span><span>HI ${esc(it.orHi || '—')} · LO ${esc(it.orLo || '—')} · RNG ${esc(it.orRng || '—')}</span></div>`
-    : '';
-  const confluenceLabel = ((TRADE_CONFLUENCE_OPTIONS.find(c => c.id === it.confluence) || {}).label) || '';
-  const breadthLabel    = ((TRADE_BREADTH_OPTIONS.find(b => b.id === it.breadth) || {}).label) || '';
-  const ctxRow = (confluenceLabel || breadthLabel || it.vwapValue)
-    ? `<div class="row"><span class="k">Context</span><span>${[
-        confluenceLabel,
-        breadthLabel,
-        it.vwapValue ? `VWAP ${esc(it.vwapValue)}` : ''
-      ].filter(Boolean).map(esc).join(' · ') || '—'}</span></div>`
-    : '';
-  const hasQuote = isOptions && (it.bid || it.ask);
-  const quoteRow = hasQuote
-    ? `<div class="row"><span class="k">Bid / Ask</span><span>${it.bid ? '$' + esc(it.bid) : '—'} / ${it.ask ? '$' + esc(it.ask) : '—'}${it.mid ? ` · mid $${esc(it.mid)}` : ''}</span></div>`
-    : '';
-  const spreadRow = (isOptions && it.spreadPct != null && it.spreadPct !== '')
-    ? `<div class="row"><span class="k">Spread</span><span>${esc(it.spreadPct)}%</span></div>`
-    : '';
-  const optionRows = isOptions
-    ? `${quoteRow}${spreadRow}<div class="row"><span class="k">Contracts</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`
-    : `<div class="row"><span class="k">Shares</span><span>${it.contracts ? esc(it.contracts) : 'auto'}</span></div>`;
+  const directionLabel = (it.direction || 'long').toLowerCase() === 'short' ? 'Short' : 'Long';
   const edgeIntelHtml = (typeof buildTradeFlowEdgeIntel === 'function')
     ? buildTradeFlowEdgeIntel({ mode: 'intraday', setup: it.setup, direction: it.direction, instrument: it.instrument, inModal: true })
     : '';
-  const bodyHtml = `
-    <p style="margin: 0 0 6px;">This intraday trade will be added to the log as <strong>open</strong>.</p>
-    <div class="tf-confirm-summary">
-      <div class="row"><span class="k">Ticker</span><span>${esc(ticker)}</span></div>
-      <div class="row"><span class="k">Instrument</span><span>${isOptions ? 'Options' : 'Stock'}</span></div>
-      <div class="row"><span class="k">Setup</span><span>${esc(setupLabel)}</span></div>
-      <div class="row"><span class="k">Direction</span><span>${esc(dir)}</span></div>
-      <div class="row"><span class="k">Entry</span><span>$${esc(it.entry)}</span></div>
-      <div class="row"><span class="k">Stop</span><span>$${esc(it.stop)}</span></div>
-      <div class="row"><span class="k">Target</span><span>$${esc(it.target)}</span></div>
-      ${optionRows}
-      ${orRow}
-      ${ctxRow}
-    </div>
-    ${edgeIntelHtml}
-  `;
+
+  const entryForBar = Number(it.entry);
+  const stopForBar = Number(it.stop);
+  const targetForBar = Number(it.target);
+  const auto = (typeof tfComputeIntradayRiskSize === 'function') ? tfComputeIntradayRiskSize() : null;
+  const qty = Number(it.contracts) || (auto ? auto.qty : 0) || 0;
+  const perUnit = isOptions ? 100 : 1;
+  const stopDist = (isFinite(entryForBar) && isFinite(stopForBar)) ? Math.abs(entryForBar - stopForBar) : 0;
+  const riskDollars = (qty && stopDist) ? qty * stopDist * perUnit : (auto ? auto.risk : 0);
+  const rewardDollars = (isFinite(entryForBar) && isFinite(targetForBar) && qty)
+    ? Math.abs(targetForBar - entryForBar) * qty * perUnit
+    : 0;
+  const rMultiple = (riskDollars > 0 && rewardDollars > 0) ? rewardDollars / riskDollars : null;
+  const equity = Number((state.settings || {}).account) || 0;
+
+  const bodyHtml = tfBuildConfirmTradeBody({
+    mode: 'intraday',
+    ticker,
+    directionLabel,
+    setupLabel,
+    instrumentLabel: isOptions ? 'Options' : 'Stock',
+    qty,
+    qtyUnit: isOptions ? 'contracts' : 'shares',
+    entry: entryForBar,
+    stop: stopForBar,
+    target: targetForBar,
+    riskDollars,
+    rewardDollars,
+    rMultiple,
+    equity,
+    edgeIntelHtml,
+  });
   tfShowConfirm({
-    title: `Log ${ticker} ${setupLabel}?`,
-    okLabel: 'Confirm & log',
+    title: 'Confirm trade',
+    okLabel: 'Confirm & log →',
     bodyHtml,
+    mode: 'intraday',
+    chipLabel: 'INTRADAY',
+    meta: tfConfirmMetaNow(),
+    subHtml: 'Will be added to the log as <strong>open</strong>.',
     onConfirm: () => {
       if (typeof logIntradayTrade !== 'function') {
         if (typeof toast === 'function') toast('Intraday logging is unavailable.', true);

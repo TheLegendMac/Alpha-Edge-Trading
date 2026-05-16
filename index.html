@@ -94,15 +94,8 @@
   <section class="tab-panel active" id="panel-home">
     <div class="home-shell">
 
-      <!-- Hero row: headline + 4 stat cards -->
+      <!-- Hero row: 4 stat cards (regime verdict now lives in the Edge Intelligence card below) -->
       <section class="home-hero">
-        <div class="home-hero-left">
-          <div class="home-hero-eyebrow">
-            <span class="home-status-dot" id="home-status-dot"></span>
-            <span id="home-deep-label">STATUS</span>
-          </div>
-          <h1 class="home-hero-headline" id="home-intel-headline">Cleared to trade.</h1>
-        </div>
         <div class="home-stat-cards">
           <div class="home-stat-card">
             <div class="home-stat-label">Net P/L</div>
@@ -130,12 +123,20 @@
       <!-- Intel + Calendar row -->
       <section class="home-intel-row">
         <!-- Edge Intelligence card -->
-        <div class="home-intel-card" id="home-intel-card">
-          <div class="home-intel-card-header">
-            <h2 class="home-intel-card-title">Edge Intelligence<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button></h2>
-            <span class="home-intel-kicker" id="home-deep-kicker">Today's read</span>
+        <div class="alpha-intel-card" id="home-intel-card">
+          <div class="alpha-intel-eyebrow">
+            <span class="alpha-intel-eyebrow-l">
+              <span class="home-status-dot" id="home-status-dot"></span>
+              <span>ALPHA INTELLIGENCE</span>
+              <button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>
+            </span>
+            <span class="alpha-intel-eyebrow-r" id="home-deep-kicker">TODAY'S READ</span>
           </div>
-          <ul class="home-intel-points" id="home-intel-points"></ul>
+          <h2 class="alpha-intel-headline" id="home-intel-headline">
+            <span class="alpha-intel-accent" id="home-intel-headline-accent">Cleared to trade.</span>
+            <span class="alpha-intel-tail" id="home-intel-headline-tail"></span>
+          </h2>
+          <ul class="alpha-intel-points" id="home-intel-points"></ul>
           <!-- hidden buffer fields kept for renderHome compat -->
           <div id="home-next-risk" hidden></div>
           <div id="home-progress-fill" hidden></div>
@@ -832,18 +833,26 @@
 </aside>
 
 <!-- ============ TRADE FLOW CONFIRM MODAL ============ -->
-<div class="modal-backdrop" id="modal-tf-confirm">
-  <div class="modal" style="max-width: 520px;">
-    <div class="modal-header">
-      <div class="modal-title" id="tf-confirm-title">Log this trade?</div>
-      <button class="modal-close" id="tf-confirm-x" type="button">×</button>
+<div class="modal-backdrop tf-confirm-backdrop" id="modal-tf-confirm">
+  <div class="modal tf-confirm-modal" id="tf-confirm-modal" data-mode="">
+    <button class="modal-close" id="tf-confirm-x" type="button">×</button>
+    <div class="tf-confirm-header">
+      <div class="tf-confirm-chiprow">
+        <span class="tf-confirm-chip" id="tf-confirm-chip" hidden></span>
+        <span class="tf-confirm-meta" id="tf-confirm-meta"></span>
+      </div>
+      <h2 class="tf-confirm-title" id="tf-confirm-title">Confirm trade</h2>
+      <div class="tf-confirm-sub" id="tf-confirm-sub"></div>
     </div>
     <div class="modal-body">
       <div id="tf-confirm-body" class="tf-confirm-body"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn-ghost" id="tf-confirm-cancel" type="button">Cancel</button>
-      <button class="btn-primary" id="tf-confirm-ok" type="button">Confirm &amp; log</button>
+    <div class="tf-confirm-footer">
+      <div class="tf-confirm-hints">↵ TO CONFIRM · ESC TO CANCEL</div>
+      <div class="tf-confirm-actions">
+        <button class="btn-ghost" id="tf-confirm-cancel" type="button">Cancel</button>
+        <button class="btn-primary" id="tf-confirm-ok" type="button">Confirm &amp; log →</button>
+      </div>
     </div>
   </div>
 </div>

@@ -154,39 +154,37 @@ export function renderHome() {
   // Money formatter — keeps lines compact and consistent.
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
-  // Headline — short punchy phrase for the hero h1. Details go in sub-text.
-  let regimeHeadline, headlineTone = '';
-  let heroLead = 'Cleared to ', heroAccent = 'trade.', heroStatus = 'STATUS · LIVE';
+  // Verdict line — accent (colored leading phrase) + tail (white follow-up).
+  // Tone drives the accent colour: '' = green/cleared, 'neutral' = amber, 'risk-off' = red.
+  let headlineTone = '';
+  let headlineAccent = 'Cleared to trade.';
+  let headlineTail = '';
+  let heroStatus = 'TODAY\'S READ';
   if (killActive) {
-    regimeHeadline = `Don't trade.`;
     headlineTone = 'risk-off';
-    heroLead = `Don't trade. Last ${rolling.days}d down `;
-    heroAccent = `${Math.abs(rolling.pct).toFixed(1)}%.`;
+    headlineAccent = `Don't trade.`;
+    headlineTail = `Last ${rolling.days}d down ${Math.abs(rolling.pct).toFixed(1)}% — kill switch on.`;
     heroStatus = 'KILL SWITCH · ACTIVE';
   } else if (!positionsOk) {
-    regimeHeadline = `Position cap full.`;
     headlineTone = 'neutral';
-    heroLead = `Position cap full. `;
-    heroAccent = `Close one.`;
+    headlineAccent = `Position cap full.`;
+    headlineTail = `Close one to free a slot.`;
     heroStatus = 'CAP · LOCKED';
   } else if (state.regime === 'risk-off') {
-    regimeHeadline = `Risk-off.`;
     headlineTone = 'risk-off';
-    heroLead = `Defensive. Puts on `;
-    heroAccent = `Avoid sectors.`;
+    headlineAccent = `Risk-off.`;
+    headlineTail = `Defensive — puts on Avoid sectors only.`;
     heroStatus = 'RISK OFF · DEFENSIVE';
   } else if (state.regime === 'neutral') {
-    regimeHeadline = `Neutral tape.`;
     headlineTone = 'neutral';
-    heroLead = `Half size. `;
-    heroAccent = `Wait for confirmation.`;
+    headlineAccent = `Neutral tape.`;
+    headlineTail = `Half size · wait for confirmation.`;
     heroStatus = 'NEUTRAL · HALF SIZE';
   } else {
-    regimeHeadline = `Cleared to trade.`;
     headlineTone = '';
-    heroLead = `Cleared to `;
-    heroAccent = `trade.`;
-    heroStatus = 'STATUS · CLEARED';
+    headlineAccent = `Cleared to trade.`;
+    headlineTail = `${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk.toLocaleString()}.`;
+    heroStatus = 'TODAY\'S READ';
   }
 
   // Today-focused bullets. Each line is one breath; the color carries tone.
@@ -200,12 +198,12 @@ export function renderHome() {
     const wins = todayClosed.filter(t => (calcPL(t) || 0) > 0).length;
     const rPart = todayR ? ` · ${todayR >= 0 ? '+' : ''}${todayR.toFixed(2)}R` : '';
     intelPoints.push({
-      tone, icon: '📅',
+      tone, chip: 'SESSION',
       html: `<strong>Today: ${$(todayPL)}</strong> · ${wins}W ${todayClosed.length - wins}L${rPart}.`,
     });
   } else if (openTrades.length) {
     intelPoints.push({
-      tone: 'info', icon: '📅',
+      tone: 'info', chip: 'SESSION',
       html: `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} open · ${$(-Math.round(openRisk))} at risk. No closes today.`,
     });
   }
@@ -216,12 +214,12 @@ export function renderHome() {
     const verdict = killActive ? 'kill switch on' : rolling.pct < 0 ? 'in drawdown' : 'in form';
     const wrPart = rolling.winRate !== null ? ` · ${rolling.winRate}% wins` : '';
     intelPoints.push({
-      tone, icon: '⏱',
+      tone, chip: 'TREND',
       html: `Last ${rolling.days}d: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}%) · ${rolling.count} closed${wrPart} — ${verdict}.`,
     });
   } else if (closed.length === 0) {
     intelPoints.push({
-      tone: 'info', icon: '📋',
+      tone: 'info', chip: 'TREND',
       html: `<strong>No closed trades yet.</strong> First exit starts the rolling window.`,
     });
   }
@@ -235,12 +233,12 @@ export function renderHome() {
       ? ` · avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : '';
     intelPoints.push({
-      tone: top3.length ? 'good' : 'warn', icon: '🧭',
+      tone: top3.length ? 'good' : 'warn', chip: 'SECTORS',
       html: `Lean long ${topPart}${avoidPart}.`,
     });
   } else {
     intelPoints.push({
-      tone: 'warn', icon: '🧭',
+      tone: 'warn', chip: 'SECTORS',
       html: `<strong>No sector ratings.</strong> Rate sectors in Market Context first.`,
     });
   }
@@ -249,92 +247,59 @@ export function renderHome() {
   if (sectorStaleNow) {
     const days = daysSinceSectorRating();
     intelPoints.push({
-      tone: 'warn', icon: '⚠️',
+      tone: 'warn', chip: 'SECTORS',
       html: `Sector grades <strong>${days}d old</strong> — re-rate before trading.`,
     });
   }
 
   // 4. Action line — the explicit "what now".
-  let actionTone = 'good', actionIcon = '✅', actionHtml = '';
+  let actionTone = 'good', actionHtml = '';
   if (killActive) {
-    actionTone = 'bad'; actionIcon = '🛑';
+    actionTone = 'bad';
     actionHtml = `<strong>Don't trade.</strong> Wait for rolling P/L above -7%, or widen the window in Settings.`;
   } else if (state.regime === 'risk-off') {
-    actionTone = 'bad'; actionIcon = '🛑';
+    actionTone = 'bad';
     actionHtml = `<strong>Defensive.</strong> Skip longs. Puts on Avoid sectors at half size only.`;
   } else if (!positionsOk) {
-    actionTone = 'warn'; actionIcon = '🔒';
+    actionTone = 'warn';
     actionHtml = `<strong>Position cap.</strong> Close one before opening another.`;
   } else if (state.regime === 'neutral') {
-    actionTone = 'warn'; actionIcon = '⚖️';
+    actionTone = 'warn';
     actionHtml = `<strong>Half size.</strong> Both directions OK on confirmed setups only.`;
   } else {
-    actionTone = 'good'; actionIcon = '✅';
+    actionTone = 'good';
     actionHtml = `<strong>Cleared.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk}.`;
   }
-  intelPoints.push({ tone: actionTone, icon: actionIcon, html: actionHtml });
-
-  // Stash for the headline render below — keep the existing class taxonomy.
-  // (Legacy code reads state.regime to colour the headline; we override.)
-  state._homeHeadlineClass = headlineTone;
-
-  const scoreText = `${regimeHeadline} ${closed.length ? `${closed.length} closed.` : 'No closed trades yet.'}`;
+  intelPoints.push({ tone: actionTone, chip: 'ACTION', html: actionHtml });
 
   const setText = (id, text) => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = text;
   };
 
-  // (Hero sub-paragraph removed — the stat cards below cover slots + open risk.)
-
-  // ========== HERO ==========
-  const heroKicker = document.getElementById('home-hero-kicker');
-  if (heroKicker) {
-    heroKicker.className = `home-hero-kicker ${headlineTone}`;
-    const heroStatusEl = document.getElementById('home-hero-status');
-    if (heroStatusEl) heroStatusEl.textContent = heroStatus;
-  }
-  const headline = document.getElementById('home-hero-headline');
-  if (headline) headline.className = headlineTone || '';
-  setText('home-hero-headline-text', heroLead);
-  setText('home-hero-headline-accent', heroAccent);
-
-  const heroMeta = document.getElementById('home-hero-meta');
-  if (heroMeta) {
-    if (killActive) {
-      heroMeta.innerHTML = `Wait for rolling P/L above <strong>-7%</strong>. Open positions still tradable to exit only.`;
-    } else if (!positionsOk) {
-      heroMeta.innerHTML = `<strong>${openTrades.length} of ${state.settings.maxPositions} slots used</strong> · close a position to free a slot.`;
-    } else if (!state.settings.account) {
-      heroMeta.innerHTML = `Set your <strong>account size</strong> in Settings to activate the read.`;
-    } else {
-      heroMeta.innerHTML = `<strong>${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left</strong> · ${nextRiskLabel} <strong>$${nextRisk.toLocaleString()}</strong> · open risk <strong>$${Math.round(openRisk).toLocaleString()}</strong>`;
-    }
-  }
-
-  // ========== Tinted Intel card ==========
+  // ========== Edge Intelligence card (verdict + chipped point rows) ==========
   const intelCardEl = document.getElementById('home-intel-card');
   if (intelCardEl) {
     intelCardEl.classList.toggle('risk-off-tint', state.regime === 'risk-off' || killActive);
+    intelCardEl.dataset.tone = headlineTone || 'good';
   }
   const headlineEl = document.getElementById('home-intel-headline');
   if (headlineEl) {
-    headlineEl.textContent = regimeHeadline;
-    headlineEl.className = `home-hero-headline home-intel-headline ${state._homeHeadlineClass || ''}`;
+    headlineEl.className = `alpha-intel-headline tone-${headlineTone || 'good'}`;
+  }
+  setText('home-intel-headline-accent', headlineAccent);
+  setText('home-intel-headline-tail', headlineTail);
+  const kickerEl = document.getElementById('home-deep-kicker');
+  if (kickerEl) {
+    kickerEl.textContent = sectorStaleNow
+      ? 'STALE SECTOR DATA'
+      : heroStatus;
   }
   const pointsEl = document.getElementById('home-intel-points');
   if (pointsEl) {
     pointsEl.innerHTML = intelPoints.map(p =>
-      `<li class="tone-${p.tone}"><span class="intel-icon">${p.icon}</span><span>${p.html}</span></li>`
+      `<li class="alpha-intel-point tone-${p.tone}"><span class="alpha-intel-chip">${p.chip || ''}</span><span class="alpha-intel-body">${p.html}</span></li>`
     ).join('');
-  }
-  const deepLabel = document.getElementById('home-deep-label');
-  if (deepLabel) {
-    deepLabel.textContent = sectorStaleNow
-      ? 'Stale sector data'
-      : (todayClosed.length
-          ? `${todayClosed.length} closed today`
-          : "Today's read");
   }
 
   // ========== 4-stat row ==========

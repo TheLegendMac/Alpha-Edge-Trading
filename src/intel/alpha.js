@@ -304,32 +304,41 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
 
   // ── headline diagnostic ─────────────────────────────────
-  let headline = '', headlineTone = 'good';
+  // Split into accent (leading verdict, colored) + tail (white follow-up).
+  let headlineAccent = '', headlineTail = '', headlineTone = 'good';
 
   if (n < 5) {
-    headline = `Career: ${$(totalPL)} from ${n} closed trade${n === 1 ? '' : 's'} — patterns need ~10 to be reliable.`;
+    headlineAccent = `Early days.`;
+    headlineTail = `Career ${$(totalPL)} from ${n} closed trade${n === 1 ? '' : 's'} — patterns need ~10 to be reliable.`;
     headlineTone = 'info';
   } else if (killActive) {
-    headline = `Last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account — kill switch active. Stop sizing up until P/L recovers.`;
-    headlineTone = 'danger';
+    headlineAccent = `Kill switch active.`;
+    headlineTail = `Last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account — stop sizing up until P/L recovers.`;
+    headlineTone = 'bad';
   } else if (gradeScore !== null && gradeScore < 60 && graded.length >= 5) {
-    headline = `Only ${gradeScore}% of reviewed trades followed the plan. Process discipline is the priority — fix execution before adding size.`;
+    headlineAccent = `Process leak.`;
+    headlineTail = `Only ${gradeScore}% of reviewed trades followed the plan. Fix execution before adding size.`;
     headlineTone = 'warn';
   } else if (avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
-    headline = `Win rate ${winRate}% but losses run ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× larger than wins. Tighten stops or cut faster.`;
+    headlineAccent = `Lopsided.`;
+    headlineTail = `Win rate ${winRate}% but losses run ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× larger than wins. Tighten stops or cut faster.`;
     headlineTone = 'warn';
   } else if (discCount >= 3 && discPL < 0) {
-    headline = `Discretionary / thesis-broke exits cost ${$(-Math.abs(discPL))} so far — main leak. Stick to target/stop, let winners run.`;
+    headlineAccent = `Early exits hurting.`;
+    headlineTail = `Discretionary / thesis-broke exits cost ${$(-Math.abs(discPL))} so far — stick to target/stop and let winners run.`;
     headlineTone = 'warn';
   } else if (bestSetup && bestSetup.pl > 0) {
     const wr = Math.round(bestSetup.wins / bestSetup.n * 100);
-    headline = `${bestSetup.name} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
+    headlineAccent = `Edge confirmed.`;
+    headlineTail = `${bestSetup.name} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
     headlineTone = 'good';
   } else if (expectancy > 0 && avgR >= 0.5) {
-    headline = `Positive edge: ${$(expectancy)} per trade, ${avgR.toFixed(2)}R average. Stay consistent.`;
+    headlineAccent = `In form.`;
+    headlineTail = `Positive edge: ${$(expectancy)} per trade, ${avgR.toFixed(2)}R average. Stay consistent.`;
     headlineTone = 'good';
   } else {
-    headline = `Edge per trade: ${$(expectancy)} (${avgR.toFixed(2)}R). ${expectancy >= 0 ? 'Profitable — protect the process.' : 'Negative — review setup selection and sizing.'}`;
+    headlineAccent = expectancy >= 0 ? `Net positive.` : `Net negative.`;
+    headlineTail = `Edge per trade ${$(expectancy)} (${avgR.toFixed(2)}R). ${expectancy >= 0 ? 'Protect the process.' : 'Review setup selection and sizing.'}`;
     headlineTone = expectancy >= 0 ? 'good' : 'warn';
   }
 
@@ -339,7 +348,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   // 1. Career line — the headline number, plus the metrics in one breath.
   bullets.push({
     tone: totalPL >= 0 ? 'good' : 'bad',
-    icon: '📈',
+    chip: 'CAREER',
     text: `<strong>Career: ${$(totalPL)}</strong> across ${n} trade${n === 1 ? '' : 's'} · ${winRate}% wins · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}× your risk per trade · profit factor ${profitFactor}.`,
   });
 
@@ -347,33 +356,33 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && n >= 5) {
     bullets.push({
       tone: bestSetup.pl >= 0 ? 'good' : 'warn',
-      icon: '🎯',
+      chip: 'PATTERN',
       text: `Best pattern <strong>${bestSetup.name}</strong> (${$(bestSetup.pl)}) · weakest <strong style="color:var(--red-bright)">${worstSetup.name}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
     });
   } else if (n < 5) {
     bullets.push({
-      tone: 'info', icon: '📋',
+      tone: 'info', chip: 'PATTERN',
       text: `Setup-level breakdown unlocks at <strong>more than 5 closed trades</strong>. Keep logging.`,
     });
   }
 
-  buildAlphaHighlightBullets(closedWithPL).slice(0, 2).forEach(b => bullets.push(b));
+  buildAlphaHighlightBullets(closedWithPL).slice(0, 2).forEach(b => bullets.push({ ...b, chip: b.icon || 'ALPHA' }));
 
   // 3. Process quality vs leak — pick the strongest signal.
   if (discCount >= 3 && discPL < 0) {
     bullets.push({
-      tone: 'warn', icon: '🚪',
+      tone: 'warn', chip: 'PROCESS',
       text: `Early exits (gut call or thesis-broke) total cost <strong>${$(-Math.abs(discPL))}</strong> across ${discCount} trade${discCount === 1 ? '' : 's'}. Letting them run more often would change the curve.`,
     });
   } else if (gradeScore !== null && graded.length >= 5) {
-    const tone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'neutral' : 'bad';
+    const tone = gradeScore >= 80 ? 'good' : gradeScore >= 60 ? 'warn' : 'bad';
     const verdict = gradeScore >= 80 ? 'execution is doing the work.'
                   : gradeScore >= 60 ? 'some drift — review Okay/Bad trades.'
                                      : 'execution quality is the next thing to fix.';
-    bullets.push({ tone, icon: '📋', text: `<strong>${gradeScore}% of reviewed trades followed the plan</strong> — ${verdict}` });
+    bullets.push({ tone, chip: 'PROCESS', text: `<strong>${gradeScore}% of reviewed trades followed the plan</strong> — ${verdict}` });
   } else if (graded.length < 3 && n >= 5) {
     bullets.push({
-      tone: 'info', icon: '📋',
+      tone: 'info', chip: 'PROCESS',
       text: `<strong>${n - graded.length} trade${n - graded.length === 1 ? '' : 's'} ungraded.</strong> Mark them Good / Okay / Bad after each exit so stats can separate process from outcome.`,
     });
   }
@@ -385,7 +394,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
                   : rolling.pct < 0   ? 'in drawdown'
                                       : 'in form';
     bullets.push({
-      tone, icon: '⏱',
+      tone, chip: 'TREND',
       text: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> over ${rolling.count} closed (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.winRate}% wins) — ${verdict}.`,
     });
   }
@@ -393,7 +402,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   // 5. Risk: avg win vs avg loss size, only if asymmetric.
   if (wins.length && losses.length && avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
     bullets.push({
-      tone: 'warn', icon: '⚖',
+      tone: 'warn', chip: 'RISK',
       text: `Avg win ${$(avgWin)} vs avg loss ${$(avgLoss)} — losses ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× wider. Move stops in or cut sooner on broken setups.`,
     });
   }
@@ -407,23 +416,20 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
     </div>` : '';
 
   // ── assemble ─────────────────────────────────────────────
-  let hlClass = '';
-  if (headlineTone === 'warn') hlClass = 'neutral';
-  if (headlineTone === 'danger' || headlineTone === 'bad') hlClass = 'risk-off';
-
-  // Kicker mirrors Home's "Today's read" pattern — gives the card a clear
-  // long-term identity and surfaces dataset size at a glance.
-  const kickerText = `Career view · ${n} closed${graded.length ? ` · ${graded.length} graded` : ''}`;
+  const kickerText = `CAREER VIEW · ${n} CLOSED${graded.length ? ` · ${graded.length} GRADED` : ''}`;
 
   return `
-    <div class="home-card green" style="margin-bottom: 0;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
-        <div class="home-card-title" style="color:#7ee787; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
-        <div class="home-card-kicker" style="margin: 0;">${kickerText}</div>
+    <div class="alpha-intel-card">
+      <div class="alpha-intel-eyebrow">
+        <span class="alpha-intel-eyebrow-l"><span>ALPHA INTELLIGENCE</span>${helpBtn}</span>
+        <span class="alpha-intel-eyebrow-r">${kickerText}</span>
       </div>
-      <div class="home-intel-headline ${hlClass}">${headline}</div>
-      <ul class="home-intel-points">
-        ${bullets.slice(0, 6).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
+      <h2 class="alpha-intel-headline tone-${headlineTone}">
+        <span class="alpha-intel-accent">${headlineAccent}</span>
+        <span class="alpha-intel-tail">${headlineTail}</span>
+      </h2>
+      <ul class="alpha-intel-points">
+        ${bullets.slice(0, 6).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
       </ul>
       ${ksHtml}
     </div>`;
@@ -462,11 +468,11 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
     const rr = Math.abs((target - entry) / (entry - stop));
     if (isFinite(rr)) {
       if (rr >= 2) {
-        bullets.push({ tone: 'good', icon: '🎯', text: `<strong>Good payoff:</strong> you could win about $${rr.toFixed(1)} for every $1 you risk.` });
+        bullets.push({ tone: 'good', chip: 'PAYOFF', text: `<strong>Good payoff:</strong> you could win about $${rr.toFixed(1)} for every $1 you risk.` });
       } else if (rr >= 1.5) {
-        bullets.push({ tone: 'info', icon: '🎯', text: `<strong>Okay payoff:</strong> winning about $${rr.toFixed(1)} per $1 risked. Tight — only take it if you're confident.` });
+        bullets.push({ tone: 'info', chip: 'PAYOFF', text: `<strong>Okay payoff:</strong> winning about $${rr.toFixed(1)} per $1 risked. Tight — only take it if you're confident.` });
       } else {
-        bullets.push({ tone: 'bad', icon: '🎯', text: `<strong>Skinny payoff:</strong> only $${rr.toFixed(1)} reward per $1 risked. Most pros pass on this.` });
+        bullets.push({ tone: 'bad', chip: 'PAYOFF', text: `<strong>Skinny payoff:</strong> only $${rr.toFixed(1)} reward per $1 risked. Most pros pass on this.` });
       }
     }
   }
@@ -484,14 +490,14 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
     if (account > 0 && riskDollars > 0) {
       const pct = (riskDollars / account) * 100;
       if (pct > 2) {
-        bullets.push({ tone: 'bad', icon: '💰', text: `<strong>Too much on the line:</strong> $${Math.round(riskDollars).toLocaleString()} is ${pct.toFixed(1)}% of your account — bigger than your usual trade. Cut the size.` });
+        bullets.push({ tone: 'bad', chip: 'SIZE', text: `<strong>Too much on the line:</strong> $${Math.round(riskDollars).toLocaleString()} is ${pct.toFixed(1)}% of your account — bigger than your usual trade. Cut the size.` });
       } else if (pct > 1) {
-        bullets.push({ tone: 'warn', icon: '💰', text: `<strong>Heavy size:</strong> $${Math.round(riskDollars).toLocaleString()} (${pct.toFixed(1)}% of account). At the top of your normal range.` });
+        bullets.push({ tone: 'warn', chip: 'SIZE', text: `<strong>Heavy size:</strong> $${Math.round(riskDollars).toLocaleString()} (${pct.toFixed(1)}% of account). At the top of your normal range.` });
       } else {
-        bullets.push({ tone: 'good', icon: '💰', text: `<strong>Risk in check:</strong> $${Math.round(riskDollars).toLocaleString()} on the line — ${pct.toFixed(1)}% of your account, well within your rules.` });
+        bullets.push({ tone: 'good', chip: 'SIZE', text: `<strong>Risk in check:</strong> $${Math.round(riskDollars).toLocaleString()} on the line — ${pct.toFixed(1)}% of your account, well within your rules.` });
       }
     } else if (qty > 0) {
-      bullets.push({ tone: 'neutral', icon: '💰', text: `<strong>${qty} ${isOptions ? 'contract' : 'share'}${qty > 1 ? 's' : ''} planned.</strong> Add an account size in Settings to see how much you're really risking.` });
+      bullets.push({ tone: 'info', chip: 'SIZE', text: `<strong>${qty} ${isOptions ? 'contract' : 'share'}${qty > 1 ? 's' : ''} planned.</strong> Add an account size in Settings to see how much you're really risking.` });
     }
   }
 
@@ -502,18 +508,18 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const conflictConf = (dirKey === 'long' && it.confluence === 'short-bias') || (dirKey === 'short' && it.confluence === 'long-bias');
       const conflictBr   = (dirKey === 'long' && it.breadth === 'down')          || (dirKey === 'short' && it.breadth === 'up');
       if (conflictConf || conflictBr) {
-        bullets.push({ tone: 'bad', icon: '⚠️', text: `<strong>You're fighting the tape:</strong> the market is pointing the other way. Flip the direction or skip the trade.` });
+        bullets.push({ tone: 'bad', chip: 'TAPE', text: `<strong>You're fighting the tape:</strong> the market is pointing the other way. Flip the direction or skip the trade.` });
       } else {
         const aligned = [
           it.confluence && ((dirKey === 'long' && it.confluence === 'long-bias') || (dirKey === 'short' && it.confluence === 'short-bias')),
           it.breadth && ((dirKey === 'long' && it.breadth === 'up') || (dirKey === 'short' && it.breadth === 'down')),
         ].filter(Boolean).length;
         if (aligned > 0) {
-          bullets.push({ tone: 'good', icon: '✅', text: `<strong>The tape agrees with you:</strong> the broader market is leaning ${dirWord} too. Good backdrop.` });
+          bullets.push({ tone: 'good', chip: 'TAPE', text: `<strong>The tape agrees with you:</strong> the broader market is leaning ${dirWord} too. Good backdrop.` });
         }
       }
     } else {
-      bullets.push({ tone: 'neutral', icon: '◌', text: `<strong>No market context tagged.</strong> Add confluence or breadth next time — it makes these reads sharper later.` });
+      bullets.push({ tone: 'info', chip: 'TAPE', text: `<strong>No market context tagged.</strong> Add confluence or breadth next time — it makes these reads sharper later.` });
     }
   }
 
@@ -532,16 +538,16 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const totalSign = totalPL >= 0 ? '+' : '−';
       const totalAbs = `$${Math.abs(Math.round(totalPL)).toLocaleString()}`;
       if (avgR >= 0.4) {
-        bullets.push({ tone: 'good', icon: '📈', text: `<strong>This setup has been good to you:</strong> ${peers.length} past trades, you won ${wr}% of them, ${totalSign}${totalAbs} total. Looks like a real edge.` });
+        bullets.push({ tone: 'good', chip: 'SETUP', text: `<strong>This setup has been good to you:</strong> ${peers.length} past trades, you won ${wr}% of them, ${totalSign}${totalAbs} total. Looks like a real edge.` });
       } else if (avgR >= 0) {
-        bullets.push({ tone: 'info', icon: '📊', text: `<strong>Mixed history:</strong> ${peers.length} past trades, ${wr}% wins, roughly break-even (${totalSign}${totalAbs}). No strong edge yet — trade carefully.` });
+        bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>Mixed history:</strong> ${peers.length} past trades, ${wr}% wins, roughly break-even (${totalSign}${totalAbs}). No strong edge yet — trade carefully.` });
       } else {
-        bullets.push({ tone: 'bad', icon: '📉', text: `<strong>This setup has been losing money:</strong> ${peers.length} past trades, only ${wr}% wins, ${totalSign}${totalAbs} total. Maybe skip until you find what's missing.` });
+        bullets.push({ tone: 'bad', chip: 'SETUP', text: `<strong>This setup has been losing money:</strong> ${peers.length} past trades, only ${wr}% wins, ${totalSign}${totalAbs} total. Maybe skip until you find what's missing.` });
       }
     } else if (peers.length === 1) {
-      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it. Ask whether today's chart still matches the playbook.` });
+      bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it. Ask whether today's chart still matches the playbook.` });
     } else {
-      bullets.push({ tone: 'neutral', icon: '📊', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet. Ask, don't assume: does the setup still meet every rule?` });
+      bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet. Ask, don't assume: does the setup still meet every rule?` });
     }
   }
 
@@ -554,7 +560,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const totalSign = totalPL >= 0 ? '+' : '−';
       const totalAbs = `$${Math.abs(Math.round(totalPL)).toLocaleString()}`;
       bullets.push({
-        tone: totalPL >= 0 ? 'good' : 'bad', icon: '📚',
+        tone: totalPL >= 0 ? 'good' : 'bad', chip: 'SA QUANT',
         text: totalPL >= 0
           ? `<strong>${saBucket}-rated names have worked for you</strong> — ${peers.length} prior trades, ${totalSign}${totalAbs} total.`
           : `<strong>${saBucket}-rated names have lost money:</strong> ${peers.length} prior trades, ${totalSign}${totalAbs}. Be picky here.`,
@@ -566,17 +572,17 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   const regime = state.regime || 'risk-on';
   if (regime === 'risk-off' && dirKey === 'long') {
     bullets.push({
-      tone: 'bad', icon: '🛑',
+      tone: 'bad', chip: 'REGIME',
       text: `<strong>The market is in risk-off mode and you're buying.</strong> You're swimming upstream — cut the size in half or wait it out.`,
     });
   } else if (regime === 'neutral') {
     bullets.push({
-      tone: 'warn', icon: '⚖️',
+      tone: 'warn', chip: 'REGIME',
       text: `<strong>Choppy market — go half size.</strong> Both directions are tricky right now; only take rock-solid setups.`,
     });
   } else if (state.selectedSetup === 'Edge Reversal' && mode === 'swing') {
     bullets.push({
-      tone: 'warn', icon: '⚠️',
+      tone: 'warn', chip: 'REGIME',
       text: `<strong>Edge Reversal trades fail more often.</strong> Use half your usual size — that's the rule for catching turns.`,
     });
   }
@@ -585,12 +591,12 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   const rolling = computeRollingPL();
   if (rolling.pct <= -7) {
     bullets.push({
-      tone: 'bad', icon: '⚡',
+      tone: 'bad', chip: 'TREND',
       text: `<strong>Cool-off time.</strong> You're down ${Math.abs(rolling.pct).toFixed(1)}% over the last ${rolling.days} days — step away until things turn around.`,
     });
   } else if (rolling.pct <= -4 && rolling.count > 0) {
     bullets.push({
-      tone: 'warn', icon: '⏱',
+      tone: 'warn', chip: 'TREND',
       text: `<strong>You've been losing lately</strong> (down ${Math.abs(rolling.pct).toFixed(1)}% over ${rolling.days} days). Tighten things up before you hit the ${'-'}7% pause line.`,
     });
   }
@@ -605,7 +611,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const max = settings.intradayMaxSpreadPct || 5;
       if (spread > max * 0.7) {
         bullets.push({
-          tone: spread > max ? 'bad' : 'warn', icon: '💧',
+          tone: spread > max ? 'bad' : 'warn', chip: 'SPREAD',
           text: spread > max
             ? `<strong>Spread is too wide</strong> (${spread.toFixed(1)}%). You'd lose a big chunk just getting in and out — pass on this one.`
             : `<strong>Wide spread</strong> (${spread.toFixed(1)}%). It'll eat into the move — need a bigger run than usual to come out ahead.`,
@@ -618,7 +624,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const remaining = cap + dayPL;
       if (remaining < cap * 0.4 && dayPL < 0) {
         bullets.push({
-          tone: remaining <= 0 ? 'bad' : 'warn', icon: '🔒',
+          tone: remaining <= 0 ? 'bad' : 'warn', chip: 'BUDGET',
           text: remaining <= 0
             ? `<strong>You've hit your daily loss limit.</strong> Stop trading for today.`
             : `<strong>Only $${Math.round(remaining).toLocaleString()} left in your daily loss budget.</strong> One more loss and you're done for the day.`,
@@ -630,30 +636,51 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   // All clear.
   if (!bullets.length) {
     bullets.push({
-      tone: 'info', icon: '✅',
+      tone: 'info', chip: 'READ',
       text: `No logged-data warning yet. Ask the chart for confirmation before you treat this as clean.`,
     });
   }
 
-  // Worst tone across bullets sets the card's accent stripe.
-  const toneRank = { bad: 4, warn: 3, info: 2, neutral: 1, good: 0 };
+  // Worst tone across bullets sets the verdict headline tone.
+  const toneRank = { bad: 4, warn: 3, info: 2, good: 0 };
   const worst = bullets.reduce((acc, b) => (toneRank[b.tone] || 0) > (toneRank[acc] || 0) ? b.tone : acc, 'good');
-  const accent = worst === 'bad' ? 'red' : worst === 'warn' ? 'amber' : worst === 'neutral' ? 'neutral' : worst === 'info' ? 'cyan' : 'green';
-  const accentTitleColor = accent === 'red' ? '#ff8b8b' : accent === 'amber' ? '#ffd166' : accent === 'cyan' ? '#67e8f9' : accent === 'neutral' ? 'var(--ink-2)' : '#7ee787';
-  const kicker = inModal ? 'Final read before GO' : 'Pre-trade read';
-  const cardMargin = inModal ? 'margin: 14px 0 0;' : 'margin: 0;';
+  const headlineTone = worst;
 
-  // Render with the same Edge Intelligence card language used on Home / Stats.
+  // Verdict accent + tail derived from the dominant bullet category.
+  const badBullet = bullets.find(b => b.tone === 'bad');
+  const warnBullet = bullets.find(b => b.tone === 'warn');
+  let headlineAccent, headlineTail;
+  if (badBullet) {
+    headlineAccent = `Stand down.`;
+    headlineTail = stripTags(badBullet.text).split('.')[0] + '.';
+  } else if (warnBullet) {
+    headlineAccent = `Caution.`;
+    headlineTail = stripTags(warnBullet.text).split('.')[0] + '.';
+  } else {
+    headlineAccent = `Cleared.`;
+    headlineTail = `Setup, size, and tape all line up.`;
+  }
+
+  const kicker = inModal ? 'FINAL READ' : 'PRE-TRADE READ';
+
   return `
-    <div class="home-card ${accent} trade-edge-intel" style="${cardMargin}">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-        <div class="home-card-title" style="color:${accentTitleColor}; margin: 0; display: inline-flex; align-items: center;">Edge Intelligence${helpBtn}</div>
-        <div class="home-card-kicker" style="margin: 0;">${kicker}</div>
+    <div class="alpha-intel-card trade-edge-intel">
+      <div class="alpha-intel-eyebrow">
+        <span class="alpha-intel-eyebrow-l"><span>ALPHA INTELLIGENCE</span>${helpBtn}</span>
+        <span class="alpha-intel-eyebrow-r">${kicker}</span>
       </div>
-      <ul class="home-intel-points">
-        ${bullets.slice(0, 5).map(b => `<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}
+      <h2 class="alpha-intel-headline tone-${headlineTone}">
+        <span class="alpha-intel-accent">${headlineAccent}</span>
+        <span class="alpha-intel-tail">${headlineTail}</span>
+      </h2>
+      <ul class="alpha-intel-points">
+        ${bullets.slice(0, 5).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
       </ul>
     </div>`;
+}
+
+function stripTags(html) {
+  return String(html || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 export function renderLogStats() {

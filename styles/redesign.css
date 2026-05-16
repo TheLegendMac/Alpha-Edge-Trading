@@ -1530,12 +1530,9 @@
   gap: 18px;
 }
 
-/* Hero row */
+/* Hero row — 4 stat cards span the full width now that the verdict moved into the Alpha Intelligence card. */
 .home-hero {
-  display: grid;
-  grid-template-columns: 1.4fr 2.6fr;
-  gap: 18px;
-  align-items: start;
+  display: block;
 }
 .home-hero-left {
   display: flex;
@@ -1622,71 +1619,117 @@
   grid-template-columns: 1.05fr 0.95fr;
   gap: 18px;
 }
-.home-intel-card {
-  background: linear-gradient(180deg, rgba(6,212,248,0.10), rgba(6,212,248,0.02) 60%), rgba(8, 22, 28, 0.85);
-  border: 1px solid rgba(6, 212, 248, 0.28);
-  border-radius: 12px;
-  padding: 20px 22px;
+/* ── Alpha Intelligence card (shared on home + trade-flow + stats) ────── */
+.alpha-intel-card {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(245,158,11,0.08), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 60%),
+    rgba(16, 18, 24, 0.88);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 14px;
+  padding: 22px 26px 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 4px 14px rgba(0,0,0,0.35);
 }
-.home-intel-card.risk-off {
-  background: linear-gradient(180deg, rgba(245,158,11,0.10), rgba(245,158,11,0.02) 60%), rgba(28, 20, 8, 0.85);
-  border-color: rgba(245, 158, 11, 0.28);
+.alpha-intel-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 18px; right: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--amber-bright) 30%, var(--amber-bright) 70%, transparent);
+  opacity: 0.55;
 }
-.home-intel-card-header {
+.alpha-intel-eyebrow {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-}
-.home-intel-card-title {
-  font-family: var(--display);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  letter-spacing: -0.01em;
-  color: var(--cyan);
-  display: flex;
   align-items: center;
-  gap: 6px;
-}
-.home-intel-card.risk-off .home-intel-card-title { color: var(--amber-bright); }
-.home-intel-kicker {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-3);
 }
+.alpha-intel-eyebrow-l {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--amber-bright);
+}
+.alpha-intel-eyebrow-r {
+  color: var(--ink-4);
+}
+.alpha-intel-eyebrow .ai-help-btn {
+  margin-left: 2px;
+}
+.alpha-intel-headline {
+  font-family: var(--display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+}
+.alpha-intel-accent { color: var(--green-bright); margin-right: 6px; }
+.alpha-intel-headline.tone-neutral  .alpha-intel-accent { color: var(--amber-bright); }
+.alpha-intel-headline.tone-risk-off .alpha-intel-accent,
+.alpha-intel-headline.tone-bad      .alpha-intel-accent { color: var(--red-bright); }
+.alpha-intel-headline.tone-info     .alpha-intel-accent { color: var(--cyan); }
+.alpha-intel-tail { color: var(--ink); font-weight: 700; }
 
-/* Keep existing intel points list working */
-.home-intel-points {
+.alpha-intel-points {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
 }
-.home-intel-points li {
+.alpha-intel-point {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 10px;
-  align-items: baseline;
-  font-size: 12.5px;
-  line-height: 1.45;
+  grid-template-columns: 76px 1fr;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--ink-2);
-  padding: 9px 0;
-  border-top: 1px solid var(--line);
+  padding: 11px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
-.home-intel-points li:first-child { border-top: none; }
-.home-intel-points li .intel-icon { font-size: 13px; opacity: 0.85; }
-.home-intel-points li strong { color: var(--ink); font-weight: 700; }
-.home-intel-points li.tone-good strong { color: var(--green-bright); }
-.home-intel-points li.tone-warn strong { color: var(--amber-bright); }
-.home-intel-points li.tone-bad strong { color: var(--red-bright); }
-.home-intel-points li.tone-info strong { color: var(--cyan); }
+.alpha-intel-point:first-child { border-top: none; padding-top: 6px; }
+.alpha-intel-chip {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  background: rgba(148,163,184,0.10);
+  color: var(--ink-3);
+  border: 1px solid rgba(148,163,184,0.22);
+  width: max-content;
+  justify-self: start;
+}
+.alpha-intel-point.tone-good  .alpha-intel-chip { color: var(--green-bright); background: rgba(16,185,129,0.10); border-color: rgba(16,185,129,0.30); }
+.alpha-intel-point.tone-warn  .alpha-intel-chip { color: var(--amber-bright); background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.32); }
+.alpha-intel-point.tone-bad   .alpha-intel-chip { color: var(--red-bright); background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.32); }
+.alpha-intel-point.tone-info  .alpha-intel-chip { color: var(--cyan); background: rgba(6,212,248,0.10); border-color: rgba(6,212,248,0.30); }
+.alpha-intel-point .alpha-intel-body strong { color: var(--ink); font-weight: 700; }
+.alpha-intel-point.tone-good  .alpha-intel-body strong { color: var(--green-bright); }
+.alpha-intel-point.tone-warn  .alpha-intel-body strong { color: var(--amber-bright); }
+.alpha-intel-point.tone-bad   .alpha-intel-body strong { color: var(--red-bright); }
+.alpha-intel-point.tone-info  .alpha-intel-body strong { color: var(--cyan); }
+
+/* Trade-flow / stats edge-intel surfaces inherit the same card frame. */
+.alpha-intel-card.trade-edge-intel { margin: 14px 0 0; }
 
 /* Calendar card */
 .home-calendar-card {
