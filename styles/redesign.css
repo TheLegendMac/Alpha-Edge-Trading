@@ -816,7 +816,7 @@
   max-width: 560px;
 }
 .stats-ei-modal-box .home-card {
-  margin: 0 !important;
+  margin: 0;
 }
 .stats-ei-modal-close {
   position: absolute;
@@ -1576,14 +1576,14 @@
 
 /* Trade section cards — glass morphism on top of existing .trade-section */
 #panel-trade .trade-section {
-  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
-  border-radius: 12px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 3px rgba(0,0,0,0.28) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 3px rgba(0,0,0,0.28);
   margin-bottom: 14px;
 }
 #panel-trade.intraday-mode .trade-section {
-  border-color: rgba(236, 72, 153, 0.10) !important;
+  border-color: rgba(236, 72, 153, 0.10);
 }
 
 /* Section header */
@@ -1736,7 +1736,7 @@
 }
 .tf-ticker-right { display: flex; flex-direction: row; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
 .tf-dir-section { display: flex; flex-direction: column; gap: 8px; flex: 1 1 140px; min-width: 140px; }
-.tf-dir-section + .tf-dir-section { margin-top: 0 !important; }
+.tf-dir-section + .tf-dir-section { margin-top: 0; }
 .tf-dir-btns { display: flex; gap: 8px; }
 .tf-dir-btn {
   flex: 1;
@@ -2614,8 +2614,8 @@
 ═══════════════════════════════════════════════ */
 
 /* Hide old pos-unified-layout (preserved for JS compatibility, not rendered) */
-.pos-unified-layout { display: none !important; }
-.pos-modal-footer   { display: none !important; }
+.pos-unified-layout { display: none; }
+.pos-modal-footer   { display: none; }
 
 /* 1-column layout for intraday (single-screen, no step rail) */
 .trade-layout--single {
@@ -2637,8 +2637,8 @@
 
 /* Inner page shell — override old modal width constraints */
 .pos-fullpage-inner {
-  max-width: 1400px !important;
-  width: 100% !important;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 28px 80px;
   background: transparent;
@@ -3958,7 +3958,7 @@
 .sett-data-info { display: flex; flex-direction: column; gap: 4px; }
 .sett-data-name { font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .sett-data-desc { font-size: 12px; color: var(--ink-4); line-height: 1.5; max-width: 480px; }
-.sett-danger-text { color: var(--red-bright) !important; }
+.sett-danger-text { color: var(--red-bright); }
 
 /* ── Buttons ── */
 .sett-btn-ghost {
@@ -5243,17 +5243,17 @@
 
 /* Home stat cards: larger title, no sub line, oversized value */
 .home-stat-label {
-  font-size: 12px !important;
+  font-size: 12px;
   line-height: 1.2;
   min-height: 2.4em;
 }
-.home-stat-card .home-stat-sub { display: none !important; }
+.home-stat-card .home-stat-sub { display: none; }
 .home-stat-card { justify-content: space-between; }
 .home-stat-value {
-  font-size: 32px !important;
-  line-height: 1.0 !important;
+  font-size: 32px;
+  line-height: 1.0;
   letter-spacing: 0;
 }
 @media (max-width: 720px) {
-  .home-stat-value { font-size: 28px !important; }
+  .home-stat-value { font-size: 28px; }
 }
