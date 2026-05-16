@@ -118,16 +118,3 @@ export function calcR(t) {
 }
 
 // Bridge to legacy.js (regular <script>).
-window.genTradeId = genTradeId;
-window.tradeInstrument = tradeInstrument;
-window.tradeMultiplier = tradeMultiplier;
-window.tradeBias = tradeBias;
-window.tradeQty = tradeQty;
-window.isClosedTrade = isClosedTrade;
-window.calcPL = calcPL;
-window.ratingToLabel = ratingToLabel;
-window.ratingToStatus = ratingToStatus;
-window.normalizeProcessQuality = normalizeProcessQuality;
-window.processQualityLabel = processQualityLabel;
-window.tradeRiskDollars = tradeRiskDollars;
-window.calcR = calcR;

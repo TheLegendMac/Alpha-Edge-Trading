@@ -1,8 +1,14 @@
 // Central mutable app state. The object identity is preserved across loads
 // (loadState mutates fields rather than reassigning the binding) so any
-// `import { state }` and any `window.state` reference always sees the same object.
+// `import { state }` and any `state` reference always sees the same object.
 
 import { createDefaultState } from '../config/constants.js';
+import { renderHome } from '../views/home.js';
+import { renderTrade } from '../trade-flow/stepper.js';
+import { renderRegime } from '../market/regime.js';
+import { renderLogStats } from '../intel/alpha.js';
+import { renderLogTable } from '../views/log.js';
+import { renderContextPanel } from '../market/context-panel.js';
 
 export const state = createDefaultState();
 
@@ -27,18 +33,14 @@ export function getRegimeRiskMultiplier(regime) {
 // Refresh entire UI after state replacement. Render functions are attached to
 // window by their respective modules — `typeof` is safe even if undefined.
 export function refreshAllUI() {
-  if (typeof window.renderHome === 'function') window.renderHome();
-  if (typeof window.renderTrade === 'function') window.renderTrade();
-  if (typeof window.renderRegime === 'function') window.renderRegime();
+  if (typeof renderHome === 'function') renderHome();
+  if (typeof renderTrade === 'function') renderTrade();
+  if (typeof renderRegime === 'function') renderRegime();
   if (typeof window.renderPortfolioStatus === 'function') window.renderPortfolioStatus();
-  if (typeof window.renderLogStats === 'function') window.renderLogStats();
-  if (typeof window.renderLogTable === 'function') window.renderLogTable();
+  if (typeof renderLogStats === 'function') renderLogStats();
+  if (typeof renderLogTable === 'function') renderLogTable();
   if (typeof window.renderTickerBar === 'function') window.renderTickerBar();
-  if (typeof window.renderContextPanel === 'function') window.renderContextPanel();
+  if (typeof renderContextPanel === 'function') renderContextPanel();
 }
 
 // Bridge to legacy.js (regular <script>).
-window.state = state;
-window.getRiskPctForRegime = getRiskPctForRegime;
-window.getRegimeRiskMultiplier = getRegimeRiskMultiplier;
-window.refreshAllUI = refreshAllUI;

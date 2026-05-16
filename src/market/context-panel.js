@@ -5,6 +5,8 @@ import { saveState } from '../state/persistence.js';
 import { REGIME_DATA, SECTORS } from '../config/constants.js';
 import { ratingToStatus } from '../models/trade.js';
 import { touchMarketContext } from '../sync/merge.js';
+import { computeTop3, computeAvoidList, daysSinceSectorRating } from '../views/sectors.js';
+import { renderHome } from '../views/home.js';
 
 export function openContextPanel() {
   document.getElementById('ctx-panel').classList.add('open');
@@ -29,9 +31,7 @@ export function renderContextPanel() {
   // Hero rated-at pill (new element — replaces old ctx-hero-kicker-text)
   const ratedAtEl = document.getElementById('ctx-rated-at');
   if (ratedAtEl) {
-    const days = state.sectorRatedAt && typeof window.daysSinceSectorRating === 'function'
-      ? window.daysSinceSectorRating()
-      : null;
+    const days = state.sectorRatedAt ? daysSinceSectorRating() : null;
     if (days === null) {
       ratedAtEl.textContent = '· never rated';
       ratedAtEl.className = 'ctx-rated-at';
@@ -85,8 +85,8 @@ export function renderContextPanel() {
   // Sector rated-at footer
   const ratedAtFoot = document.getElementById('ctx-rated-at-foot');
   if (ratedAtFoot) {
-    if (state.sectorRatedAt && typeof window.daysSinceSectorRating === 'function') {
-      const days = window.daysSinceSectorRating();
+    if (state.sectorRatedAt) {
+      const days = daysSinceSectorRating();
       ratedAtFoot.textContent = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`;
     } else {
       ratedAtFoot.textContent = 'never';
@@ -129,7 +129,7 @@ export function renderContextPanel() {
           if (st) row.classList.add(st.toLowerCase());
         }
         updateCtxSectorSummary();
-        if (typeof window.renderHome === 'function') window.renderHome();
+        if (typeof renderHome === 'function') renderHome();
       });
     });
   }
@@ -137,8 +137,8 @@ export function renderContextPanel() {
 }
 
 export function updateCtxSectorSummary() {
-  const top3 = (typeof window.computeTop3 === 'function') ? window.computeTop3() : [];
-  const avoid = (typeof window.computeAvoidList === 'function') ? window.computeAvoidList() : [];
+  const top3 = computeTop3();
+  const avoid = computeAvoidList();
 
   // Old summary line (kept for back-compat if still in DOM)
   const summary = document.getElementById('ctx-sector-summary');
@@ -178,7 +178,3 @@ export function updateCtxSectorSummary() {
 }
 
 // Bridge to legacy.js.
-window.openContextPanel = openContextPanel;
-window.closeContextPanel = closeContextPanel;
-window.renderContextPanel = renderContextPanel;
-window.updateCtxSectorSummary = updateCtxSectorSummary;

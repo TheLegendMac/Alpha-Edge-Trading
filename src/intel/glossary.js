@@ -2,7 +2,7 @@
 
 import { state } from '../state/store.js';
 
-function openAIGlossary() {
+export function openAIGlossary() {
   // Sync the dynamic window label with the user's Settings value.
   const days = (state.settings && state.settings.killSwitchDays) || 30;
   document.querySelectorAll('[data-ai-glossary-window]').forEach(el => {
@@ -15,7 +15,7 @@ function openAIGlossary() {
   panel.setAttribute('aria-hidden', 'false');
   back.classList.add('open');
 }
-function closeAIGlossary() {
+export function closeAIGlossary() {
   const panel = document.getElementById('ai-glossary-panel');
   const back  = document.getElementById('ai-glossary-backdrop');
   if (!panel || !back) return;
@@ -24,5 +24,3 @@ function closeAIGlossary() {
   back.classList.remove('open');
 }
 
-window.openAIGlossary = openAIGlossary;
-window.closeAIGlossary = closeAIGlossary;

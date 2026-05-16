@@ -25,5 +25,3 @@ export function plainMoney(value, digits = 0) {
   return `$${Math.abs(n).toFixed(digits)}`;
 }
 
-window.htmlEsc = esc;
-window.htmlAttr = attr;

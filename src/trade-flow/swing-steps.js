@@ -1,10 +1,18 @@
 // Swing trade flow steps 1-4 with mount handlers + paste import helpers.
 
-import { state, getRiskPctForRegime } from '../state/store.js';
+import { state, getRiskPctForRegime, getRegimeRiskMultiplier } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, TRADE_SWING_SETUPS } from '../config/constants.js';
+import { tfRefreshAll, tfRefreshHeaderOnly, tfStepCompletion, tfStepCount, renderTrade } from './stepper.js';
+import { tfIvrBracket, tfEvaluateGates } from './gates.js';
+import { getStrategyForIVR } from '../market/regime.js';
+import { tfRenderStrategyOutHtml, tfUpdateSwingStrategyPreview } from './summary.js';
+import { tfRenderSwingSizingHtml, tfUpdateSwingSizing, tfComputeSwingRiskBudget } from './swing-sizing.js';
+import { toast } from '../modals/toast.js';
+import { tfBindPriceLevelSliders } from './risk.js';
+import { tfReadKeyNumber, tfGradePasses } from './intraday-steps.js';
 
-function tfSwingStep1() {
+export function tfSwingStep1() {
   const sel = state.selectedSetup;
   const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
   // Filter: hide setups whose bias doesn't match the active direction (either always shows).
@@ -45,7 +53,7 @@ function tfSwingStep1() {
   `;
 }
 
-function tfMountSwingStep1() {
+export function tfMountSwingStep1() {
   // If the currently-selected setup doesn't match the active direction, clear it.
   if (state.selectedSetup) {
     const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
@@ -63,20 +71,20 @@ function tfMountSwingStep1() {
       const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup);
       if (def && def.bias && def.bias !== 'either') state.direction = def.bias;
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
 }
 
-function tfSwingContractSpecHtml() {
+export function tfSwingContractSpecHtml() {
   const isOptions = state.instrument !== 'stocks';
   const ivr = state.ivr;
   const ivrValue = ivr !== null && ivr !== undefined ? Math.max(0, Math.min(100, Number(ivr))) : 0;
   const dir = state.direction;
-  const bracket = window.tfIvrBracket(ivr);
+  const bracket = tfIvrBracket(ivr);
   const sObj = (ivr !== null && ivr !== undefined && dir && isOptions)
-    ? window.getStrategyForIVR(Number(ivr), dir) : null;
-  const stratOut = `<div id="tf-strategy-preview">${sObj ? window.tfRenderStrategyOutHtml(sObj) : ''}</div>`;
+    ? getStrategyForIVR(Number(ivr), dir) : null;
+  const stratOut = `<div id="tf-strategy-preview">${sObj ? tfRenderStrategyOutHtml(sObj) : ''}</div>`;
 
   return isOptions ? `
     <div class="trade-section">
@@ -115,7 +123,7 @@ function tfSwingContractSpecHtml() {
     </div>`;
 }
 
-function tfMountSwingContractSpec() {
+export function tfMountSwingContractSpec() {
   const ivrEl = document.getElementById('tf-ivr');
   const sliderEl = document.getElementById('tf-ivr-slider');
   if (!ivrEl || !sliderEl) return;
@@ -123,7 +131,7 @@ function tfMountSwingContractSpec() {
   const sliderFill = (value) => {
     const hasValue = value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
     const n = hasValue ? Math.max(0, Math.min(100, Number(value))) : 0;
-    const b = window.tfIvrBracket(hasValue ? n : null);
+    const b = tfIvrBracket(hasValue ? n : null);
     const color = b.cls === 'cheap' ? 'var(--green-bright)' : b.cls === 'mid' ? '#f59e0b' : b.cls === 'rich' ? 'var(--red-bright)' : 'var(--cyan)';
     sliderEl.style.background = `linear-gradient(90deg, ${color} ${n}%, rgba(255,255,255,0.08) ${n}%)`;
   };
@@ -136,14 +144,14 @@ function tfMountSwingContractSpec() {
     if (source !== 'slider') sliderEl.value = v === null ? '0' : String(v);
     sliderFill(v);
     saveState();
-    window.tfRefreshHeaderOnly();
+    tfRefreshHeaderOnly();
     const badge = document.getElementById('tf-ivr-bracket');
     if (badge) {
-      const b = window.tfIvrBracket(state.ivr);
+      const b = tfIvrBracket(state.ivr);
       badge.className = `trade-bracket ${b.cls}`;
       badge.textContent = b.text;
     }
-    window.tfUpdateSwingStrategyPreview();
+    tfUpdateSwingStrategyPreview();
   };
 
   sliderFill(state.ivr);
@@ -154,8 +162,8 @@ function tfMountSwingContractSpec() {
 // ----- Swing quality — eligibility (SA quant, factor grades, earnings) -----
 // "Quality" answers: is this name worth trading before we inspect the chart?
 
-function tfSwingStep2() {
-  const gates = window.tfEvaluateGates();
+export function tfSwingStep2() {
+  const gates = tfEvaluateGates();
   const passed = ['01','02','03','05'].filter(k => gates[k]).length;
   const ticker = state.ticker || '';
   const settingMinEarningsDays = Number(state.settings && state.settings.minDaysToEarnings);
@@ -275,7 +283,7 @@ function tfSwingStep2() {
   `;
 }
 
-function tfMountSwingStep2() {
+export function tfMountSwingStep2() {
   // Smart paste — mirror intraday. Apply on paste event or click. After
   // apply, walk forward to the furthest step that's now complete so the
   // user lands on the first step that still needs work.
@@ -288,7 +296,7 @@ function tfMountSwingStep2() {
       if (resultEl) resultEl.textContent = '';
       return;
     }
-    const parsed = window.tfParseSwingPaste(raw) || {};
+    const parsed = tfParseSwingPaste(raw) || {};
     const isFilled = (v) => v !== undefined && v !== null && v !== '' && (typeof v !== 'object' || (v && Object.keys(v).length));
     const meaningful = Object.entries(parsed).filter(([, v]) => isFilled(v));
     if (!meaningful.length) {
@@ -298,10 +306,10 @@ function tfMountSwingStep2() {
       }
       return;
     }
-    window.tfApplySwingPaste(parsed);
+    tfApplySwingPaste(parsed);
     // Walk forward: jump to the first incomplete step (cap at last step).
-    const compl = window.tfStepCompletion();
-    const max = window.tfStepCount();
+    const compl = tfStepCompletion();
+    const max = tfStepCount();
     let target = 1;
     for (let i = 0; i < max; i++) {
       if (compl[i]) target = i + 2; else break;
@@ -314,7 +322,7 @@ function tfMountSwingStep2() {
       resultEl.textContent = `Filled ${meaningful.length} field${meaningful.length === 1 ? '' : 's'} → step ${target}.`;
     }
     if (pasteEl) pasteEl.value = '';
-    window.renderTrade();
+    renderTrade();
   };
   if (pasteEl) {
     pasteEl.addEventListener('paste', () => setTimeout(() => applyPaste(pasteEl.value), 30));
@@ -326,7 +334,7 @@ function tfMountSwingStep2() {
   const updateGateBadge = (gateKey, isManual) => {
     const badge = document.querySelector(`#panel-trade [data-tf-gate-badge="${gateKey}"]`);
     if (badge) {
-      const ok = window.tfEvaluateGates()[gateKey];
+      const ok = tfEvaluateGates()[gateKey];
       const stateVal = state.gateChecks && state.gateChecks[gateKey];
       const useYesNoState = gateKey === '02' || gateKey === '03';
       const failed = useYesNoState ? stateVal === false : !isManual;
@@ -336,7 +344,7 @@ function tfMountSwingStep2() {
   };
 
   const updateCounters = () => {
-    const gates = window.tfEvaluateGates();
+    const gates = tfEvaluateGates();
     const passed = ['01','02','03','05'].filter(k => gates[k]).length;
     const gatesCounter = document.getElementById('tf-swing-gates-counter');
     if (gatesCounter) {
@@ -351,7 +359,7 @@ function tfMountSwingStep2() {
       const v = parseFloat(e.target.value);
       state.saQuant = isNaN(v) ? null : v;
       saveState();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
       updateGateBadge('01', false);
       updateCounters();
     });
@@ -362,7 +370,7 @@ function tfMountSwingStep2() {
       const v = parseFloat(e.target.value);
       state.daysToEarnings = isNaN(v) ? null : v;
       saveState();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
       updateGateBadge('05', false);
       updateCounters();
     });
@@ -376,7 +384,7 @@ function tfMountSwingStep2() {
       if (k === '02') state.saProfitGrade = val ? 'B-' : 'C';
       if (k === '03') state.saMomentumGrade = val ? 'B-' : 'C';
       saveState();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
       updateGateBadge(k, false);
       updateCounters();
       
@@ -399,10 +407,10 @@ function tfMountSwingStep2() {
   });
 }
 
-function tfSwingLiquidityStep() {
+export function tfSwingLiquidityStep() {
   const isOptions = state.instrument !== 'stocks';
   const liq = state.liquidity || {};
-  const gates = window.tfEvaluateGates();
+  const gates = tfEvaluateGates();
   const liquidityInputs = [
     { key: 'stockVolPass',  label: 'Stock 30d avg volume',  rule: '>= 1,000,000' },
     { key: 'optionOIPass',  label: 'Option open interest',  rule: '>= 500' },
@@ -443,7 +451,7 @@ function tfSwingLiquidityStep() {
 // Mirrors the intraday Entry, stop & limit card so both modes use the same
 // mental model before review/log.
 
-function tfSwingStep3() {
+export function tfSwingStep3() {
   const isOptions = state.instrument !== 'stocks';
   const premium = state.premium;
   const swingStop    = state.swingStop;
@@ -454,8 +462,8 @@ function tfSwingStep3() {
   const qtyOk = filled(swingQty);
   const reqN = [entryOk, qtyOk].filter(Boolean).length;
 
-  const sizingHtml = (typeof window.tfRenderSwingSizingHtml === 'function')
-    ? window.tfRenderSwingSizingHtml()
+  const sizingHtml = (typeof tfRenderSwingSizingHtml === 'function')
+    ? tfRenderSwingSizingHtml()
     : '';
 
   return `
@@ -501,7 +509,7 @@ function tfSwingStep3() {
   `;
 }
 
-function tfMountSwingStep3() {
+export function tfMountSwingStep3() {
   // Liquidity yes/no checks — silent state writes + surgical header refresh only.
   document.querySelectorAll('#panel-trade [data-tf-liq-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -510,7 +518,7 @@ function tfMountSwingStep3() {
       if (!state.liquidity) state.liquidity = { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null };
       state.liquidity[k] = val;
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
   // Entry / stop / target / size — surgical sizing-card updates, no rebuild.
@@ -525,8 +533,8 @@ function tfMountSwingStep3() {
       }
       state[key] = isNaN(v) ? null : v;
       saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateSwingSizing();
+      tfRefreshHeaderOnly();
+      tfUpdateSwingSizing();
     });
   };
   wireNum('tf-premium', 'premium');
@@ -540,11 +548,11 @@ function tfMountSwingStep3() {
     autoStopBtn.addEventListener('click', () => {
       const entry = Number(state.premium);
       if (!(entry > 0)) {
-        if (typeof window.toast === 'function') window.toast('Enter the entry premium first.', true);
+        if (typeof toast === 'function') toast('Enter the entry premium first.', true);
         return;
       }
       const baseStopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
-      const regimeMult  = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+      const regimeMult  = (typeof getRegimeRiskMultiplier === 'function') ? getRegimeRiskMultiplier(state.regime) : 1;
       const stopPct = baseStopPct * regimeMult;
       const isShort = (state.direction || 'long').toLowerCase().startsWith('s');
       const stop = +(isShort ? entry * (1 + stopPct) : entry * (1 - stopPct)).toFixed(2);
@@ -552,8 +560,8 @@ function tfMountSwingStep3() {
       const el = document.getElementById('tf-swing-stop');
       if (el) el.value = stop;
       saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateSwingSizing();
+      tfRefreshHeaderOnly();
+      tfUpdateSwingSizing();
     });
   }
   // AUTO limit — entry ± N × stop distance (N = settings.targetRMultiple, default 2).
@@ -563,7 +571,7 @@ function tfMountSwingStep3() {
       const entry = Number(state.premium);
       const stop  = Number(state.swingStop);
       if (!(entry > 0 && stop > 0)) {
-        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        if (typeof toast === 'function') toast('Fill entry and stop first.', true);
         return;
       }
       const targetR = Number(state.settings && state.settings.targetRMultiple) > 0
@@ -573,7 +581,7 @@ function tfMountSwingStep3() {
       const isShort = (state.direction || 'long').toLowerCase().startsWith('s');
       const stopDist = Math.abs(entry - stop);
       if (!(stopDist > 0)) {
-        if (typeof window.toast === 'function') window.toast('Stop must be different from entry.', true);
+        if (typeof toast === 'function') toast('Stop must be different from entry.', true);
         return;
       }
       // Options: target is always above the entry premium (long-premium trade), regardless of underlying direction.
@@ -584,8 +592,8 @@ function tfMountSwingStep3() {
       const el = document.getElementById('tf-swing-target');
       if (el) el.value = target;
       saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateSwingSizing();
+      tfRefreshHeaderOnly();
+      tfUpdateSwingSizing();
     });
   }
   // AUTO size — regime-frozen risk ÷ stop distance.
@@ -595,18 +603,18 @@ function tfMountSwingStep3() {
       const entry = Number(state.premium);
       const stop  = Number(state.swingStop);
       if (!(entry > 0 && stop > 0)) {
-        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        if (typeof toast === 'function') toast('Fill entry and stop first.', true);
         return;
       }
       const isOptions = state.instrument !== 'stocks';
       const mult = isOptions ? 100 : 1;
-      let riskDollars = (typeof window.tfComputeSwingRiskBudget === 'function')
-        ? window.tfComputeSwingRiskBudget()
+      let riskDollars = (typeof tfComputeSwingRiskBudget === 'function')
+        ? tfComputeSwingRiskBudget()
         : Math.round((Number(state.settings && state.settings.account) || DEFAULT_SETTINGS.account || 10000) * ((typeof getRiskPctForRegime === 'function') ? getRiskPctForRegime(state.regime || 'risk-on') : 0.02));
-      if (state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function') riskDollars = Math.round(riskDollars / 2);
+      if (state.selectedSetup === 'Edge Reversal' && typeof tfComputeSwingRiskBudget !== 'function') riskDollars = Math.round(riskDollars / 2);
       const stopDist = Math.abs(entry - stop);
       if (!(stopDist > 0)) {
-        if (typeof window.toast === 'function') window.toast('Stop must be different from entry.', true);
+        if (typeof toast === 'function') toast('Stop must be different from entry.', true);
         return;
       }
       const qty = Math.max(1, Math.floor(riskDollars / (stopDist * mult)));
@@ -614,27 +622,27 @@ function tfMountSwingStep3() {
       const el = document.getElementById('tf-swing-qty');
       if (el) el.value = qty;
       saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateSwingSizing();
+      tfRefreshHeaderOnly();
+      tfUpdateSwingSizing();
     });
   }
   // Bind sliders on initial render — tfUpdateSwingSizing handles rebinds after rebuilds.
-  if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
+  if (typeof tfBindPriceLevelSliders === 'function') tfBindPriceLevelSliders();
 }
 
 // ----- Swing step 4 — Review & log -----
 // Compact confirmation card matching intraday's final review.
 
-function tfComputeSwingReviewPlan() {
+export function tfComputeSwingReviewPlan() {
   const isOptions = state.instrument !== 'stocks';
   const settings = state.settings || DEFAULT_SETTINGS;
   const entry = Number(state.premium);
   const atr = Number(state.atr);
   const upx = Number(state.underlyingPrice);
-  const riskBudget = (typeof window.tfComputeSwingRiskBudget === 'function')
-    ? window.tfComputeSwingRiskBudget()
+  const riskBudget = (typeof tfComputeSwingRiskBudget === 'function')
+    ? tfComputeSwingRiskBudget()
     : Math.round((Number(settings.account) || DEFAULT_SETTINGS.account || 10000) * getRiskPctForRegime(state.regime || 'risk-on'));
-  const normalizedRiskBudget = state.selectedSetup === 'Edge Reversal' && typeof window.tfComputeSwingRiskBudget !== 'function'
+  const normalizedRiskBudget = state.selectedSetup === 'Edge Reversal' && typeof tfComputeSwingRiskBudget !== 'function'
     ? Math.round(riskBudget / 2)
     : riskBudget;
   const direction = state.direction || 'long';
@@ -710,10 +718,10 @@ function tfComputeSwingReviewPlan() {
   };
 }
 
-function tfSwingStep4() {
+export function tfSwingStep4() {
   const isOptions = state.instrument !== 'stocks';
 
-  const plan = window.tfComputeSwingReviewPlan();
+  const plan = tfComputeSwingReviewPlan();
   const premium = plan.entry;
   const qty = plan.qty;
   const premiumStop = plan.stopSell;
@@ -776,7 +784,7 @@ function tfSwingStep4() {
   `;
 }
 
-function tfMountSwingStep4() {
+export function tfMountSwingStep4() {
   const t = document.getElementById('tf-s-notes');
   if (t) {
     t.addEventListener('input', e => {
@@ -792,7 +800,7 @@ function tfMountSwingStep4() {
 // with the user's ThinkScript outputs so chart labels map 1:1 to fields.
 
 
-function tfNormalizeSwingSetup(raw) {
+export function tfNormalizeSwingSetup(raw) {
   const s = String(raw || '').toUpperCase().replace(/[_-]+/g, ' ').trim();
   if (!s) return null;
   if (/21/.test(s) && /EMA|PULL/.test(s)) return '21-EMA Pullback';
@@ -803,7 +811,7 @@ function tfNormalizeSwingSetup(raw) {
   return null;
 }
 
-function tfParseSwingPaste(text) {
+export function tfParseSwingPaste(text) {
   const out = { gates: {}, liquidity: {} };
   const raw = text || '';
   const upper = raw.toUpperCase();
@@ -827,8 +835,8 @@ function tfParseSwingPaste(text) {
   if (/\b(LONG|CALL|BULLISH)\b/.test(upper)) out.direction = out.direction || 'long';
 
   const setupMatch = raw.match(/\b(?:SETUP|FIRE)\s*(?:=|:)\s*([A-Z0-9 _-]+)/i);
-  if (setupMatch) out.setup = window.tfNormalizeSwingSetup(setupMatch[1]);
-  else out.setup = window.tfNormalizeSwingSetup(raw);
+  if (setupMatch) out.setup = tfNormalizeSwingSetup(setupMatch[1]);
+  else out.setup = tfNormalizeSwingSetup(raw);
 
   const regimeMatch = raw.match(/\bREGIME\s*(?:=|:)\s*(RISK[-\s]?ON|NEUTRAL|RISK[-\s]?OFF)\b/i);
   if (regimeMatch) {
@@ -836,12 +844,12 @@ function tfParseSwingPaste(text) {
     out.regime = r === 'RISK-ON' ? 'risk-on' : r === 'RISK-OFF' ? 'risk-off' : 'neutral';
   }
 
-  const ivr = window.tfReadKeyNumber(raw, ['IVR', 'IV\\s*RANK']);
-  const atr = window.tfReadKeyNumber(raw, ['ATR']);
-  const px = window.tfReadKeyNumber(raw, ['PX', 'PRICE', 'UNDERLYING']);
-  const premium = window.tfReadKeyNumber(raw, ['PREM', 'PREMIUM', 'MID', 'DEBIT', 'ENTRY']);
-  const quant = window.tfReadKeyNumber(raw, ['QUANT', 'SA\\s*QUANT']);
-  const earnings = window.tfReadKeyNumber(raw, ['EARNINGS', 'ER', 'DTE\\s*ER']);
+  const ivr = tfReadKeyNumber(raw, ['IVR', 'IV\\s*RANK']);
+  const atr = tfReadKeyNumber(raw, ['ATR']);
+  const px = tfReadKeyNumber(raw, ['PX', 'PRICE', 'UNDERLYING']);
+  const premium = tfReadKeyNumber(raw, ['PREM', 'PREMIUM', 'MID', 'DEBIT', 'ENTRY']);
+  const quant = tfReadKeyNumber(raw, ['QUANT', 'SA\\s*QUANT']);
+  const earnings = tfReadKeyNumber(raw, ['EARNINGS', 'ER', 'DTE\\s*ER']);
   if (ivr !== null) out.ivr = ivr;
   if (atr !== null) out.atr = atr;
   if (px !== null) out.underlyingPrice = px;
@@ -849,14 +857,14 @@ function tfParseSwingPaste(text) {
   if (quant !== null) out.saQuant = quant;
   if (earnings !== null) out.daysToEarnings = earnings;
 
-  const stockVol = window.tfReadKeyNumber(raw, ['VOL', 'AVG\\s*VOL', 'STOCK\\s*VOL']);
-  const optionOI = window.tfReadKeyNumber(raw, ['OI', 'OPEN\\s*INTEREST']);
+  const stockVol = tfReadKeyNumber(raw, ['VOL', 'AVG\\s*VOL', 'STOCK\\s*VOL']);
+  const optionOI = tfReadKeyNumber(raw, ['OI', 'OPEN\\s*INTEREST']);
   if (stockVol !== null) out.liquidity.stockVolPass = stockVol >= 1000000;
   if (optionOI !== null) out.liquidity.optionOIPass = optionOI >= 500;
 
-  const strength = window.tfReadKeyNumber(raw, ['STRENGTH']);
+  const strength = tfReadKeyNumber(raw, ['STRENGTH']);
   const stack = raw.match(/\bSTACK\s*(?:=|:)\s*(BULLISH|BEARISH|MIXED)\b/i);
-  const rvol = window.tfReadKeyNumber(raw, ['RVOL']);
+  const rvol = tfReadKeyNumber(raw, ['RVOL']);
   const rsmkPositive = /\bRSMK\s*(?:=|:)\s*(?:\+|POS|POSITIVE|LEADER)/i.test(raw);
   if (strength !== null && strength >= 2) out.gates['03'] = true;
   if (stack && stack[1].toUpperCase() !== 'MIXED') out.gates['03'] = true;
@@ -866,17 +874,17 @@ function tfParseSwingPaste(text) {
   const momo = raw.match(/\b(?:MOMENTUM|MOMO)\s*(?:=|:)\s*([A-F][+-]?)\b/i);
   if (prof) {
     out.saProfitGrade = prof[1].toUpperCase();
-    if (window.tfGradePasses(prof[1])) out.gates['02'] = true;
+    if (tfGradePasses(prof[1])) out.gates['02'] = true;
   }
   if (momo) {
     out.saMomentumGrade = momo[1].toUpperCase();
-    if (window.tfGradePasses(momo[1])) out.gates['03'] = true;
+    if (tfGradePasses(momo[1])) out.gates['03'] = true;
   }
 
   return out;
 }
 
-function tfApplySwingPaste(parsed) {
+export function tfApplySwingPaste(parsed) {
   if (!parsed) return;
   if (parsed.ticker) state.ticker = parsed.ticker;
   if (parsed.instrument) {
@@ -899,18 +907,3 @@ function tfApplySwingPaste(parsed) {
   saveState();
 }
 
-window.tfComputeSwingReviewPlan = tfComputeSwingReviewPlan;
-window.tfSwingStep1 = tfSwingStep1;
-window.tfMountSwingStep1 = tfMountSwingStep1;
-window.tfSwingContractSpecHtml = tfSwingContractSpecHtml;
-window.tfMountSwingContractSpec = tfMountSwingContractSpec;
-window.tfSwingLiquidityStep = tfSwingLiquidityStep;
-window.tfSwingStep2 = tfSwingStep2;
-window.tfMountSwingStep2 = tfMountSwingStep2;
-window.tfSwingStep3 = tfSwingStep3;
-window.tfMountSwingStep3 = tfMountSwingStep3;
-window.tfSwingStep4 = tfSwingStep4;
-window.tfMountSwingStep4 = tfMountSwingStep4;
-window.tfNormalizeSwingSetup = tfNormalizeSwingSetup;
-window.tfParseSwingPaste = tfParseSwingPaste;
-window.tfApplySwingPaste = tfApplySwingPaste;

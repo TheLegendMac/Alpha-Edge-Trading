@@ -1,6 +1,7 @@
 // localStorage persistence + Supabase push hook. The cloud sync layer
 // (schedulePush) still lives in legacy.js and is reached via window.
 
+import { schedulePush } from '../sync/supabase.js';
 import { state } from './store.js';
 import {
   STORAGE_KEY,
@@ -101,7 +102,7 @@ export function saveStateLocal() {
 export function saveState() {
   saveStateLocal();
   // schedulePush is still in legacy.js (sync layer) — extracted in Phase 5.
-  if (typeof window.schedulePush === 'function') window.schedulePush();
+  if (typeof schedulePush === 'function') schedulePush();
 }
 
 // Safer alternative to `state.x = v; saveState()` for top-level field
@@ -120,12 +121,8 @@ export function setState(patch) {
     return false;
   }
   Object.assign(state, patch);
-  if (typeof window.schedulePush === 'function') window.schedulePush();
+  if (typeof schedulePush === 'function') schedulePush();
   return true;
 }
 
 // Bridge to legacy.js.
-window.loadState = loadState;
-window.saveState = saveState;
-window.saveStateLocal = saveStateLocal;
-window.setState = setState;

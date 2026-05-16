@@ -5,12 +5,19 @@ import { saveState } from '../state/persistence.js';
 import { todayISO } from '../models/formatters.js';
 import { genTradeId, tradeBias } from '../models/trade.js';
 import { newIntradayTicket } from '../config/constants.js';
+import { deriveSpreadPct } from '../market/regime.js';
+import { tfComputeIntradayRiskSize } from './intraday-sizing.js';
+import { doPush, SYNC } from '../sync/supabase.js';
+import { renderHome, renderUniversalSidebar } from '../views/home.js';
+import { renderLogStats } from '../intel/alpha.js';
+import { renderTrade } from './stepper.js';
+import { toast } from '../modals/toast.js';
 
-function todayIntradayTrades() {
+export function todayIntradayTrades() {
   return state.trades.filter(t => t.mode === "intraday" && t.date === todayISO());
 }
 
-function isInIntradayWindow() {
+export function isInIntradayWindow() {
   const now = new Date();
   const total = now.getHours() * 60 + now.getMinutes();
   const morning = total >= 9 * 60 + 35 && total <= 11 * 60 + 30;
@@ -18,13 +25,13 @@ function isInIntradayWindow() {
   return morning || afternoon;
 }
 
-function logIntradayTrade() {
+export function logIntradayTrade() {
   const t = state.intraday;
   const instrument = t.instrument === 'stocks' ? 'stocks' : 'options';
   const multiplier = instrument === 'stocks' ? 1 : 100;
   const stopDist = Math.abs(t.entry - t.stop);
   // Size from the unified regime-aware risk budget (same logic as the live sizing widget).
-  const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+  const auto = (typeof tfComputeIntradayRiskSize === 'function') ? tfComputeIntradayRiskSize() : null;
   const autoQty = auto && auto.qty > 0 ? auto.qty : 1;
   const qty = t.contracts || autoQty;
   const riskBudget = auto ? auto.riskBudget : 0;
@@ -33,7 +40,7 @@ function logIntradayTrade() {
   const mid = instrument === 'options'
     ? (Number(t.mid) || (bid > 0 && ask > 0 ? (bid + ask) / 2 : null))
     : null;
-  const spreadPct = instrument === 'options' ? window.deriveSpreadPct(t) : null;
+  const spreadPct = instrument === 'options' ? deriveSpreadPct(t) : null;
   const nowIso = new Date().toISOString();
   const trade = {
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -95,8 +102,8 @@ function logIntradayTrade() {
       vwapValue: t.vwapValue ?? null,
       notes: t.notes || '',
     },
-    inWindow: window.isInIntradayWindow(),
-    tradeNumOfDay: window.todayIntradayTrades().length + 1,
+    inWindow: isInIntradayWindow(),
+    tradeNumOfDay: todayIntradayTrades().length + 1,
     regime: state.regime,
     regimeAtEntry: state.regime || null,
     openedAt: nowIso,
@@ -116,17 +123,14 @@ function logIntradayTrade() {
   if (state.tradeFlow) state.tradeFlow.intradayDraft = {};
   saveState();
   // Force immediate push of the new trade
-  if (typeof window.doPush === 'function') {
-    if (window.SYNC && window.SYNC.pendingPush) { clearTimeout(window.SYNC.pendingPush); window.SYNC.pendingPush = null; }
-    window.doPush();
+  if (typeof doPush === 'function') {
+    if (SYNC && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
+    doPush();
   }
-  window.renderHome();
-  window.renderLogStats();
-  if (typeof window.renderUniversalSidebar === 'function') window.renderUniversalSidebar();
-  if (typeof window.renderTrade === 'function') window.renderTrade();
-  window.toast('Intraday trade logged');
+  renderHome();
+  renderLogStats();
+  if (typeof renderUniversalSidebar === 'function') renderUniversalSidebar();
+  if (typeof renderTrade === 'function') renderTrade();
+  toast('Intraday trade logged');
 }
 
-window.todayIntradayTrades = todayIntradayTrades;
-window.isInIntradayWindow = isInIntradayWindow;
-window.logIntradayTrade = logIntradayTrade;

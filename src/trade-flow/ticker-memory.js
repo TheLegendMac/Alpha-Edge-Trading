@@ -4,8 +4,9 @@ import { state } from '../state/store.js';
 import { saveState, setState } from '../state/persistence.js';
 import { newIntradayTicket } from '../config/constants.js';
 import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
+import { tfRefreshHeaderOnly } from './stepper.js';
 
-function tfTickerHistory(symbol) {
+export function tfTickerHistory(symbol) {
   if (!symbol) return null;
   const sym = String(symbol).toUpperCase();
   const trades = (state.trades || []).filter(t => (t.ticker || '').toUpperCase() === sym);
@@ -37,7 +38,7 @@ function tfTickerHistory(symbol) {
 }
 
 // Top tickers by trade count — used for the "Recent" pills row.
-function tfTopTickers(limit = 8) {
+export function tfTopTickers(limit = 8) {
   const counts = {};
   (state.trades || []).forEach(t => {
     const sym = (t.ticker || '').toUpperCase();
@@ -49,8 +50,8 @@ function tfTopTickers(limit = 8) {
 
 // Match recent tickers against the user's prefix. Empty prefix returns the
 // top traded list. Used by both swing and intraday step 1 pills.
-function tfTickerSuggestions(prefix, limit = 8) {
-  const all = window.tfTopTickers(50);
+export function tfTickerSuggestions(prefix, limit = 8) {
+  const all = tfTopTickers(50);
   const p = (prefix || '').toUpperCase().trim();
   if (!p) return all.slice(0, limit);
   return all.filter(t => t.sym.startsWith(p)).slice(0, limit);
@@ -58,10 +59,10 @@ function tfTickerSuggestions(prefix, limit = 8) {
 
 // HTML for the ticker memory block (Recent pills + history snapshot).
 // Container id = tf-ticker-memory (swing) or tf-i-ticker-memory (intraday).
-function tfRenderTickerMemoryHtml(currentTicker) {
+export function tfRenderTickerMemoryHtml(currentTicker) {
   const hasInput = !!(currentTicker || '').trim();
-  const matches = window.tfTickerSuggestions(currentTicker, hasInput ? 8 : 3);
-  const hist = currentTicker ? window.tfTickerHistory(currentTicker) : null;
+  const matches = tfTickerSuggestions(currentTicker, hasInput ? 8 : 3);
+  const hist = currentTicker ? tfTickerHistory(currentTicker) : null;
   const fmtMoney = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
   const snapClass = hist ? (hist.totalPL >= 0 ? 'pos' : 'neg') : '';
 
@@ -87,10 +88,10 @@ function tfRenderTickerMemoryHtml(currentTicker) {
 }
 
 // Surgical updater — replaces only the memory div, preserves input focus.
-function tfUpdateTickerMemory(containerId, currentTicker) {
+export function tfUpdateTickerMemory(containerId, currentTicker) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = window.tfRenderTickerMemoryHtml(currentTicker);
+  el.innerHTML = tfRenderTickerMemoryHtml(currentTicker);
   // Re-bind pill clicks against the *appropriate* state path.
   el.querySelectorAll('[data-tf-ticker-pick]').forEach(b => {
     b.addEventListener('click', () => {
@@ -118,8 +119,8 @@ function tfUpdateTickerMemory(containerId, currentTicker) {
         if (li) li.value = sym;
       }
       saveState();
-      window.tfRefreshHeaderOnly();
-      window.tfUpdateTickerMemory(containerId, sym);
+      tfRefreshHeaderOnly();
+      tfUpdateTickerMemory(containerId, sym);
     });
   });
 }
@@ -162,10 +163,3 @@ export function rememberTicker(sym) {
 // fixed-position element appended to <body>, anchored to the input via getBoundingClientRect.
 // This avoids fighting the input's parent layout (flex columns, modals, etc.).
 
-window.tfTickerHistory = tfTickerHistory;
-window.tfTopTickers = tfTopTickers;
-window.tfTickerSuggestions = tfTickerSuggestions;
-window.tfRenderTickerMemoryHtml = tfRenderTickerMemoryHtml;
-window.tfUpdateTickerMemory = tfUpdateTickerMemory;
-window._buildTickerHistory = _buildTickerHistory;
-window.rememberTicker = rememberTicker;

@@ -1,14 +1,18 @@
 // Intraday trade flow steps 1-4 with mount handlers + paste import + utility helpers.
 
-import { state } from '../state/store.js';
+import { state, getRegimeRiskMultiplier } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, newIntradayTicket, TRADE_INTRADAY_SETUPS, TRADE_ORB_TYPES, TRADE_CONFLUENCE_OPTIONS, TRADE_BREADTH_OPTIONS, TRADE_SETUP_TEMPLATES } from '../config/constants.js';
+import { tfDeriveIntradaySpread, tfAutoFillIntradayOptionBracket, tfAutoFillIntradayStockFromOR, tfIntradayInstrument, tfRenderIntradaySizingHtml, tfUpdateIntradayRMult, tfUpdateIntradaySizing, tfApplyIntradayRiskSize, tfBindIntradayRiskSizeButton, tfComputeIntradayRiskSize } from './intraday-sizing.js';
+import { tfRefreshAll, tfRefreshHeaderOnly, tfGoToStep } from './stepper.js';
+import { toast } from '../modals/toast.js';
+import { tfBindPriceLevelSliders } from './risk.js';
 
-function tfFindIntradaySetup(id) {
+export function tfFindIntradaySetup(id) {
   return TRADE_INTRADAY_SETUPS.find(s => s.id === id) || null;
 }
 
-function tfParseHumanNumber(raw) {
+export function tfParseHumanNumber(raw) {
   if (raw === null || raw === undefined) return null;
   const m = String(raw).trim().replace(/,/g, '').match(/^([-+]?\d*\.?\d+)\s*([KMB])?/i);
   if (!m) return null;
@@ -21,23 +25,23 @@ function tfParseHumanNumber(raw) {
   return n;
 }
 
-function tfReadKeyNumber(text, keys) {
+export function tfReadKeyNumber(text, keys) {
   const list = Array.isArray(keys) ? keys : [keys];
   for (const key of list) {
     const re = new RegExp(`\\b${key}\\s*(?:=|:)\\s*([-+]?\\d[\\d,.]*\\s*[KMB]?)`, 'i');
     const m = text.match(re);
-    if (m) return window.tfParseHumanNumber(m[1]);
+    if (m) return tfParseHumanNumber(m[1]);
   }
   return null;
 }
 
-function tfGradePasses(raw) {
+export function tfGradePasses(raw) {
   const g = String(raw || '').trim().toUpperCase();
   const order = { 'A+': 12, 'A': 11, 'A-': 10, 'B+': 9, 'B': 8, 'B-': 7, 'C+': 6, 'C': 5, 'C-': 4, 'D+': 3, 'D': 2, 'D-': 1, 'F': 0 };
   return order[g] !== undefined && order[g] >= order['B-'];
 }
 
-function tfParseIntradayPaste(text) {
+export function tfParseIntradayPaste(text) {
   const out = {};
   const t = (text || '').toUpperCase();
 
@@ -83,14 +87,14 @@ function tfParseIntradayPaste(text) {
   if (/\b(STOCK|SHARES?)\b/i.test(text || '')) out.instrument = 'stocks';
   if (/\b(OPTION|OPTIONS|CALL|PUT|CONTRACTS?)\b/i.test(text || '')) out.instrument = 'options';
 
-  const entry = window.tfReadKeyNumber(text || '', ['ENTRY', 'ENT', 'PRICE', 'PX']);
-  const stop = window.tfReadKeyNumber(text || '', ['STOP', 'STP']);
-  const target = window.tfReadKeyNumber(text || '', ['TARGET', 'TGT']);
-  const bid = window.tfReadKeyNumber(text || '', ['BID']);
-  const ask = window.tfReadKeyNumber(text || '', ['ASK']);
-  const mid = window.tfReadKeyNumber(text || '', ['MID']);
-  const spread = window.tfReadKeyNumber(text || '', ['SPR', 'SPREAD']);
-  const qty = window.tfReadKeyNumber(text || '', ['QTY', 'CONTRACTS', 'SHARES']);
+  const entry = tfReadKeyNumber(text || '', ['ENTRY', 'ENT', 'PRICE', 'PX']);
+  const stop = tfReadKeyNumber(text || '', ['STOP', 'STP']);
+  const target = tfReadKeyNumber(text || '', ['TARGET', 'TGT']);
+  const bid = tfReadKeyNumber(text || '', ['BID']);
+  const ask = tfReadKeyNumber(text || '', ['ASK']);
+  const mid = tfReadKeyNumber(text || '', ['MID']);
+  const spread = tfReadKeyNumber(text || '', ['SPR', 'SPREAD']);
+  const qty = tfReadKeyNumber(text || '', ['QTY', 'CONTRACTS', 'SHARES']);
   if (entry !== null) out.entry = entry;
   if (stop !== null) out.stop = stop;
   if (target !== null) out.target = target;
@@ -103,7 +107,7 @@ function tfParseIntradayPaste(text) {
   return out;
 }
 
-function tfApplyIntradayPaste(parsed) {
+export function tfApplyIntradayPaste(parsed) {
   if (!state.intraday) state.intraday = newIntradayTicket();
   const it = state.intraday;
   if (parsed.instrument) it.instrument = parsed.instrument;
@@ -112,7 +116,7 @@ function tfApplyIntradayPaste(parsed) {
   if (parsed.setup) {
     it.setup = parsed.setup;
     // Auto-align direction with setup's bias (long/short patterns only).
-    const def = window.tfFindIntradaySetup(parsed.setup);
+    const def = tfFindIntradaySetup(parsed.setup);
     if (def && def.bias === 'long')  it.direction = 'long';
     if (def && def.bias === 'short') it.direction = 'short';
   }
@@ -129,18 +133,18 @@ function tfApplyIntradayPaste(parsed) {
   ['entry', 'stop', 'target', 'bid', 'ask', 'mid', 'spreadPct', 'contracts'].forEach(k => {
     if (parsed[k] !== undefined && parsed[k] !== null) it[k] = parsed[k];
   });
-  window.tfDeriveIntradaySpread();
-  window.tfAutoFillIntradayOptionBracket();
-  window.tfAutoFillIntradayStockFromOR();
+  tfDeriveIntradaySpread();
+  tfAutoFillIntradayOptionBracket();
+  tfAutoFillIntradayStockFromOR();
   saveState();
 }
 
 // Section 1 — Setup picker (parallel to swing's setup step). Ticker, direction,
 // and instrument all live in the sticky header; ORB range chips appear when an
 // ORB variant is picked.
-function tfIntradayStep1() {
+export function tfIntradayStep1() {
   const it = state.intraday || {};
-  const setupDef = window.tfFindIntradaySetup(it.setup);
+  const setupDef = tfFindIntradaySetup(it.setup);
   const isOrb = !!(setupDef && setupDef.isOrb);
   const dirKey = (it.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
   // Hide setups whose bias doesn't match the active direction (either always shows).
@@ -287,12 +291,12 @@ function tfIntradayStep1() {
   `;
 }
 
-function tfMountIntradayStep1() {
+export function tfMountIntradayStep1() {
   // If the selected setup no longer matches the active direction, clear it.
   const it = state.intraday || {};
   if (it.setup) {
     const dirKey = (it.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
-    const def = (typeof window.tfFindIntradaySetup === 'function') ? window.tfFindIntradaySetup(it.setup) : null;
+    const def = (typeof tfFindIntradaySetup === 'function') ? tfFindIntradaySetup(it.setup) : null;
     const bias = def ? (def.bias || 'either') : 'either';
     if (bias !== 'either' && bias !== dirKey) {
       it.setup = null;
@@ -311,7 +315,7 @@ function tfMountIntradayStep1() {
       if (resultEl) resultEl.textContent = '';
       return;
     }
-    const parsed = window.tfParseIntradayPaste(raw) || {};
+    const parsed = tfParseIntradayPaste(raw) || {};
     const isFilled = (v) => v !== undefined && v !== null && v !== '';
     const meaningful = Object.entries(parsed).filter(([k, v]) => isFilled(v) && typeof v !== 'object');
     if (!meaningful.length) {
@@ -321,13 +325,13 @@ function tfMountIntradayStep1() {
       }
       return;
     }
-    window.tfApplyIntradayPaste(parsed);
+    tfApplyIntradayPaste(parsed);
     if (pasteEl) pasteEl.value = '';
     if (resultEl) {
       resultEl.style.color = 'var(--cyan)';
       resultEl.textContent = `Filled ${meaningful.length} field${meaningful.length === 1 ? '' : 's'}.`;
     }
-    window.tfRefreshAll();
+    tfRefreshAll();
   };
   if (pasteEl) {
     // The paste event fires before the textarea's value updates, so read on
@@ -343,12 +347,12 @@ function tfMountIntradayStep1() {
       const id = b.dataset.tfISetup;
       if (!state.intraday) state.intraday = newIntradayTicket();
       state.intraday.setup = id;
-      const def = window.tfFindIntradaySetup(id);
+      const def = tfFindIntradaySetup(id);
       if (def && def.bias === 'long')  state.intraday.direction = 'long';
       if (def && def.bias === 'short') state.intraday.direction = 'short';
-      window.tfAutoFillIntradayStockFromOR();
+      tfAutoFillIntradayStockFromOR();
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
 
@@ -358,15 +362,15 @@ function tfMountIntradayStep1() {
       if (!state.intraday) state.intraday = newIntradayTicket();
       state.intraday.orbType = b.dataset.tfIOrbType;
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
 }
 
 // ----- Intraday plan — Levels (entry/stop/target + optional ORB OR levels) -----
-function tfIntradayStep2() {
+export function tfIntradayStep2() {
   const it = state.intraday || {};
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const draft = (state.tradeFlow && state.tradeFlow.intradayDraft) || {};
   const filled = (v) => v !== null && v !== undefined && v !== '';
   const inputValue = (key) => (draft[key] !== undefined && draft[key] !== '') ? draft[key] : (it[key] ?? '');
@@ -375,8 +379,8 @@ function tfIntradayStep2() {
   const reqN = [entryOk, qtyOk].filter(Boolean).length;
 
   const levelsLetter = 'A.';
-  const sizingHtml = (typeof window.tfRenderIntradaySizingHtml === 'function')
-    ? window.tfRenderIntradaySizingHtml()
+  const sizingHtml = (typeof tfRenderIntradaySizingHtml === 'function')
+    ? tfRenderIntradaySizingHtml()
     : '';
 
   return `
@@ -432,7 +436,7 @@ function tfUpdateIntradayLvlCounter() {
   counter.classList.toggle('complete', n === 2);
 }
 
-function tfMountIntradayStep2() {
+export function tfMountIntradayStep2() {
   const wire = (id, key, isInt) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -443,10 +447,10 @@ function tfMountIntradayStep2() {
       const v = isInt ? parseInt(e.target.value) : parseFloat(e.target.value);
       state.intraday[key] = isNaN(v) ? null : v;
       saveState();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
       if (key === 'entry' || key === 'stop' || key === 'target' || key === 'contracts') {
-        window.tfUpdateIntradayRMult();
-        window.tfUpdateIntradaySizing();
+        tfUpdateIntradayRMult();
+        tfUpdateIntradaySizing();
         tfUpdateIntradayLvlCounter();
       }
       // RNG is derived (no input field) — recompute on every HI/LO edit.
@@ -458,7 +462,7 @@ function tfMountIntradayStep2() {
         if (hi > 0 && lo > 0 && hi >= lo) {
           state.intraday.orRng = +(hi - lo).toFixed(2);
           if (readout) readout.textContent = `RNG ${state.intraday.orRng}`;
-          window.tfAutoFillIntradayStockFromOR();
+          tfAutoFillIntradayStockFromOR();
           saveState();
         } else {
           state.intraday.orRng = null;
@@ -466,15 +470,15 @@ function tfMountIntradayStep2() {
         }
       }
       if (key === 'orHi' || key === 'orLo' || key === 'orRng') {
-        window.tfAutoFillIntradayStockFromOR();
+        tfAutoFillIntradayStockFromOR();
         ['entry', 'stop', 'target'].forEach(levelKey => {
           const levelEl = document.getElementById(`tf-i-${levelKey}`);
           if (levelEl && state.intraday[levelKey] !== null && state.intraday[levelKey] !== undefined) {
             levelEl.value = state.intraday[levelKey];
           }
         });
-        window.tfUpdateIntradayRMult();
-        window.tfUpdateIntradaySizing();
+        tfUpdateIntradayRMult();
+        tfUpdateIntradaySizing();
         saveState();
       }
     });
@@ -493,11 +497,11 @@ function tfMountIntradayStep2() {
       const it = state.intraday || {};
       const entry = Number(it.entry);
       if (!(entry > 0)) {
-        if (typeof window.toast === 'function') window.toast('Enter the entry first.', true);
+        if (typeof toast === 'function') toast('Enter the entry first.', true);
         return;
       }
       const baseStopPct = ((state.settings && state.settings.stopPct) || 50) / 100;
-      const regimeMult  = (typeof window.getRegimeRiskMultiplier === 'function') ? window.getRegimeRiskMultiplier(state.regime) : 1;
+      const regimeMult  = (typeof getRegimeRiskMultiplier === 'function') ? getRegimeRiskMultiplier(state.regime) : 1;
       const stopPct = baseStopPct * regimeMult;
       const dir = (it.direction || 'long').toLowerCase();
       const isShort = dir.startsWith('s');
@@ -509,10 +513,10 @@ function tfMountIntradayStep2() {
       const el = document.getElementById('tf-i-stop');
       if (el) el.value = stop;
       saveState();
-      window.tfUpdateIntradayRMult();
-      window.tfUpdateIntradaySizing();
+      tfUpdateIntradayRMult();
+      tfUpdateIntradaySizing();
       tfUpdateIntradayLvlCounter();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
     });
   }
   // AUTO limit — entry ± N × stop distance (N = settings.targetRMultiple, default 2).
@@ -523,17 +527,17 @@ function tfMountIntradayStep2() {
       const entry = Number(it.entry);
       const stop  = Number(it.stop);
       if (!(entry > 0 && stop > 0)) {
-        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        if (typeof toast === 'function') toast('Fill entry and stop first.', true);
         return;
       }
       const targetR = Number(state.settings && state.settings.targetRMultiple) > 0
         ? Number(state.settings.targetRMultiple)
         : 2;
-      const isOptions = window.tfIntradayInstrument() !== 'stocks';
+      const isOptions = tfIntradayInstrument() !== 'stocks';
       const isShort = (it.direction || 'long').toLowerCase().startsWith('s');
       const stopDist = Math.abs(entry - stop);
       if (!(stopDist > 0)) {
-        if (typeof window.toast === 'function') window.toast('Stop must be different from entry.', true);
+        if (typeof toast === 'function') toast('Stop must be different from entry.', true);
         return;
       }
       const target = isOptions
@@ -546,53 +550,53 @@ function tfMountIntradayStep2() {
       const el = document.getElementById('tf-i-target');
       if (el) el.value = target;
       saveState();
-      window.tfUpdateIntradayRMult();
-      window.tfUpdateIntradaySizing();
+      tfUpdateIntradayRMult();
+      tfUpdateIntradaySizing();
       tfUpdateIntradayLvlCounter();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
     });
   }
   // AUTO size — fill contracts/shares from risk-unit ÷ stop distance.
   const autoSizeBtn = document.getElementById('tf-i-Smart-Size');
   if (autoSizeBtn) {
     autoSizeBtn.addEventListener('click', () => {
-      const qty = window.tfApplyIntradayRiskSize();
+      const qty = tfApplyIntradayRiskSize();
       if (!qty) {
-        if (typeof window.toast === 'function') window.toast('Fill entry and stop first.', true);
+        if (typeof toast === 'function') toast('Fill entry and stop first.', true);
         return;
       }
       const el = document.getElementById('tf-i-contracts');
       if (el) el.value = qty;
       saveState();
-      window.tfUpdateIntradayRMult();
-      window.tfUpdateIntradaySizing();
+      tfUpdateIntradayRMult();
+      tfUpdateIntradaySizing();
       tfUpdateIntradayLvlCounter();
-      window.tfRefreshHeaderOnly();
+      tfRefreshHeaderOnly();
     });
   }
 }
 
 // Sizing card renders inline inside step 2; mount binds its sliders so the
 // initial paint is interactive before any input change.
-function tfMountIntradayStep3() {
-  if (typeof window.tfBindPriceLevelSliders === 'function') window.tfBindPriceLevelSliders();
-  if (typeof window.tfBindIntradayRiskSizeButton === 'function') window.tfBindIntradayRiskSizeButton();
+export function tfMountIntradayStep3() {
+  if (typeof tfBindPriceLevelSliders === 'function') tfBindPriceLevelSliders();
+  if (typeof tfBindIntradayRiskSizeButton === 'function') tfBindIntradayRiskSizeButton();
 }
 
 // ----- Intraday step 3 — Review summary -----
 // Clean confirmation card. Context inputs and ORB levels now live in Step 1.
 // Guardrails removed per design — GO still respects the underlying status logic.
-function tfIntradayStep4() {
+export function tfIntradayStep4() {
   const it = state.intraday || {};
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
-  const setupDef = window.tfFindIntradaySetup(it.setup);
+  const isOptions = tfIntradayInstrument() !== 'stocks';
+  const setupDef = tfFindIntradaySetup(it.setup);
   const setupName = setupDef ? setupDef.name : '—';
   const tickerStr = it.ticker || '—';
   const dirStr = it.direction ? it.direction.toUpperCase() : '—';
   const entryStr = it.entry ? `$${Number(it.entry).toFixed(2)}` : '—';
   const stopStr  = it.stop  ? `$${Number(it.stop).toFixed(2)}`  : '—';
   const tgtStr   = it.target ? `$${Number(it.target).toFixed(2)}` : '—';
-  const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+  const auto = (typeof tfComputeIntradayRiskSize === 'function') ? tfComputeIntradayRiskSize() : null;
   const qty = Number(it.contracts) || (auto ? auto.qty : 0);
   const qtyLabel = isOptions ? 'contracts' : 'shares';
   const riskBudget = auto ? auto.riskBudget : 0;
@@ -641,12 +645,12 @@ function tfIntradayStep4() {
   `;
 }
 
-function tfMountIntradayStep4() {
+export function tfMountIntradayStep4() {
   // Jump-to-fix on each failing check.
   document.querySelectorAll('#panel-trade [data-tf-jump]').forEach(el => {
     el.addEventListener('click', () => {
       const target = parseInt(el.dataset.tfJump, 10);
-      if (target) window.tfGoToStep(target);
+      if (target) tfGoToStep(target);
     });
   });
   // Confluence chip — toggle on/off.
@@ -655,7 +659,7 @@ function tfMountIntradayStep4() {
       const id = b.dataset.tfIConf;
       state.intraday.confluence = (state.intraday.confluence === id) ? '' : id;
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
   // Breadth chip — toggle on/off.
@@ -664,7 +668,7 @@ function tfMountIntradayStep4() {
       const id = b.dataset.tfIBreadth;
       state.intraday.breadth = (state.intraday.breadth === id) ? '' : id;
       saveState();
-      window.tfRefreshAll();
+      tfRefreshAll();
     });
   });
   // VWAP value input — informational, no header refresh needed.
@@ -685,16 +689,3 @@ function tfMountIntradayStep4() {
   }
 }
 
-window.tfFindIntradaySetup = tfFindIntradaySetup;
-window.tfParseHumanNumber = tfParseHumanNumber;
-window.tfReadKeyNumber = tfReadKeyNumber;
-window.tfGradePasses = tfGradePasses;
-window.tfParseIntradayPaste = tfParseIntradayPaste;
-window.tfApplyIntradayPaste = tfApplyIntradayPaste;
-window.tfIntradayStep1 = tfIntradayStep1;
-window.tfMountIntradayStep1 = tfMountIntradayStep1;
-window.tfIntradayStep2 = tfIntradayStep2;
-window.tfMountIntradayStep2 = tfMountIntradayStep2;
-window.tfMountIntradayStep3 = tfMountIntradayStep3;
-window.tfIntradayStep4 = tfIntradayStep4;
-window.tfMountIntradayStep4 = tfMountIntradayStep4;

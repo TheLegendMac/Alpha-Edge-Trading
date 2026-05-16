@@ -1,5 +1,13 @@
 // Position Editor modal — manages multi-leg execution log + journal entries.
 
+import { tfFindIntradaySetup } from '../trade-flow/intraday-steps.js';
+import { toast } from './toast.js';
+import { doPush } from '../sync/supabase.js';
+import { renderHome } from '../views/home.js';
+import { renderLogStats } from '../intel/alpha.js';
+import { renderLogTable } from '../views/log.js';
+import { renderTrade } from '../trade-flow/stepper.js';
+import { openEditTrade } from '../views/edit-trade.js';
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import {
@@ -70,8 +78,8 @@ function _posUnrealizedPL(t, executions, mark) {
 
 function _posSetupLabel(t) {
   const raw = t.setup || 'No setup';
-  if (typeof window.tfFindIntradaySetup === 'function') {
-    const def = window.tfFindIntradaySetup(raw);
+  if (typeof tfFindIntradaySetup === 'function') {
+    const def = tfFindIntradaySetup(raw);
     if (def && def.name) return def.name;
   }
   return raw;
@@ -323,7 +331,7 @@ function openPositionEditor(trade, tab = 'exec') {
   document.getElementById('modal-position').classList.add('show');
 }
 
-function closePositionEditor() {
+export function closePositionEditor() {
   document.getElementById('modal-position').classList.remove('show');
   POS.id = null;
   POS.trade = null;
@@ -364,7 +372,7 @@ function renderPositionEditor() {
   if (heroMarkDisplay) heroMarkDisplay.textContent = mark != null ? `$${Number(mark).toFixed(2)}` : '—';
   const heroRMult = document.getElementById('pos-r-multiple');
   if (heroRMult) {
-    const riskUnit = (Number(t.riskDollars) || (typeof window.tradeRiskDollars === 'function' ? window.tradeRiskDollars(t) : 0));
+    const riskUnit = (Number(t.riskDollars) || tradeRiskDollars(t) || 0);
     if (riskUnit > 0 && unrealized !== 0) {
       const r = unrealized / riskUnit;
       heroRMult.textContent = `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`;
@@ -495,9 +503,9 @@ function _execExit() {
   const qty = parseInt(document.getElementById('pos-exit-qty').value, 10);
   const price = parseFloat(document.getElementById('pos-exit-price').value);
   const open = _posOpenQty(t, POS.executions);
-  if (!qty || qty <= 0) { window.toast('Enter exit qty', true); return; }
-  if (qty > open) { window.toast(`Only ${open} ${_posQtyUnit(t).toLowerCase()} open`, true); return; }
-  if (!price || price <= 0) { window.toast('Enter exit price', true); return; }
+  if (!qty || qty <= 0) { toast('Enter exit qty', true); return; }
+  if (qty > open) { toast(`Only ${open} ${_posQtyUnit(t).toLowerCase()} open`, true); return; }
+  if (!price || price <= 0) { toast('Enter exit price', true); return; }
   POS.executions.push({
     id: 'e_' + Math.random().toString(36).slice(2, 8),
     time: new Date().toISOString(),
@@ -527,13 +535,13 @@ function _savePositionEditor() {
   const t = POS.trade;
   if (!t) return;
   const tradeIdx = state.trades.findIndex(x => x.id === t.id);
-  if (tradeIdx < 0) { window.toast('Trade not found', true); return; }
+  if (tradeIdx < 0) { toast('Trade not found', true); return; }
 
   // Persist editor data back onto the trade.
   const updated = _applyTradeModelInputs({ ...state.trades[tradeIdx] });
   const closedQty = POS.executions.reduce((s, e) => s + (Number(e.qty) || 0), 0);
   if (tradeQty(updated) < closedQty) {
-    window.toast(`Model quantity cannot be below ${closedQty} already exited.`, true);
+    toast(`Model quantity cannot be below ${closedQty} already exited.`, true);
     return;
   }
   updated.executions = POS.executions.slice();
@@ -569,14 +577,14 @@ function _savePositionEditor() {
   saveState();
   if (typeof doPush === 'function') {
     if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
-    window.doPush();
+    doPush();
   }
   closePositionEditor();
-  window.renderHome();
-  window.renderLogStats();
-  window.renderLogTable();
-  if (typeof renderTrade === 'function') window.renderTrade();
-  window.toast('Trade updated');
+  renderHome();
+  renderLogStats();
+  renderLogTable();
+  if (typeof renderTrade === 'function') renderTrade();
+  toast('Trade updated');
 }
 
 function _deletePositionEditor() {
@@ -589,17 +597,17 @@ function _deletePositionEditor() {
   saveState();
   if (typeof doPush === 'function') {
     if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
-    window.doPush();
+    doPush();
   }
   closePositionEditor();
-  window.renderHome();
-  window.renderLogStats();
-  window.renderLogTable();
-  if (typeof renderTrade === 'function') window.renderTrade();
-  window.toast('Trade deleted');
+  renderHome();
+  renderLogStats();
+  renderLogTable();
+  if (typeof renderTrade === 'function') renderTrade();
+  toast('Trade deleted');
 }
 
-function _wirePositionEditor() {
+export function _wirePositionEditor() {
   const modal = document.getElementById('modal-position');
   if (!modal) return;
   // Backdrop close
@@ -636,9 +644,9 @@ function _wirePositionEditor() {
   if (editTradeBtn) {
     editTradeBtn.addEventListener('click', () => {
       const tradeId = POS.trade?.id;
-      if (tradeId && typeof window.openEditTrade === 'function') {
+      if (tradeId && typeof openEditTrade === 'function') {
         closePositionEditor();
-        window.openEditTrade(tradeId);
+        openEditTrade(tradeId);
       }
     });
   }
@@ -649,7 +657,7 @@ function _wirePositionEditor() {
     if (v) v = v[0].toUpperCase() + v.slice(1);
     if (v && !/[.!?]$/.test(v)) v += '.';
     ta.value = v;
-    window.toast('Notes cleaned up');
+    toast('Notes cleaned up');
   });
   // Dictate — Web Speech API if available
   const dictateBtn = document.getElementById('pos-dictate-btn');
@@ -657,7 +665,7 @@ function _wirePositionEditor() {
   let recognizing = false;
   dictateBtn.addEventListener('click', () => {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Rec) { window.toast('Voice input not supported in this browser', true); return; }
+    if (!Rec) { toast('Voice input not supported in this browser', true); return; }
     if (recognizing && recognition) { recognition.stop(); return; }
     recognition = new Rec();
     recognition.lang = 'en-US';
@@ -712,15 +720,3 @@ function _wirePositionEditor() {
   });
 }
 
-window.POS = POS;
-window.openPositionEditor = openPositionEditor;
-window.closePositionEditor = closePositionEditor;
-window.setPositionTab = setPositionTab;
-window.renderPositionEditor = renderPositionEditor;
-window._execScale = _execScale;
-window._execExit = _execExit;
-window._delExec = _delExec;
-window._toggleTag = _toggleTag;
-window._savePositionEditor = _savePositionEditor;
-window._deletePositionEditor = _deletePositionEditor;
-window._wirePositionEditor = _wirePositionEditor;

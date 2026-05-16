@@ -2,8 +2,9 @@
 
 import { state } from '../state/store.js';
 import { tradeQty, tradeMultiplier } from '../models/trade.js';
+import { getStrategyForIVR } from '../market/regime.js';
 
-function tfRenderStrategyOutHtml(sObj) {
+export function tfRenderStrategyOutHtml(sObj) {
   if (!sObj) return '';
   return `
     <div class="trade-output">
@@ -18,13 +19,13 @@ function tfRenderStrategyOutHtml(sObj) {
     </div>`;
 }
 
-function tfUpdateSwingStrategyPreview() {
+export function tfUpdateSwingStrategyPreview() {
   const el = document.getElementById('tf-strategy-preview');
   if (!el) return;
   const isOptions = state.instrument !== 'stocks';
   if (!isOptions || state.ivr === null || state.ivr === undefined || !state.direction) { el.innerHTML = ''; return; }
-  const sObj = (typeof getStrategyForIVR === 'function') ? window.getStrategyForIVR(Number(state.ivr), state.direction) : null;
-  el.innerHTML = sObj ? window.tfRenderStrategyOutHtml(sObj) : '';
+  const sObj = (typeof getStrategyForIVR === 'function') ? getStrategyForIVR(Number(state.ivr), state.direction) : null;
+  el.innerHTML = sObj ? tfRenderStrategyOutHtml(sObj) : '';
 }
 
 // Sizing card markup for swing plan/size — also rendered surgically on input.
@@ -41,6 +42,3 @@ function tfCapitalDeployed() {
 }
 
 
-window.tfRenderStrategyOutHtml = tfRenderStrategyOutHtml;
-window.tfUpdateSwingStrategyPreview = tfUpdateSwingStrategyPreview;
-window.tfCapitalDeployed = tfCapitalDeployed;

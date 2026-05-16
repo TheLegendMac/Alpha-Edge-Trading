@@ -7,6 +7,9 @@ import { saveState } from '../state/persistence.js';
 import { SECTORS } from '../config/constants.js';
 import { ratingToStatus } from '../models/trade.js';
 import { touchMarketContext } from '../sync/merge.js';
+import { renderHome } from './home.js';
+import { renderContextPanel } from '../market/context-panel.js';
+import { toast } from '../modals/toast.js';
 
 export function computeTop3(ratings = state.sectorRatings) {
   return SECTORS
@@ -23,14 +26,14 @@ export function computeAvoidList(ratings = state.sectorRatings) {
     .sort((a, b) => parseFloat(a.rating) - parseFloat(b.rating));
 }
 
-function daysSinceSectorRating() {
+export function daysSinceSectorRating() {
   if (!state.sectorRatedAt) return null;
   const ratedAt = new Date(state.sectorRatedAt);
   const now = new Date();
   return Math.floor((now - ratedAt) / (1000 * 60 * 60 * 24));
 }
 
-function isSectorRatingStale() {
+export function isSectorRatingStale() {
   const days = daysSinceSectorRating();
   return days !== null && days > 7;
 }
@@ -41,13 +44,8 @@ function clearSectors() {
   state.sectorRatedAt = null;
   touchMarketContext();
   saveState();
-  if (typeof window.renderHome === 'function') window.renderHome();
-  if (typeof window.renderContextPanel === 'function') window.renderContextPanel();
-  if (typeof window.toast === 'function') window.toast('Sector grades cleared');
+  if (typeof renderHome === 'function') renderHome();
+  if (typeof renderContextPanel === 'function') renderContextPanel();
+  if (typeof toast === 'function') toast('Sector grades cleared');
 }
 
-window.computeTop3 = computeTop3;
-window.computeAvoidList = computeAvoidList;
-window.daysSinceSectorRating = daysSinceSectorRating;
-window.isSectorRatingStale = isSectorRatingStale;
-window.clearSectors = clearSectors;

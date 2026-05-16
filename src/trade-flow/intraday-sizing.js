@@ -1,31 +1,34 @@
 // Intraday trade sizing: spread bracket, OR-derived auto-fill, R-multiple compute, structure/instrument.
 
-import { state } from '../state/store.js';
+import { state, getRiskPctForRegime, getRegimeRiskMultiplier } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
+import { tfRefreshAll, tfRefreshHeaderOnly } from './stepper.js';
+import { tfRenderRiskProfileHtml, tfRiskDirection, tfRiskLevelStat, tfSignedMoneyText, tfBindPriceLevelSliders } from './risk.js';
+import { toast } from '../modals/toast.js';
 
-function tfSetIntradayStructure(structure) {
+export function tfSetIntradayStructure(structure) {
   if (!state.intraday) state.intraday = newIntradayTicket();
   const s = structure === 'spread' ? 'spread' : structure === 'stocks' ? 'stocks' : 'options';
   state.intraday.structure = s;
   state.intraday.instrument = s === 'stocks' ? 'stocks' : 'options';
-  window.tfDeriveIntradaySpread();
-  window.tfAutoFillIntradayOptionBracket();
-  window.tfAutoFillIntradayStockFromOR();
+  tfDeriveIntradaySpread();
+  tfAutoFillIntradayOptionBracket();
+  tfAutoFillIntradayStockFromOR();
   saveState();
-  window.tfRefreshAll();
+  tfRefreshAll();
 }
 
 function tfSetIntradayInstrument(instrument) {
-  window.tfSetIntradayStructure(instrument === 'stocks' ? 'stocks' : 'options');
+  tfSetIntradayStructure(instrument === 'stocks' ? 'stocks' : 'options');
 }
 
-function tfIntradayInstrument() {
+export function tfIntradayInstrument() {
   const it = state.intraday || {};
   return it.instrument === 'stocks' ? 'stocks' : 'options';
 }
 
-function tfDeriveIntradaySpread() {
+export function tfDeriveIntradaySpread() {
   const it = state.intraday || {};
   const bid = Number(it.bid);
   const ask = Number(it.ask);
@@ -40,7 +43,7 @@ function tfDeriveIntradaySpread() {
   return null;
 }
 
-function tfAutoFillIntradayOptionBracket({ force = false } = {}) {
+export function tfAutoFillIntradayOptionBracket({ force = false } = {}) {
   const it = state.intraday || {};
   if ((it.instrument || 'options') === 'stocks') return;
   const settings = state.settings || DEFAULT_SETTINGS;
@@ -58,7 +61,7 @@ function tfAutoFillIntradayOptionBracket({ force = false } = {}) {
   }
 }
 
-function tfAutoFillIntradayStockFromOR({ force = false } = {}) {
+export function tfAutoFillIntradayStockFromOR({ force = false } = {}) {
   const it = state.intraday || {};
   if (it.instrument !== 'stocks') return;
   const hi = Number(it.orHi);
@@ -76,10 +79,10 @@ function tfAutoFillIntradayStockFromOR({ force = false } = {}) {
   }
 }
 
-function tfRenderIntradaySizingHtml() {
+export function tfRenderIntradaySizingHtml() {
   const it = state.intraday || {};
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
-  const auto = window.tfComputeIntradayRiskSize();
+  const isOptions = tfIntradayInstrument() !== 'stocks';
+  const auto = tfComputeIntradayRiskSize();
   if (!auto) {
     const entry = Number(it.entry);
     const stop = Number(it.stop);
@@ -91,7 +94,7 @@ function tfRenderIntradaySizingHtml() {
   const manualQty = Number(it.contracts);
   const useQty = manualQty > 0 ? manualQty : auto.qty;
   const positionCost = Number(it.entry) > 0 ? Math.round(Number(it.entry) * useQty * auto.mult) : null;
-  const profileHtml = window.tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
+  const profileHtml = tfRenderRiskProfileHtml({ entry: it.entry, stop: it.stop, target: it.target, qty: useQty, mult: auto.mult, unitLabel: auto.label, riskUnitDollars: auto.riskBudget });
   return `
     <div class="trade-output" style="margin-top:10px;">
       <div class="trade-output-title">Visual Risk Bar</div>
@@ -102,22 +105,22 @@ function tfRenderIntradaySizingHtml() {
 
 // Live gain/loss estimate card — $ + % + R for both outcomes.
 // Reads from state.intraday and refreshes whenever a level changes.
-function tfRenderIntradayEstimatesHtml() {
+export function tfRenderIntradayEstimatesHtml() {
   const it = state.intraday || {};
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const entry  = Number(it.entry);
   const stop   = Number(it.stop);
   const target = Number(it.target);
   if (!(entry > 0 && stop > 0)) {
     return `<div class="input-help">Enter entry and stop to see live gain / loss estimates.</div>`;
   }
-  const auto = window.tfComputeIntradayRiskSize();
+  const auto = tfComputeIntradayRiskSize();
   const manualQty = Number(it.contracts);
   const qty  = manualQty > 0 ? manualQty : (auto ? auto.qty : 0);
   const mult = isOptions ? 100 : 1;
-  const direction = window.tfRiskDirection({ entry, stop, target });
-  const stopStat = window.tfRiskLevelStat({ entry, price: stop, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction });
-  const targetStat = target > 0 ? window.tfRiskLevelStat({ entry, price: target, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction }) : null;
+  const direction = tfRiskDirection({ entry, stop, target });
+  const stopStat = tfRiskLevelStat({ entry, price: stop, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction });
+  const targetStat = target > 0 ? tfRiskLevelStat({ entry, price: target, qty, mult, rBase: Math.abs(entry - stop) * mult * qty, direction }) : null;
   const lossDollar = Math.round(Math.abs(stopStat ? stopStat.pnl : 0));
   const gainDollar = targetStat ? Math.round(targetStat.pnl) : 0;
   const lossPct = stopStat ? stopStat.pct : 0;
@@ -133,7 +136,7 @@ function tfRenderIntradayEstimatesHtml() {
       </div>
       <div class="tf-i-est-cell tf-i-est-gain">
         <div class="tf-i-est-label">Closing @ Target</div>
-        <div class="tf-i-est-val">${target > 0 ? window.tfSignedMoneyText(gainDollar, 0) : '—'}</div>
+        <div class="tf-i-est-val">${target > 0 ? tfSignedMoneyText(gainDollar, 0) : '—'}</div>
         <div class="tf-i-est-sub">${target > 0 ? `${fmtPct(gainPct)} · ${rValue !== null ? (rValue >= 0 ? '+' : '') + rValue.toFixed(2) + 'R' : '—'}` : 'add a limit price'}</div>
       </div>
       <div class="tf-i-est-cell">
@@ -144,17 +147,17 @@ function tfRenderIntradayEstimatesHtml() {
     </div>`;
 }
 
-function tfComputeIntradayRiskSize() {
+export function tfComputeIntradayRiskSize() {
   const it = state.intraday || {};
   const settings = state.settings || DEFAULT_SETTINGS;
-  const isOptions = window.tfIntradayInstrument() !== 'stocks';
+  const isOptions = tfIntradayInstrument() !== 'stocks';
   const entry = Number(it.entry);
   if (!(entry > 0)) return null;
   const mult = isOptions ? 100 : 1;
   // 1R = account × regime risk% (pure R-unit, independent of deployed capital).
   const account = settings.account || 10000;
-  const riskPct = (typeof window.getRiskPctForRegime === 'function')
-    ? window.getRiskPctForRegime(state.regime || 'risk-on')
+  const riskPct = (typeof getRiskPctForRegime === 'function')
+    ? getRiskPctForRegime(state.regime || 'risk-on')
     : 0.02;
   const riskBudget = Math.round(account * riskPct);
   // Stop is optional — derive a default from settings.stopPct × regime
@@ -166,8 +169,8 @@ function tfComputeIntradayRiskSize() {
   if (hasExplicitStop && !(stopDist > 0)) return null;
   if (!(stopDist > 0)) {
     const baseStopPct = ((settings.stopPct || 50) / 100);
-    const regimeMult = (typeof window.getRegimeRiskMultiplier === 'function')
-      ? window.getRegimeRiskMultiplier(state.regime)
+    const regimeMult = (typeof getRegimeRiskMultiplier === 'function')
+      ? getRegimeRiskMultiplier(state.regime)
       : 1;
     const effStopPct = baseStopPct * regimeMult;
     stopDist = entry * effStopPct;
@@ -188,8 +191,8 @@ function tfComputeIntradayRiskSize() {
   };
 }
 
-function tfApplyIntradayRiskSize() {
-  const auto = window.tfComputeIntradayRiskSize();
+export function tfApplyIntradayRiskSize() {
+  const auto = tfComputeIntradayRiskSize();
   if (!auto) return null;
   if (!state.intraday) state.intraday = newIntradayTicket();
   state.intraday.contracts = auto.qty;
@@ -199,39 +202,39 @@ function tfApplyIntradayRiskSize() {
   return auto.qty;
 }
 
-function tfBindIntradayRiskSizeButton() {
+export function tfBindIntradayRiskSizeButton() {
   const btn = document.getElementById('tf-i-use-risk-size');
   if (!btn) return;
   btn.addEventListener('click', () => {
-    const qty = window.tfApplyIntradayRiskSize();
+    const qty = tfApplyIntradayRiskSize();
     if (!qty) {
-      if (typeof toast === 'function') window.toast('Fill entry and stop first.', true);
+      if (typeof toast === 'function') toast('Fill entry and stop first.', true);
       return;
     }
     const el = document.getElementById('tf-i-contracts');
     if (el) el.value = qty;
     saveState();
-    window.tfRefreshHeaderOnly();
-    window.tfUpdateIntradaySizing();
+    tfRefreshHeaderOnly();
+    tfUpdateIntradaySizing();
   });
 }
 
-function tfUpdateIntradaySizing() {
+export function tfUpdateIntradaySizing() {
   const card = document.getElementById('tf-i-sizing-card');
-  if (card) card.innerHTML = window.tfRenderIntradaySizingHtml();
-  window.tfBindIntradayRiskSizeButton();
-  window.tfBindPriceLevelSliders();
+  if (card) card.innerHTML = tfRenderIntradaySizingHtml();
+  tfBindIntradayRiskSizeButton();
+  tfBindPriceLevelSliders();
 }
 
 // Live gain/loss estimates — surgical refresh on entry/stop/target change.
-function tfUpdateIntradayRMult() {
+export function tfUpdateIntradayRMult() {
   const el = document.getElementById('tf-i-estimates');
   if (!el) return;
-  el.innerHTML = window.tfRenderIntradayEstimatesHtml();
+  el.innerHTML = tfRenderIntradayEstimatesHtml();
 }
 
 // Spread bracket for intraday — single word.
-function tfSpreadBracket(spread, maxOverride = null) {
+export function tfSpreadBracket(spread, maxOverride = null) {
   const override = Number(maxOverride);
   const max = override > 0 ? override : ((state.settings && state.settings.intradayMaxSpreadPct) || 5);
   if (spread === null || spread === undefined || spread === '') return { cls: 'empty', text: '—' };
@@ -247,17 +250,3 @@ function tfSpreadBracket(spread, maxOverride = null) {
 // The sticky header owns ticker, structure, and direction.
 // Swing starts with quality gates, then technicals, sizing, and log. Intraday stays compact.
 
-window.tfSetIntradayStructure = tfSetIntradayStructure;
-window.tfSetIntradayInstrument = tfSetIntradayInstrument;
-window.tfIntradayInstrument = tfIntradayInstrument;
-window.tfDeriveIntradaySpread = tfDeriveIntradaySpread;
-window.tfAutoFillIntradayOptionBracket = tfAutoFillIntradayOptionBracket;
-window.tfAutoFillIntradayStockFromOR = tfAutoFillIntradayStockFromOR;
-window.tfRenderIntradaySizingHtml = tfRenderIntradaySizingHtml;
-window.tfRenderIntradayEstimatesHtml = tfRenderIntradayEstimatesHtml;
-window.tfComputeIntradayRiskSize = tfComputeIntradayRiskSize;
-window.tfApplyIntradayRiskSize = tfApplyIntradayRiskSize;
-window.tfBindIntradayRiskSizeButton = tfBindIntradayRiskSizeButton;
-window.tfUpdateIntradaySizing = tfUpdateIntradaySizing;
-window.tfUpdateIntradayRMult = tfUpdateIntradayRMult;
-window.tfSpreadBracket = tfSpreadBracket;

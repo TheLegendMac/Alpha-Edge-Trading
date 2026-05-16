@@ -7,9 +7,11 @@ import { normalizeActiveMode } from './config/constants.js';
 import { renderRegime } from './market/regime.js';
 import { renderHome } from './views/home.js';
 import { renderReference } from './views/reference.js';
-import { renderLogTable } from './views/log.js';
+import { renderLogTable, renderLogHero } from './views/log.js';
 import { renderStats } from './views/stats.js';
 import { _buildTickerHistory, rememberTicker } from './trade-flow/ticker-memory.js';
+import { renderLogStats } from './intel/alpha.js';
+import { renderTrade } from './trade-flow/stepper.js';
 
 export function setTab(name, opts = {}) {
   name = normalizeActiveMode(name);
@@ -31,14 +33,14 @@ export function setTab(name, opts = {}) {
   if (name === 'home') renderHome();
   if (name === 'reference') renderReference();
   if (name === 'log') {
-    if (typeof window.renderLogStats === 'function') window.renderLogStats();
-    if (typeof window.renderLogHero === 'function') window.renderLogHero();
+    if (typeof renderLogStats === 'function') renderLogStats();
+    if (typeof renderLogHero === 'function') renderLogHero();
     renderLogTable();
   }
   if (name === 'stats') {
-    if (typeof window.renderStats === 'function') window.renderStats();
+    if (typeof renderStats === 'function') renderStats();
   }
-  if (name === 'trade' && typeof window.renderTrade === 'function') window.renderTrade();
+  if (name === 'trade' && typeof renderTrade === 'function') renderTrade();
 }
 
 // Ticker autocomplete — fixed-position dropdown anchored to the input via
@@ -122,8 +124,6 @@ export function attachTickerAutocomplete(input, opts = {}) {
 }
 
 // Bridge to inline onclick handlers in markup that still reference setTab().
-window.setTab = setTab;
-window.attachTickerAutocomplete = attachTickerAutocomplete;
 
 // Native browser back/forward — route to the appropriate tab without
 // leaving the SPA (which would 404 on hosts that don't fall back to /).

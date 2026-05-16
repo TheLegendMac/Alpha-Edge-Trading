@@ -3,6 +3,16 @@
 import { state } from '../state/store.js';
 import { saveState, setState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS, createDefaultState } from '../config/constants.js';
+import { exportCSV } from '../modals/import-export.js';
+import { toast } from '../modals/toast.js';
+import { renderHome } from './home.js';
+import { renderRegime, renderPretradeCheck } from '../market/regime.js';
+import { renderLogStats } from '../intel/alpha.js';
+import { renderReference } from './reference.js';
+import { renderTrade } from '../trade-flow/stepper.js';
+import { closeContextPanel, renderContextPanel } from '../market/context-panel.js';
+import { setTab } from '../tabs.js';
+import { renderLogTable } from './log.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
@@ -107,7 +117,7 @@ function wireSliderInput(sliderId, inputId, min, max, kind, linkedInputId) {
 }
 
 // ── open ─────────────────────────────────────────────────────────────
-function openSettings() {
+export function openSettings() {
   const s = state.settings;
   const el = (id) => document.getElementById(id);
 
@@ -144,14 +154,14 @@ function openSettings() {
     // Export CSV — reuse the existing global handler.
     const exportBtn = el('btn-export-csv');
     if (exportBtn) exportBtn.addEventListener('click', () => {
-      if (typeof window.exportCSV === 'function') window.exportCSV();
-      else if (typeof window.toast === 'function') window.toast('Export unavailable right now.', true);
+      if (typeof exportCSV === 'function') exportCSV();
+      else if (typeof toast === 'function') toast('Export unavailable right now.', true);
     });
 
     // Report feedback — placeholder for now.
     const feedbackBtn = el('btn-report-feedback');
     if (feedbackBtn) feedbackBtn.addEventListener('click', () => {
-      if (typeof window.toast === 'function') window.toast('Feedback channel coming soon.');
+      if (typeof toast === 'function') toast('Feedback channel coming soon.');
     });
 
     // Version footer — injected at build time via Vite define.
@@ -224,14 +234,14 @@ function openSettings() {
 }
 
 // ── close ─────────────────────────────────────────────────────────────
-function closeSettings() {
+export function closeSettings() {
   document.getElementById('modal-settings')?.classList.remove('show');
   // collapse any open mobile sections
   document.querySelectorAll('.sett-section.sett-mv-open').forEach(s => s.classList.remove('sett-mv-open'));
 }
 
 // ── save ──────────────────────────────────────────────────────────────
-function saveSettings() {
+export function saveSettings() {
   const v = (id, fallback) => {
     const el = document.getElementById(id);
     return el ? (parseFloat(el.value) || fallback) : fallback;
@@ -257,11 +267,11 @@ function saveSettings() {
   const riskOff     = v('set-risk-off-r',     DEFAULT_SETTINGS.riskOff);
 
   if (riskNeutral > riskOn || riskOff > riskOn) {
-    if (typeof window.toast === 'function') window.toast('Risk-On must be the highest risk tier (or equal).', true);
+    if (typeof toast === 'function') toast('Risk-On must be the highest risk tier (or equal).', true);
     return;
   }
   if (riskOff > riskNeutral) {
-    if (typeof window.toast === 'function') window.toast('Risk-Off cannot be higher than Neutral risk.', true);
+    if (typeof toast === 'function') toast('Risk-Off cannot be higher than Neutral risk.', true);
     return;
   }
 
@@ -283,25 +293,25 @@ function saveSettings() {
   closeSettings();
 
   // Re-render everything that depends on settings
-  if (typeof window.renderHome === 'function')          window.renderHome();
-  if (typeof window.renderRegime === 'function')        window.renderRegime();
-  if (typeof window.renderPretradeCheck === 'function') window.renderPretradeCheck();
-  if (typeof window.renderLogStats === 'function')      window.renderLogStats();
-  if (typeof window.renderReference === 'function')     window.renderReference();
-  if (typeof window.renderTrade === 'function')         window.renderTrade();
-  window.toast('Settings saved');
+  if (typeof renderHome === 'function')          renderHome();
+  if (typeof renderRegime === 'function')        renderRegime();
+  if (typeof renderPretradeCheck === 'function') renderPretradeCheck();
+  if (typeof renderLogStats === 'function')      renderLogStats();
+  if (typeof renderReference === 'function')     renderReference();
+  if (typeof renderTrade === 'function')         renderTrade();
+  toast('Settings saved');
 }
 
 // ── reset ─────────────────────────────────────────────────────────────
-function resetSettingsToDefaults() {
+export function resetSettingsToDefaults() {
   if (!confirm('Reset all settings to defaults?')) return;
   state.settings = { ...DEFAULT_SETTINGS };
   openSettings();
-  window.toast('Defaults loaded — click Save to apply');
+  toast('Defaults loaded — click Save to apply');
 }
 
 // ── clear all ──────────────────────────────────────────────────────────
-function clearAllTradesAndData() {
+export function clearAllTradesAndData() {
   const tradeCount = (state.trades || []).length;
   const ok = confirm(
     `Clear all trades and cockpit data?\n\n` +
@@ -338,19 +348,14 @@ function clearAllTradesAndData() {
 
   saveState();
   closeSettings();
-  if (typeof window.closeContextPanel === 'function') window.closeContextPanel();
-  window.setTab('home');
-  if (typeof window.renderHome === 'function')          window.renderHome();
-  if (typeof window.renderRegime === 'function')        window.renderRegime();
-  if (typeof window.renderPretradeCheck === 'function') window.renderPretradeCheck();
-  if (typeof window.renderLogStats === 'function')      window.renderLogStats();
-  if (typeof window.renderLogTable === 'function')      window.renderLogTable();
-  if (typeof window.renderContextPanel === 'function')  window.renderContextPanel();
-  window.toast('All trades and cockpit data cleared');
+  if (typeof closeContextPanel === 'function') closeContextPanel();
+  setTab('home');
+  if (typeof renderHome === 'function')          renderHome();
+  if (typeof renderRegime === 'function')        renderRegime();
+  if (typeof renderPretradeCheck === 'function') renderPretradeCheck();
+  if (typeof renderLogStats === 'function')      renderLogStats();
+  if (typeof renderLogTable === 'function')      renderLogTable();
+  if (typeof renderContextPanel === 'function')  renderContextPanel();
+  toast('All trades and cockpit data cleared');
 }
 
-window.openSettings          = openSettings;
-window.closeSettings         = closeSettings;
-window.saveSettings          = saveSettings;
-window.resetSettingsToDefaults = resetSettingsToDefaults;
-window.clearAllTradesAndData   = clearAllTradesAndData;

@@ -72,4 +72,3 @@ export function renderReference() {
   }
 }
 
-window.renderReference = renderReference;

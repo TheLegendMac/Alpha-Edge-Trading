@@ -234,21 +234,3 @@ export const TRADE_BREADTH_OPTIONS = [
 
 // Bridge to legacy.js (regular <script>): expose every constant as a window global
 // so unmoved code in legacy.js keeps resolving identifiers.
-window.STORAGE_KEY = STORAGE_KEY;
-window.OLD_STORAGE_KEY = OLD_STORAGE_KEY;
-window.ACTIVE_MODES = ACTIVE_MODES;
-window.normalizeActiveMode = normalizeActiveMode;
-window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
-window.INTRADAY_SETUPS = INTRADAY_SETUPS;
-window.newIntradayTicket = newIntradayTicket;
-window.createDefaultState = createDefaultState;
-window.SECTORS = SECTORS;
-window.REGIME_DATA = REGIME_DATA;
-window.TRADE_SWING_SETUPS = TRADE_SWING_SETUPS;
-window.TRADE_STRUCTURES = TRADE_STRUCTURES;
-window.TRADE_INTRADAY_SETUPS = TRADE_INTRADAY_SETUPS;
-window.TRADE_SETUP_TEMPLATES = TRADE_SETUP_TEMPLATES;
-window.TRADE_INTRADAY_LEGACY_MAP = TRADE_INTRADAY_LEGACY_MAP;
-window.TRADE_ORB_TYPES = TRADE_ORB_TYPES;
-window.TRADE_CONFLUENCE_OPTIONS = TRADE_CONFLUENCE_OPTIONS;
-window.TRADE_BREADTH_OPTIONS = TRADE_BREADTH_OPTIONS;

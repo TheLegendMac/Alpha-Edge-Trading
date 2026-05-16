@@ -1,4 +1,4 @@
-import { isClosedTrade, calcPL } from './trade.js';
+import { isClosedTrade, calcPL, calcR } from './trade.js';
 
 let cachedKey = '';
 let cachedIndex = null;
@@ -48,7 +48,7 @@ export function buildTradeIndex(trades = []) {
     if (isClosedTrade(t)) {
       closed.push(t);
       pushMap(byExitDate, t.exit_date || t.date, t);
-      closedWithPL.push({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 });
+      closedWithPL.push({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 });
     } else {
       open.push(t);
     }

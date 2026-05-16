@@ -16,4 +16,3 @@ export function computeRollingPL() {
   return { totalPL, pct: (totalPL / account * 100), days, count: recent.length, winRate };
 }
 
-window.computeRollingPL = computeRollingPL;

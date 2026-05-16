@@ -1,6 +1,8 @@
 // Trade log tab — log toolbar + table + setup filters + stats container.
 // renderLogStats came in via Phase 7's alpha extraction; lives here now.
 
+import { renderLogStats } from '../intel/alpha.js';
+import { editTrade } from '../modals/trade-modal.js';
 import { state } from '../state/store.js';
 import {
   isClosedTrade,
@@ -19,7 +21,7 @@ import { esc, attr } from '../dom/html.js';
 
 function setLogSetupFilter(setup) {
   setState({ logSetupFilter: setup || '' });
-  window.renderLogStats();
+  renderLogStats();
   renderLogTable();
   const search = document.getElementById('log-trade-search');
   if (search) search.placeholder = state.logSetupFilter ? `Filtered: ${state.logSetupFilter}` : 'Filter ticker, setup…';
@@ -72,7 +74,7 @@ export function renderLogTable() {
     container.dataset.logWired = '1';
     container.addEventListener('click', e => {
       const row = e.target.closest('[data-edit-trade]');
-      if (row) window.editTrade(row.dataset.editTrade);
+      if (row) editTrade(row.dataset.editTrade);
     });
   }
   if (filtered.length === 0) {
@@ -150,7 +152,3 @@ export function renderLogTable() {
 // formatDate → src/models/formatters.js
 
 
-window.setLogSetupFilter = setLogSetupFilter;
-window.clearLogSetupFilter = clearLogSetupFilter;
-window.renderLogTable = renderLogTable;
-window.renderLogHero = renderLogHero;
