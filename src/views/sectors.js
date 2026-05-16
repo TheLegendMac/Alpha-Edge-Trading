@@ -8,17 +8,17 @@ import { SECTORS } from '../config/constants.js';
 import { ratingToStatus } from '../models/trade.js';
 import { touchMarketContext } from '../sync/merge.js';
 
-function computeTop3() {
+export function computeTop3(ratings = state.sectorRatings) {
   return SECTORS
-    .map(s => ({ ...s, rating: state.sectorRatings[s.ticker] }))
+    .map(s => ({ ...s, rating: (ratings || {})[s.ticker] }))
     .filter(s => ratingToStatus(s.rating) === 'STRONG')
     .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
     .slice(0, 3);
 }
 
-function computeAvoidList() {
+export function computeAvoidList(ratings = state.sectorRatings) {
   return SECTORS
-    .map(s => ({ ...s, rating: state.sectorRatings[s.ticker] }))
+    .map(s => ({ ...s, rating: (ratings || {})[s.ticker] }))
     .filter(s => ratingToStatus(s.rating) === 'WEAK')
     .sort((a, b) => parseFloat(a.rating) - parseFloat(b.rating));
 }
