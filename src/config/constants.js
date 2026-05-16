@@ -54,6 +54,52 @@ export const INTRADAY_SETUPS = [
   { id: 'trend-cont',   name: 'TREND CONT',   detail: 'EMA pullback / push' },
 ];
 
+// Factory for the full default app state. Used by store.js for the initial
+// state object and by settings.js "clear all data". Returns a *fresh* object
+// each call — no shared references across resets.
+export function createDefaultState() {
+  return {
+    settings: { ...DEFAULT_SETTINGS },
+    regime: 'risk-on',
+    activeMode: 'home',     // see ACTIVE_MODES
+    trades: [],
+    deletedTradeIds: {},
+    backtestReports: [],
+    recentTickers: [],
+    // Swing flow
+    selectedSetup: null,
+    instrument: 'options',  // 'options' | 'stocks'
+    ivr: null,
+    direction: 'long',
+    premium: null,
+    atr: null,
+    underlyingPrice: null,
+    ticker: null,
+    saQuant: null,
+    daysToEarnings: null,
+    gateChecks: {},
+    pretradeChecks: { vix: true, news: true },
+    sectorNotes: '',
+    sectorRatings: {},
+    sectorRatedAt: null,
+    liquidity: { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null },
+    // Intraday
+    intraday: newIntradayTicket(),
+    intradayQuality: { timeOverride: false },
+    // Log
+    logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
+    logSearch: '',
+    logSetupFilter: '',
+    homePortfolioView: 'open', // 'recent' | 'open'
+    homeCalendar: null,
+    homeCalendarFilter: null,
+    statsExpanded: false,
+    marketContextUpdatedAt: null,
+    // Unified trade flow
+    tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
+  };
+}
+
 // Factory for a fresh intraday ticket — used by state init and reset flows.
 export function newIntradayTicket() {
   return {
@@ -195,6 +241,7 @@ window.normalizeActiveMode = normalizeActiveMode;
 window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
 window.INTRADAY_SETUPS = INTRADAY_SETUPS;
 window.newIntradayTicket = newIntradayTicket;
+window.createDefaultState = createDefaultState;
 window.SECTORS = SECTORS;
 window.REGIME_DATA = REGIME_DATA;
 window.TRADE_SWING_SETUPS = TRADE_SWING_SETUPS;

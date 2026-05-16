@@ -2,48 +2,9 @@
 // (loadState mutates fields rather than reassigning the binding) so any
 // `import { state }` and any `window.state` reference always sees the same object.
 
-import { DEFAULT_SETTINGS, newIntradayTicket } from '../config/constants.js';
+import { createDefaultState } from '../config/constants.js';
 
-export const state = {
-  settings: { ...DEFAULT_SETTINGS },
-  regime: 'risk-on',
-  activeMode: 'home',     // see ACTIVE_MODES in config/constants.js
-  trades: [],
-  deletedTradeIds: {},
-  backtestReports: [],
-  recentTickers: [],
-  // Swing flow
-  selectedSetup: null,
-  instrument: 'options',  // 'options' | 'stocks'
-  ivr: null,
-  direction: 'long',
-  premium: null,
-  atr: null,
-  underlyingPrice: null,
-  ticker: null,
-  saQuant: null,
-  daysToEarnings: null,
-  gateChecks: {},
-  pretradeChecks: { vix: true, news: true },
-  sectorNotes: '',
-  sectorRatings: {},
-  sectorRatedAt: null,
-  liquidity: { stockVolPass: null, optionOIPass: null, bid: null, ask: null, spreadPct: null },
-  // Intraday
-  intraday: newIntradayTicket(),
-  intradayQuality: { timeOverride: false },
-  // Log
-  logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
-  logSearch: '',
-  logSetupFilter: '',
-  homePortfolioView: 'open', // 'recent' | 'open'
-  homeCalendar: null,           // { year, month } — lazy default = current month
-  homeCalendarFilter: null,     // ISO date string when filtering portfolio to a day
-  statsExpanded: false,         // log-page advanced analytics expanded?
-  marketContextUpdatedAt: null,
-  // Unified trade flow
-  tradeFlow: { mode: 'swing', step: 1, thesis: '', preMortem: '' },
-};
+export const state = createDefaultState();
 
 // Helper: % risk for current regime as a decimal (e.g. 0.02 for 2%).
 export function getRiskPctForRegime(regime) {
