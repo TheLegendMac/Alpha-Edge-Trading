@@ -159,6 +159,9 @@
   .cmdbar-context-btn { padding: 6px 8px; }
   .cmdbar-context-regime { display: none; }
   .cmdbar-sync { display: none; }
+  /* Keep the pill visible on mobile when something is actually broken,
+     so silent sync failures don't go unnoticed. */
+  .cmdbar-sync[data-status="error"] { display: flex; }
   .brand-name { display: none; }
   .cmdbar-left { gap: 14px; }
   .cmdbar-nav .tab { padding: 14px 10px; font-size: 11px; }
