@@ -1,7 +1,7 @@
 // Swing trade sizing: render premium/sizing widgets and structure/instrument toggles.
 
 import { state, getRiskPctForRegime } from '../state/store.js';
-import { saveState } from '../state/persistence.js';
+import { setState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS } from '../config/constants.js';
 
 function tfComputeSwingRiskBudget() {
@@ -123,9 +123,7 @@ function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || '
 
 function tfSetSwingStructure(structure) {
   const s = structure === 'spread' ? 'spread' : structure === 'stocks' ? 'stocks' : 'options';
-  state.structure = s;
-  state.instrument = s === 'stocks' ? 'stocks' : 'options';
-  saveState();
+  setState({ structure: s, instrument: s === 'stocks' ? 'stocks' : 'options' });
   window.tfRefreshAll();
 }
 

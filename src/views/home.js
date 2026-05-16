@@ -13,7 +13,7 @@ import {
 } from '../models/trade.js';
 import { formatDate, todayISO } from '../models/formatters.js';
 import { computeRollingPL } from '../intel/rolling.js';
-import { saveState } from '../state/persistence.js';
+import { setState } from '../state/persistence.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
 
@@ -539,8 +539,7 @@ export function renderHome() {
       const clearInBanner = empty.querySelector('[data-cal-clear]');
       if (clearInBanner) clearInBanner.addEventListener('click', e => {
         e.stopPropagation();
-        state.homeCalendarFilter = null;
-        saveState();
+        setState({ homeCalendarFilter: null });
         renderHome();
       });
       const demoBtn = empty.querySelector('[data-load-demo]');
@@ -598,8 +597,7 @@ export function renderHome() {
 }
 
 function clearCalendarFilter() {
-  state.homeCalendarFilter = null;
-  saveState();
+  setState({ homeCalendarFilter: null });
   renderHome();
 }
 
@@ -609,18 +607,16 @@ function wireHomeCalendar(title, calendar) {
     title.addEventListener('click', e => {
       const todayBtn = e.target.closest('[data-cal-today]');
       if (todayBtn) {
-        state.homeCalendarOffset = 0;
-        saveState();
+        setState({ homeCalendarOffset: 0 });
         renderHome();
         return;
       }
 
       const btn = e.target.closest('[data-cal-arrow]');
       if (!btn) return;
-          const offset = typeof state.homeCalendarOffset === 'number' ? state.homeCalendarOffset : 0;
+      const offset = typeof state.homeCalendarOffset === 'number' ? state.homeCalendarOffset : 0;
       const dir = btn.dataset.calArrow === 'next' ? 1 : -1;
-          state.homeCalendarOffset = offset + dir;
-      saveState();
+      setState({ homeCalendarOffset: offset + dir });
       renderHome();
     });
   }
@@ -636,8 +632,7 @@ function wireHomeCalendar(title, calendar) {
       const cell = e.target.closest('[data-cal-day]');
       if (!cell) return;
       const iso = cell.dataset.calDay;
-      state.homeCalendarFilter = (state.homeCalendarFilter === iso) ? null : iso;
-      saveState();
+      setState({ homeCalendarFilter: state.homeCalendarFilter === iso ? null : iso });
       renderHome();
     });
   }
@@ -672,8 +667,7 @@ function wireHomeActivityList(container) {
 }
 
 function toggleHomePortfolioView() {
-  state.homePortfolioView = state.homePortfolioView === 'open' ? 'recent' : 'open';
-  saveState();
+  setState({ homePortfolioView: state.homePortfolioView === 'open' ? 'recent' : 'open' });
   renderHome();
 }
 

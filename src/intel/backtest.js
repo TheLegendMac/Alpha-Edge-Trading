@@ -1,7 +1,7 @@
 // ThinkorSwim backtest report import + display.
 
 import { state } from '../state/store.js';
-import { saveState } from '../state/persistence.js';
+import { saveState, setState } from '../state/persistence.js';
 import { SYNC, doPush } from '../sync/supabase.js';
 
 // ── TOS backtest report import card ───────────────────────────
@@ -202,8 +202,7 @@ function addBacktestReport(report) {
 function deleteBacktestReport(id) {
   if (!state.backtestReports) return;
   if (!confirm('Remove this backtest report?')) return;
-  state.backtestReports = state.backtestReports.filter(r => r.id !== id);
-  saveState();
+  setState({ backtestReports: state.backtestReports.filter(r => r.id !== id) });
   if (typeof window.renderLogStats === 'function') window.renderLogStats();
   if (typeof window.toast === 'function') window.toast('Backtest removed');
 }

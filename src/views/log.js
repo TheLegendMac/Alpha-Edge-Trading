@@ -13,13 +13,12 @@ import {
   calcR,
 } from '../models/trade.js';
 import { formatDate } from '../models/formatters.js';
-import { saveState } from '../state/persistence.js';
+import { setState } from '../state/persistence.js';
 import { buildTradeIndex, filterLogTrades } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
 
 function setLogSetupFilter(setup) {
-  state.logSetupFilter = setup || '';
-  saveState();
+  setState({ logSetupFilter: setup || '' });
   window.renderLogStats();
   renderLogTable();
   const search = document.getElementById('log-trade-search');
