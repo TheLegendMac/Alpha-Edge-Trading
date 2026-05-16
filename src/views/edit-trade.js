@@ -1,9 +1,12 @@
 // Edit Trade — full-page view for managing an open position.
 // Two modes: VIEW (read-only dashboard) and EDIT (drag handles + form controls + staged save).
 
-import { state } from '../state/store.js';
+import { state, refreshAllUI } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { calcPL, tradeRiskDollars, tradeMultiplier, tradeQty } from '../models/trade.js';
+import { toast } from '../modals/toast.js';
+import { setTab } from '../tabs.js';
+import { renderTrade } from '../trade-flow/stepper.js';
 
 // ── module state ──────────────────────────────────────────────────────────
 let editMode = false;
@@ -71,10 +74,6 @@ function regimeColor(r) {
   if (k.includes('neutral')) return 'var(--amber-bright,#fbbf24)';
   return 'var(--ink-3)';
 }
-function toast(msg) {
-  if (typeof window.toast === 'function') window.toast(msg);
-}
-
 function qtyLabel(w, qty) {
   const unit = (w.mode === 'intraday' || w.instrument === 'options') ? 'ctr' : 'sh';
   return `${qty} ${unit}`;
@@ -563,7 +562,7 @@ function wireEvents(trade, w, ctx) {
       trade.currentPrice = v;
       trade.updated_at = new Date().toISOString();
       saveState();
-      if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
+      if (typeof refreshAllUI === 'function') refreshAllUI();
       renderEditTrade(trade);
       toast('Mark price updated');
     });
@@ -644,8 +643,8 @@ function wireEvents(trade, w, ctx) {
     }
     saveState();
     closeEditTrade();
-    if (typeof window.setTab === 'function') window.setTab('trade');
-    if (typeof window.renderTrade === 'function') window.renderTrade();
+    if (typeof setTab === 'function') setTab('trade');
+    if (typeof renderTrade === 'function') renderTrade();
     toast(`Repeating ${w.setup}`);
   });
 
@@ -682,7 +681,7 @@ function wireEvents(trade, w, ctx) {
     commitDraft(trade);
     toast('Changes saved');
     exitEditMode(trade);
-    if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
+    if (typeof refreshAllUI === 'function') refreshAllUI();
   });
 }
 
@@ -798,7 +797,7 @@ function applyCloseAll(trade, q, px, ctx) {
   saveState();
   toast(`Closed ${trade.ticker || ''} @ $${px.toFixed(2)}`);
   closeEditTrade();
-  if (typeof window.refreshAllUI === 'function') window.refreshAllUI();
+  if (typeof refreshAllUI === 'function') refreshAllUI();
 }
 
 // ── journal helpers ───────────────────────────────────────────────────────
@@ -959,5 +958,3 @@ function buildHistory(trade, accentColor, toneColor) {
 }
 
 // ── global expose ─────────────────────────────────────────────────────────
-window.openEditTrade  = openEditTrade;
-window.closeEditTrade = closeEditTrade;

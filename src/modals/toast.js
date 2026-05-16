@@ -1,7 +1,7 @@
 // Toast notification — small bottom-right popup.
 
 let toastTimer;
-function toast(msg, isError) {
+export function toast(msg, isError) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
@@ -12,4 +12,3 @@ function toast(msg, isError) {
 }
 
 
-window.toast = toast;

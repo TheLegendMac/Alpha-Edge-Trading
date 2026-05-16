@@ -4,6 +4,7 @@ import { state } from '../state/store.js';
 import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
 import { computeRollingPL } from '../intel/rolling.js';
 import { buildTradeIndex } from '../models/trade-index.js';
+import { buildAlphaIntel, buildAlphaHighlightBullets } from '../intel/alpha.js';
 
 const PERIODS = [
   { k: '1W', days: 7 },
@@ -160,8 +161,8 @@ export function renderStats() {
   const allAvgR       = allClosedWithPL.length ? allClosedWithPL.reduce((s, x) => s + x.r, 0) / allClosedWithPL.length : 0;
 
   // Full Edge Intelligence card HTML (same as Home tab — used only in modal)
-  const fullEiHtml = typeof window.buildAlphaIntel === 'function'
-    ? window.buildAlphaIntel(allClosed, allClosedWithPL, allWins, allLosses, allExpectancy, allAvgR, allPF)
+  const fullEiHtml = typeof buildAlphaIntel === 'function'
+    ? buildAlphaIntel(allClosed, allClosedWithPL, allWins, allLosses, allExpectancy, allAvgR, allPF)
     : `<div class="home-card green" style="margin:0;">Edge Intelligence loading…</div>`;
 
   // Glanceable compact card — 4 key numbers + verdict + enlarge button
@@ -185,8 +186,8 @@ export function renderStats() {
   ].map(m=>`<div class="sei-num"><div class="sei-num-val ${m.cls}">${m.v}</div><div class="sei-num-lbl">${m.l}</div></div>`).join('');
 
   // 2-3 key bullets for compact view
-  const highlightBullets = typeof window.buildAlphaHighlightBullets === 'function'
-    ? window.buildAlphaHighlightBullets(allClosedWithPL).slice(0, 2)
+  const highlightBullets = typeof buildAlphaHighlightBullets === 'function'
+    ? buildAlphaHighlightBullets(allClosedWithPL).slice(0, 2)
     : [];
   const careerBullet = allClosedWithPL.length > 0 ? {
     tone: allTotalPL >= 0 ? 'good' : 'bad', icon: '📈',
@@ -520,4 +521,3 @@ export function renderStats() {
   });
 }
 
-window.renderStats = renderStats;

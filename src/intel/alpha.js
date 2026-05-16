@@ -1,11 +1,17 @@
 // Alpha Intel — performance + friction analytics that drive the home dashboard's
 // 'alpha edge' card and the closed-trade summary breakdowns.
 
+import { tfFindIntradaySetup } from '../trade-flow/intraday-steps.js';
+import { TRADE_SWING_SETUPS } from '../config/constants.js';
+import { tfComputeIntradayRiskSize } from '../trade-flow/intraday-sizing.js';
+import { tfComputeIntradayDayPL } from '../trade-flow/gates.js';
 import { state } from '../state/store.js';
 import {
   isClosedTrade,
   calcPL,
+  calcR,
   tradeInstrument,
+  tradeRiskDollars,
   normalizeProcessQuality,
 } from '../models/trade.js';
 import { computeRollingPL } from './rolling.js';
@@ -112,7 +118,7 @@ function alphaSection(title, body) {
   return `<div class="alpha-edge-section"><div class="ai-section-title">${alphaEsc(title)}</div>${body}</div>`;
 }
 
-function buildAlphaHighlightBullets(closedWithPL) {
+export function buildAlphaHighlightBullets(closedWithPL) {
   const bullets = [];
   const intraday = closedWithPL.filter(x => x.trade.mode === 'intraday');
   const intradayOptions = intraday.filter(x => tradeInstrument(x.trade) === 'options');
@@ -238,7 +244,7 @@ function buildAlphaEdgeCard(closedWithPL, help) {
 //  buildAlphaIntel — returns the alpha-intel HTML block.
 //  Called by renderLogStats; accepts pre-computed aggregates.
 // ──────────────────────────────────────────────────────────
-function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
+export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
   const n = closed.length;
   const helpBtn = '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
 
@@ -271,7 +277,7 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
     setupMap[k].n++;
     if (pl > 0) setupMap[k].wins++;
     setupMap[k].pl += pl;
-    setupMap[k].totalR += window.calcR(t) || 0;
+    setupMap[k].totalR += calcR(t) || 0;
   });
   const setups = Object.values(setupMap).sort((a, b) => b.pl - a.pl);
   const bestSetup  = setups[0] || null;
@@ -430,19 +436,19 @@ function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, p
 //  with the same visual language as the home Edge Intel card so the user
 //  reads it the same way no matter where they see it.
 // ──────────────────────────────────────────────────────────
-function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal = false } = {}) {
+export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal = false } = {}) {
   const helpBtn = inModal ? '' : '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
   const closed = (state.trades || []).filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
   const dirKey = (direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
 
   const bullets = [];
 
   // Friendly setup name — fall back to whatever was stored.
-  const setupDef = (typeof window.tfFindIntradaySetup === 'function' && mode === 'intraday') ? window.tfFindIntradaySetup(setup) : null;
-  const swingSetupDef = (mode === 'swing' && Array.isArray(window.TRADE_SWING_SETUPS))
-    ? window.TRADE_SWING_SETUPS.find(s => s.id === setup)
+  const setupDef = (typeof tfFindIntradaySetup === 'function' && mode === 'intraday') ? tfFindIntradaySetup(setup) : null;
+  const swingSetupDef = (mode === 'swing' && Array.isArray(TRADE_SWING_SETUPS))
+    ? TRADE_SWING_SETUPS.find(s => s.id === setup)
     : null;
   const setupLabel = setupDef ? setupDef.name : (swingSetupDef ? (swingSetupDef.name || swingSetupDef.id) : (setup || 'this setup'));
   const dirWord = dirKey === 'short' ? 'short' : 'long';
@@ -467,7 +473,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
 
   // How much of the account is on the line.
   if (mode === 'intraday') {
-    const auto = (typeof window.tfComputeIntradayRiskSize === 'function') ? window.tfComputeIntradayRiskSize() : null;
+    const auto = (typeof tfComputeIntradayRiskSize === 'function') ? tfComputeIntradayRiskSize() : null;
     const it = state.intraday || {};
     const settings = state.settings || {};
     const account = Number(settings.account) || 0;
@@ -606,8 +612,8 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
         });
       }
     }
-    if (typeof window.tfComputeIntradayDayPL === 'function') {
-      const dayPL = window.tfComputeIntradayDayPL();
+    if (typeof tfComputeIntradayDayPL === 'function') {
+      const dayPL = tfComputeIntradayDayPL();
       const cap = settings.intradayMaxDailyLoss || 200;
       const remaining = cap + dayPL;
       if (remaining < cap * 0.4 && dayPL < 0) {
@@ -650,7 +656,7 @@ function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal =
     </div>`;
 }
 
-function renderLogStats() {
+export function renderLogStats() {
   const container = document.getElementById('log-stats');
   if (!container) return;
   const help = text => `<span class="stat-help" title="${text}">?</span>`;
@@ -661,7 +667,7 @@ function renderLogStats() {
   const trades = setupFilter ? modeTrades.filter(t => (t.setup || '—') === setupFilter) : modeTrades;
   const open   = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
 
@@ -688,7 +694,7 @@ function renderLogStats() {
   const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
 
   const openRisk = open.reduce((s, t) => {
-    const fallback = window.tradeRiskDollars(t);
+    const fallback = tradeRiskDollars(t);
     return s + (Number(t.riskDollars) || fallback || 0);
   }, 0);
 
@@ -895,7 +901,7 @@ function renderLogStats() {
     setupMap[k].n++;
     if (pl > 0) setupMap[k].wins++;
     setupMap[k].pl += pl;
-    setupMap[k].totalR += window.calcR(t) || 0;
+    setupMap[k].totalR += calcR(t) || 0;
   });
   const setups = Object.entries(setupMap).sort((a, b) => b[1].pl - a[1].pl);
   const maxSetupPL = Math.max(...setups.map(([, s]) => Math.abs(s.pl)), 1);
@@ -979,7 +985,7 @@ function renderLogStats() {
 function buildLogStatsData() {
   const index = buildTradeIndex(state.trades || []);
   const closed = index.all.filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
   const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -999,37 +1005,9 @@ function buildLogStatsData() {
     setupMap[k].n++;
     if (pl > 0) setupMap[k].wins++;
     setupMap[k].pl += pl;
-    setupMap[k].totalR += window.calcR(t) || 0;
+    setupMap[k].totalR += calcR(t) || 0;
   });
   return { closed, closedWithPL, wins, losses, totalPL, winRateNum, grossWin, grossLoss, profitFactor, expectancy, avgR, avgWinR, avgLossR, setupMap };
 }
-window.buildLogStatsData = buildLogStatsData;
 
 // Bridge to legacy.js.
-window.alphaEsc = alphaEsc;
-window.alphaMoney = alphaMoney;
-window.alphaR = alphaR;
-window.alphaDirectionKey = alphaDirectionKey;
-window.alphaIntradaySetupDef = alphaIntradaySetupDef;
-window.alphaSetupBias = alphaSetupBias;
-window.alphaConfluenceBias = alphaConfluenceBias;
-window.alphaBreadthBias = alphaBreadthBias;
-window.alphaContextAlignment = alphaContextAlignment;
-window.alphaSpreadValue = alphaSpreadValue;
-window.alphaSpreadBucket = alphaSpreadBucket;
-window.alphaFillQuality = alphaFillQuality;
-window.alphaTimeBucket = alphaTimeBucket;
-window.alphaOrbDirectionBucket = alphaOrbDirectionBucket;
-window.alphaOrbRangeBucket = alphaOrbRangeBucket;
-window.alphaVwapBucket = alphaVwapBucket;
-window.alphaFrictionScore = alphaFrictionScore;
-window.alphaFrictionBucket = alphaFrictionBucket;
-window.alphaSummarizeRows = alphaSummarizeRows;
-window.alphaGroupClosedRows = alphaGroupClosedRows;
-window.alphaRowsHtml = alphaRowsHtml;
-window.alphaSection = alphaSection;
-window.buildAlphaHighlightBullets = buildAlphaHighlightBullets;
-window.buildAlphaEdgeCard = buildAlphaEdgeCard;
-window.buildAlphaIntel = buildAlphaIntel;
-window.buildTradeFlowEdgeIntel = buildTradeFlowEdgeIntel;
-window.renderLogStats = renderLogStats;

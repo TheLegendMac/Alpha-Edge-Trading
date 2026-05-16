@@ -134,5 +134,3 @@ export function buildSetupScorecardsHtml(trades = state.trades || []) {
     </div>`;
 }
 
-window.computeSetupScorecards = computeSetupScorecards;
-window.buildSetupScorecardsHtml = buildSetupScorecardsHtml;

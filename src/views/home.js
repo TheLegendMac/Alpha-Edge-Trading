@@ -1,5 +1,8 @@
 // Home dashboard — main landing tab. Pulls together account/regime/portfolio summary.
 
+import { renderLogStats } from '../intel/alpha.js';
+import { setTab } from '../tabs.js';
+import { loadDemoData, reviewTrade } from '../modals/trade-modal.js';
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { REGIME_DATA, TRADE_SWING_SETUPS } from '../config/constants.js';
 import {
@@ -16,11 +19,12 @@ import { computeRollingPL } from '../intel/rolling.js';
 import { setState } from '../state/persistence.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
+import { computeTop3, computeAvoidList, daysSinceSectorRating, isSectorRatingStale } from './sectors.js';
 
-function renderUniversalSidebar() {
+export function renderUniversalSidebar() {
   // Stable function name other modules can call without coupling.
   renderHome();
-  window.renderLogStats();
+  renderLogStats();
 }
 
 function openQty(t) {
@@ -140,8 +144,8 @@ export function renderHome() {
   const tradesLeft = positionSlotsLeft;
   const ratings = Object.values(state.sectorRatings || {}).map(Number).filter(v => Number.isFinite(v));
   const sectorScore = ratings.length ? Math.round(ratings.reduce((s, v) => s + v, 0) / ratings.length / 5 * 100) : null;
-  const top3 = window.computeTop3();
-  const avoid = window.computeAvoidList();
+  const top3 = computeTop3();
+  const avoid = computeAvoidList();
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
   const positionsOk = openTrades.length < state.settings.maxPositions;
   const rolling = computeRollingPL();
@@ -186,7 +190,7 @@ export function renderHome() {
   }
 
   // Today-focused bullets. Each line is one breath; the color carries tone.
-  const sectorStaleNow = state.sectorRatedAt && window.isSectorRatingStale();
+  const sectorStaleNow = state.sectorRatedAt && isSectorRatingStale();
   const intelPoints = [];
 
   // 1. Today's session — only when there's something concrete to report.
@@ -243,7 +247,7 @@ export function renderHome() {
 
   // Stale sector callout — only if actually stale.
   if (sectorStaleNow) {
-    const days = window.daysSinceSectorRating();
+    const days = daysSinceSectorRating();
     intelPoints.push({
       tone: 'warn', icon: '⚠️',
       html: `Sector grades <strong>${days}d old</strong> — re-rate before trading.`,
@@ -543,7 +547,7 @@ export function renderHome() {
         renderHome();
       });
       const demoBtn = empty.querySelector('[data-load-demo]');
-      if (demoBtn) demoBtn.addEventListener('click', () => window.loadDemoData && window.loadDemoData());
+      if (demoBtn) demoBtn.addEventListener('click', loadDemoData);
     } else {
       empty.innerHTML = filterBanner + listTrades.map(t => {
         const pl = calcPL(t);
@@ -553,7 +557,7 @@ export function renderHome() {
         const qtyUnit = tradeInstrument(t) === 'stocks' ? 'sh' : 'ctr';
         const entry = Number(t.entry || 0);
         const mark  = Number(t.mark  || 0);
-        const risk  = Math.round(Number(t.riskDollars) || window.tradeRiskDollars(t) || 0);
+        const risk  = Math.round(Number(t.riskDollars) || tradeRiskDollars(t) || 0);
         const qtyStr = `${tradeQty(t) || 0} ${qtyUnit} @ $${entry.toFixed(2)}`;
         const markStr = mark > 0 ? `mark $${mark.toFixed(2)}` : '';
         const plStr = t.status === 'open'
@@ -650,30 +654,24 @@ function wireHomeActivityList(container) {
     }
     const demo = e.target.closest('[data-load-demo]');
     if (demo) {
-      if (typeof window.loadDemoData === 'function') window.loadDemoData();
+      loadDemoData();
       return;
     }
     const review = e.target.closest('[data-review-trade]');
     if (review) {
-      if (typeof window.reviewTrade === 'function') window.reviewTrade(review.dataset.reviewTrade);
+      reviewTrade(review.dataset.reviewTrade);
       return;
     }
     const logTab = e.target.closest('[data-home-tab="log"]');
     if (logTab) {
-      if (typeof window.setTab === 'function') window.setTab('log');
+      if (typeof setTab === 'function') setTab('log');
       return;
     }
   });
 }
 
-function toggleHomePortfolioView() {
+export function toggleHomePortfolioView() {
   setState({ homePortfolioView: state.homePortfolioView === 'open' ? 'recent' : 'open' });
   renderHome();
 }
 
-window.renderUniversalSidebar = renderUniversalSidebar;
-window.renderHome = renderHome;
-window.clearCalendarFilter = clearCalendarFilter;
-window.wireHomeCalendar = wireHomeCalendar;
-window.wireHomeActivityList = wireHomeActivityList;
-window.toggleHomePortfolioView = toggleHomePortfolioView;

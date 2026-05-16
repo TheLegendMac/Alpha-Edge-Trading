@@ -4,15 +4,17 @@ import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { REGIME_DATA } from '../config/constants.js';
 import { touchMarketContext } from '../sync/merge.js';
+import { renderHome } from '../views/home.js';
+import { renderTrade } from '../trade-flow/stepper.js';
 
 export function setRegime(r) {
   state.regime = r;
   touchMarketContext();
   saveState();
-  if (typeof window.renderHome === 'function') window.renderHome();
+  if (typeof renderHome === 'function') renderHome();
   renderRegime();
   renderPretradeCheck();
-  if (typeof window.renderTrade === 'function') window.renderTrade();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
 export function renderRegime() {
@@ -168,7 +170,7 @@ export function togglePretradeCheck(key) {
   state.pretradeChecks[key] = !state.pretradeChecks[key];
   saveState();
   renderPretradeCheck();
-  if (typeof window.renderTrade === 'function') window.renderTrade();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
 // ---------- IV Rank Strategy ----------
@@ -262,12 +264,3 @@ export function liquidityOK() {
 }
 
 // Bridge to legacy.js.
-window.setRegime = setRegime;
-window.renderRegime = renderRegime;
-window.getTodayLossCount = getTodayLossCount;
-window.getOpenPositionsCount = getOpenPositionsCount;
-window.renderPretradeCheck = renderPretradeCheck;
-window.togglePretradeCheck = togglePretradeCheck;
-window.getStrategyForIVR = getStrategyForIVR;
-window.deriveSpreadPct = deriveSpreadPct;
-window.liquidityOK = liquidityOK;

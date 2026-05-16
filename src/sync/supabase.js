@@ -3,6 +3,7 @@
 // Supabase is the cloud mirror. On every save, debounce-push to Supabase. On
 // boot, pull cloud state, compare timestamps, and reconcile.
 
+import { STORAGE_KEY } from '../config/constants.js';
 import { state } from '../state/store.js';
 import { saveStateLocal } from '../state/persistence.js';
 import { refreshAllUI } from '../state/store.js';
@@ -257,7 +258,7 @@ export async function reconcileOnSignIn() {
     await doPush();
     return;
   }
-  const STORAGE_KEY = window.STORAGE_KEY;
+  const STORAGE_KEY = STORAGE_KEY;
   const localRaw = localStorage.getItem(STORAGE_KEY);
   if (!localRaw) {
     Object.assign(state, cloud.state_json);
@@ -402,13 +403,3 @@ setInterval(() => {
 }, 60000);
 
 // Bridge to legacy.js.
-window.SYNC = SYNC;
-window.getDeviceId = getDeviceId;
-window.initSupabase = initSupabase;
-window.setSyncStatus = setSyncStatus;
-window.pullCloudState = pullCloudState;
-window.schedulePush = schedulePush;
-window.doPush = doPush;
-window.syncTradesTableMirror = syncTradesTableMirror;
-window.reconcileOnSignIn = reconcileOnSignIn;
-window.pullAndMergeIfNewer = pullAndMergeIfNewer;

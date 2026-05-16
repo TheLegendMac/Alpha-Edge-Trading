@@ -1,5 +1,6 @@
 // Auth modal flow + sync menu. Talks to the Supabase client through sync/supabase.js.
 
+import { toast } from '../modals/toast.js';
 import { state } from '../state/store.js';
 import {
   SYNC,
@@ -169,14 +170,14 @@ export async function manualSupabaseRefresh() {
     const pushed = await doPush();
     if (!pushed) throw new Error(SYNC.lastError || 'Supabase push failed');
     // toast() is still in legacy.js — reach via window.
-    if (typeof window.toast === 'function') {
-      window.toast(`Supabase refreshed: ${(state.trades || []).length} trades synced`);
+    if (typeof toast === 'function') {
+      toast(`Supabase refreshed: ${(state.trades || []).length} trades synced`);
     }
   } catch (e) {
     console.warn('[sync refresh] failed:', e);
     setSyncStatus('error', 'Refresh failed');
-    if (typeof window.toast === 'function') {
-      window.toast('Supabase refresh failed. Check console for details.', true);
+    if (typeof toast === 'function') {
+      toast('Supabase refresh failed. Check console for details.', true);
     }
   }
 }
@@ -204,14 +205,3 @@ export async function bootstrapAuth() {
 }
 
 // Bridge to legacy.js.
-window.showAuthModal = showAuthModal;
-window.ensureAuthModal = ensureAuthModal;
-window.hideAuthModal = hideAuthModal;
-window.showAuthError = showAuthError;
-window.clearAuthError = clearAuthError;
-window.handleSignIn = handleSignIn;
-window.handleSignUp = handleSignUp;
-window.handleSkipAuth = handleSkipAuth;
-window.showSyncMenu = showSyncMenu;
-window.manualSupabaseRefresh = manualSupabaseRefresh;
-window.bootstrapAuth = bootstrapAuth;

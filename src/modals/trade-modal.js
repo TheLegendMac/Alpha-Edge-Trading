@@ -1,5 +1,13 @@
 // Add Trade modal + lifecycle entry points (open/save/delete/edit/review/addTestTrades).
 
+import { doPush } from '../sync/supabase.js';
+import { renderHome } from '../views/home.js';
+import { renderLogStats } from '../intel/alpha.js';
+import { renderLogTable } from '../views/log.js';
+import { renderPretradeCheck } from '../market/regime.js';
+import { renderTrade } from '../trade-flow/stepper.js';
+import { toast } from './toast.js';
+import { openEditTrade } from '../views/edit-trade.js';
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { refreshAllUI } from '../state/store.js';
@@ -23,7 +31,7 @@ import { getRiskPctForRegime } from '../state/store.js';
 // addTestTrades is a dev/test utility — generates random trades. Count
 // defaults to 25; loadDemoData calls it with 30. The skipConfirm flag lets
 // in-app onboarding (Load Demo Data button) skip the prompt.
-function addTestTrades(count = 25, skipConfirm = false) {
+export function addTestTrades(count = 25, skipConfirm = false) {
   if (!skipConfirm) {
     const ok = confirm(
       `Generate ${count} random test trades?\n\n` +
@@ -133,21 +141,21 @@ function addTestTrades(count = 25, skipConfirm = false) {
   saveState();
   if (typeof doPush === 'function') {
     if (typeof SYNC !== 'undefined' && SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
-    window.doPush();
+    doPush();
   }
-  window.renderHome();
-  window.renderLogStats();
-  window.renderLogTable();
-  window.renderPretradeCheck();
-  if (typeof renderTrade === 'function') window.renderTrade();
-  window.toast(`Generated ${sampleTrades.length} random test trades`);
+  renderHome();
+  renderLogStats();
+  renderLogTable();
+  renderPretradeCheck();
+  if (typeof renderTrade === 'function') renderTrade();
+  toast(`Generated ${sampleTrades.length} random test trades`);
 }
 
 // Universal sidebar refresher - call from anywhere a trade lifecycle event happens
 
 // ---------- Trade modal ----------
 
-function resetFlowSilent() {
+export function resetFlowSilent() {
   state.selectedSetup = null;
   state.direction = null;
   state.structure = 'options';
@@ -175,24 +183,20 @@ function resetFlowSilent() {
     state.tradeFlow.visited = [];
   }
   saveState();
-  if (typeof renderTrade === 'function') window.renderTrade();
+  if (typeof renderTrade === 'function') renderTrade();
 }
 
-window.editTrade = function(id) {
-  if (typeof window.openEditTrade === 'function') {
-    window.openEditTrade(id);
-  }
-};
+export function editTrade(id) {
+  openEditTrade(id);
+}
 
-window.reviewTrade = function(id) {
-  if (typeof window.openEditTrade === 'function') {
-    window.openEditTrade(id);
-  }
-};
+export function reviewTrade(id) {
+  openEditTrade(id);
+}
 
 // ---------- Position Editor (simplified Execution Manager + Journal) ----------
 
-window.addTestTrades = addTestTrades;
 // Onboarding shortcut — 30 trades, with confirm prompt.
-window.loadDemoData = () => addTestTrades(30, false);
-window.resetFlowSilent = resetFlowSilent;
+export function loadDemoData() {
+  addTestTrades(30, false);
+}

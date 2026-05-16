@@ -101,12 +101,3 @@ export function adoptCloudMarketContext(cloudState) {
 }
 
 // Bridge to legacy.js.
-window.tradeFieldScore = tradeFieldScore;
-window.tradeUpdatedTime = tradeUpdatedTime;
-window.chooseTradeVersion = chooseTradeVersion;
-window.mergeDeletedTradeIds = mergeDeletedTradeIds;
-window.mergeTradesArrays = mergeTradesArrays;
-window.touchMarketContext = touchMarketContext;
-window.marketContextTime = marketContextTime;
-window.shouldAdoptCloudMarketContext = shouldAdoptCloudMarketContext;
-window.adoptCloudMarketContext = adoptCloudMarketContext;

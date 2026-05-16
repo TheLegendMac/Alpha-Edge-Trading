@@ -2,9 +2,10 @@
 
 import { state } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
+import { toast } from './toast.js';
 
-function exportCSV() {
-  if (state.trades.length === 0) { window.toast('No trades to export', true); return; }
+export function exportCSV() {
+  if (state.trades.length === 0) { toast('No trades to export', true); return; }
   const cols = ['date','mode','ticker','setup','direction','entry','contracts','ivr','regime','status','exit','exit_date','riskDollars','grade','thesis','premortem','stop'];
   const csv = [
     cols.join(','),
@@ -23,11 +24,11 @@ function exportCSV() {
   a.download = `mac_trades_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  window.toast('CSV exported');
+  toast('CSV exported');
 }
 
 // ---------- JSON Export / Import ----------
-function exportJSON() {
+export function exportJSON() {
   // Full state snapshot (settings, regime, sectors, trades) for cross-machine sync
   const blob = new Blob([JSON.stringify({
     version: 'mac-v3',
@@ -43,14 +44,14 @@ function exportJSON() {
   // Stamp the export so the "stale backup" nudge stays quiet
   localStorage.setItem('mac_cockpit_last_export', String(Date.now()));
   hideStaleBackupNudge();
-  window.toast('JSON snapshot exported');
+  toast('JSON snapshot exported');
 }
 
 // ---------- Stale-backup nudge ----------
 // Even with Supabase sync, a local JSON export is cheap insurance against
 // cloud account issues, schema migrations gone wrong, or just wanting an
 // archived snapshot. Nudge if no export in 7+ days.
-function checkStaleBackup() {
+export function checkStaleBackup() {
   const last = Number(localStorage.getItem('mac_cockpit_last_export') || 0);
   if (!last) return;  // never exported — don't nag a brand-new user
   const days = (Date.now() - last) / (1000 * 60 * 60 * 24);
@@ -89,7 +90,7 @@ function hideStaleBackupNudge() {
   if (n) n.remove();
 }
 
-function importJSON(file) {
+export function importJSON(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
@@ -105,19 +106,13 @@ function importJSON(file) {
       if (!state.sectorRatings) state.sectorRatings = {};
       if (!state.pretradeChecks) state.pretradeChecks = { vix: true, news: true };
       saveState();
-      window.toast(`Imported ${state.trades.length} trades`);
+      toast(`Imported ${state.trades.length} trades`);
       // Hard refresh of UI
       location.reload();
     } catch (err) {
-      window.toast('Import failed: ' + err.message, true);
+      toast('Import failed: ' + err.message, true);
     }
   };
   reader.readAsText(file);
 }
 
-window.exportCSV = exportCSV;
-window.exportJSON = exportJSON;
-window.importJSON = importJSON;
-window.checkStaleBackup = checkStaleBackup;
-window.showStaleBackupNudge = showStaleBackupNudge;
-window.hideStaleBackupNudge = hideStaleBackupNudge;

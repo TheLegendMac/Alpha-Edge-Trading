@@ -3,8 +3,11 @@
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { setState } from '../state/persistence.js';
 import { DEFAULT_SETTINGS } from '../config/constants.js';
+import { tfRenderRiskProfileHtml, tfBindPriceLevelSliders } from './risk.js';
+import { tfEvaluateGates } from './gates.js';
+import { tfRefreshAll } from './stepper.js';
 
-function tfComputeSwingRiskBudget() {
+export function tfComputeSwingRiskBudget() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const account = Number(settings.account) || DEFAULT_SETTINGS.account || 10000;
   let riskPct = (typeof getRiskPctForRegime === 'function')
@@ -14,7 +17,7 @@ function tfComputeSwingRiskBudget() {
   return Math.round(account * riskPct);
 }
 
-function tfRenderSwingSizingHtml() {
+export function tfRenderSwingSizingHtml() {
   const settings = state.settings || DEFAULT_SETTINGS;
   const isOptions = state.instrument !== 'stocks';
   const premium = state.premium;
@@ -22,7 +25,7 @@ function tfRenderSwingSizingHtml() {
   const manualStop = Number(state.swingStop);
   const manualTarget = Number(state.swingTarget);
   const manualQty = Number(state.swingQty);
-  const riskDollars = window.tfComputeSwingRiskBudget();
+  const riskDollars = tfComputeSwingRiskBudget();
   const targetR = Number(settings.targetRMultiple) > 0 ? Number(settings.targetRMultiple) : 2;
   if (isOptions) {
     const stopFraction = (settings.stopPct || 50) / 100;
@@ -46,7 +49,7 @@ function tfRenderSwingSizingHtml() {
       <div class="trade-output">
         <div class="trade-output-title">Visual Risk Bar</div>
         <div class="trade-output-main">${contracts} contract${contracts === 1 ? '' : 's'} for total cost of $${Math.round(totalCost).toLocaleString()}</div>
-        ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
+        ${tfRenderRiskProfileHtml({ entry: premium, stop: stopPrem, target, qty: contracts, mult: 100, unitLabel: 'contract', riskUnitDollars: riskDollars })}
       </div>`;
   }
   const stopPct = (settings.stopPct || 5) / 100;
@@ -72,24 +75,24 @@ function tfRenderSwingSizingHtml() {
     <div class="trade-output">
       <div class="trade-output-title">Visual Risk Bar</div>
       <div class="trade-output-main">${shares} shares for total cost of $${Math.round(totalCost).toLocaleString()}</div>
-      ${window.tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
+      ${tfRenderRiskProfileHtml({ entry: premium, stop: stopPrice, target: targetPrice, qty: shares, mult: 1, unitLabel: 'share', riskUnitDollars: riskDollars })}
     </div>`;
 }
 
 function tfUpdateSwingLiquidityCounter() {
   const liqCounter = document.getElementById('tf-swing-liq-counter');
   if (liqCounter) {
-    const ok = window.tfEvaluateGates()['04'];
+    const ok = tfEvaluateGates()['04'];
     const isOptions = state.instrument !== 'stocks';
     liqCounter.classList.toggle('complete', !!ok);
     liqCounter.textContent = ok ? 'pass' : (isOptions ? 'mark 2' : 'mark 1');
   }
 }
 
-function tfUpdateSwingSizing() {
+export function tfUpdateSwingSizing() {
   const card = document.getElementById('tf-sizing-card');
-  if (card) card.innerHTML = window.tfRenderSwingSizingHtml();
-  window.tfBindPriceLevelSliders();
+  if (card) card.innerHTML = tfRenderSwingSizingHtml();
+  tfBindPriceLevelSliders();
   const riskCounter = document.getElementById('tf-swing-risk-counter');
   if (riskCounter) {
     const fields = [Number(state.premium) > 0, Number(state.swingQty) > 0];
@@ -100,7 +103,7 @@ function tfUpdateSwingSizing() {
   // Legacy Gate 06 row may be absent; refresh it in place when present.
   const gateRow = document.getElementById('tf-stop-gate');
   if (gateRow) {
-    const gates = window.tfEvaluateGates();
+    const gates = tfEvaluateGates();
     const ok = gates['06'];
     gateRow.classList.toggle('checked', !!ok);
     gateRow.classList.toggle('fail', !ok);
@@ -111,7 +114,7 @@ function tfUpdateSwingSizing() {
   }
 }
 
-function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || 'swing')) {
+export function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || 'swing')) {
   if (mode === 'intraday') {
     const it = state.intraday || {};
     if (it.structure) return it.structure;
@@ -121,20 +124,13 @@ function tfStructureValue(mode = ((state.tradeFlow && state.tradeFlow.mode) || '
   return state.instrument === 'stocks' ? 'stocks' : 'options';
 }
 
-function tfSetSwingStructure(structure) {
+export function tfSetSwingStructure(structure) {
   const s = structure === 'spread' ? 'spread' : structure === 'stocks' ? 'stocks' : 'options';
   setState({ structure: s, instrument: s === 'stocks' ? 'stocks' : 'options' });
-  window.tfRefreshAll();
+  tfRefreshAll();
 }
 
 function tfSetSwingInstrument(instrument) {
-  window.tfSetSwingStructure(instrument === 'stocks' ? 'stocks' : 'options');
+  tfSetSwingStructure(instrument === 'stocks' ? 'stocks' : 'options');
 }
 
-window.tfRenderSwingSizingHtml = tfRenderSwingSizingHtml;
-window.tfComputeSwingRiskBudget = tfComputeSwingRiskBudget;
-window.tfUpdateSwingLiquidityCounter = tfUpdateSwingLiquidityCounter;
-window.tfUpdateSwingSizing = tfUpdateSwingSizing;
-window.tfStructureValue = tfStructureValue;
-window.tfSetSwingStructure = tfSetSwingStructure;
-window.tfSetSwingInstrument = tfSetSwingInstrument;

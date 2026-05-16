@@ -1,8 +1,9 @@
 import { state } from '../state/store.js';
 import { buildTradeIndex } from '../models/trade-index.js';
-import { calcPL, isClosedTrade, processQualityLabel } from '../models/trade.js';
+import { calcPL, calcR, isClosedTrade, processQualityLabel, tradeRiskDollars } from '../models/trade.js';
 import { computeSetupScorecards } from './setup-scorecards.js';
 import { esc, money, plainMoney } from '../dom/html.js';
+import { toast } from '../modals/toast.js';
 
 function localISO(d) {
   const y = d.getFullYear();
@@ -44,7 +45,7 @@ function downloadHtml(filename, html) {
 export function buildWeeklyReportHtml({ trades = state.trades || [], range = currentWeekRange() } = {}) {
   const weekTrades = reportRows(trades, range.startISO, range.endISO);
   const closed = weekTrades.filter(t => isClosedTrade(t));
-  const closedRows = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: window.calcR(t) || 0 }));
+  const closedRows = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
   const wins = closedRows.filter(r => r.pl > 0);
   const losses = closedRows.filter(r => r.pl < 0);
   const totalPL = closedRows.reduce((s, r) => s + r.pl, 0);
@@ -55,7 +56,7 @@ export function buildWeeklyReportHtml({ trades = state.trades || [], range = cur
   const biggestWin = [...closedRows].sort((a, b) => b.pl - a.pl)[0];
   const biggestLoss = [...closedRows].sort((a, b) => a.pl - b.pl)[0];
   const index = buildTradeIndex(trades);
-  const openRisk = index.open.reduce((s, t) => s + (Number(t.riskDollars) || window.tradeRiskDollars(t) || 0), 0);
+  const openRisk = index.open.reduce((s, t) => s + (Number(t.riskDollars) || tradeRiskDollars(t) || 0), 0);
   const bestTone = biggestWin && biggestWin.pl >= 0 ? 'pos' : 'neg';
 
   const tradeTable = closedRows.length ? closedRows
@@ -146,8 +147,6 @@ export function exportWeeklyReport() {
   const range = currentWeekRange();
   const html = buildWeeklyReportHtml({ range });
   downloadHtml(`alpha_edge_weekly_${range.startISO}_to_${range.endISO}.html`, html);
-  if (typeof window.toast === 'function') window.toast('Weekly report exported');
+  if (typeof toast === 'function') toast('Weekly report exported');
 }
 
-window.exportWeeklyReport = exportWeeklyReport;
-window.buildWeeklyReportHtml = buildWeeklyReportHtml;

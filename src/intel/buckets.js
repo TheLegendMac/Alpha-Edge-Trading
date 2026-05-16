@@ -11,6 +11,7 @@ import {
   tradeQty,
 } from '../models/trade.js';
 import { TRADE_INTRADAY_SETUPS, TRADE_CONFLUENCE_OPTIONS } from '../config/constants.js';
+import { deriveSpreadPct } from '../market/regime.js';
 
 // ── Direction / setup detection ─────────────────────────────────────────
 
@@ -82,7 +83,7 @@ export function alphaContextAlignment(t) {
 
 export function alphaSpreadValue(t) {
   if (!t || tradeInstrument(t) !== 'options') return null;
-  const spread = window.deriveSpreadPct(t);
+  const spread = deriveSpreadPct(t);
   return Number.isFinite(Number(spread)) ? Number(spread) : null;
 }
 

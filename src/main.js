@@ -13,6 +13,22 @@ import '../styles/modals.css';
 import '../styles/workflow.css';
 import '../styles/print.css';
 import '../styles/redesign.css';
+import { closeSettings, openSettings, saveSettings, resetSettingsToDefaults, clearAllTradesAndData } from './views/settings.js';
+import { renderLogStats } from './intel/alpha.js';
+import { renderLogTable } from './views/log.js';
+import { openContextPanel, closeContextPanel, renderContextPanel } from './market/context-panel.js';
+import { setRegime, togglePretradeCheck, renderRegime, renderPretradeCheck } from './market/regime.js';
+import { touchMarketContext } from './sync/merge.js';
+import { renderHome } from './views/home.js';
+import { toast } from './modals/toast.js';
+import { closeAIGlossary } from './intel/glossary.js';
+import { addTestTrades } from './modals/trade-modal.js';
+import { exportCSV, exportJSON, importJSON, checkStaleBackup } from './modals/import-export.js';
+import { exportWeeklyReport } from './intel/weekly-report.js';
+import { importBacktestFromPaste, importBacktestFromFile } from './intel/backtest.js';
+import { _wirePositionEditor } from './modals/position-editor.js';
+import { renderReference } from './views/reference.js';
+import { ensureAuthModal, bootstrapAuth } from './sync/auth-modal.js';
 
 // ---------- Config + state ----------
 import './config/constants.js';
@@ -73,14 +89,12 @@ import './trade-flow/intraday-steps.js';
 
 // ---------- Tabs + autocomplete ----------
 import { setTab, attachTickerAutocomplete } from './tabs.js';
-window.setTab = setTab;
-
+import { loadState, saveState, setState } from './state/persistence.js';
 // ---------- Bootstrap ----------
 // Direct imports for things init() calls immediately. Everything else is
 // reached via `window.X` because the module side-effect imports above
 // already populated those.
 import { state } from './state/store.js';
-import { loadState } from './state/persistence.js';
 
 function runSafe(label, fn) {
   try {
@@ -109,7 +123,7 @@ function init() {
       if (window._settingsChanged && !confirm('You have unsaved adjustments. Continue without saving?')) return false;
       window._settingsChanged = false;
       if (typeof window.closeSettingsModal === 'function') window.closeSettingsModal();
-      else if (typeof window.closeSettings === 'function') window.closeSettings();
+      else if (typeof closeSettings === 'function') closeSettings();
     }
     return true;
   };
@@ -188,8 +202,8 @@ function init() {
     if (!btn) return;
     state.logModeFilter = btn.dataset.logMode === 'all' ? '' : btn.dataset.logMode;
     document.querySelectorAll('.log-mode-tab').forEach(b => b.classList.toggle('active', b.dataset.logMode === btn.dataset.logMode));
-    if (typeof window.renderLogStats === 'function') window.renderLogStats();
-    if (typeof window.renderLogTable === 'function') window.renderLogTable();
+    if (typeof renderLogStats === 'function') renderLogStats();
+    if (typeof renderLogTable === 'function') renderLogTable();
   });
 
   // Context panel — regime cluster click opens the two-in-one panel.
@@ -197,32 +211,32 @@ function init() {
   if (ctxTrigger) {
     ctxTrigger.style.cursor = 'pointer';
     ctxTrigger.addEventListener('click', () => {
-      if (checkAndCloseSettings() && typeof window.openContextPanel === 'function') window.openContextPanel();
+      if (checkAndCloseSettings() && typeof openContextPanel === 'function') openContextPanel();
     });
   }
-  document.getElementById('ctx-backdrop')?.addEventListener('click', window.closeContextPanel);
-  document.getElementById('ctx-close')?.addEventListener('click', window.closeContextPanel);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeContextPanel(); });
+  document.getElementById('ctx-backdrop')?.addEventListener('click', closeContextPanel);
+  document.getElementById('ctx-close')?.addEventListener('click', closeContextPanel);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeContextPanel(); });
   document.querySelectorAll('.ctx-regime-btn').forEach(b => {
     b.addEventListener('click', () => {
-      window.setRegime(b.dataset.ctxRegime);
-      window.renderContextPanel();
+      setRegime(b.dataset.ctxRegime);
+      renderContextPanel();
     });
   });
   document.getElementById('ctx-clear-sectors')?.addEventListener('click', () => {
     if (!confirm('Clear all sector ratings?')) return;
     state.sectorRatings = {};
     state.sectorRatedAt = null;
-    window.touchMarketContext();
-    window.saveState();
-    window.renderContextPanel();
-    if (typeof window.renderHome === 'function') window.renderHome();
-    window.toast('Sector grades cleared');
+    touchMarketContext();
+    saveState();
+    renderContextPanel();
+    if (typeof renderHome === 'function') renderHome();
+    toast('Sector grades cleared');
   });
 
   // Pre-trade mini checks (manual ones — vix and news only).
   document.querySelectorAll('.pretrade-mini[data-check]').forEach(el => {
-    el.addEventListener('click', () => window.togglePretradeCheck(el.dataset.check));
+    el.addEventListener('click', () => togglePretradeCheck(el.dataset.check));
   });
 
   // Ticker autocomplete for the edit modal. New Trade flow fields render dynamically.
@@ -232,23 +246,23 @@ function init() {
   }
 
   // Alpha Intel glossary panel — close on backdrop click / × / Esc.
-  document.getElementById('ai-glossary-close')?.addEventListener('click', window.closeAIGlossary);
-  document.getElementById('ai-glossary-backdrop')?.addEventListener('click', window.closeAIGlossary);
+  document.getElementById('ai-glossary-close')?.addEventListener('click', closeAIGlossary);
+  document.getElementById('ai-glossary-backdrop')?.addEventListener('click', closeAIGlossary);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       const panel = document.getElementById('ai-glossary-panel');
-      if (panel && panel.classList.contains('open')) window.closeAIGlossary();
+      if (panel && panel.classList.contains('open')) closeAIGlossary();
     }
   });
 
   // Add trade.
-  document.getElementById('btn-add-test-trades')?.addEventListener('click', window.addTestTrades);
-  document.getElementById('btn-export')?.addEventListener('click', window.exportCSV);
-  document.getElementById('btn-export-json')?.addEventListener('click', window.exportJSON);
-  document.getElementById('btn-weekly-report')?.addEventListener('click', window.exportWeeklyReport);
+  document.getElementById('btn-add-test-trades')?.addEventListener('click', addTestTrades);
+  document.getElementById('btn-export')?.addEventListener('click', exportCSV);
+  document.getElementById('btn-export-json')?.addEventListener('click', exportJSON);
+  document.getElementById('btn-weekly-report')?.addEventListener('click', exportWeeklyReport);
   document.getElementById('btn-import-json')?.addEventListener('click', () => document.getElementById('import-json-file')?.click());
   document.getElementById('import-json-file')?.addEventListener('change', e => {
-    if (e.target.files[0]) window.importJSON(e.target.files[0]);
+    if (e.target.files[0]) importJSON(e.target.files[0]);
     e.target.value = '';
   });
 
@@ -257,12 +271,12 @@ function init() {
     if (e.target.closest('#btn-import-backtest-file')) {
       document.getElementById('backtest-file-input')?.click();
     } else if (e.target.closest('#btn-import-backtest-paste')) {
-      window.importBacktestFromPaste();
+      importBacktestFromPaste();
     }
   });
   document.getElementById('panel-log')?.addEventListener('change', e => {
     if (e.target.id === 'backtest-file-input' && e.target.files[0]) {
-      window.importBacktestFromFile(e.target.files[0]);
+      importBacktestFromFile(e.target.files[0]);
       e.target.value = '';
     }
   });
@@ -272,9 +286,9 @@ function init() {
   if (logFilter) {
     logFilter.value = state.logModeFilter || 'all';
     logFilter.addEventListener('change', e => {
-      window.setState({ logModeFilter: e.target.value });
-      window.renderLogStats();
-      window.renderLogTable();
+      setState({ logModeFilter: e.target.value });
+      renderLogStats();
+      renderLogTable();
     });
   }
   const logSearch = document.getElementById('log-trade-search');
@@ -283,7 +297,7 @@ function init() {
     logSearch.placeholder = state.logSetupFilter ? `Filtered: ${state.logSetupFilter}` : 'Filter ticker, setup…';
     logSearch.addEventListener('input', e => {
       state.logSearch = e.target.value || '';
-      window.renderLogTable();
+      renderLogTable();
     });
   }
 
@@ -293,7 +307,7 @@ function init() {
     if (e.target === e.currentTarget) window.closeTradeModal();
   });
   // Position editor modal (Execution Manager + Journal).
-  if (typeof window._wirePositionEditor === 'function') window._wirePositionEditor();
+  if (typeof _wirePositionEditor === 'function') _wirePositionEditor();
 
   // Settings modal.
   window._settingsChanged = false;
@@ -334,7 +348,7 @@ function init() {
   const triggerOpenSettings = () => {
     window._settingsChanged = false;
     if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
-    else if (typeof window.openSettings === 'function') window.openSettings();
+    else if (typeof openSettings === 'function') openSettings();
   };
 
   document.getElementById('btn-settings')?.addEventListener('click', triggerOpenSettings);
@@ -352,35 +366,35 @@ function init() {
   document.getElementById('btn-save-settings')?.addEventListener('click', () => {
     window._settingsChanged = false;
     if (typeof window.saveSettingsModal === 'function') window.saveSettingsModal();
-    else if (typeof window.saveSettings === 'function') window.saveSettings();
+    else if (typeof saveSettings === 'function') saveSettings();
   });
   document.getElementById('btn-reset-settings')?.addEventListener('click', () => {
-    if (typeof window.resetSettingsToDefaults === 'function') window.resetSettingsToDefaults();
+    if (typeof resetSettingsToDefaults === 'function') resetSettingsToDefaults();
   });
-  document.getElementById('btn-clear-all-data')?.addEventListener('click', window.clearAllTradesAndData);
+  document.getElementById('btn-clear-all-data')?.addEventListener('click', clearAllTradesAndData);
 
   // Sector ratings now live entirely inside the Market Context panel.
 
   // Initial render pass. Keep each render isolated so one bad panel cannot
   // prevent button wiring or leave the home screen inert.
-  runSafe('renderHome', window.renderHome);
-  runSafe('renderRegime', window.renderRegime);
-  runSafe('renderPretradeCheck', window.renderPretradeCheck);
-  runSafe('renderLogStats', window.renderLogStats);
-  runSafe('renderLogTable', window.renderLogTable);
-  runSafe('renderReference', window.renderReference);
+  runSafe('renderHome', renderHome);
+  runSafe('renderRegime', renderRegime);
+  runSafe('renderPretradeCheck', renderPretradeCheck);
+  runSafe('renderLogStats', renderLogStats);
+  runSafe('renderLogTable', renderLogTable);
+  runSafe('renderReference', renderReference);
 
   // Restore last-active mode. setTab() normalizes legacy values via
   // normalizeActiveMode() in config/constants.js.
   runSafe('restoreTab', () => setTab(state.activeMode));
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
-  if (typeof window.ensureAuthModal === 'function') window.ensureAuthModal();
+  if (typeof ensureAuthModal === 'function') ensureAuthModal();
   document.getElementById('btn-reference')?.addEventListener('click', () => setTab('reference'));
   // Boot the auth flow (async, non-blocking).
-  window.bootstrapAuth();
+  bootstrapAuth();
   // Stale backup nudge — delay so it doesn't pop during initial bootstrap chaos.
-  setTimeout(window.checkStaleBackup, 8000);
+  setTimeout(checkStaleBackup, 8000);
 }
 
 document.addEventListener('DOMContentLoaded', init);

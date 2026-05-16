@@ -3,6 +3,8 @@
 import { state } from '../state/store.js';
 import { saveState, setState } from '../state/persistence.js';
 import { SYNC, doPush } from '../sync/supabase.js';
+import { renderLogStats } from './alpha.js';
+import { toast } from '../modals/toast.js';
 
 // ── TOS backtest report import card ───────────────────────────
 function buildBacktestCard(help) {
@@ -195,24 +197,24 @@ function addBacktestReport(report) {
   saveState();
   if (SYNC.pendingPush) { clearTimeout(SYNC.pendingPush); SYNC.pendingPush = null; }
   doPush();
-  if (typeof window.renderLogStats === 'function') window.renderLogStats();
-  if (typeof window.toast === 'function') window.toast('Backtest imported');
+  if (typeof renderLogStats === 'function') renderLogStats();
+  if (typeof toast === 'function') toast('Backtest imported');
 }
 
 function deleteBacktestReport(id) {
   if (!state.backtestReports) return;
   if (!confirm('Remove this backtest report?')) return;
   setState({ backtestReports: state.backtestReports.filter(r => r.id !== id) });
-  if (typeof window.renderLogStats === 'function') window.renderLogStats();
-  if (typeof window.toast === 'function') window.toast('Backtest removed');
+  if (typeof renderLogStats === 'function') renderLogStats();
+  if (typeof toast === 'function') toast('Backtest removed');
 }
 
-function importBacktestFromFile(file) {
+export function importBacktestFromFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     const parsed = parseTOSBacktest(e.target.result, file.name);
     if (!parsed.ok) {
-      if (typeof window.toast === 'function') window.toast(parsed.reason || 'Could not parse backtest', true);
+      if (typeof toast === 'function') toast(parsed.reason || 'Could not parse backtest', true);
       return;
     }
     addBacktestReport(parsed.report);
@@ -220,12 +222,12 @@ function importBacktestFromFile(file) {
   reader.readAsText(file);
 }
 
-function importBacktestFromPaste() {
+export function importBacktestFromPaste() {
   const txt = prompt('Paste your TOS Strategy Report below (tab-delimited or CSV):');
   if (!txt || !txt.trim()) return;
   const parsed = parseTOSBacktest(txt, null);
   if (!parsed.ok) {
-    if (typeof window.toast === 'function') window.toast(parsed.reason || 'Could not parse backtest', true);
+    if (typeof toast === 'function') toast(parsed.reason || 'Could not parse backtest', true);
     return;
   }
   const name = prompt('Give this backtest a name (e.g., "21-EMA Pullback / SPY 2024"):', 'Backtest ' + new Date().toLocaleDateString());
@@ -233,9 +235,3 @@ function importBacktestFromPaste() {
   addBacktestReport(parsed.report);
 }
 
-window.buildBacktestCard = buildBacktestCard;
-window.parseTOSBacktest = parseTOSBacktest;
-window.addBacktestReport = addBacktestReport;
-window.deleteBacktestReport = deleteBacktestReport;
-window.importBacktestFromFile = importBacktestFromFile;
-window.importBacktestFromPaste = importBacktestFromPaste;
