@@ -125,7 +125,6 @@
   --tf-conf-accent-line: var(--cyan-line);
   max-width: 560px;
   width: min(560px, 95vw);
-  max-height: 90vh;
   position: relative;
   padding: 0;
   background: var(--bg-card);
@@ -138,9 +137,8 @@
 .tf-confirm-header { flex: 0 0 auto; }
 .tf-confirm-footer { flex: 0 0 auto; }
 .tf-confirm-modal > .modal-body {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 .tf-confirm-modal[data-mode="intraday"] {
   --tf-conf-accent: var(--magenta);
@@ -307,6 +305,44 @@
 
 .tf-conf-intel .home-card { margin: 0; }
 
+/* Compact overrides — keep the whole confirm card inside the viewport with
+   no internal scroll on either swing or intraday. */
+.tf-conf-card { gap: 8px; }
+.tf-conf-trade { padding-bottom: 6px; }
+.tf-conf-ticker { font-size: 18px; }
+.tf-conf-trade-r { font-size: 12px; }
+.tf-conf-rail { padding: 2px 2px 4px; }
+.tf-conf-card .tf-risk-rail { min-height: 56px; margin-top: 18px; }
+.tf-conf-card .tf-risk-zone { padding: 10px 8px 8px; }
+.tf-conf-card .tf-risk-zone strong { font-size: 13px; }
+.tf-conf-card .tf-risk-zone span { font-size: 10px; }
+.tf-conf-card .tf-risk-caption { font-size: 8px; margin-bottom: 3px; }
+.tf-conf-stat { padding: 8px 10px; gap: 2px; }
+.tf-conf-stat-k { font-size: 9px; }
+.tf-conf-stat-v { font-size: 17px; }
+.tf-conf-stat-sub { font-size: 10px; }
+.tf-conf-intel .alpha-intel-card {
+  padding: 12px 14px 12px;
+  gap: 8px;
+  border-radius: 10px;
+}
+.tf-conf-intel .alpha-intel-eyebrow { font-size: 10px; letter-spacing: 0.14em; }
+.tf-conf-intel .alpha-intel-headline { font-size: 16px; line-height: 1.25; }
+.tf-conf-intel .alpha-intel-point {
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 0;
+}
+.tf-conf-intel .alpha-intel-point:first-child { padding-top: 2px; }
+.tf-conf-intel .alpha-intel-chip { font-size: 9px; padding: 2px 6px; }
+.tf-confirm-modal .modal-body { padding: 10px 18px 4px; }
+.tf-confirm-header { padding: 10px 20px 8px; }
+.tf-confirm-title { font-size: 16px; }
+.tf-confirm-sub { font-size: 11px; }
+.tf-confirm-footer { padding: 8px 18px; }
+
 @media (max-width: 520px) {
   .tf-conf-stats { grid-template-columns: repeat(2, 1fr); }
   .tf-conf-stat { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -330,6 +366,24 @@
 #panel-trade .trade-section.muted {
   background: rgba(14, 17, 24, 0.55);
   border-style: dashed;
+}
+/* Inside a step-group card, flatten the nested .trade-section card so we
+   don't double-layer borders/backgrounds. The group itself is the card. */
+#panel-trade .trade-step-group > .trade-section {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 12px;
+  overflow: visible;
+}
+#panel-trade .trade-step-group > .trade-section:last-child { margin-bottom: 0; }
+#panel-trade .trade-step-group > .trade-section > .trade-section-head {
+  padding: 0 0 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: transparent;
+}
+#panel-trade .trade-step-group > .trade-section > .trade-section-body {
+  padding: 12px 0 0;
 }
 #panel-trade .trade-section-head {
   display: flex;
@@ -1329,40 +1383,52 @@
   #panel-trade .tf-paste-btn { padding: 5px 8px; font-size: 9px; }
 }
 
-/* ---- intraday single-screen group dividers ---- */
+/* ---- single-screen group cards (swing + intraday) ----
+   Each step is a separated card so the visual rhythm matches the Home stat
+   cards: rounded box, soft border, gradient lift. Number pill is filled with
+   the mode accent color (cyan for swing, magenta for intraday). */
 #panel-trade .trade-step-group {
   position: relative;
   scroll-margin-top: 180px; /* sits clear of the sticky header */
-  padding-top: 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
 }
-#panel-trade .trade-step-group + .trade-step-group { margin-top: 8px; }
+#panel-trade .trade-step-group + .trade-step-group { margin-top: 14px; }
 #panel-trade .trade-step-group-eyebrow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-transform: uppercase;
-  margin: 6px 0 10px;
+  margin: 0 0 14px;
+  line-height: 1;
 }
 #panel-trade .trade-step-group-eyebrow span {
   display: inline-grid;
   place-items: center;
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--bg-elev);
-  color: var(--cyan);
-  font-size: 11px;
-  font-weight: 700;
+  border: 1px solid var(--cyan);
+  background: var(--cyan);
+  color: #0a0e1a;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(6,212,248,0.12);
 }
 #panel-trade.intraday-mode .trade-step-group-eyebrow span {
-  color: var(--magenta, #ec4899);
-  border-color: var(--magenta-line);
+  border-color: var(--magenta, #ec4899);
+  background: var(--magenta, #ec4899);
+  color: #0a0e1a;
+  box-shadow: 0 0 0 3px rgba(236,72,153,0.14);
 }
 #panel-trade .trade-step-group.tf-flash {
   animation: tfGroupFlash 0.7s ease-out;

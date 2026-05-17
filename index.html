@@ -67,9 +67,9 @@
       <!-- Hidden rules text — preserved for any external readers / tooltip source -->
       <span id="regime-rules" hidden></span>
 
-      <div id="sync-pill" class="cmdbar-sync" title="Click for sync menu">
+      <div id="sync-pill" class="cmdbar-sync" title="Click for sync menu" style="display:none">
         <span id="sync-dot"></span>
-        <span id="sync-label">SYNC · LOCAL</span>
+        <span id="sync-label">Local</span>
       </div>
 
       <button class="cmdbar-kmk-btn" id="btn-settings" title="Settings (⌘K)" aria-label="Settings" style="display: flex; align-items: center; justify-content: center;">
@@ -605,6 +605,13 @@
       <p class="sett-section-desc">Export your log. Danger zone is irreversible.</p>
 
       <div class="sett-data-rows">
+        <div class="sett-data-row">
+          <div class="sett-data-info">
+            <div class="sett-data-name">Cloud sync</div>
+            <div class="sett-data-desc" id="sett-sync-desc">Trades are saved on this device only. Sign in to back up to the cloud and sync across devices.</div>
+          </div>
+          <button class="sett-btn-ghost" id="btn-sync-action">SIGN IN</button>
+        </div>
         <div class="sett-data-row">
           <div class="sett-data-info">
             <div class="sett-data-name">Export trade log</div>

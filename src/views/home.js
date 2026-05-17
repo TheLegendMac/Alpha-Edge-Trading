@@ -352,11 +352,8 @@ export function renderHome() {
   const intelCard = document.getElementById('home-intel-card');
   if (intelCard) intelCard.classList.toggle('risk-off', killActive || state.regime === 'risk-off');
 
-  // Trade Book meta line
   const meta = document.getElementById('home-openbook-meta');
-  if (meta) meta.textContent = openTrades.length
-    ? `${openTrades.length} position${openTrades.length === 1 ? '' : 's'} · open risk $${Math.round(openRisk).toLocaleString()}`
-    : '';
+  if (meta) meta.textContent = '';
 
   // Legacy compat: keep hidden fields so nothing crashes
   const legacyNextRisk = document.getElementById('home-next-risk');
@@ -535,7 +532,7 @@ export function renderHome() {
         const dirColor = dirRaw === 'short' ? 'red-bright' : 'green-bright';
         const statusLabel = t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss';
         return `
-          <button class="home-trade-row ${attr(statusClass)}" type="button" data-review-trade="${attr(t.id)}">
+          <button class="home-trade-row ${attr(statusClass)}" type="button" data-review-trade="${attr(t.id)}" data-mode="${attr(mode)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
               <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${statusLabel}</span></span>

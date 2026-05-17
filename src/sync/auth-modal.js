@@ -124,7 +124,7 @@ export async function handleSignUp() {
 export function handleSkipAuth() {
   hideAuthModal();
   localStorage.setItem('mac_cockpit_skip_auth', 'true');
-  setSyncStatus('local', 'Local only');
+  setSyncStatus('local', 'Local');
 }
 
 // Sync pill menu — tapped from the cmdbar.
@@ -186,7 +186,7 @@ export async function manualSupabaseRefresh() {
 export async function bootstrapAuth() {
   const skip = localStorage.getItem('mac_cockpit_skip_auth') === 'true';
   if (skip) {
-    setSyncStatus('local', 'Local only');
+    setSyncStatus('local', 'Local');
     return;
   }
   if (!(await initSupabase())) return;  // No config — stay local-only

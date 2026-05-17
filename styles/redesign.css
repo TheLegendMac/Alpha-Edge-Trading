@@ -1425,7 +1425,7 @@
   background: var(--bg-elev) !important;
   border: 1px solid var(--line) !important;
   border-radius: 999px !important;
-  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
   color: var(--ink-2);
   transition: all 0.2s;
 }
@@ -1845,6 +1845,11 @@
 .home-trade-row:hover { background: rgba(255,255,255,0.025); }
 .home-trade-row.open { background: linear-gradient(90deg, rgba(6,212,248,0.05) 0%, transparent 60%); }
 .home-trade-row.open:hover { background: linear-gradient(90deg, rgba(6,212,248,0.10) 0%, transparent 60%); }
+.home-trade-row.open[data-mode="intraday"] { background: linear-gradient(90deg, rgba(236,72,153,0.05) 0%, transparent 60%); }
+.home-trade-row.open[data-mode="intraday"]:hover { background: linear-gradient(90deg, rgba(236,72,153,0.10) 0%, transparent 60%); }
+.home-trade-row.open[data-mode="intraday"] .home-trade-stripe.open { background: var(--magenta, #ec4899); }
+.home-trade-row.open[data-mode="intraday"] .home-trade-ticker .status.open { background: rgba(236,72,153,0.10); color: var(--magenta, #ec4899); }
+.home-trade-row.open[data-mode="intraday"] .home-trade-value.open { color: var(--magenta, #ec4899); }
 .home-trade-row:last-child { border-bottom: 0; }
 
 /* Stripe */
@@ -3112,7 +3117,6 @@
   .log-stat-strip { grid-template-columns: repeat(2, 1fr); }
   .cmdbar-nav .tab { padding: 16px 8px; font-size: 11px; letter-spacing: 0.06em; }
   .cmdbar-left { gap: 8px; }
-  .cmdbar-brand .brand-name { display: block !important; font-size: 12px; }
   .cmdbar-actions { flex: 0 0 auto; gap: 6px; }
   .cmdbar-context-btn { padding: 5px 10px !important; font-size: 9px !important; letter-spacing: 0.08em; }
   .cmdbar-sync { padding: 5px 8px !important; }

@@ -99,6 +99,20 @@ export function setSyncStatus(status, label) {
   // override so the pill stays visible when something is actually wrong).
   pill.dataset.status = status;
   pill.title = `Sync: ${c.text}${SYNC.user ? ` (${SYNC.user.email})` : ''}${SYNC.lastSyncAt ? ` — last ${new Date(SYNC.lastSyncAt).toLocaleTimeString()}` : ''}${SYNC.lastError && status === 'error' ? `\n${SYNC.lastError}` : ''}`;
+
+  // Mirror state into the Settings → Data row that replaced the cmdbar pill.
+  const settBtn = document.getElementById('btn-sync-action');
+  const settDesc = document.getElementById('sett-sync-desc');
+  if (settBtn && settDesc) {
+    if (SYNC.user) {
+      settBtn.textContent = 'REFRESH';
+      const last = SYNC.lastSyncAt ? new Date(SYNC.lastSyncAt).toLocaleString() : 'never';
+      settDesc.textContent = `Signed in as ${SYNC.user.email}. Status: ${c.text}. Last sync: ${last}.`;
+    } else {
+      settBtn.textContent = 'SIGN IN';
+      settDesc.textContent = 'Trades are saved on this device only. Sign in to back up to the cloud and sync across devices.';
+    }
+  }
 }
 
 export async function pullCloudState() {

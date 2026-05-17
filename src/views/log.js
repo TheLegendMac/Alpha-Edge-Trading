@@ -122,7 +122,7 @@ export function renderLogTable() {
         const dirColor = dirRaw === 'short' ? 'red-bright' : 'green-bright';
         const qtyStr = `${t.contracts || 0} ${sizeUnit} @ $${entry.toFixed(2)}`;
         return `
-          <button class="home-trade-row log-trade-row ${attr(statusClass)}" type="button" data-edit-trade="${attr(t.id)}">
+          <button class="home-trade-row log-trade-row ${attr(statusClass)}" type="button" data-edit-trade="${attr(t.id)}" data-mode="${attr(mode)}">
             <span class="home-trade-stripe ${attr(statusClass)}"></span>
             <span class="home-trade-main">
               <span class="home-trade-ticker">${esc(t.ticker || '—')} <span class="status ${attr(statusClass)}">${t.status === 'open' ? 'Open' : t.status === 'win' ? 'Win' : 'Loss'}</span></span>

@@ -657,7 +657,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
         <span class="alpha-intel-tail">${headlineTail}</span>
       </h2>
       <ul class="alpha-intel-points">
-        ${bullets.slice(0, 5).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
+        ${bullets.slice(0, inModal ? 4 : 5).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
       </ul>
     </div>`;
 }

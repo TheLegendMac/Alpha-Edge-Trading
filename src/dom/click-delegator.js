@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (typeof showSyncMenu === 'function') showSyncMenu();
     }
+    if (e.target.closest('#btn-sync-action')) {
+      if (typeof showSyncMenu === 'function') showSyncMenu();
+    }
     if (e.target.closest('#brand-home')) {
       if (typeof window.checkAndCloseSettings === 'function') {
         if (!window.checkAndCloseSettings()) return;
