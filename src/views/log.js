@@ -14,7 +14,7 @@ import {
   tradeRiskDollars,
   calcR,
 } from '../models/trade.js';
-import { formatDate } from '../models/formatters.js';
+import { formatDate, fmtMoney } from '../models/formatters.js';
 import { setState } from '../state/persistence.js';
 import { buildTradeIndex, filterLogTrades } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
@@ -48,8 +48,7 @@ export function renderLogHero() {
 
   const plEl = document.getElementById('log-hero-pl');
   if (plEl) {
-    const v = `${totalPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(totalPL)).toLocaleString()}`;
-    plEl.textContent = v;
+    plEl.textContent = fmtMoney(totalPL);
     plEl.className = totalPL >= 0 ? 'pos' : 'neg';
   }
 

@@ -1620,13 +1620,16 @@
   gap: 18px;
 }
 /* ── Alpha Intelligence card (shared on home + trade-flow + stats) ────── */
+/* Tone palette — overridden per data-tone below. Defaults to amber. */
 .alpha-intel-card {
+  --ai-tone: var(--amber-bright);
+  --ai-tone-rgb: 245, 158, 11;
   position: relative;
   background:
-    radial-gradient(120% 80% at 0% 0%, rgba(245,158,11,0.08), transparent 55%),
+    radial-gradient(120% 80% at 0% 0%, rgba(var(--ai-tone-rgb), 0.08), transparent 55%),
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 60%),
     rgba(16, 18, 24, 0.88);
-  border: 1px solid rgba(245, 158, 11, 0.32);
+  border: 1px solid rgba(var(--ai-tone-rgb), 0.32);
   border-radius: 14px;
   padding: 22px 26px 20px;
   display: flex;
@@ -1635,6 +1638,25 @@
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.04),
     0 4px 14px rgba(0,0,0,0.35);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.alpha-intel-card[data-tone="good"] {
+  --ai-tone: var(--green-bright);
+  --ai-tone-rgb: 16, 185, 129;
+}
+.alpha-intel-card[data-tone="warn"],
+.alpha-intel-card[data-tone="neutral"] {
+  --ai-tone: var(--amber-bright);
+  --ai-tone-rgb: 245, 158, 11;
+}
+.alpha-intel-card[data-tone="bad"],
+.alpha-intel-card[data-tone="risk-off"] {
+  --ai-tone: var(--red-bright);
+  --ai-tone-rgb: 239, 68, 68;
+}
+.alpha-intel-card[data-tone="info"] {
+  --ai-tone: var(--cyan);
+  --ai-tone-rgb: 6, 212, 248;
 }
 .alpha-intel-card::before {
   content: '';
@@ -1642,8 +1664,8 @@
   top: 0; left: 18px; right: 18px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--amber-bright) 30%, var(--amber-bright) 70%, transparent);
-  opacity: 0.55;
+  background: linear-gradient(90deg, transparent, var(--ai-tone) 30%, var(--ai-tone) 70%, transparent);
+  opacity: 0.7;
 }
 .alpha-intel-eyebrow {
   display: flex;
@@ -1659,7 +1681,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--amber-bright);
+  color: var(--ai-tone, var(--amber-bright));
 }
 .alpha-intel-eyebrow-r {
   color: var(--ink-4);
@@ -2153,14 +2175,82 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ambient background glow — soft radial accents behind the stats page */
+#panel-stats {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+#panel-stats::before {
+  content: '';
+  position: absolute;
+  inset: -10% -5% auto -5%;
+  height: 70%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 70% at 12% 12%, rgba(6, 212, 248, 0.10), transparent 60%),
+    radial-gradient(ellipse 45% 60% at 88% 22%, rgba(236, 72, 153, 0.06), transparent 60%),
+    radial-gradient(ellipse 60% 55% at 50% 90%, rgba(126, 231, 135, 0.05), transparent 65%);
+  filter: blur(2px);
+  animation: statsAmbientShift 18s ease-in-out infinite alternate;
+}
+@keyframes statsAmbientShift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
+  100% { transform: translate3d(2%, -1.5%, 0) scale(1.05); opacity: 1; }
+}
+
+/* Card depth — subtle inner highlight + drop shadow on every stats card */
+.stats-equity-card,
+.stats-rdist-card,
+.stats-setup-card,
+.stats-alpha-intel {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 12px 32px rgba(0, 0, 0, 0.32);
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+.stats-equity-card:hover,
+.stats-rdist-card:hover,
+.stats-setup-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Sequential reveal — fade up on render and period changes */
+@keyframes statsFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stats-shell > * {
+  animation: statsFadeUp 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.stats-shell > *:nth-child(1) { animation-delay: 0ms; }
+.stats-shell > *:nth-child(2) { animation-delay: 90ms; }
+.stats-shell > *:nth-child(3) { animation-delay: 180ms; }
+.stats-shell > *:nth-child(4) { animation-delay: 270ms; }
+@media (prefers-reduced-motion: reduce) {
+  .stats-shell > *,
+  #panel-stats::before { animation: none; }
 }
 
 /* Stats hero */
 .stats-hero {
-  display: grid;
-  grid-template-columns: 1.2fr 2.8fr;
-  gap: 24px;
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 /* Edge Intel wrapper — stretches to match equity curve height */
@@ -2168,30 +2258,10 @@
   display: flex;
   flex-direction: column;
 }
-/* Card fills the full wrapper height */
-.stats-edge-intel-wrap .sei-compact {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.stats-edge-intel-wrap .sei-preview-bullets {
-  flex: 1;
-  min-height: 0;
-}
-.stats-edge-intel-wrap .sei-compact-footer {
-  margin-top: auto;
-}
 .stats-edge-intel-wrap .stats-alpha-intel { flex: 1; }
 
-/* Edge Intelligence card */
+/* Stats compact Edge Intelligence keeps the shared card frame. */
 .stats-alpha-intel {
-  background: rgba(6,212,248,0.08);
-  border: 1px solid rgba(6,212,248,0.25);
-  border-radius: 12px;
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
   height: 100%;
   box-sizing: border-box;
 }
@@ -2455,22 +2525,80 @@
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.stats-equity-svg { display: block; width: 100%; }
+.stats-equity-body {
+  position: relative;
+}
+.stats-equity-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.stats-equity-tip {
+  position: absolute;
+  top: 12px;
+  pointer-events: none;
+  background: rgba(10, 14, 22, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+  min-width: 130px;
+  backdrop-filter: blur(4px);
+}
+.stats-equity-tip .eq-tip-date {
+  color: var(--ink-4);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.stats-equity-tip .eq-tip-pl {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.stats-equity-tip .eq-tip-dd {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: var(--red-bright);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.stats-equity-svg { cursor: crosshair; }
 
-/* 7-stat metric strip */
+/* Metric strip — separate cards with gap, matching home-stat-cards */
 .stats-metric-strip {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
 }
 .stats-metric-card {
+  position: relative;
   background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%), rgba(19, 23, 34, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
   padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: grid;
+  grid-template-rows: 16px 32px 16px;
+  align-content: start;
+  row-gap: 5px;
+  transition: background 180ms ease;
+}
+.stats-metric-card:hover {
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), transparent 30%), rgba(22, 27, 39, 0.78);
 }
 .stats-metric-label {
   font-family: var(--mono);
@@ -2479,14 +2607,20 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-3);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stats-metric-value {
   font-family: var(--display);
   font-weight: 700;
   font-size: 26px;
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.0;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
 }
 .stats-metric-value.pos { color: var(--green-bright); }
 .stats-metric-value.neg { color: var(--red-bright); }
@@ -2495,6 +2629,11 @@
   font-family: var(--mono);
   font-size: 11px;
   color: var(--ink-4);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* R-dist + Setup perf row */
@@ -3400,6 +3539,12 @@
   color: var(--cyan);
 }
 #panel-trade.intraday-mode .trade-step.active .trade-step-label {
+  color: var(--magenta, #ec4899);
+}
+/* Mobile step pill — match the mode color on active */
+#panel-trade.intraday-mode .trade-step-mobile-pill.active {
+  background: rgba(236, 72, 153, 0.12);
+  border-color: var(--magenta-line);
   color: var(--magenta, #ec4899);
 }
 #panel-trade .trade-step.complete .trade-step-node {
@@ -4674,7 +4819,6 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: 24px;
 }
 
 /* ── Hero ── */
@@ -5705,6 +5849,22 @@
   flex: 0 0 auto;
 }
 .trade-hero-paste-btn:hover { background: rgba(6,212,248,0.10); opacity: 1; }
+.trade-hero-paste-icon { font-size: 10px; color: var(--cyan); }
+#panel-trade.intraday-mode .trade-hero-paste-btn {
+  color: var(--magenta, #ec4899);
+  background: rgba(236,72,153,0.06);
+  border-color: rgba(236,72,153,0.35);
+}
+#panel-trade.intraday-mode .trade-hero-paste-btn:hover { background: rgba(236,72,153,0.12); }
+#panel-trade.intraday-mode .trade-hero-paste-icon { color: var(--magenta, #ec4899); }
+
+/* Intraday-mode: swap cyan hover/accent borders for magenta across the trade flow */
+#panel-trade.intraday-mode .trade-row:hover,
+#panel-trade.intraday-mode .trade-setup-card:hover,
+#panel-trade.intraday-mode .trade-direction-btn:hover,
+#panel-trade.intraday-mode .tf-chip:hover,
+#panel-trade.intraday-mode .tf-paste-btn:hover { border-color: var(--magenta-line); color: var(--ink); }
+#panel-trade.intraday-mode .tf-paste-btn:hover { color: var(--magenta, #ec4899); background: rgba(236,72,153,0.04); }
 
 /* ── Settings — responsive ──────────────────────────────────────────────
    Breakpoints:  1100px · 960px · 900px
@@ -5814,11 +5974,7 @@
 }
 
 /* ── Stats responsive ── */
-@media (max-width: 1100px) {
-  .stats-hero { grid-template-columns: 1fr 1.6fr; }
-}
 @media (max-width: 900px) {
-  .stats-hero { grid-template-columns: 1fr; }
   .stats-metric-strip { grid-template-columns: repeat(4, 1fr); }
   .stats-breakdown { grid-template-columns: 1fr; }
   #panel-stats { padding: 12px 14px; }
@@ -6804,4 +6960,101 @@
 }
 @media (max-width: 720px) {
   .home-stat-value { font-size: 28px; }
+}
+
+/* ═══════════════════════════════════════════════
+   MOBILE OPTIMIZATION PATCH
+   Narrow-width fixes (≤600px / ≤430px)
+═══════════════════════════════════════════════ */
+
+/* Tap targets — always ≥36–40px at narrow widths */
+@media (max-width: 720px) {
+  .log-mode-tab { padding: 10px 12px; font-size: 11px; min-height: 36px; }
+  .home-cal-arrow,
+  .home-cal-today { width: 36px; height: 36px; font-size: 18px; }
+}
+
+/* Home stat cards — keep 2×2 but tighten so values don't get clipped */
+@media (max-width: 480px) {
+  .home-stat-cards { gap: 8px; }
+  .home-stat-card { padding: 12px 12px; }
+  .home-stat-label { font-size: 9px; letter-spacing: 0.10em; }
+  .home-stat-value { font-size: 22px; }
+  .home-stat-sub { font-size: 10px; }
+}
+
+/* Log filter strip — stack on phones */
+@media (max-width: 720px) {
+  .log-filter-strip {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .log-search-wrap { width: 100%; }
+  .log-mode-tabs { width: 100%; justify-content: space-between; }
+  .log-mode-tab { flex: 1; justify-content: center; }
+  .log-setup-filter-btn { width: 100%; justify-content: space-between; }
+  .log-toolbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .log-icon-btn { min-width: 40px; min-height: 40px; }
+}
+
+/* Log trade rows — already reflow at 720px (home-trade-row rules above).
+   Add a min-width-0 + overflow guard to prevent any 2-column row from
+   pushing past viewport. */
+@media (max-width: 720px) {
+  .log-table-wrap { overflow: hidden; }
+  .home-trade-row .home-trade-main,
+  .home-trade-row .home-trade-setup,
+  .home-trade-row .home-trade-detail,
+  .home-trade-row .home-trade-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* Reference IVR cards — tighten padding on phones */
+@media (max-width: 430px) {
+  .ref-ivr-card { padding: 14px 14px; }
+  .ref-ivr-name { font-size: 14px; }
+  .ref-ivr-rows { font-size: 11px; }
+}
+
+/* Context panel sector grid — single column under 480px */
+@media (max-width: 480px) {
+  .ctx-sector-grid { grid-template-columns: 1fr !important; gap: 6px; }
+  .ctx-regime-btn { padding: 10px 8px; font-size: 11px; }
+  .ctx-rated-at { display: none; }
+}
+
+/* Trade confirmation modal — match other modal phone widths */
+@media (max-width: 430px) {
+  .tf-confirm-modal {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 24px);
+    border-radius: 12px;
+  }
+  .tf-confirm-actions { flex-wrap: wrap; gap: 8px; }
+  .tf-confirm-actions .btn-primary,
+  .tf-confirm-actions .btn-ghost { flex: 1 1 auto; min-height: 40px; }
+}
+
+/* Settings — collapse grid-2 in the 430-960px range when a section opens.
+   Mobile list view kicks in at 960px and only renders one section at a time
+   via .sett-mv-open; the existing rule collapses .sett-grid-2 there, but the
+   regime input needs a smaller floor so it can fit phone widths. */
+@media (max-width: 600px) {
+  .sett-section.sett-mv-open .sett-fields-grid { grid-template-columns: 1fr; }
+  .sett-section.sett-mv-open .sett-regime-input { font-size: 28px; width: 76px; }
+  .sett-section.sett-mv-open .sett-cap-input { font-size: 28px; width: 70px; }
+  .sett-section.sett-mv-open .sett-regime-value-row { flex-wrap: wrap; gap: 8px; }
+  .sett-section.sett-mv-open .sett-regime-eqv { flex-basis: 100%; }
+  .sett-section.sett-mv-open .sett-data-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .sett-section.sett-mv-open .sett-data-row .sett-btn-ghost,
+  .sett-section.sett-mv-open .sett-data-row .sett-btn-danger { align-self: stretch; text-align: center; }
+}
+
+/* Trade flow — sticky offsets adjusted for the shorter mobile cmdbar */
+@media (max-width: 900px) {
+  .trade-hero-sticky { top: 53px; }
+}
+@media (max-width: 480px) {
+  .trade-hero-sticky { top: 48px; }
 }

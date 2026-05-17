@@ -14,6 +14,9 @@ import {
   tradeRiskDollars,
   normalizeProcessQuality,
 } from '../models/trade.js';
+import { fmtMoney, fmtR } from '../models/formatters.js';
+import { esc, barRow } from '../dom/html.js';
+import { enrichClosed, aggregateBy, aggregateBySetup, bestWorstSetup } from '../models/aggregations.js';
 import { computeRollingPL } from './rolling.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { buildSetupScorecardsHtml } from './setup-scorecards.js';
@@ -35,19 +38,10 @@ import {
   alphaFrictionBucket,
 } from './buckets.js';
 
-function alphaEsc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-}
-
-function alphaMoney(v) {
-  const n = Number(v) || 0;
-  return `${n >= 0 ? '+$' : '-$'}${Math.abs(Math.round(n)).toLocaleString()}`;
-}
-
-function alphaR(v) {
-  const n = Number(v) || 0;
-  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}R`;
-}
+// Local aliases preserved for minimal call-site churn.
+const alphaEsc = esc;
+const alphaMoney = (v) => fmtMoney(v);
+const alphaR = (v) => fmtR(v);
 
 function alphaSaQuantBucket(t) {
   const q = Number(t && t.saQuant);
@@ -97,7 +91,7 @@ function alphaRowsHtml(groups, emptyText, opts = {}) {
   if (!visible.length) return `<div class="alpha-edge-empty">${alphaEsc(emptyText)}</div>`;
   const maxAbs = Math.max(1, ...visible.map(g => Math.abs(g.pl)));
   return visible.map(g => {
-    const color = g.color || (g.pl > 0 ? 'pos' : g.pl < 0 ? 'neg' : 'neutral');
+    const tone = g.color || (g.pl > 0 ? 'pos' : g.pl < 0 ? 'neg' : 'neutral');
     const subParts = [
       `${g.n} trade${g.n === 1 ? '' : 's'}`,
       `${g.winRate}%W`,
@@ -105,12 +99,13 @@ function alphaRowsHtml(groups, emptyText, opts = {}) {
     ];
     if (opts.showTargetRate && g.targetRate !== null) subParts.push(`${g.targetRate}% target`);
     if (g.extraSub) subParts.push(g.extraSub);
-    return `
-      <div class="bar-row">
-        <div class="bar-row-label">${alphaEsc(g.label)}<span class="bar-row-sub">${alphaEsc(subParts.join(' · '))}</span></div>
-        <div class="bar-wrap"><div class="bar-fill ${color}" style="width:${Math.max(4, Math.abs(g.pl) / maxAbs * 100).toFixed(0)}%"></div></div>
-        <div class="bar-value ${g.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${alphaMoney(g.pl)}</div>
-      </div>`;
+    return barRow({
+      label: alphaEsc(g.label),
+      sub: alphaEsc(subParts.join(' · ')),
+      value: alphaMoney(g.pl),
+      fillPct: Math.max(4, Math.abs(g.pl) / maxAbs * 100),
+      tone,
+    });
   }).join('');
 }
 
@@ -269,19 +264,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   const avgLoss = losses.length ? losses.reduce((s, x) => s + x.pl, 0) / losses.length : 0;
 
   // Setup-level aggregate
-  const setupMap = {};
-  closed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMap[k]) setupMap[k] = { name: k, n: 0, wins: 0, pl: 0, totalR: 0 };
-    const pl = calcPL(t) || 0;
-    setupMap[k].n++;
-    if (pl > 0) setupMap[k].wins++;
-    setupMap[k].pl += pl;
-    setupMap[k].totalR += calcR(t) || 0;
-  });
-  const setups = Object.values(setupMap).sort((a, b) => b.pl - a.pl);
-  const bestSetup  = setups[0] || null;
-  const worstSetup = setups.length > 1 ? setups[setups.length - 1] : null;
+  const { best: bestSetup, worst: worstSetup, all: setups } = bestWorstSetup(closed);
 
   // Exit-reason breakdown — discretionary + thesis-broke are the early-exit leak.
   const byExit = r => closed.filter(t => t.exit_reason === r);
@@ -301,7 +284,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   const killActive = rolling.pct <= -7;
 
   // Money-readable formatter — keeps strings short and consistent.
-  const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const $ = fmtMoney;
 
   // ── headline diagnostic ─────────────────────────────────
   // Split into accent (leading verdict, colored) + tail (white follow-up).
@@ -330,7 +313,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   } else if (bestSetup && bestSetup.pl > 0) {
     const wr = Math.round(bestSetup.wins / bestSetup.n * 100);
     headlineAccent = `Edge confirmed.`;
-    headlineTail = `${bestSetup.name} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
+    headlineTail = `${bestSetup.key} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
     headlineTone = 'good';
   } else if (expectancy > 0 && avgR >= 0.5) {
     headlineAccent = `In form.`;
@@ -353,11 +336,11 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   });
 
   // 2. Best vs worst setup — only if we have ≥5 trades and they differ.
-  if (bestSetup && worstSetup && bestSetup.name !== worstSetup.name && n >= 5) {
+  if (bestSetup && worstSetup && bestSetup.key !== worstSetup.key && n >= 5) {
     bullets.push({
       tone: bestSetup.pl >= 0 ? 'good' : 'warn',
       chip: 'PATTERN',
-      text: `Best pattern <strong>${bestSetup.name}</strong> (${$(bestSetup.pl)}) · weakest <strong style="color:var(--red-bright)">${worstSetup.name}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
+      text: `Best pattern <strong>${bestSetup.key}</strong> (${$(bestSetup.pl)}) · weakest <strong style="color:var(--red-bright)">${worstSetup.key}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
     });
   } else if (n < 5) {
     bullets.push({
@@ -419,7 +402,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   const kickerText = `CAREER VIEW · ${n} CLOSED${graded.length ? ` · ${graded.length} GRADED` : ''}`;
 
   return `
-    <div class="alpha-intel-card">
+    <div class="alpha-intel-card" data-tone="${headlineTone || 'good'}">
       <div class="alpha-intel-eyebrow">
         <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
         <span class="alpha-intel-eyebrow-r">${kickerText}</span>
@@ -444,9 +427,9 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
 // ──────────────────────────────────────────────────────────
 export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal = false } = {}) {
   const helpBtn = inModal ? '' : '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
-  const closed = (state.trades || []).filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
-  const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
+  const closedWithPL = enrichClosed(state.trades);
+  const closed = closedWithPL.map(x => x.trade);
+  const $ = fmtMoney;
   const dirKey = (direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
 
   const bullets = [];
@@ -664,7 +647,7 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   const kicker = inModal ? 'FINAL READ' : 'PRE-TRADE READ';
 
   return `
-    <div class="alpha-intel-card trade-edge-intel">
+    <div class="alpha-intel-card trade-edge-intel" data-tone="${headlineTone || 'good'}">
       <div class="alpha-intel-eyebrow">
         <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
         <span class="alpha-intel-eyebrow-r">${kicker}</span>
@@ -694,7 +677,7 @@ export function renderLogStats() {
   const trades = setupFilter ? modeTrades.filter(t => (t.setup || '—') === setupFilter) : modeTrades;
   const open   = trades.filter(t => t.status === 'open');
   const closed = trades.filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
+  const closedWithPL = enrichClosed(closed);
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
 
@@ -914,33 +897,22 @@ export function renderLogStats() {
     <div class="bar-row">
       <div class="bar-row-label">${r.label}<span class="bar-row-sub">${r.n} trades · ${r.pct}%</span></div>
       <div class="bar-wrap"><div class="bar-fill ${r.color}" style="width:${Math.max(4, Math.abs(r.pl) / maxExitPL * 100).toFixed(0)}%"></div></div>
-      <div class="bar-value ${r.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${r.pl >= 0 ? '+$' : '-$'}${Math.abs(r.pl).toFixed(0)}</div>
+      <div class="bar-value ${r.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${fmtMoney(r.pl)}</div>
     </div>`).join('')
     : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Exit reasons will appear once you close trades with a reason logged.</div>`;
 
   // ── Setup performance panel ────────────────────────────────
-  const setupMap = {};
   const setupSourceClosed = modeTrades.filter(t => isClosedTrade(t));
-  setupSourceClosed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0 };
-    const pl = calcPL(t) || 0;
-    setupMap[k].n++;
-    if (pl > 0) setupMap[k].wins++;
-    setupMap[k].pl += pl;
-    setupMap[k].totalR += calcR(t) || 0;
-  });
-  const setups = Object.entries(setupMap).sort((a, b) => b[1].pl - a[1].pl);
-  const maxSetupPL = Math.max(...setups.map(([, s]) => Math.abs(s.pl)), 1);
-  const setupHtml = setups.length ? setups.map(([name, s]) => {
-    const wr  = Math.round(s.wins / s.n * 100);
-    const avgRv = s.totalR / s.n;
-    const isActive = setupFilter === name;
+  const setups = aggregateBySetup(setupSourceClosed);
+  const maxSetupPL = Math.max(...setups.map(s => Math.abs(s.pl)), 1);
+  const setupHtml = setups.length ? setups.map(s => {
+    const wr  = Math.round(s.winRate);
+    const isActive = setupFilter === s.key;
     return `
-      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" data-setup-filter="${alphaEsc(name)}">
-        <div class="bar-row-label">${alphaEsc(name)}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R avg</span></div>
+      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" data-setup-filter="${alphaEsc(s.key)}">
+        <div class="bar-row-label">${alphaEsc(s.key)}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${fmtR(s.avgR)} avg</span></div>
         <div class="bar-wrap"><div class="bar-fill ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${Math.max(4, Math.abs(s.pl) / maxSetupPL * 100).toFixed(0)}%"></div></div>
-        <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${s.pl >= 0 ? '+$' : '-$'}${Math.abs(s.pl).toFixed(0)}</div>
+        <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${fmtMoney(s.pl)}</div>
       </button>`;
   }).join('')
     : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
@@ -1012,7 +984,7 @@ export function renderLogStats() {
 function buildLogStatsData() {
   const index = buildTradeIndex(state.trades || []);
   const closed = index.all.filter(t => isClosedTrade(t));
-  const closedWithPL = closed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
+  const closedWithPL = enrichClosed(closed);
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
   const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -1024,16 +996,7 @@ function buildLogStatsData() {
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
   const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
   const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
-  const setupMap = {};
-  closed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0, mode: t.mode || 'swing' };
-    const pl = calcPL(t) || 0;
-    setupMap[k].n++;
-    if (pl > 0) setupMap[k].wins++;
-    setupMap[k].pl += pl;
-    setupMap[k].totalR += calcR(t) || 0;
-  });
+  const setupMap = aggregateBy(closed, t => t.setup || '—');
   return { closed, closedWithPL, wins, losses, totalPL, winRateNum, grossWin, grossLoss, profitFactor, expectancy, avgR, avgWinR, avgLossR, setupMap };
 }
 

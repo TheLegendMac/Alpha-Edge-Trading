@@ -4,6 +4,8 @@ import { state } from '../state/store.js';
 import { saveState, setState } from '../state/persistence.js';
 import { newIntradayTicket } from '../config/constants.js';
 import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
+import { fmtMoney, fmtR } from '../models/formatters.js';
+import { aggregateBySetup } from '../models/aggregations.js';
 import { tfRefreshHeaderOnly } from './stepper.js';
 
 export function tfTickerHistory(symbol) {
@@ -17,14 +19,10 @@ export function tfTickerHistory(symbol) {
   const totalPL = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
   const avgR    = closed.length ? closed.reduce((s, t) => s + (calcR(t) || 0), 0) / closed.length : 0;
   // Per-setup aggregate so we can surface the strongest pattern for this name.
-  const setupMap = {};
-  closed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMap[k]) setupMap[k] = { name: k, n: 0, pl: 0 };
-    setupMap[k].n++;
-    setupMap[k].pl += (calcPL(t) || 0);
-  });
-  const bestSetup = Object.values(setupMap).sort((a, b) => b.pl - a.pl)[0] || null;
+  const setups = aggregateBySetup(closed);
+  const bestSetup = setups[0]
+    ? { name: setups[0].key, n: setups[0].n, pl: setups[0].pl }
+    : null;
   // Last trade (closed first, then any).
   const sorted = [...trades].sort((a, b) =>
     (b.exit_date || b.date || '').localeCompare(a.exit_date || a.date || ''));
@@ -63,7 +61,6 @@ export function tfRenderTickerMemoryHtml(currentTicker) {
   const hasInput = !!(currentTicker || '').trim();
   const matches = tfTickerSuggestions(currentTicker, hasInput ? 8 : 3);
   const hist = currentTicker ? tfTickerHistory(currentTicker) : null;
-  const fmtMoney = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
   const snapClass = hist ? (hist.totalPL >= 0 ? 'pos' : 'neg') : '';
 
   const pills = matches.length ? `
@@ -79,7 +76,7 @@ export function tfRenderTickerMemoryHtml(currentTicker) {
       </div>
       <div class="tf-ticker-snap-body">
         ${hist.bestSetup ? `<div class="tf-ticker-snap-row"><span class="k">Best setup</span><span class="v">${hist.bestSetup.name} (${fmtMoney(hist.bestSetup.pl)} · ${hist.bestSetup.n} trade${hist.bestSetup.n === 1 ? '' : 's'})</span></div>` : ''}
-        ${hist.closedCount ? `<div class="tf-ticker-snap-row"><span class="k">Avg R</span><span class="v">${hist.avgR >= 0 ? '+' : ''}${hist.avgR.toFixed(2)}R</span></div>` : ''}
+        ${hist.closedCount ? `<div class="tf-ticker-snap-row"><span class="k">Avg R</span><span class="v">${fmtR(hist.avgR)}</span></div>` : ''}
         ${hist.lastTrade ? `<div class="tf-ticker-snap-row"><span class="k">Last</span><span class="v">${hist.lastTrade.setup || '—'} · ${hist.lastTrade.direction || '—'} · ${hist.lastTrade.exit_date || hist.lastTrade.date || '—'}${hist.lastTrade.status === 'open' ? ' (open)' : ''}</span></div>` : ''}
       </div>
     </div>` : '';

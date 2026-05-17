@@ -184,7 +184,7 @@ export function tfIntradayStep1() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title" style="display:flex; align-items:center; gap:8px;">
-            <span style="color: var(--cyan); font-size: 16px;">⚡</span> Smart paste
+            <span style="color: var(--magenta, #ec4899); font-size: 16px;">⚡</span> Smart paste
           </div>
           <div class="trade-section-subtitle">Paste TOS alert text to auto-fill fields.</div>
         </div>
@@ -328,7 +328,7 @@ export function tfMountIntradayStep1() {
     tfApplyIntradayPaste(parsed);
     if (pasteEl) pasteEl.value = '';
     if (resultEl) {
-      resultEl.style.color = 'var(--cyan)';
+      resultEl.style.color = 'var(--magenta, #ec4899)';
       resultEl.textContent = `Filled ${meaningful.length} field${meaningful.length === 1 ? '' : 's'}.`;
     }
     tfRefreshAll();
@@ -626,7 +626,7 @@ export function tfIntradayStep4() {
       <div class="trade-section-body">
         <div class="trade-output" style="padding:14px 16px;">
           <div class="trade-output-main" style="font-size:14px;">
-            <span style="color:var(--cyan);">${tickerStr}</span> · ${dirStr} · ${setupName}
+            <span style="color:var(--magenta, #ec4899);">${tickerStr}</span> · ${dirStr} · ${setupName}
           </div>
           <div class="trade-output-rationale" style="font-size:12px; margin-top:6px; line-height:1.6;">
             ${reviewMessage}<br/>

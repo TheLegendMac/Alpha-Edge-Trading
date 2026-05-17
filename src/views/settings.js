@@ -13,9 +13,10 @@ import { renderTrade } from '../trade-flow/stepper.js';
 import { closeContextPanel, renderContextPanel } from '../market/context-panel.js';
 import { setTab } from '../tabs.js';
 import { renderLogTable } from './log.js';
+import { fmtMoneyPlain } from '../models/formatters.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
-function fmt$(n) { return '$' + Math.abs(Math.round(n)).toLocaleString(); }
+const fmt$ = (n) => fmtMoneyPlain(n);
 
 function updateLiveHints() {
   const el = (id) => document.getElementById(id);
@@ -69,7 +70,7 @@ function updateMobileView(acct, rOn) {
   const rNeu = parseFloat(el('set-risk-neutral-r')?.value) || 0.25;
   const rOff = parseFloat(el('set-risk-off-r')?.value) || 0.15;
   const maxPos  = parseInt(el('set-max-positions')?.value) || 4;
-  const f$ = (n) => '$' + Math.abs(Math.round(n)).toLocaleString();
+  const f$ = (n) => fmtMoneyPlain(n);
 
   const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
   set('smv-equity', '$' + a.toLocaleString());

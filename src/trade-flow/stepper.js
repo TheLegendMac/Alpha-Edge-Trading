@@ -18,6 +18,8 @@ import { tfRiskRailHtml } from './risk.js';
 import { state, getRiskPctForRegime } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
 import { genTradeId, isClosedTrade, calcPL, calcR } from '../models/trade.js';
+import { fmtMoneyPlain } from '../models/formatters.js';
+import { esc as escHtml } from '../dom/html.js';
 import {
   DEFAULT_SETTINGS,
   newIntradayTicket,
@@ -192,6 +194,7 @@ export function tfRenderHeader() {
   if (heroPnl) {
     heroPnl.classList.toggle('swing', m === 'swing');
     heroPnl.classList.toggle('intraday', m === 'intraday');
+    const accentColor = m === 'intraday' ? 'var(--magenta, #ec4899)' : 'var(--cyan)';
     const p = tfComputeHeroPnl ? tfComputeHeroPnl() : null;
     if (p && p.risk > 0 && p.reward > 0) {
       let setupName = '';
@@ -206,7 +209,7 @@ export function tfRenderHeader() {
         const def = setupId ? TRADE_INTRADAY_SETUPS.find(s => s.id === setupId) : null;
         setupName = def ? def.name : '';
       }
-      const setupSuffix = setupName ? ` with the <span style="color:var(--cyan);font-weight:700;">${setupName}</span> setup` : '';
+      const setupSuffix = setupName ? ` with the <span style="color:${accentColor};font-weight:700;">${setupName}</span> setup` : '';
       heroPnl.innerHTML = `Risking <span style="color:var(--red-bright);font-weight:700;">$${Math.round(p.risk).toLocaleString()}</span> to make <span style="color:var(--green-bright);font-weight:700;">$${Math.round(p.reward).toLocaleString()}</span> profit${setupSuffix}.`;
     } else {
       heroPnl.textContent = 'Fill entry, stop, and limit to see win / loss.';
@@ -547,8 +550,8 @@ export function tfBuildConfirmTradeBody({
   equity,
   edgeIntelHtml = '',
 } = {}) {
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-  const money = (v) => `$${Math.abs(Math.round(Number(v) || 0)).toLocaleString()}`;
+  const esc = escHtml;
+  const money = (v) => fmtMoneyPlain(v);
   const price = (v) => {
     const n = Number(v);
     if (!isFinite(n)) return '—';

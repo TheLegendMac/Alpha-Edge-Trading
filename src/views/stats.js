@@ -2,9 +2,9 @@
 
 import { state } from '../state/store.js';
 import { isClosedTrade, calcPL, calcR } from '../models/trade.js';
-import { computeRollingPL } from '../intel/rolling.js';
-import { buildTradeIndex } from '../models/trade-index.js';
-import { buildAlphaIntel, buildAlphaHighlightBullets } from '../intel/alpha.js';
+import { fmtMoney, fmtR, fmtPct } from '../models/formatters.js';
+import { enrichClosed, aggregateBySetup, bestWorstSetup } from '../models/aggregations.js';
+import { buildAlphaIntel } from '../intel/alpha.js';
 
 const PERIODS = [
   { k: '1W', days: 7 },
@@ -49,11 +49,11 @@ function buildEquityCurve(sortedTrades) {
 
 function renderEquitySvg(points, totalPL, maxDDIdx = -1) {
   if (points.length < 2) {
-    return `<svg viewBox="0 0 760 200" width="100%" class="stats-equity-svg">
-      <text x="380" y="100" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="var(--ink-4)">No closed trades in this period</text>
-    </svg>`;
+    return `<div class="stats-equity-body"><svg viewBox="0 0 760 260" class="stats-equity-svg">
+      <text x="380" y="130" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="var(--ink-4)">No closed trades in this period</text>
+    </svg></div>`;
   }
-  const W = 760, H = 178, PAD_L = 52, PAD_R = 16, PAD_T = 14, PAD_B = 28;
+  const W = 880, H = 260, PAD_L = 64, PAD_R = 24, PAD_T = 22, PAD_B = 36;
   const plotW = W - PAD_L - PAD_R;
   const plotH = H - PAD_T - PAD_B;
   const vals = points.map(p => p.cumPL);
@@ -64,19 +64,20 @@ function renderEquitySvg(points, totalPL, maxDDIdx = -1) {
   const toY = v => PAD_T + plotH - ((v - minV) / range * plotH);
   const pts = points.map((p, i) => `${toX(i).toFixed(1)} ${toY(p.cumPL).toFixed(1)}`);
   const pathD = 'M' + pts.join(' L');
-  const fillD = pathD + ` L${toX(points.length - 1).toFixed(1)} ${toY(0).toFixed(1)} L${toX(0).toFixed(1)} ${toY(0).toFixed(1)} Z`;
+  const baseY = toY(0).toFixed(1);
+  const fillD = pathD + ` L${toX(points.length - 1).toFixed(1)} ${baseY} L${toX(0).toFixed(1)} ${baseY} Z`;
   const isPos = totalPL >= 0;
   const lineColor = isPos ? 'var(--cyan)' : 'var(--red-bright)';
-  const fillColor = isPos ? 'rgba(6,212,248,0.12)' : 'rgba(248,113,113,0.10)';
+  const gradId = `eq-grad-${isPos ? 'pos' : 'neg'}`;
 
   // Y-axis labels (4 lines)
   const yLabels = [0, 0.33, 0.67, 1].map(f => {
     const v = minV + f * range;
     const y = toY(v);
-    const label = (v >= 0 ? '+$' : '-$') + Math.abs(Math.round(v)).toLocaleString();
+    const label = fmtMoney(v);
     return `<g>
-      <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="3 5"/>
-      <text x="${PAD_L - 5}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="rgba(148,163,184,0.7)">${label}</text>
+      <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3 5"/>
+      <text x="${PAD_L - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="11" fill="rgba(148,163,184,0.75)">${label}</text>
     </g>`;
   }).join('');
 
@@ -93,7 +94,7 @@ function renderEquitySvg(points, totalPL, maxDDIdx = -1) {
       const d = new Date(pt.date);
       const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const x = toX(i);
-      labels.push(`<text x="${x.toFixed(1)}" y="${(H + 8).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="rgba(148,163,184,0.65)">${label}</text>`);
+      labels.push(`<text x="${x.toFixed(1)}" y="${(H + 4).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10.5" fill="rgba(148,163,184,0.7)">${label}</text>`);
     }
     return labels.join('');
   })();
@@ -102,28 +103,191 @@ function renderEquitySvg(points, totalPL, maxDDIdx = -1) {
   const peakIdx = vals.reduce((best, v, i) => v > vals[best] ? i : best, 0);
   const peakX   = toX(peakIdx).toFixed(1);
   const peakY   = toY(vals[peakIdx]).toFixed(1);
-  const peakLabel = (vals[peakIdx] >= 0 ? '+$' : '-$') + Math.abs(Math.round(vals[peakIdx])).toLocaleString();
+  const peakLabel = fmtMoney(vals[peakIdx]);
 
-  // Baseline
-  const baseY = toY(0).toFixed(1);
-
-  // Max DD marker (red vertical line at max DD index)
+  // Max DD marker (red vertical line at max DD index, tagged for hover)
+  const maxDDFromPeak = maxDDIdx >= 0 ? (vals[peakIdx] - vals[maxDDIdx]) : 0;
+  const maxDDDate = maxDDIdx >= 0 ? points[maxDDIdx].date : null;
   const maxDDMarker = maxDDIdx >= 0 && maxDDIdx < points.length ? `
-    <line x1="${toX(maxDDIdx).toFixed(1)}" x2="${toX(maxDDIdx).toFixed(1)}" y1="${PAD_T}" y2="${(H - PAD_B).toFixed(1)}" stroke="var(--red-bright)" stroke-width="1.5" opacity="0.4" stroke-dasharray="2 3"/>
-    <circle cx="${toX(maxDDIdx).toFixed(1)}" cy="${toY(vals[maxDDIdx]).toFixed(1)}" r="3" fill="var(--red-bright)" opacity="0.6"/>
+    <line class="eq-dd-line" data-dd-idx="${maxDDIdx}" x1="${toX(maxDDIdx).toFixed(1)}" x2="${toX(maxDDIdx).toFixed(1)}" y1="${PAD_T}" y2="${(H - PAD_B).toFixed(1)}" stroke="var(--red-bright)" stroke-width="1.5" opacity="0.55" stroke-dasharray="2 3"/>
+    <circle cx="${toX(maxDDIdx).toFixed(1)}" cy="${toY(vals[maxDDIdx]).toFixed(1)}" r="3" fill="var(--red-bright)" opacity="0.75"/>
   ` : '';
 
-  return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" class="stats-equity-svg">
-    ${yLabels}
-    <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-    <path d="${fillD}" fill="${fillColor}"/>
-    <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${maxDDMarker}
-    <circle cx="${toX(points.length - 1).toFixed(1)}" cy="${toY(points[points.length - 1].cumPL).toFixed(1)}" r="4.5" fill="${lineColor}" stroke="var(--bg)" stroke-width="2"/>
-    <circle cx="${peakX}" cy="${peakY}" r="3" fill="${lineColor}" opacity="0.6"/>
-    <text x="${peakX}" y="${(parseFloat(peakY) - 8).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="rgba(148,163,184,0.75)">PEAK ${peakLabel}</text>
-    ${xLabels}
-  </svg>`;
+  // Serialise points for the JS hover handler (x/y in viewBox coords).
+  const pointData = points.map((p, i) => ({
+    x: +toX(i).toFixed(2),
+    y: +toY(p.cumPL).toFixed(2),
+    pl: p.cumPL,
+    date: p.date,
+  }));
+  const ddPayload = maxDDIdx >= 0 ? {
+    idx: maxDDIdx,
+    x: +toX(maxDDIdx).toFixed(2),
+    drop: Math.round(maxDDFromPeak),
+    date: maxDDDate,
+  } : null;
+  const chartMeta = {
+    W, H: H + 14, PAD_L, PAD_R, PAD_T, PAD_B,
+    plotTop: PAD_T,
+    plotBottom: H - PAD_B,
+    plotLeft: PAD_L,
+    plotRight: W - PAD_R,
+    points: pointData,
+    dd: ddPayload,
+    color: isPos ? '#06d4f8' : '#f87171',
+  };
+  const metaJson = JSON.stringify(chartMeta).replace(/"/g, '&quot;');
+
+  return `<div class="stats-equity-body">
+    <svg viewBox="0 0 ${W} ${H + 14}" class="stats-equity-svg" data-eq-meta="${metaJson}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="${isPos ? '#06d4f8' : '#f87171'}" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="${isPos ? '#06d4f8' : '#f87171'}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${yLabels}
+      <line x1="${PAD_L}" x2="${W - PAD_R}" y1="${baseY}" y2="${baseY}" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+      <path d="${fillD}" fill="url(#${gradId})"/>
+      <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${maxDDMarker}
+      <circle cx="${toX(points.length - 1).toFixed(1)}" cy="${toY(points[points.length - 1].cumPL).toFixed(1)}" r="5" fill="${lineColor}" stroke="var(--bg)" stroke-width="2"/>
+      <circle cx="${peakX}" cy="${peakY}" r="3" fill="${lineColor}" opacity="0.6"/>
+      <text x="${peakX}" y="${(parseFloat(peakY) - 10).toFixed(1)}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="rgba(148,163,184,0.85)">PEAK ${peakLabel}</text>
+      ${xLabels}
+      <g class="eq-crosshair" style="display:none; pointer-events:none">
+        <line class="eq-ch-line" y1="${PAD_T}" y2="${H - PAD_B}" stroke="rgba(255,255,255,0.30)" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle class="eq-ch-dot" r="5" fill="${lineColor}" stroke="var(--bg)" stroke-width="2"/>
+      </g>
+    </svg>
+    <div class="stats-equity-tip" hidden>
+      <div class="eq-tip-date"></div>
+      <div class="eq-tip-pl"></div>
+      <div class="eq-tip-dd" hidden></div>
+    </div>
+  </div>`;
+}
+
+function animateStatNumbers(shell) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const els = shell.querySelectorAll('.stats-metric-value');
+  els.forEach((el, idx) => {
+    const text = (el.textContent || '').trim();
+    const m = text.match(/^([^\d-]*-?)([\d,]+(?:\.\d+)?)(.*)$/);
+    if (!m) return;
+    const prefix = m[1] || '';
+    const numStr = m[2];
+    const suffix = m[3] || '';
+    const target = parseFloat(numStr.replace(/,/g, ''));
+    if (!isFinite(target)) return;
+    const isInt = !numStr.includes('.');
+    const decimals = isInt ? 0 : (numStr.split('.')[1] || '').length;
+    const startVal = 0;
+    const duration = 700;
+    const delay = 80 + idx * 45;
+    el.textContent = `${prefix}${isInt ? '0' : (0).toFixed(decimals)}${suffix}`;
+    const tStart = performance.now() + delay;
+    const step = now => {
+      const t = Math.max(0, Math.min(1, (now - tStart) / duration));
+      const eased = 1 - Math.pow(1 - t, 3);
+      const cur = startVal + (target - startVal) * eased;
+      const display = isInt
+        ? Math.round(cur).toLocaleString()
+        : cur.toFixed(decimals);
+      el.textContent = `${prefix}${display}${suffix}`;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+function wireEquityHover(shell) {
+  const svg = shell.querySelector('.stats-equity-svg[data-eq-meta]');
+  const body = shell.querySelector('.stats-equity-body');
+  const tip = shell.querySelector('.stats-equity-tip');
+  if (!svg || !body || !tip) return;
+  let meta;
+  try { meta = JSON.parse(svg.dataset.eqMeta); } catch (_) { return; }
+  if (!meta || !meta.points || meta.points.length < 2) return;
+
+  const cross = svg.querySelector('.eq-crosshair');
+  const line  = svg.querySelector('.eq-ch-line');
+  const dot   = svg.querySelector('.eq-ch-dot');
+  const tipDate = tip.querySelector('.eq-tip-date');
+  const tipPL   = tip.querySelector('.eq-tip-pl');
+  const tipDD   = tip.querySelector('.eq-tip-dd');
+  const fmtDate  = d => d ? new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+
+  const show = (xView, pIdx) => {
+    const p = meta.points[pIdx];
+    if (!p) return;
+    cross.style.display = '';
+    line.setAttribute('x1', p.x);
+    line.setAttribute('x2', p.x);
+    dot.setAttribute('cx', p.x);
+    dot.setAttribute('cy', p.y);
+
+    tipDate.textContent = fmtDate(p.date) || 'Start';
+    tipPL.textContent = fmtMoney(p.pl);
+    tipPL.style.color = p.pl >= 0 ? 'var(--green-bright)' : 'var(--red-bright)';
+
+    // Drawdown line hover — within ~6px of dd marker x in viewBox.
+    if (meta.dd && Math.abs(xView - meta.dd.x) < 6) {
+      tipDD.hidden = false;
+      tipDD.textContent = `Max drawdown · -$${Math.abs(meta.dd.drop).toLocaleString()}`;
+    } else {
+      tipDD.hidden = true;
+      tipDD.textContent = '';
+    }
+
+    // Position HTML tooltip alongside crosshair (use SVG matrix for correct meet/letterbox math).
+    tip.hidden = false;
+    const bodyRect = body.getBoundingClientRect();
+    const ctm = svg.getScreenCTM();
+    if (ctm) {
+      const svgPt = svg.createSVGPoint();
+      svgPt.x = p.x; svgPt.y = p.y;
+      const screen = svgPt.matrixTransform(ctm);
+      const pxX = screen.x - bodyRect.left;
+      const tipW = tip.offsetWidth || 140;
+      let leftPx = pxX + 12;
+      if (leftPx + tipW > bodyRect.width - 4) leftPx = pxX - tipW - 12;
+      tip.style.left = `${Math.max(4, leftPx)}px`;
+      tip.style.top = `12px`;
+    }
+  };
+
+  const hide = () => {
+    cross.style.display = 'none';
+    tip.hidden = true;
+  };
+
+  const onMove = e => {
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const local = pt.matrixTransform(ctm.inverse());
+    const xView = local.x;
+    if (xView < meta.plotLeft - 4 || xView > meta.plotRight + 4) { hide(); return; }
+    // Find nearest point by x
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < meta.points.length; i++) {
+      const d = Math.abs(meta.points[i].x - xView);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    show(xView, best);
+  };
+
+  svg.addEventListener('mousemove', onMove);
+  svg.addEventListener('mouseleave', hide);
+  svg.addEventListener('touchstart', e => {
+    if (e.touches[0]) onMove(e.touches[0]);
+  }, { passive: true });
+  svg.addEventListener('touchmove', e => {
+    if (e.touches[0]) onMove(e.touches[0]);
+  }, { passive: true });
+  svg.addEventListener('touchend', hide);
 }
 
 
@@ -138,7 +302,7 @@ export function renderStats() {
     (a.exit_date || a.date || '').localeCompare(b.exit_date || b.date || '')
   );
 
-  const closedWithPL = periodClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
+  const closedWithPL = enrichClosed(periodClosed);
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
   const totalPL    = closedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -150,7 +314,7 @@ export function renderStats() {
   const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
 
   // ALL-time aggregates for Edge Intelligence card
-  const allClosedWithPL = allClosed.map(t => ({ trade: t, pl: calcPL(t) || 0, r: calcR(t) || 0 }));
+  const allClosedWithPL = enrichClosed(allClosed);
   const allWins    = allClosedWithPL.filter(x => x.pl > 0);
   const allLosses  = allClosedWithPL.filter(x => x.pl < 0);
   const allTotalPL = allClosedWithPL.reduce((s, x) => s + x.pl, 0);
@@ -164,39 +328,6 @@ export function renderStats() {
   const fullEiHtml = typeof buildAlphaIntel === 'function'
     ? buildAlphaIntel(allClosed, allClosedWithPL, allWins, allLosses, allExpectancy, allAvgR, allPF)
     : `<div class="home-card green" style="margin:0;">Edge Intelligence loading…</div>`;
-
-  // Glanceable compact card — 4 key numbers + verdict + enlarge button
-  const allWinRate  = allClosedWithPL.length ? Math.round(allWins.length / allClosedWithPL.length * 100) : null;
-  const allGraded   = allClosed.filter(t => t.grade);
-  const allGood     = allGraded.filter(t => { const l = (t.grade||'').toLowerCase(); return l.includes('good')||l.includes('clean')||l==='a'||l==='b'; }).length;
-  const gradeScore  = allGraded.length >= 3 ? Math.round(allGood / allGraded.length * 100) : null;
-  const eiKicker    = `Career view · ${allClosed.length} trade${allClosed.length===1?'':'s'}${gradeScore!=null?` · ${gradeScore}% on-plan`:''}`;
-  const eiVerdict   = allClosedWithPL.length === 0 ? 'No closed trades yet.'
-    : allAvgR >= 0.5 && (allWinRate||0) >= 55 ? 'Proven edge. Consistency and size are the only levers left.'
-    : allAvgR >= 0.25 && (allWinRate||0) >= 45 ? 'Developing edge — keep refining setup selection.'
-    : allAvgR >= 0   ? 'Marginal edge — protect R, cut losers faster.'
-    : 'Negative expected value — pause and review setups.';
-  const eiVerdictCls = allAvgR >= 0.25 ? 'pos' : allAvgR >= 0 ? 'warn' : 'neg';
-
-  const eiNums = [
-    { v: allWinRate!=null ? allWinRate+'%' : '—',   cls: allWinRate==null?'':allWinRate>=55?'pos':allWinRate>=45?'':'neg', l: 'Win rate'      },
-    { v: allClosedWithPL.length ? (allAvgR>=0?'+':'')+allAvgR.toFixed(2)+'R' : '—', cls: allAvgR>=0.3?'pos':allAvgR>=0?'':'neg', l: 'Avg R' },
-    { v: String(allPF),                             cls: 'cyan',                                                              l: 'Profit factor' },
-    { v: allClosedWithPL.length ? (allExpectancy>=0?'+$':'-$')+Math.abs(allExpectancy).toFixed(0) : '—', cls: allExpectancy>=0?'pos':'neg', l: 'Expectancy' },
-  ].map(m=>`<div class="sei-num"><div class="sei-num-val ${m.cls}">${m.v}</div><div class="sei-num-lbl">${m.l}</div></div>`).join('');
-
-  // 2-3 key bullets for compact view
-  const highlightBullets = typeof buildAlphaHighlightBullets === 'function'
-    ? buildAlphaHighlightBullets(allClosedWithPL).slice(0, 2)
-    : [];
-  const careerBullet = allClosedWithPL.length > 0 ? {
-    tone: allTotalPL >= 0 ? 'good' : 'bad', icon: '📈',
-    text: `<strong>Career: ${allTotalPL>=0?'+$':'-$'}${Math.abs(Math.round(allTotalPL)).toLocaleString()}</strong> · ${allClosed.length} trades · ${allWinRate}% wins · avg ${allAvgR>=0?'+':''}${allAvgR.toFixed(2)}R`,
-  } : null;
-  const previewBullets = [careerBullet, ...highlightBullets].filter(Boolean).slice(0, 3);
-  const previewBulletsHtml = previewBullets.length
-    ? `<ul class="home-intel-points sei-preview-bullets">${previewBullets.map(b=>`<li class="tone-${b.tone}"><span class="intel-icon">${b.icon}</span><span>${b.text}</span></li>`).join('')}</ul>`
-    : '';
 
   // Max drawdown
   let peak = 0, maxDD = 0, ddStart = null;
@@ -263,125 +394,30 @@ export function renderStats() {
   }
   const streakStr = streakN > 0 ? `${streakN}${streakT}` : '—';
 
-  // Edge Intelligence card text
-  const winStreakN = (() => {
-    let n = 0;
-    for (let i = sortedForStreak.length - 1; i >= 0; i--) {
-      if ((calcPL(sortedForStreak[i]) || 0) > 0) n++;
-      else break;
-    }
-    return n;
-  })();
-
-  // FORM
-  const formText = closedWithPL.length === 0
-    ? 'No closed trades in this period.'
-    : winStreakN >= 3
-      ? `<strong>${winStreakN}-trade win streak</strong> · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R this period`
-      : avgR >= 0.3 && (winRateNum||0) >= 50
-        ? `<strong>${wins.length}W / ${losses.length}L</strong> · solid form · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`
-        : avgR >= 0
-          ? `<strong>${wins.length}W / ${losses.length}L</strong> · marginal form · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`
-          : `<strong>${losses.length} consecutive pressure</strong> · avg ${avgR.toFixed(2)}R · review sizing`;
-
-  // EDGE — top setup(s)
-  const setupMapForEdge = {};
-  periodClosed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMapForEdge[k]) setupMapForEdge[k] = { n: 0, wins: 0, pl: 0, totalR: 0 };
-    const pl = calcPL(t) || 0;
-    setupMapForEdge[k].n++;
-    if (pl > 0) setupMapForEdge[k].wins++;
-    setupMapForEdge[k].pl += pl;
-    setupMapForEdge[k].totalR += calcR(t) || 0;
-  });
-  const topSetups = Object.entries(setupMapForEdge)
-    .filter(([, s]) => s.pl > 0)
-    .sort(([, a], [, b]) => b.pl - a.pl)
-    .slice(0, 2);
-  const edgeText = topSetups.length === 0
-    ? 'No profitable setups this period.'
-    : topSetups.map(([name, s]) => {
-        const wr = Math.round(s.wins / s.n * 100);
-        const ar = (s.totalR / s.n).toFixed(2);
-        return `<strong>${name}</strong> ${wr}% WR · +${ar}R`;
-      }).join(' &nbsp;·&nbsp; ');
-
-  // WATCH — worst setup
-  const worstSetup = Object.entries(setupMapForEdge)
-    .filter(([, s]) => s.pl < 0)
-    .sort(([, a], [, b]) => a.pl - b.pl)[0];
-  const watchTone = worstSetup ? 'warn' : 'pos';
-  const watchText = worstSetup
-    ? `<strong>${worstSetup[0]}</strong> underperforming · ${(worstSetup[1].pl < 0 ? '-$' : '+$')}${Math.abs(worstSetup[1].pl).toFixed(0)} · consider reducing size`
-    : maxDD > 0
-      ? `Max drawdown <strong>-$${Math.round(maxDD).toLocaleString()}</strong> — within acceptable range`
-      : 'No setups flagged for review this period.';
-
-  // ACTION
-  const actionText = closedWithPL.length === 0
-    ? 'Log more trades to generate recommendations.'
-    : avgR >= 0.5 && (winRateNum||0) >= 55
-      ? 'Edge confirmed. <strong>Size up on A-grade setups</strong> and protect capital on borderline entries.'
-      : avgR >= 0.25 && (winRateNum||0) >= 45
-        ? '<strong>Stay selective</strong> — focus on top 1-2 setups. Skip B/C setups until form improves.'
-        : avgR >= 0
-          ? '<strong>Reduce size</strong> on all trades. Only take A-grade setups until stats stabilize.'
-          : '<strong>Pause or go to sim</strong> — negative expected value. Review entry criteria before next trade.';
-
   // Loss/win counts for R-dist header
   const rDistLossCount = losses.length;
   const rDistWinCount = wins.length;
 
-  // Edge Intelligence compact — uses the shared alpha-intel-card style.
-  const formTone   = avgR >= 0.3 && (winRateNum||0) >= 50 ? 'good' : avgR >= 0 ? 'info' : 'warn';
-  const edgeTone   = topSetups.length ? 'good' : 'info';
-  const watchToneCls = watchTone === 'warn' ? 'bad' : 'good';
-  const actionTone = avgR >= 0.5 && (winRateNum||0) >= 55 ? 'good'
-    : avgR >= 0.25 && (winRateNum||0) >= 45 ? 'good'
-    : avgR >= 0 ? 'warn' : 'bad';
-  const alphaIntelHtml = `
-    <div class="alpha-intel-card stats-alpha-intel">
-      <div class="alpha-intel-eyebrow">
-        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span></span>
-        <button class="stats-ei-enlarge-btn" type="button" data-ei-enlarge>Enlarge →</button>
-      </div>
-      <ul class="alpha-intel-points">
-        <li class="alpha-intel-point tone-${formTone}"><span class="alpha-intel-chip">FORM</span><span class="alpha-intel-body">${formText}</span></li>
-        <li class="alpha-intel-point tone-${edgeTone}"><span class="alpha-intel-chip">EDGE</span><span class="alpha-intel-body">${edgeText}</span></li>
-        <li class="alpha-intel-point tone-${watchToneCls}"><span class="alpha-intel-chip">WATCH</span><span class="alpha-intel-body">${watchText}</span></li>
-        <li class="alpha-intel-point tone-${actionTone}"><span class="alpha-intel-chip">ACTION</span><span class="alpha-intel-body">${actionText}</span></li>
-      </ul>
-    </div>`;
+  // Edge Intelligence — show the full card on stats (same content as home),
+  // tagged with `.stats-alpha-intel` so the wrap can flex it to match the equity card height.
+  const alphaIntelHtml = fullEiHtml.replace(
+    /class="alpha-intel-card([^"]*)"/,
+    'class="alpha-intel-card stats-alpha-intel$1"',
+  );
 
   // Setup performance table
-  const setupMap = {};
-  periodClosed.forEach(t => {
-    const k = t.setup || '—';
-    if (!setupMap[k]) setupMap[k] = { n: 0, wins: 0, pl: 0, totalR: 0, mode: t.mode || 'swing' };
-    const pl = calcPL(t) || 0;
-    setupMap[k].n++;
-    if (pl > 0) setupMap[k].wins++;
-    setupMap[k].pl += pl;
-    setupMap[k].totalR += calcR(t) || 0;
-  });
-  const setupRows = Object.entries(setupMap)
-    .sort(([, a], [, b]) => b.pl - a.pl)
-    .map(([name, s]) => {
-      const wr = Math.round(s.wins / s.n * 100);
-      const avgRv = (s.totalR / s.n);
-      const exp = (s.pl / s.n);
-      const edge = avgRv >= 0.7 ? 'strong' : avgRv >= 0.3 ? 'holding' : avgRv >= 0 ? 'fading' : 'kill';
-      const plStr = (s.pl >= 0 ? '+$' : '-$') + Math.abs(s.pl).toFixed(0);
-      const expStr = (exp >= 0 ? '+$' : '-$') + Math.abs(exp).toFixed(0) + '/trade';
+  const setups = aggregateBySetup(periodClosed);
+  const setupRows = setups.map(s => {
+      const wr = Math.round(s.winRate);
+      const edge = s.avgR >= 0.7 ? 'strong' : s.avgR >= 0.3 ? 'holding' : s.avgR >= 0 ? 'fading' : 'kill';
       return `<div class="stats-setup-row">
         <span class="stats-mode-badge ${s.mode}">${s.mode}</span>
-        <span style="color:var(--ink-2);font-size:13px;">${name}</span>
+        <span style="color:var(--ink-2);font-size:13px;">${s.key}</span>
         <span style="font-family:var(--mono);text-align:right;color:var(--ink-3);">${s.n}</span>
         <span style="font-family:var(--mono);text-align:right;color:var(--ink-2);">${wr}%</span>
-        <span style="font-family:var(--mono);text-align:right;color:${avgRv >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'};font-weight:700;">${avgRv >= 0 ? '+' : ''}${avgRv.toFixed(2)}R</span>
-        <span style="font-family:var(--mono);text-align:right;color:${s.pl >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'};font-weight:700;">${plStr}</span>
-        <span style="font-family:var(--mono);text-align:right;color:var(--ink-3);font-size:11px;">${expStr}</span>
+        <span style="font-family:var(--mono);text-align:right;color:${s.avgR >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'};font-weight:700;">${fmtR(s.avgR)}</span>
+        <span style="font-family:var(--mono);text-align:right;color:${s.pl >= 0 ? 'var(--green-bright)' : 'var(--red-bright)'};font-weight:700;">${fmtMoney(s.pl)}</span>
+        <span style="font-family:var(--mono);text-align:right;color:var(--ink-3);font-size:11px;">${fmtMoney(s.avgPL)}/trade</span>
         <span class="stats-edge-badge ${edge}">${edge}</span>
       </div>`;
     }).join('') || `<div style="color:var(--ink-4);font-size:13px;padding:16px 4px;">No closed trades in this period.</div>`;
@@ -405,16 +441,16 @@ export function renderStats() {
   ).join('');
 
   // 7 metric cards
-  const totalPLStr = (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
+  const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
   const metrics = [
-    { label: 'Net P/L',       value: totalPLStr,                                              sub: `${(totalPL / account * 100).toFixed(1)}%`,         cls: totalPL >= 0 ? 'pos' : 'neg' },
-    { label: 'Win rate',      value: winRateNum !== null ? winRateNum.toFixed(0) + '%' : '—', sub: `${wins.length} / ${closedWithPL.length}`,           cls: '' },
-    { label: 'Avg R',         value: closedWithPL.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—',
-                                                                                               sub: `W ${wins.length ? ('+' + (wins.reduce((s,x)=>s+x.r,0)/wins.length).toFixed(2) + 'R') : '—'} · L ${losses.length ? (losses.reduce((s,x)=>s+x.r,0)/losses.length).toFixed(2) + 'R' : '—'}`, cls: '' },
+    { label: 'Net P/L',       value: fmtMoney(totalPL),                                       sub: fmtPct(totalPL / account * 100, 1, true),           cls: totalPL >= 0 ? 'pos' : 'neg' },
+    { label: 'Win rate',      value: winRateNum !== null ? fmtPct(winRateNum) : '—',          sub: `${wins.length} / ${closedWithPL.length}`,           cls: '' },
+    { label: 'Avg R',         value: closedWithPL.length ? fmtR(avgR) : '—',
+                                                                                               sub: `W ${wins.length ? fmtR(avgWinR) : '—'} · L ${losses.length ? fmtR(avgLossR) : '—'}`, cls: '' },
     { label: 'Profit factor', value: String(profitFactor),                                    sub: '$ won vs lost',                                      cls: 'cyan' },
-    { label: 'Expectancy',    value: (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0), sub: 'per trade',                              cls: expectancy >= 0 ? 'pos' : 'neg' },
-    { label: 'Max DD',        value: maxDD > 0 ? '-$' + Math.round(maxDD).toLocaleString() : '—',
-                                                                                               sub: ddStart ? ddStart : 'none',                          cls: maxDD > 0 ? 'neg' : '' },
+    { label: 'Expectancy',    value: fmtMoney(expectancy),                                    sub: 'per trade',                                          cls: expectancy >= 0 ? 'pos' : 'neg' },
+    { label: 'Max DD',        value: maxDD > 0 ? fmtMoney(-maxDD) : '—',                      sub: ddStart ? ddStart : 'none',                          cls: maxDD > 0 ? 'neg' : '' },
     { label: 'Sharpe-ish',    value: sharpe !== null ? sharpe : '—',                          sub: 'daily, ann.',                                        cls: '' },
   ].map(m => `<div class="stats-metric-card">
     <div class="stats-metric-label">${m.label}</div>
@@ -452,12 +488,12 @@ export function renderStats() {
         <div class="stats-rdist-highlights">
           <div>
             <div class="stats-rdist-hi-label">Best</div>
-            <div class="stats-rdist-hi-value" style="color:var(--green-bright)">${bestTrade ? (bestTrade.r >= 0 ? '+' : '') + bestTrade.r.toFixed(2) + 'R' : '—'}</div>
+            <div class="stats-rdist-hi-value" style="color:var(--green-bright)">${bestTrade ? fmtR(bestTrade.r) : '—'}</div>
             <div class="stats-rdist-hi-sub">${bestTrade ? (bestTrade.trade.ticker || '') + ' · ' + (bestTrade.trade.exit_date || bestTrade.trade.date || '') : 'no wins'}</div>
           </div>
           <div>
             <div class="stats-rdist-hi-label">Worst</div>
-            <div class="stats-rdist-hi-value" style="color:var(--red-bright)">${worstTrade ? (worstTrade.r >= 0 ? '+' : '') + worstTrade.r.toFixed(2) + 'R' : '—'}</div>
+            <div class="stats-rdist-hi-value" style="color:var(--red-bright)">${worstTrade ? fmtR(worstTrade.r) : '—'}</div>
             <div class="stats-rdist-hi-sub">${worstTrade ? (worstTrade.trade.ticker || '') + ' · ' + (worstTrade.trade.exit_date || worstTrade.trade.date || '') : 'no losses'}</div>
           </div>
           <div>
@@ -487,6 +523,12 @@ export function renderStats() {
     </section>
   `;
 
+  // Wire equity curve hover (crosshair + tooltip)
+  wireEquityHover(shell);
+
+  // Animate metric numbers (count-up) on render.
+  animateStatNumbers(shell);
+
   // Wire period tabs
   shell.querySelectorAll('[data-stats-period]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -495,21 +537,4 @@ export function renderStats() {
     });
   });
 
-  // Wire Edge Intel enlarge → modal (nothing in the page shifts)
-  shell.querySelector('[data-ei-enlarge]')?.addEventListener('click', () => {
-    const existing = document.getElementById('stats-ei-modal');
-    if (existing) existing.remove();
-    const modal = document.createElement('div');
-    modal.id = 'stats-ei-modal';
-    modal.className = 'stats-ei-modal';
-    modal.innerHTML = `
-      <div class="stats-ei-modal-box">
-        <button class="stats-ei-modal-close" type="button" aria-label="Close">✕</button>
-        ${fullEiHtml}
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelector('.stats-ei-modal-close').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  });
 }
-

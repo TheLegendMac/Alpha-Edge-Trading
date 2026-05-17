@@ -801,6 +801,16 @@
   color: var(--ink);
 }
 #panel-trade .tf-auto-chip:active { transform: translateY(1px); }
+#panel-trade.intraday-mode .tf-auto-chip {
+  color: var(--magenta, #ec4899);
+  background: rgba(236,72,153,0.06);
+  border-color: rgba(236,72,153,0.32);
+}
+#panel-trade.intraday-mode .tf-auto-chip:hover {
+  background: rgba(236,72,153,0.16);
+  border-color: var(--magenta, #ec4899);
+  color: var(--ink);
+}
 
 /* Live gain/loss estimates (intraday Plan & Size) */
 #panel-trade .tf-i-est {
@@ -1237,6 +1247,16 @@
 #panel-trade .tf-chip.selected.long  { border-color: var(--green); background: var(--green-bg); color: var(--green-bright); }
 #panel-trade .tf-chip.selected.short { border-color: var(--red);   background: var(--red-bg);   color: var(--red-bright); }
 #panel-trade .tf-chip.selected.neutral { border-color: var(--amber-dim); background: var(--amber-bg); color: var(--amber-bright); }
+#panel-trade .tf-chip.selected.either  { border-color: var(--amber-dim); background: var(--amber-bg); color: var(--amber-bright); }
+
+/* Intraday mode — swap cyan accents for magenta on hover + plain-selected */
+#panel-trade.intraday-mode .tf-chip:hover { border-color: var(--magenta-line); color: var(--ink); }
+#panel-trade.intraday-mode .tf-chip.selected:not(.long):not(.short):not(.neutral):not(.either) {
+  border-color: var(--magenta);
+  background: var(--magenta-bg);
+  color: var(--ink);
+}
+#panel-trade.intraday-mode .trade-setup-card:hover { border-color: var(--magenta-line); }
 
 /* Bias tag inside the setup card num row (LONG / SHORT / EITHER) */
 #panel-trade .tf-bias-tag {
@@ -1340,11 +1360,22 @@
   font-weight: 700;
   letter-spacing: 0;
 }
+#panel-trade.intraday-mode .trade-step-group-eyebrow span {
+  color: var(--magenta, #ec4899);
+  border-color: var(--magenta-line);
+}
 #panel-trade .trade-step-group.tf-flash {
   animation: tfGroupFlash 0.7s ease-out;
 }
+#panel-trade.intraday-mode .trade-step-group.tf-flash {
+  animation: tfGroupFlashIntraday 0.7s ease-out;
+}
 @keyframes tfGroupFlash {
   from { background: rgba(6, 212, 248, 0.10); border-radius: var(--r-md); }
+  to   { background: transparent; }
+}
+@keyframes tfGroupFlashIntraday {
+  from { background: rgba(236, 72, 153, 0.10); border-radius: var(--r-md); }
   to   { background: transparent; }
 }
 
