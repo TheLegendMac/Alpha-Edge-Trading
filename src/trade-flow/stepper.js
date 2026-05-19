@@ -12,7 +12,7 @@ import { buildTradeFlowEdgeIntel, renderLogStats } from '../intel/alpha.js';
 import { resetFlowSilent } from '../modals/trade-modal.js';
 import { renderHome } from '../views/home.js';
 import { renderLogTable } from '../views/log.js';
-import { setTab } from '../tabs.js';
+import { setTab, attachTickerAutocomplete } from '../tabs.js';
 import { logIntradayTrade } from './intraday-helpers.js';
 import { tfRiskRailHtml } from './risk.js';
 import { state, getRiskPctForRegime } from '../state/store.js';
@@ -201,13 +201,15 @@ export function tfRenderHeader() {
       if (m === 'swing') {
         const swingId = state.selectedSetup;
         const swingDef = swingId && Array.isArray(TRADE_SWING_SETUPS)
-          ? TRADE_SWING_SETUPS.find(s => s.id === swingId)
+          ? (TRADE_SWING_SETUPS.find(s => s.id === swingId) || (state.aiCustomSetups && state.aiCustomSetups[swingId]) || null)
           : null;
         setupName = swingDef ? (swingDef.name || swingDef.id) : (swingId || '');
       } else {
         const setupId = state.intraday && state.intraday.setup;
-        const def = setupId ? TRADE_INTRADAY_SETUPS.find(s => s.id === setupId) : null;
-        setupName = def ? def.name : '';
+        const def = setupId
+          ? (TRADE_INTRADAY_SETUPS.find(s => s.id === setupId) || (state.aiCustomSetups && state.aiCustomSetups[setupId]) || null)
+          : null;
+        setupName = def ? (def.name || def.id) : '';
       }
       const setupSuffix = setupName ? ` with the <span style="color:${accentColor};font-weight:700;">${setupName}</span> setup` : '';
       heroPnl.innerHTML = `Risking <span style="color:var(--red-bright);font-weight:700;">$${Math.round(p.risk).toLocaleString()}</span> to make <span style="color:var(--green-bright);font-weight:700;">$${Math.round(p.reward).toLocaleString()}</span> profit${setupSuffix}.`;
@@ -547,7 +549,6 @@ export function tfBuildConfirmTradeBody({
   riskDollars,
   rewardDollars,
   rMultiple,
-  equity,
   edgeIntelHtml = '',
 } = {}) {
   const esc = escHtml;
@@ -557,10 +558,6 @@ export function tfBuildConfirmTradeBody({
     if (!isFinite(n)) return '—';
     return `$${n.toFixed(2)}`;
   };
-  const pct = (num, den) => {
-    if (!den || !isFinite(num) || !isFinite(den)) return '';
-    return `${((num / den) * 100).toFixed(2)}%`;
-  };
   const dirKey = (directionLabel || '').toLowerCase().startsWith('s') ? 'short' : 'long';
   const dirClass = dirKey === 'short' ? 'short' : 'long';
   const unitWord = (() => {
@@ -569,34 +566,22 @@ export function tfBuildConfirmTradeBody({
     return u;
   })();
   const qtyText = qty ? `${qty} ${unitWord}` : '';
-  const riskPct  = equity ? pct(riskDollars, equity)  : '';
-  const rewardPct = equity ? pct(rewardDollars, equity) : '';
-  const riskEach = (qty && qty > 0 && riskDollars) ? money(riskDollars / qty) : '';
   const rText = (rMultiple != null && isFinite(rMultiple)) ? `${rMultiple.toFixed(2)}R` : '—';
-  const rPerOne = (rMultiple != null && isFinite(rMultiple)) ? `$${rMultiple.toFixed(2)} / $1` : '';
   const mult = (qtyUnit === 'contracts') ? 100 : 1;
   const barHtml = `<div class="tf-conf-rail">${tfRiskRailHtml({ entry, stop, target, qty, mult })}</div>`;
   const statsHtml = `
-    <div class="tf-conf-stats">
-      <div class="tf-conf-stat">
-        <div class="tf-conf-stat-k">RISK</div>
-        <div class="tf-conf-stat-v tone-bad">${money(riskDollars)}</div>
-        <div class="tf-conf-stat-sub">${riskPct ? esc(riskPct) + ' of equity' : ''}</div>
+    <div class="tf-conf-summary-strip">
+      <div class="tf-conf-summary-item">
+        <span>Risk</span>
+        <strong class="tone-bad">${money(riskDollars)}</strong>
       </div>
-      <div class="tf-conf-stat">
-        <div class="tf-conf-stat-k">REWARD</div>
-        <div class="tf-conf-stat-v tone-good">${money(rewardDollars)}</div>
-        <div class="tf-conf-stat-sub">${rewardPct ? esc(rewardPct) + ' gain' : ''}</div>
+      <div class="tf-conf-summary-item">
+        <span>Reward</span>
+        <strong class="tone-good">${money(rewardDollars)}</strong>
       </div>
-      <div class="tf-conf-stat">
-        <div class="tf-conf-stat-k">R-MULTIPLE</div>
-        <div class="tf-conf-stat-v tf-conf-accent">${esc(rText)}</div>
-        <div class="tf-conf-stat-sub">${esc(rPerOne)}</div>
-      </div>
-      <div class="tf-conf-stat">
-        <div class="tf-conf-stat-k">${esc((qtyUnit || 'CONTRACTS').toUpperCase())}</div>
-        <div class="tf-conf-stat-v">${qty || '—'}</div>
-        <div class="tf-conf-stat-sub">${riskEach ? esc(riskEach) + ' risk each' : ''}</div>
+      <div class="tf-conf-summary-item">
+        <span>R multiple</span>
+        <strong class="tf-conf-accent">${esc(rText)}</strong>
       </div>
     </div>`;
   const headerLine = `
@@ -693,7 +678,6 @@ export function tfLogSwingDirect() {
     ? Math.abs(targetForBar - entryForBar) * contracts * perUnit
     : 0;
   const rMultiple = (riskDollars > 0 && rewardDollars > 0) ? rewardDollars / riskDollars : null;
-  const equity = Number((state.settings || {}).account) || 0;
   const bodyHtml = tfBuildConfirmTradeBody({
     mode: 'swing',
     ticker,
@@ -708,7 +692,6 @@ export function tfLogSwingDirect() {
     riskDollars,
     rewardDollars,
     rMultiple,
-    equity,
     edgeIntelHtml,
   });
 
@@ -841,8 +824,6 @@ export function tfLogIntradayDirect() {
     ? Math.abs(targetForBar - entryForBar) * qty * perUnit
     : 0;
   const rMultiple = (riskDollars > 0 && rewardDollars > 0) ? rewardDollars / riskDollars : null;
-  const equity = Number((state.settings || {}).account) || 0;
-
   const bodyHtml = tfBuildConfirmTradeBody({
     mode: 'intraday',
     ticker,
@@ -857,7 +838,6 @@ export function tfLogIntradayDirect() {
     riskDollars,
     rewardDollars,
     rMultiple,
-    equity,
     edgeIntelHtml,
   });
   tfShowConfirm({
@@ -974,6 +954,12 @@ function tfBindScrollObserver() {
 // Top-level orchestrator: header + stepper + step body + actions, plus the
 // step-body mount that wires every dynamic input. Every state mutation in the
 // trade flow funnels back through here.
+function tfSaSymbol(t) {
+  const s = String(t || '').toUpperCase().replace(/^\./, '');
+  const m = s.match(/^[A-Z]+/);
+  return m ? m[0] : s;
+}
+
 function tfRenderTickerCard() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   const ticker  = m === 'swing' ? (state.ticker || '') : ((state.intraday && state.intraday.ticker) || '');
@@ -1023,7 +1009,7 @@ function tfRenderTickerCard() {
           type="text" value="${ticker}" placeholder="—"
           autocomplete="off" spellcheck="false" maxlength="10"
           style="${ticker ? 'color:'+accentColor : ''}">
-        <a href="https://seekingalpha.com/symbol/${ticker}" id="tf-card-sa-link" target="_blank" rel="noopener noreferrer" style="display:${ticker ? 'inline-flex' : 'none'}; align-items:center; padding:6px 12px; border-radius:8px; border:1px solid ${accentLine}; background:${accentBg}; color:${accentColor}; font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:0.1em; text-decoration:none; transition:opacity 0.15s; white-space:nowrap;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">CHECK SA ↗</a>
+        <a href="https://seekingalpha.com/symbol/${tfSaSymbol(ticker)}" id="tf-card-sa-link" target="_blank" rel="noopener noreferrer" style="display:${ticker ? 'inline-flex' : 'none'}; align-items:center; padding:6px 12px; border-radius:8px; border:1px solid ${accentLine}; background:${accentBg}; color:${accentColor}; font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:0.1em; text-decoration:none; transition:opacity 0.15s; white-space:nowrap;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">CHECK SA ↗</a>
       </div>
       ${biasHtml}
       <div class="tf-pill-row">
@@ -1045,6 +1031,7 @@ function tfMountTickerCard() {
   const m = (state.tradeFlow && state.tradeFlow.mode) || 'swing';
   const inp = document.getElementById('tf-ticker-card-input');
   if (inp) {
+    attachTickerAutocomplete(inp);
     inp.addEventListener('input', () => {
       const v = inp.value.toUpperCase();
       inp.value = v;
@@ -1054,7 +1041,7 @@ function tfMountTickerCard() {
       const saLink = document.getElementById('tf-card-sa-link');
       if (saLink) {
         if (v) {
-          saLink.href = `https://seekingalpha.com/symbol/${v}`;
+          saLink.href = `https://seekingalpha.com/symbol/${tfSaSymbol(v)}`;
           saLink.style.display = 'inline-flex';
         } else {
           saLink.style.display = 'none';
@@ -1116,4 +1103,3 @@ export function renderTrade() {
 }
 
 // setTab → kept in legacy.js (Phase 11 will move it to src/tabs.js)
-

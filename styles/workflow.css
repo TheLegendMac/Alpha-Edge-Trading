@@ -302,6 +302,42 @@
   font-size: 11px;
   color: var(--ink-4);
 }
+.tf-conf-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-elev);
+}
+.tf-conf-summary-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+.tf-conf-summary-item:last-child { border-right: 0; }
+.tf-conf-summary-item span {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.tf-conf-summary-item strong {
+  font-family: var(--mono);
+  font-size: 17px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tf-conf-summary-item strong.tone-bad { color: var(--tf-conf-accent); }
+.tf-conf-summary-item strong.tone-good { color: var(--green-bright); }
+.tf-conf-summary-item strong.tf-conf-accent { color: var(--tf-conf-accent); }
 
 .tf-conf-intel .home-card { margin: 0; }
 
@@ -337,6 +373,26 @@
 }
 .tf-conf-intel .alpha-intel-point:first-child { padding-top: 2px; }
 .tf-conf-intel .alpha-intel-chip { font-size: 9px; padding: 2px 6px; }
+.tf-conf-intel .alpha-intel-card.compact {
+  gap: 7px;
+  padding: 12px 14px;
+}
+.tf-conf-intel .alpha-intel-card.compact .alpha-intel-eyebrow {
+  padding-top: 0;
+  margin-bottom: 2px;
+}
+.tf-conf-intel .alpha-intel-card.compact .alpha-intel-headline {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.tf-conf-intel .alpha-intel-card.compact .alpha-intel-point {
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 5px 0;
+}
+.tf-conf-intel .alpha-intel-card.compact .alpha-intel-chip {
+  display: none;
+}
 .tf-confirm-modal .modal-body { padding: 10px 18px 4px; }
 .tf-confirm-header { padding: 10px 20px 8px; }
 .tf-confirm-title { font-size: 16px; }
@@ -344,6 +400,9 @@
 .tf-confirm-footer { padding: 8px 18px; }
 
 @media (max-width: 520px) {
+  .tf-conf-summary-strip { grid-template-columns: 1fr; }
+  .tf-conf-summary-item { border-right: 0; border-bottom: 1px solid var(--line); }
+  .tf-conf-summary-item:last-child { border-bottom: 0; }
   .tf-conf-stats { grid-template-columns: repeat(2, 1fr); }
   .tf-conf-stat { border-right: 0; border-bottom: 1px solid var(--line); }
   .tf-conf-stat:nth-child(odd) { border-right: 1px solid var(--line); }
@@ -1688,4 +1747,410 @@
   #panel-trade .trade-template-btn { padding: 5px 9px; font-size: 10px; }
   #panel-trade .trade-actions { margin: 16px -12px 0; padding: 10px 12px; gap: 8px; }
   #panel-trade .trade-action-btn { padding: 10px 14px; font-size: 12px; }
+}
+
+/* ─── AI setup CTA card + custom-setup cards (cyan→magenta gradient) ─── */
+#panel-trade .tf-bias-tag.ai {
+  background: var(--ai-grad-soft);
+  color: #fff;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+/* ─── "Describe with Edge Intelligence" CTA card ─────────────────────
+   Same setup-card frame, but with brand-gradient signature elements
+   (top stripe + soft glow + ambient wash + hover arrow) so it reads
+   as the AI surface inside the setup grid. */
+#panel-trade .trade-setup-card-ai-cta {
+  position: relative;
+  isolation: isolate;
+  padding: 16px 16px 14px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+#panel-trade .trade-setup-card-ai-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ai-grad);
+  z-index: -2;
+  pointer-events: none;
+}
+#panel-trade .trade-setup-card-ai-cta::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--r-md) - 1px);
+  background:
+    var(--glass-highlight),
+    var(--bg-card);
+  z-index: -1;
+  pointer-events: none;
+}
+#panel-trade .trade-setup-card-ai-cta .ai-cta-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: var(--ai-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+#panel-trade .trade-setup-card-ai-cta .ai-cta-sparkle {
+  font-size: 11px;
+  line-height: 1;
+  -webkit-text-fill-color: var(--cyan);
+  color: var(--cyan);
+  filter: drop-shadow(0 0 4px rgba(6, 212, 248, 0.5));
+}
+#panel-trade .trade-setup-card-ai-cta .trade-setup-card-name {
+  background: linear-gradient(90deg, #fff 0%, #fff 65%, var(--magenta) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  transition: background-position 0.3s ease;
+}
+#panel-trade .trade-setup-card-ai-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(6, 212, 248, 0.14), 0 6px 22px rgba(236, 72, 153, 0.14);
+}
+#panel-trade .trade-setup-card-ai-cta:hover .trade-setup-card-name {
+  background-position: 100% 0%;
+}
+#panel-trade .trade-setup-card.ai-setup-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+#panel-trade .trade-setup-card.ai-setup-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ai-grad);
+  opacity: 0.55;
+  pointer-events: none;
+}
+#panel-trade .trade-setup-card.ai-setup-card.selected {
+  border-color: rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(135deg, rgba(6, 212, 248, 0.07), rgba(236, 72, 153, 0.07)),
+    var(--bg-card, rgba(16, 18, 24, 0.6));
+}
+#panel-trade .trade-setup-card.ai-setup-card.selected::before { opacity: 1; }
+
+/* ─── AI setup builder modal ─────────────────────────────────────── */
+.ai-setup-backdrop {
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(6px);
+}
+.ai-setup-modal {
+  max-width: 720px;
+  width: min(720px, 95vw);
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  padding: 0;
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+.ai-setup-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ai-grad);
+  z-index: -2;
+  pointer-events: none;
+}
+.ai-setup-modal::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 13px;
+  background:
+    radial-gradient(70% 50% at 0% 0%, rgba(6, 212, 248, 0.06), transparent 60%),
+    radial-gradient(60% 50% at 100% 0%, rgba(236, 72, 153, 0.05), transparent 65%),
+    #0a1018;
+  z-index: -1;
+  pointer-events: none;
+}
+/* The old top-only accent stripe is no longer needed — the perimeter
+   gradient carries the brand identity. Keep the element invisible so
+   the existing markup (and any JS targeting it) doesn't break. */
+.ai-setup-accent { display: none; }
+.ai-setup-modal .modal-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  z-index: 2;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 22px;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.ai-setup-modal .modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-setup-header {
+  padding: 28px 32px 14px;
+}
+.ai-setup-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.ai-setup-kicker-main {
+  background: var(--ai-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.ai-setup-kicker-sep  { color: rgba(255, 255, 255, 0.25); }
+.ai-setup-kicker-sub  { color: rgba(255, 255, 255, 0.55); }
+.ai-setup-kicker-mode { color: rgba(255, 255, 255, 0.45); }
+
+.ai-setup-title {
+  margin: 14px 0 12px;
+  font-size: 36px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.ai-setup-title-accent {
+  background: var(--ai-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* Mode-coded accent — cyan for swing, magenta for intraday. Matches the
+   log table mode tags so the modal feels native to whichever flow opened it. */
+.ai-setup-title-accent.mode-swing {
+  background: none;
+  -webkit-text-fill-color: var(--cyan);
+  color: var(--cyan);
+}
+.ai-setup-title-accent.mode-intraday {
+  background: none;
+  -webkit-text-fill-color: var(--magenta);
+  color: var(--magenta);
+}
+
+.ai-setup-sub {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 600px;
+}
+
+.ai-setup-body {
+  padding: 14px 32px 8px;
+}
+.ai-setup-input-wrap {
+  position: relative;
+  background: #060a10;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px 18px 36px;
+  transition: border-color 0.15s ease;
+}
+.ai-setup-input-wrap:focus-within {
+  border-color: transparent;
+  background:
+    linear-gradient(#060a10, #060a10) padding-box,
+    var(--ai-grad) border-box;
+  box-shadow: 0 0 0 3px rgba(6, 212, 248, 0.08), 0 0 0 3px rgba(236, 72, 153, 0.05);
+}
+.ai-setup-textarea {
+  width: 100%;
+  min-height: 130px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  color: #e8eef5;
+  font-size: 14px;
+  line-height: 1.55;
+  font-family: inherit;
+  padding: 0;
+}
+.ai-setup-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.30);
+}
+.ai-setup-input-meta {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: rgba(255, 255, 255, 0.40);
+  pointer-events: none;
+}
+.ai-setup-input-key {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  font-size: 10px;
+  margin: 0 2px;
+}
+
+.ai-setup-error {
+  margin-top: 12px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: var(--red-bright, #f87171);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 8px;
+}
+
+.ai-setup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 32px 24px;
+}
+.ai-setup-seeds {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ai-setup-seed-label {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: rgba(255, 255, 255, 0.40);
+  font-weight: 600;
+}
+.ai-setup-seed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-setup-seed-chip {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.ai-setup-seed-chip:hover {
+  border-color: transparent;
+  color: #fff;
+  background:
+    linear-gradient(#0a1018, #0a1018) padding-box,
+    var(--ai-grad) border-box;
+}
+
+.ai-setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.ai-setup-cancel {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  cursor: pointer;
+  padding: 8px 6px;
+  transition: color 0.15s ease;
+}
+.ai-setup-cancel:hover { color: #fff; }
+.ai-setup-cancel:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ai-setup-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ai-grad);
+  color: #07101a;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 22px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  cursor: pointer;
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  transition: transform 0.1s ease, box-shadow 0.2s ease, filter 0.15s ease;
+}
+.ai-setup-go:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 3px rgba(6, 212, 248, 0.15), 0 0 18px rgba(236, 72, 153, 0.18);
+}
+.ai-setup-go:active { transform: translateY(1px); }
+.ai-setup-go:disabled,
+.ai-setup-go.is-loading {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.ai-setup-go-plus {
+  font-size: 15px;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+@media (max-width: 640px) {
+  .ai-setup-header { padding: 22px 20px 10px; }
+  .ai-setup-body   { padding: 10px 20px 6px; }
+  .ai-setup-footer { padding: 14px 20px 18px; flex-direction: column; align-items: stretch; }
+  .ai-setup-title  { font-size: 26px; }
+  .ai-setup-actions { justify-content: space-between; }
+  .ai-setup-seeds { flex-wrap: wrap; }
 }

@@ -47,6 +47,11 @@
   --magenta-bg: rgba(236, 72, 153, 0.10);
   --magenta-line: rgba(236, 72, 153, 0.32);
 
+  /* Brand gradient used for AI / Edge Intelligence surfaces. cyan → magenta. */
+  --ai-grad: linear-gradient(90deg, var(--cyan), var(--magenta));
+  --ai-grad-soft: linear-gradient(90deg, rgba(6, 212, 248, 0.18), rgba(236, 72, 153, 0.18));
+  --ai-grad-glow: linear-gradient(90deg, rgba(6, 212, 248, 0.45), rgba(236, 72, 153, 0.45));
+
   /* glass card surfaces — used by the redesign layer */
   --glass-bg: rgba(19, 23, 34, 0.72);
   --glass-border: rgba(255, 255, 255, 0.06);

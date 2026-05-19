@@ -11,29 +11,47 @@ import { tfRenderSwingSizingHtml, tfUpdateSwingSizing, tfComputeSwingRiskBudget 
 import { toast } from '../modals/toast.js';
 import { tfBindPriceLevelSliders } from './risk.js';
 import { tfReadKeyNumber, tfGradePasses } from './intraday-steps.js';
+import { openAiSetupBuilder } from '../modals/ai-setup-builder.js';
 
 export function tfSwingStep1() {
   const sel = state.selectedSetup;
   const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
   // Filter: hide setups whose bias doesn't match the active direction (either always shows).
-  const visible = TRADE_SWING_SETUPS.filter(s => {
-    const b = s.bias || 'either';
-    return b === 'either' || b === dirKey;
-  });
-  const cards = visible.map(s => {
-    const biasTag = s.bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
-                  : s.bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
-                                       : '<span class="tf-bias-tag neutral">EITHER</span>';
-    return `
+  const biasOk = (b) => {
+    const v = b || 'either';
+    return v === 'either' || v === dirKey;
+  };
+  const visible = TRADE_SWING_SETUPS.filter(s => biasOk(s.bias));
+  const aiVisible = Object.values(state.aiCustomSetups || {})
+    .filter(s => s && (s.mode || 'swing') === 'swing' && biasOk(s.bias));
+
+  const renderBiasTag = (bias) => bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
+                                  : bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
+                                                     : '<span class="tf-bias-tag neutral">EITHER</span>';
+
+  const catalogCards = visible.map(s => `
     <button class="trade-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
-      <span class="trade-setup-card-num">${s.num} · ${biasTag}${s.halfSize ? ' <span class="tf-bias-tag neutral" style="margin-left:4px;">½ SIZE</span>' : ''}</span>
+      <span class="trade-setup-card-num">${s.num} · ${renderBiasTag(s.bias)}${s.halfSize ? ' <span class="tf-bias-tag neutral" style="margin-left:4px;">½ SIZE</span>' : ''}</span>
       <span class="trade-setup-card-name">${s.name || s.id}</span>
       <span class="trade-setup-card-detail">${s.desc}</span>
-    </button>`;
-  }).join('');
+    </button>`).join('');
 
-  const empty = !visible.length
-    ? `<div class="input-help">No setups match this direction. Switch direction in the header.</div>`
+  const aiCards = aiVisible.map(s => `
+    <button class="trade-setup-card ai-setup-card ${sel === s.id ? 'selected' : ''}" type="button" data-tf-setup="${s.id}">
+      <span class="trade-setup-card-num"><span class="tf-bias-tag ai">✨ AI</span> · ${renderBiasTag(s.bias)}</span>
+      <span class="trade-setup-card-name">${s.name || 'AI setup'}</span>
+      <span class="trade-setup-card-detail">${s.desc || ''}</span>
+    </button>`).join('');
+
+  const aiBuilderCard = `
+    <button class="trade-setup-card trade-setup-card-ai-cta" type="button" id="tf-setup-ai-open">
+      <span class="ai-cta-kicker"><span class="ai-cta-sparkle">✦</span>EDGE INTELLIGENCE</span>
+      <span class="trade-setup-card-name">Describe with Edge Intelligence</span>
+      <span class="trade-setup-card-detail">Describe a pattern. Edge Intelligence builds the setup.</span>
+    </button>`;
+
+  const empty = !visible.length && !aiVisible.length
+    ? `<div class="input-help">No setups match this direction. Switch direction in the header, or use "Describe with Edge Intelligence" above.</div>`
     : '';
 
   return `
@@ -41,12 +59,12 @@ export function tfSwingStep1() {
       <div class="trade-section-head">
         <div class="trade-section-head-stack">
           <div class="trade-section-title"><span class="trade-section-title-icon">A.</span> Pick setup</div>
-          <div class="trade-section-subtitle">Choose the chart pattern.</div>
+          <div class="trade-section-subtitle">Choose the chart pattern, or describe your own.</div>
         </div>
         <div class="trade-section-counter ${sel ? 'complete' : ''}">${sel ? '1 selected' : 'pick 1'}</div>
       </div>
       <div class="trade-section-body">
-        <div class="trade-setup-grid" id="tf-setup-grid">${cards}</div>
+        <div class="trade-setup-grid" id="tf-setup-grid">${catalogCards}${aiCards}${aiBuilderCard}</div>
         ${empty}
       </div>
     </div>
@@ -55,9 +73,12 @@ export function tfSwingStep1() {
 
 export function tfMountSwingStep1() {
   // If the currently-selected setup doesn't match the active direction, clear it.
+  // (Only check catalog setups — AI custom setups are checked separately so we
+  // don't lose them just because the user toggled direction.)
   if (state.selectedSetup) {
     const dirKey = (state.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
-    const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup);
+    const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup)
+      || (state.aiCustomSetups && state.aiCustomSetups[state.selectedSetup]);
     const bias = def ? (def.bias || 'either') : 'either';
     if (bias !== 'either' && bias !== dirKey) {
       state.selectedSetup = null;
@@ -68,12 +89,20 @@ export function tfMountSwingStep1() {
     b.addEventListener('click', () => {
       state.selectedSetup = b.dataset.tfSetup;
       // Auto-align direction if the setup has a specific bias.
-      const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup);
+      const def = TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup)
+        || (state.aiCustomSetups && state.aiCustomSetups[state.selectedSetup]);
       if (def && def.bias && def.bias !== 'either') state.direction = def.bias;
       saveState();
       tfRefreshAll();
     });
   });
+  const aiBtn = document.getElementById('tf-setup-ai-open');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      openAiSetupBuilder('swing');
+    });
+  }
 }
 
 export function tfSwingContractSpecHtml() {
@@ -739,7 +768,9 @@ export function tfSwingStep4() {
   const totalCost = Number(premium) > 0 && qty > 0 ? Number(premium) * qty * plan.mult : null;
   const costText = totalCost !== null ? `$${Math.round(totalCost).toLocaleString()}` : '—';
   const setupDef = Array.isArray(TRADE_SWING_SETUPS)
-    ? TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup)
+    ? (TRADE_SWING_SETUPS.find(s => s.id === state.selectedSetup)
+        || (state.aiCustomSetups && state.aiCustomSetups[state.selectedSetup])
+        || null)
     : null;
   const setupName = setupDef ? (setupDef.name || setupDef.id) : setupLabel;
   const reviewMessage = (() => {
@@ -906,4 +937,3 @@ export function tfApplySwingPaste(parsed) {
   Object.entries(parsed.gates || {}).forEach(([k, v]) => { if (v) state.gateChecks[k] = true; });
   saveState();
 }
-

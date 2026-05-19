@@ -40,7 +40,15 @@ export function setTab(name, opts = {}) {
   if (name === 'stats') {
     if (typeof renderStats === 'function') renderStats();
   }
-  if (name === 'trade' && typeof renderTrade === 'function') renderTrade();
+  if (name === 'trade') {
+    if (typeof renderTrade === 'function') renderTrade();
+    // Focus ticker input on tab activation. Defer one frame so the input
+    // exists in the DOM after renderTrade() flushes.
+    requestAnimationFrame(() => {
+      const input = document.getElementById('tf-ticker-card-input');
+      if (input) input.focus();
+    });
+  }
 }
 
 // Ticker autocomplete — fixed-position dropdown anchored to the input via

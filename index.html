@@ -46,9 +46,9 @@
       <nav class="cmdbar-nav" aria-label="Main navigation">
         <button class="tab active" data-tab="home" type="button">Home</button>
         <button class="tab" data-tab="trade" type="button">Trade</button>
-        <button class="tab" data-tab="log" type="button">Log</button>
+        <button class="tab" data-tab="log" type="button">History</button>
         <button class="tab" data-tab="stats" type="button">Stats</button>
-        <button class="tab" data-tab="reference" type="button">Reference</button>
+        <button class="tab" data-tab="reference" type="button">Plan</button>
       </nav>
       <!-- Mobile hamburger — shown only at narrow widths -->
       <button class="cmdbar-menu-btn" id="cmdbar-menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="cmdbar-menu-panel">
@@ -81,9 +81,9 @@
   <div class="cmdbar-menu-panel" id="cmdbar-menu-panel" role="menu" aria-hidden="true">
     <button class="cmdbar-menu-item" data-menu-tab="home" type="button" role="menuitem">Home</button>
     <button class="cmdbar-menu-item" data-menu-tab="trade" type="button" role="menuitem">Trade</button>
-    <button class="cmdbar-menu-item" data-menu-tab="log" type="button" role="menuitem">Log</button>
+    <button class="cmdbar-menu-item" data-menu-tab="log" type="button" role="menuitem">History</button>
     <button class="cmdbar-menu-item" data-menu-tab="stats" type="button" role="menuitem">Stats</button>
-    <button class="cmdbar-menu-item" data-menu-tab="reference" type="button" role="menuitem">Reference</button>
+    <button class="cmdbar-menu-item" data-menu-tab="reference" type="button" role="menuitem">Plan</button>
   </div>
 </header>
 
@@ -126,11 +126,9 @@
         <div class="alpha-intel-card" id="home-intel-card">
           <div class="alpha-intel-eyebrow">
             <span class="alpha-intel-eyebrow-l">
-              <span class="home-status-dot" id="home-status-dot"></span>
-              <span>EDGE INTELLIGENCE</span>
-              <button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>
+              <span class="alpha-intel-sparkle">✦</span><span class="alpha-intel-wordmark">EDGE INTELLIGENCE</span>
             </span>
-            <span class="alpha-intel-eyebrow-r" id="home-deep-kicker">TODAY'S READ</span>
+            <span class="alpha-intel-eyebrow-r" id="home-intel-confidence">EARLY DATA</span>
           </div>
           <h2 class="alpha-intel-headline" id="home-intel-headline">
             <span class="alpha-intel-accent" id="home-intel-headline-accent">Cleared to trade.</span>
@@ -142,10 +140,10 @@
           <div id="home-progress-fill" hidden></div>
         </div>
 
-        <!-- Two-week activity calendar -->
+        <!-- Monthly activity calendar -->
         <div class="home-calendar-card">
           <div class="home-calendar-card-header">
-            <h2 class="home-calendar-card-title">Two-week activity</h2>
+            <h2 class="home-calendar-card-title">Monthly activity</h2>
             <div id="home-calendar-title"></div>
           </div>
           <div class="home-calendar" id="home-calendar"></div>
@@ -221,33 +219,62 @@
     </div>
   </section>
 
-  <!-- ===== REFERENCE ===== -->
+  <!-- ===== PLAN ===== -->
   <section class="tab-panel" id="panel-reference">
     <div class="ref-shell">
 
       <!-- Hero -->
       <section class="ref-hero">
-        <div class="ref-hero-eyebrow"><span class="ref-hero-dot"></span> REFERENCE · <span id="ref-account-label">ACCOUNT $0</span></div>
-        <h1 class="ref-hero-heading">The rules <span class="ref-hero-accent">are the edge.</span></h1>
-        <p class="ref-hero-sub">Your sizing, open-position limit and IV-rank playbook. Edit settings to recalculate dollar amounts.</p>
-      </section>
-
-      <!-- Regime sizing -->
-      <section class="ref-section">
-        <div class="ref-section-header">
-          <h2 class="ref-section-title">Regime sizing</h2>
-          <span class="ref-section-meta">SWING · % OF EQUITY PER TRADE</span>
-        </div>
-        <div class="ref-regime-grid" id="ref-sizing-content">
+        <div class="ref-hero-eyebrow"><span class="ref-hero-dot"></span> PLAN · <span id="ref-account-label">ACCOUNT $0</span></div>
+        <h1 class="ref-hero-heading">Today's <span class="ref-hero-accent">cockpit reading.</span></h1>
+        <p class="ref-hero-sub">Live sizing, setup playbook, and rule adherence. Edit settings to recalculate.</p>
+        <div class="ref-hero-stats" id="ref-hero-stats">
           <!-- populated by renderReference() -->
         </div>
       </section>
 
-      <!-- Position limit -->
+      <!-- Live sizing (centerpiece) -->
+      <section class="ref-section ref-section-sizing">
+        <div class="ref-section-header">
+          <h2 class="ref-section-title">Live sizing</h2>
+          <span class="ref-section-meta" id="ref-sizing-meta">% OF EQUITY PER TRADE</span>
+        </div>
+        <div class="ref-sizing-shell" id="ref-sizing-content">
+          <!-- populated by renderReference() -->
+        </div>
+      </section>
+
+      <!-- Setup playbook -->
       <section class="ref-section">
         <div class="ref-section-header">
-          <h2 class="ref-section-title">Open position limit</h2>
-          <span class="ref-section-meta">HARD LIMIT · ENFORCED BY GATES</span>
+          <h2 class="ref-section-title">Setup playbook</h2>
+          <span class="ref-section-meta">YOUR EDGE · BY SETUP</span>
+        </div>
+        <div class="ref-playbook-tabs" role="tablist" aria-label="Setup mode">
+          <button class="ref-playbook-tab active" data-playbook-mode="swing" type="button" role="tab">SWING</button>
+          <button class="ref-playbook-tab" data-playbook-mode="intraday" type="button" role="tab">INTRADAY</button>
+        </div>
+        <div class="ref-playbook-grid" id="ref-playbook-grid">
+          <!-- populated by renderReference() -->
+        </div>
+      </section>
+
+      <!-- Rule adherence scorecard -->
+      <section class="ref-section">
+        <div class="ref-section-header">
+          <h2 class="ref-section-title">Rule adherence</h2>
+          <span class="ref-section-meta" id="ref-adherence-meta">LAST 30 CLOSED TRADES</span>
+        </div>
+        <div class="ref-adherence-grid" id="ref-adherence-grid">
+          <!-- populated by renderReference() -->
+        </div>
+      </section>
+
+      <!-- Position limit (compact) -->
+      <section class="ref-section ref-section-compact">
+        <div class="ref-section-header">
+          <h2 class="ref-section-title">Hard limits</h2>
+          <span class="ref-section-meta">ENFORCED BY GATES</span>
         </div>
         <div class="ref-caps-card">
           <ul class="ref-caps-list" id="ref-caps-list">
@@ -256,8 +283,8 @@
         </div>
       </section>
 
-      <!-- IV-rank playbook -->
-      <section class="ref-section">
+      <!-- IV-rank playbook (compact) -->
+      <section class="ref-section ref-section-compact">
         <div class="ref-section-header">
           <h2 class="ref-section-title">IV-rank playbook</h2>
           <span class="ref-section-meta">OPTIONS · STRATEGY BY IVR BUCKET</span>
@@ -612,6 +639,28 @@
           </div>
           <button class="sett-btn-ghost" id="btn-sync-action">SIGN IN</button>
         </div>
+        <div class="sett-data-row sett-data-row-stacked">
+          <div class="sett-data-info">
+            <div class="sett-data-name"><span class="alpha-intel-wordmark">AI assistant key</span></div>
+            <div class="sett-data-desc">
+              Powers "Describe with Edge Intelligence" in the trade flow. Paste your own Anthropic API key — it stays on this device and is never synced to the cloud.
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Get a key →</a>
+            </div>
+          </div>
+          <div class="sett-key-row">
+            <input
+              type="password"
+              id="sett-anthropic-key"
+              class="sett-key-input"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="sk-ant-…"
+            />
+            <button class="sett-btn-ghost" id="sett-anthropic-key-toggle" type="button" aria-label="Show/hide key">SHOW</button>
+            <button class="sett-btn-ghost" id="sett-anthropic-key-save" type="button">SAVE</button>
+          </div>
+          <div class="sett-key-status" id="sett-anthropic-key-status"></div>
+        </div>
         <div class="sett-data-row">
           <div class="sett-data-info">
             <div class="sett-data-name">Export trade log</div>
@@ -660,184 +709,6 @@
   <!-- Dynamic content rendered by edit-trade.js -->
   <div class="edit-trade-main" id="edit-trade-main"></div>
 </div>
-
-<!-- ============ ALPHA INTEL GLOSSARY SIDE PANEL ============ -->
-<div class="ai-glossary-backdrop" id="ai-glossary-backdrop"></div>
-<aside class="ai-glossary-panel" id="ai-glossary-panel" role="dialog" aria-label="Edge Intelligence glossary" aria-hidden="true">
-  <header class="ai-glossary-header">
-    <div>
-      <div class="ai-glossary-eyebrow">Reference</div>
-      <h2 class="ai-glossary-title">How to read this</h2>
-    </div>
-    <button class="ai-glossary-close" id="ai-glossary-close" type="button" aria-label="Close glossary">×</button>
-  </header>
-  <div class="ai-glossary-body">
-    <p class="ai-glossary-intro">Plain-English definitions for everything in Edge Intelligence and Stats Snapshot. The math each metric uses is shown beneath the description.</p>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Today's read (Home)</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Today's session</h4>
-        <p>Realized P/L from trades you closed today, plus the count.</p>
-        <code>Σ pl(t) where exit_date == today</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Slots open</h4>
-        <p>How many more positions you can open before hitting your max open positions limit.</p>
-        <code>maxPositions - openPositions</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Sector lean</h4>
-        <p>Top-rated sectors (Strong Buy / Buy) you should bias toward; Avoid list is sectors graded Sell or Strong Sell. Update on Sundays.</p>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Last <span data-ai-glossary-window>30</span>-day P/L</h4>
-        <p>Realized P/L over the rolling window you set in Settings. The kill switch fires when this number is worse than -7% of your account.</p>
-        <code>Σ pl(t) where exit_date more than today - killSwitchDays</code>
-      </div>
-    </section>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Career read (Stats)</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Total P/L</h4>
-        <p>Realized profit or loss across every closed trade in the current filter. Open trades counted separately as <em>Open exposure</em>.</p>
-        <code>Σ pl(t) where status != 'open'</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Win rate</h4>
-        <p>Percentage of closed trades with positive P/L. Doesn't say anything about <em>size</em> of wins or losses — pair with Avg R.</p>
-        <code>wins / (wins + losses) × 100</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Avg R / Trade</h4>
-        <p>Average outcome in units of risk. <strong>+1R</strong> means the trade made one times the planned risk dollars. <strong>+0.5R</strong> averaged across many trades is a strong edge.</p>
-        <code>R(t) = pl(t) / riskDollars(t)<br/>avg = mean(R) over closed trades</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>R Expectancy</h4>
-        <p>What an average trade <em>should</em> make you in R, weighted by win rate. Above 0R = profitable system.</p>
-        <code>winRate × avgWinR + lossRate × avgLossR</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Profit Factor</h4>
-        <p>Total dollars won divided by total dollars lost. <strong>1.50+</strong> is good; <strong>2.00+</strong> is rare. Above 1.00 means winners outpace losers in dollar terms.</p>
-        <code>Σ wins / |Σ losses|</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Expectancy ($)</h4>
-        <p>Average dollar result per closed trade. Multiplies trade volume to project monthly P/L.</p>
-        <code>Σ pl(t) / count(closed)</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Open exposure</h4>
-        <p>Estimated dollars at risk across currently-open positions, summed from each trade's logged risk dollars.</p>
-        <code>Σ riskDollars(t) where status == 'open'</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Best / Worst setup</h4>
-        <p>Pattern with the highest / lowest cumulative P/L across all closed trades. Needs more than 5 closed trades for the comparison to be meaningful.</p>
-      </div>
-    </section>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Execution intelligence</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Stock vs options edge</h4>
-        <p>Compares closed stock trades against closed option trades using P/L, win rate, and average R.</p>
-        <code>group by instrument; avgR = mean(pl / riskDollars)</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Spread drag</h4>
-        <p>Splits intraday option trades by bid/ask spread. Wide spreads show whether market-maker friction is eating the setup.</p>
-        <code>spread% = (ask - bid) / mid × 100</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Fill quality</h4>
-        <p>Compares your entry to the option mid. Paying above mid is execution drag; getting mid or better is clean.</p>
-        <code>slippage% = (entry - mid) / mid × 100</code>
-      </div>
-    </section>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Intraday context intelligence</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Context alignment</h4>
-        <p>Scores whether setup bias, VWAP confluence, and breadth agree with the trade direction.</p>
-        <code>alignment = passing context checks / available checks</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>ORB quality</h4>
-        <p>Separates ORB up/down trades and OR range buckets, then tracks P/L, win rate, avg R, and target-hit rate.</p>
-        <code>OR range% = RNG / OR_HI × 100</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>VWAP edge</h4>
-        <p>Groups intraday trades by LONG BIAS, SHORT BIAS, MIXED, or legacy above/below VWAP labels.</p>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Execution friction score</h4>
-        <p>Blends spread, fill quality, entry window, context alignment, and trade number of day into Low / Moderate / High friction buckets.</p>
-        <code>score = average(pass/fail execution checks) × 100</code>
-      </div>
-    </section>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Process quality</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Process Quality (Good %)</h4>
-        <p>How often you followed the plan. Each closed trade is graded <strong>Good</strong> (followed setup, sizing, exit rules), <strong>Okay</strong> (one minor drift), or <strong>Bad</strong> (broke multiple rules).</p>
-        <code>Good count / graded count × 100</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Discretionary / thesis-broke exits</h4>
-        <p>Trades exited on a gut call or because the thesis broke before reaching target or stop. Often a behavioral leak — these tend to net negative.</p>
-      </div>
-    </section>
-
-    <section class="ai-glossary-section">
-      <h3 class="ai-glossary-section-title">Risk controls</h3>
-
-      <div class="ai-glossary-term">
-        <h4>Kill switch</h4>
-        <p>Smart-Stop trigger. Fires when rolling P/L over your kill-switch window is worse than <strong>-7% of account</strong>. While active, the new-trade flow is blocked. Window is editable in Settings (default 30 days).</p>
-        <code>kill = (Σ pl over last N days) / account ≤ -7%</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Risk per trade (regime-based)</h4>
-        <p>How much of the account is risked on a single trade. Risk-on uses the high tier, Neutral the mid, Risk-off the low. Set in Settings.</p>
-        <code>nextRisk = account × regimeRiskPct</code>
-      </div>
-
-      <div class="ai-glossary-term">
-        <h4>Max open positions</h4>
-        <p>The only portfolio-wide gate. It caps simultaneously-open trades across swing and intraday.</p>
-      </div>
-    </section>
-  </div>
-</aside>
 
 <!-- ============ TRADE FLOW CONFIRM MODAL ============ -->
 <div class="modal-backdrop tf-confirm-backdrop" id="modal-tf-confirm">

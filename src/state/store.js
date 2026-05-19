@@ -30,17 +30,30 @@ export function getRegimeRiskMultiplier(regime) {
   return 1.0;
 }
 
-// Refresh entire UI after state replacement. Render functions are attached to
-// window by their respective modules — `typeof` is safe even if undefined.
+// Refresh UI after state mutations. Always-visible chrome (regime banner) and
+// the active panel get re-rendered; hidden panels skip work and re-render on
+// next setTab(). Context panel re-renders only when it's open.
+function isPanelActive(id) {
+  const p = document.getElementById(id);
+  return !!(p && p.classList.contains('active'));
+}
+
 export function refreshAllUI() {
-  if (typeof renderHome === 'function') renderHome();
-  if (typeof renderTrade === 'function') renderTrade();
   if (typeof renderRegime === 'function') renderRegime();
   if (typeof window.renderPortfolioStatus === 'function') window.renderPortfolioStatus();
-  if (typeof renderLogStats === 'function') renderLogStats();
-  if (typeof renderLogTable === 'function') renderLogTable();
   if (typeof window.renderTickerBar === 'function') window.renderTickerBar();
-  if (typeof renderContextPanel === 'function') renderContextPanel();
+
+  if (isPanelActive('panel-home') && typeof renderHome === 'function') renderHome();
+  if (isPanelActive('panel-trade') && typeof renderTrade === 'function') renderTrade();
+  if (isPanelActive('panel-log')) {
+    if (typeof renderLogStats === 'function') renderLogStats();
+    if (typeof renderLogTable === 'function') renderLogTable();
+  }
+
+  const ctxPanel = document.getElementById('ctx-panel');
+  if (ctxPanel && ctxPanel.classList.contains('open') && typeof renderContextPanel === 'function') {
+    renderContextPanel();
+  }
 }
 
 // Bridge to legacy.js (regular <script>).

@@ -249,8 +249,8 @@
 .home-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 14px;
+  gap: 4px;
+  margin-top: 12px;
 }
 .home-day-dow {
   text-align: center;
@@ -262,7 +262,7 @@
   padding-bottom: 4px;
 }
 .home-day {
-  aspect-ratio: 1.1 / 1;
+  aspect-ratio: 1.9 / 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -271,8 +271,9 @@
   background: rgba(10, 16, 28, 0.56);
   color: var(--ink-3);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   position: relative;
+  padding: 4px 2px;
 }
 .home-day.good { background: rgba(63, 185, 80, 0.11); color: var(--green-bright); }
 .home-day.bad { background: rgba(248, 81, 73, 0.11); color: var(--red-bright); }
@@ -282,17 +283,23 @@
   background: transparent;
   border: 1px dashed var(--line-soft);
 }
+.home-day.outside {
+  background: transparent;
+  opacity: 0.35;
+}
+.home-day.outside .home-day-num { font-weight: 500; }
+.home-day.outside .home-day-pl { display: none; }
 .home-day.good::after,
 .home-day.bad::after {
   content: none;
 }
 .home-day-num {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 .home-day-pl {
   font-size: 9px;
-  margin-top: 2px;
+  margin-top: 1px;
   font-weight: 800;
   line-height: 1;
 }

@@ -14,6 +14,7 @@ import { closeContextPanel, renderContextPanel } from '../market/context-panel.j
 import { setTab } from '../tabs.js';
 import { renderLogTable } from './log.js';
 import { fmtMoneyPlain } from '../models/formatters.js';
+import { getAnthropicKey, setAnthropicKey, maskKey, looksLikeAnthropicKey } from '../intel/ai-key.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 const fmt$ = (n) => fmtMoneyPlain(n);
@@ -92,6 +93,62 @@ function syncSlider(sliderId, val, min, max, kind) {
 }
 
 
+function wireAnthropicKeyRow() {
+  const input  = document.getElementById('sett-anthropic-key');
+  const save   = document.getElementById('sett-anthropic-key-save');
+  const toggle = document.getElementById('sett-anthropic-key-toggle');
+  const status = document.getElementById('sett-anthropic-key-status');
+  if (!input || !save || !status) return;
+
+  const refresh = () => {
+    const key = getAnthropicKey();
+    if (key) {
+      status.textContent = `Saved on this device · ${maskKey(key)}`;
+      status.classList.remove('warn');
+      input.placeholder = 'Replace key or leave blank to keep current';
+    } else {
+      status.textContent = 'No key saved. AI features will prompt you to add one.';
+      status.classList.add('warn');
+      input.placeholder = 'sk-ant-…';
+    }
+    input.value = '';
+    input.type = 'password';
+    if (toggle) toggle.textContent = 'SHOW';
+  };
+  refresh();
+
+  save.addEventListener('click', () => {
+    const v = (input.value || '').trim();
+    if (!v) {
+      // Empty + Save → clear the stored key.
+      setAnthropicKey('');
+      toast('AI key removed.');
+      refresh();
+      return;
+    }
+    if (!looksLikeAnthropicKey(v)) {
+      status.textContent = "That doesn't look like an Anthropic key — it should start with sk-ant-.";
+      status.classList.add('warn');
+      return;
+    }
+    setAnthropicKey(v);
+    toast('AI key saved on this device.');
+    refresh();
+  });
+
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      if (input.type === 'password') {
+        input.type = 'text';
+        toggle.textContent = 'HIDE';
+      } else {
+        input.type = 'password';
+        toggle.textContent = 'SHOW';
+      }
+    });
+  }
+}
+
 function wireSliderInput(sliderId, inputId, min, max, kind, linkedInputId) {
   const sl = document.getElementById(sliderId);
   const inp = document.getElementById(inputId);
@@ -164,6 +221,9 @@ export function openSettings() {
     if (feedbackBtn) feedbackBtn.addEventListener('click', () => {
       if (typeof toast === 'function') toast('Feedback channel coming soon.');
     });
+
+    // Anthropic API key — stored locally, used by the AI setup builder.
+    wireAnthropicKeyRow();
 
     // Version footer — injected at build time via Vite define.
     const verEl = el('sett-version');

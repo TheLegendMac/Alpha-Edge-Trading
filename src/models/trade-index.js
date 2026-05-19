@@ -74,10 +74,13 @@ export function filterLogTrades(index, { mode = 'all', setup = '', search = '' }
     : modeFiltered;
   const q = (search || '').trim().toLowerCase();
   if (!q) return setupFiltered;
-  return setupFiltered.filter(t =>
-    (t.ticker || '').toLowerCase().includes(q) ||
-    (t.setup || '').toLowerCase().includes(q) ||
-    (t.direction || '').toLowerCase().includes(q) ||
-    (t.mode || '').toLowerCase().includes(q) ||
-    (t.status || '').toLowerCase().includes(q));
+  return setupFiltered.filter(t => {
+    if ((t.ticker || '').toLowerCase().includes(q)) return true;
+    if ((t.setup || '').toLowerCase().includes(q)) return true;
+    if ((t.direction || '').toLowerCase().includes(q)) return true;
+    if ((t.mode || '').toLowerCase().includes(q)) return true;
+    if ((t.status || '').toLowerCase().includes(q)) return true;
+    if (Array.isArray(t.tags) && t.tags.some(tag => String(tag).toLowerCase().includes(q))) return true;
+    return false;
+  });
 }

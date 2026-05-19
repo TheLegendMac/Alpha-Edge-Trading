@@ -9,15 +9,13 @@ import { state } from '../state/store.js';
 import {
   isClosedTrade,
   calcPL,
-  calcR,
   tradeInstrument,
-  tradeRiskDollars,
   normalizeProcessQuality,
 } from '../models/trade.js';
 import { fmtMoney, fmtR } from '../models/formatters.js';
 import { esc, barRow } from '../dom/html.js';
-import { enrichClosed, aggregateBy, aggregateBySetup, bestWorstSetup } from '../models/aggregations.js';
-import { computeRollingPL } from './rolling.js';
+import { enrichClosed, bestWorstSetup } from '../models/aggregations.js';
+import { computeRollingPL, buildSparklineSvg } from './rolling.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { buildSetupScorecardsHtml } from './setup-scorecards.js';
 import {
@@ -42,6 +40,45 @@ import {
 const alphaEsc = esc;
 const alphaMoney = (v) => fmtMoney(v);
 const alphaR = (v) => fmtR(v);
+
+export function alphaConfidenceLabel(count) {
+  const n = Number(count) || 0;
+  if (n >= 15) return 'RELIABLE';
+  if (n >= 5) return 'BUILDING';
+  return 'EARLY DATA';
+}
+
+function alphaConfidenceMeta(count, singular = 'closed trade', plural = `${singular}s`) {
+  const n = Number(count) || 0;
+  return `${alphaConfidenceLabel(n)} · ${n} ${n === 1 ? singular : plural}`;
+}
+
+function alphaToneRank(tone) {
+  const rank = { bad: 0, warn: 1, info: 2, good: 3 };
+  return rank[tone] ?? 4;
+}
+
+function alphaBulletHtml(b) {
+  const priorityClass = b.priority ? ' priority' : '';
+  return `<li class="alpha-intel-point tone-${b.tone}${priorityClass}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`;
+}
+
+function collapseDuplicateIntelBullets(bullets) {
+  const hasHardStop = bullets.some(b =>
+    b.tone === 'bad' && (b.chip === 'TREND' || b.chip === 'BUDGET')
+  );
+  const seen = new Map();
+  bullets.forEach((b, i) => {
+    if (!b) return;
+    if (hasHardStop && b.tone !== 'bad' && (b.chip === 'REGIME' || b.chip === 'SIZE')) return;
+    const key = b.chip || b.text;
+    const prev = seen.get(key);
+    if (!prev || alphaToneRank(b.tone) < alphaToneRank(prev.b.tone)) seen.set(key, { b, i });
+  });
+  return Array.from(seen.values())
+    .sort((a, b) => a.i - b.i)
+    .map(x => x.b);
+}
 
 function alphaSaQuantBucket(t) {
   const q = Number(t && t.saQuant);
@@ -241,14 +278,13 @@ function buildAlphaEdgeCard(closedWithPL, help) {
 // ──────────────────────────────────────────────────────────
 export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, avgR, profitFactor, trades) {
   const n = closed.length;
-  const helpBtn = '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
 
   // ── zero-data state ──────────────────────────────────────
   if (n === 0) {
     return `
       <div class="home-card ai-empty" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-          <div class="home-card-title" style="color:#7ee787; margin: 0;">Edge Intelligence${helpBtn}</div>
+          <div class="home-card-title" style="color:#7ee787; margin: 0;">Edge Intelligence</div>
         </div>
         <div class="ai-empty-body">
           <div class="ai-empty-icon">⌁</div>
@@ -281,7 +317,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   // P/L was the wrong measure: someone with $5k of lifetime gains and a
   // recent $1k drawdown should not be killed by their lifetime number.
   const rolling = computeRollingPL();
-  const killActive = rolling.pct <= -7;
+  const killActive = rolling.killActive;
 
   // Money-readable formatter — keeps strings short and consistent.
   const $ = fmtMoney;
@@ -292,36 +328,35 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
 
   if (n < 5) {
     headlineAccent = `Early days.`;
-    headlineTail = `Career ${$(totalPL)} from ${n} closed trade${n === 1 ? '' : 's'} — patterns need ~10 to be reliable.`;
+    headlineTail = `Keep size small while the sample builds.`;
     headlineTone = 'info';
   } else if (killActive) {
     headlineAccent = `Kill switch active.`;
-    headlineTail = `Last ${rolling.days} days down ${Math.abs(rolling.pct).toFixed(1)}% of account — stop sizing up until P/L recovers.`;
+    headlineTail = `Pause new trades until rolling P/L recovers.`;
     headlineTone = 'bad';
   } else if (gradeScore !== null && gradeScore < 60 && graded.length >= 5) {
     headlineAccent = `Process leak.`;
-    headlineTail = `Only ${gradeScore}% of reviewed trades followed the plan. Fix execution before adding size.`;
+    headlineTail = `Fix execution before adding size.`;
     headlineTone = 'warn';
   } else if (avgWin > 0 && avgLoss < 0 && Math.abs(avgLoss) > avgWin * 1.2) {
     headlineAccent = `Lopsided.`;
-    headlineTail = `Win rate ${winRate}% but losses run ${(Math.abs(avgLoss)/avgWin).toFixed(1)}× larger than wins. Tighten stops or cut faster.`;
+    headlineTail = `Tighten stops before adding risk.`;
     headlineTone = 'warn';
   } else if (discCount >= 3 && discPL < 0) {
     headlineAccent = `Early exits hurting.`;
-    headlineTail = `Discretionary / thesis-broke exits cost ${$(-Math.abs(discPL))} so far — stick to target/stop and let winners run.`;
+    headlineTail = `Stick to target and stop rules before sizing up.`;
     headlineTone = 'warn';
   } else if (bestSetup && bestSetup.pl > 0) {
-    const wr = Math.round(bestSetup.wins / bestSetup.n * 100);
     headlineAccent = `Edge confirmed.`;
-    headlineTail = `${bestSetup.key} is your edge: ${$(bestSetup.pl)} across ${bestSetup.n} trade${bestSetup.n === 1 ? '' : 's'} (${wr}% win rate). Lean into it.`;
+    headlineTail = `Favor proven setups and keep risk steady.`;
     headlineTone = 'good';
   } else if (expectancy > 0 && avgR >= 0.5) {
     headlineAccent = `In form.`;
-    headlineTail = `Positive edge: ${$(expectancy)} per trade, ${avgR.toFixed(2)}R average. Stay consistent.`;
+    headlineTail = `Stay consistent; don't expand risk just because it is working.`;
     headlineTone = 'good';
   } else {
     headlineAccent = expectancy >= 0 ? `Net positive.` : `Net negative.`;
-    headlineTail = `Edge per trade ${$(expectancy)} (${avgR.toFixed(2)}R). ${expectancy >= 0 ? 'Protect the process.' : 'Review setup selection and sizing.'}`;
+    headlineTail = expectancy >= 0 ? `Protect the process and keep logging.` : `Reduce size and review setup selection.`;
     headlineTone = expectancy >= 0 ? 'good' : 'warn';
   }
 
@@ -331,8 +366,8 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
   // 1. Career line — the headline number, plus the metrics in one breath.
   bullets.push({
     tone: totalPL >= 0 ? 'good' : 'bad',
-    chip: 'CAREER',
-    text: `<strong>Career: ${$(totalPL)}</strong> across ${n} trade${n === 1 ? '' : 's'} · ${winRate}% wins · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}× your risk per trade · profit factor ${profitFactor}.`,
+    chip: 'PORTFOLIO',
+    text: `<strong>Portfolio: ${$(totalPL)}</strong> across ${n} trade${n === 1 ? '' : 's'} · ${winRate}% wins · avg ${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}× your risk per trade · profit factor ${profitFactor}.`,
   });
 
   // 2. Best vs worst setup — only if we have ≥5 trades and they differ.
@@ -340,7 +375,7 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
     bullets.push({
       tone: bestSetup.pl >= 0 ? 'good' : 'warn',
       chip: 'PATTERN',
-      text: `Best pattern <strong>${bestSetup.key}</strong> (${$(bestSetup.pl)}) · weakest <strong style="color:var(--red-bright)">${worstSetup.key}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
+      text: `Best pattern <strong>${bestSetup.key}</strong> (${$(bestSetup.pl)}) · weakest <strong>${worstSetup.key}</strong> (${$(worstSetup.pl)}). Size up the best, drop the worst.`,
     });
   } else if (n < 5) {
     bullets.push({
@@ -372,13 +407,14 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
 
   // 4. Recent-window bullet — small overlap with Home so a regression shows here too.
   if (rolling.count >= 3) {
-    const tone = rolling.pct <= -7 ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
-    const verdict = rolling.pct <= -7 ? 'kill switch active'
-                  : rolling.pct < 0   ? 'in drawdown'
-                                      : 'in form';
+    const tone = rolling.killActive ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
+    const verdict = rolling.killActive ? 'kill switch active'
+                  : rolling.pct < 0    ? 'in drawdown'
+                                       : 'in form';
+    const spark = buildSparklineSvg(rolling.series, { w: 60, h: 16 });
     bullets.push({
       tone, chip: 'TREND',
-      text: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> over ${rolling.count} closed (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.winRate}% wins) — ${verdict}.`,
+      text: `Last ${rolling.days} days: <strong>${$(rolling.totalPL)}</strong> over ${rolling.count} closed (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}% of account · ${rolling.winRate}% wins) — ${verdict}.${spark}`,
     });
   }
 
@@ -390,32 +426,45 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
     });
   }
 
-  // ── kill-switch panel (only when active) ────────────────
-  const ksHtml = killActive ? `
-    <div class="ai-killswitch">
-      <div class="ai-section-title">⚡ Kill switch active</div>
-      <div class="alpha-intel-line danger"><span>Last ${rolling.days} days: ${$(rolling.totalPL)} (${rolling.pct.toFixed(1)}% of account) — past the -7% stop-trading line.</span></div>
-      <div class="alpha-intel-line warn"><span>Pause new trades until P/L recovers. Window is editable in Settings → Edge Intelligence.</span></div>
-    </div>` : '';
-
-  // ── assemble ─────────────────────────────────────────────
-  const kickerText = `CAREER VIEW · ${n} CLOSED${graded.length ? ` · ${graded.length} GRADED` : ''}`;
+  const eyebrowStatus = alphaConfidenceLabel(n);
+  const sortedBullets = sortBulletsBySeverity(collapseDuplicateIntelBullets(bullets)).slice(0, 6);
 
   return `
     <div class="alpha-intel-card" data-tone="${headlineTone || 'good'}">
       <div class="alpha-intel-eyebrow">
-        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
-        <span class="alpha-intel-eyebrow-r">${kickerText}</span>
+        <span class="alpha-intel-eyebrow-l"><span class="alpha-intel-sparkle">✦</span><span class="alpha-intel-wordmark">EDGE INTELLIGENCE</span></span>
+        <span class="alpha-intel-eyebrow-r tone-${headlineTone}">${eyebrowStatus}</span>
       </div>
       <h2 class="alpha-intel-headline tone-${headlineTone}">
         <span class="alpha-intel-accent">${headlineAccent}</span>
         <span class="alpha-intel-tail">${headlineTail}</span>
       </h2>
       <ul class="alpha-intel-points">
-        ${bullets.slice(0, 6).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
+        ${sortedBullets.map(alphaBulletHtml).join('')}
       </ul>
-      ${ksHtml}
     </div>`;
+}
+
+// Stable-sort bullets so the most-actionable (worst tone) read floats to the
+// top of the card. Within a tone, original order is preserved so the catalog
+// flow (Portfolio → Pattern → Process → Trend → Risk) still reads naturally.
+function sortBulletsBySeverity(bullets) {
+  return bullets
+    .map((b, i) => ({ b, i }))
+    .sort((a, b) => alphaToneRank(a.b.tone) - alphaToneRank(b.b.tone) || a.i - b.i)
+    .map(x => x.b);
+}
+
+// Top-right status pill mapped from headline tone — mirrors the reference
+// "RISK OFF · DEFENSIVE" style. Kept here so home + stats stay in sync.
+function alphaIntelStatusLabel(tone) {
+  switch (tone) {
+    case 'bad':  return 'RISK OFF · DEFENSIVE';
+    case 'warn': return 'CAUTION · MIXED';
+    case 'info': return 'EARLY · OBSERVING';
+    case 'good':
+    default:     return 'RISK ON · IN FORM';
+  }
 }
 
 // ──────────────────────────────────────────────────────────
@@ -426,7 +475,6 @@ export function buildAlphaIntel(closed, closedWithPL, wins, losses, expectancy, 
 //  reads it the same way no matter where they see it.
 // ──────────────────────────────────────────────────────────
 export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, inModal = false } = {}) {
-  const helpBtn = inModal ? '' : '<button type="button" class="ai-help-btn" title="What do these numbers mean?" aria-label="Open glossary">?</button>';
   const closedWithPL = enrichClosed(state.trades);
   const closed = closedWithPL.map(x => x.trade);
   const $ = fmtMoney;
@@ -437,10 +485,14 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   // Friendly setup name — fall back to whatever was stored.
   const setupDef = (typeof tfFindIntradaySetup === 'function' && mode === 'intraday') ? tfFindIntradaySetup(setup) : null;
   const swingSetupDef = (mode === 'swing' && Array.isArray(TRADE_SWING_SETUPS))
-    ? TRADE_SWING_SETUPS.find(s => s.id === setup)
+    ? (TRADE_SWING_SETUPS.find(s => s.id === setup)
+        || (state.aiCustomSetups && state.aiCustomSetups[setup])
+        || null)
     : null;
   const setupLabel = setupDef ? setupDef.name : (swingSetupDef ? (swingSetupDef.name || swingSetupDef.id) : (setup || 'this setup'));
   const dirWord = dirKey === 'short' ? 'short' : 'long';
+  let setupBullet = null;
+  let setupSampleCount = 0;
 
   // Reward vs. risk.
   const ticket = mode === 'intraday' ? (state.intraday || {}) : null;
@@ -513,24 +565,28 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
       const tDir = (t.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
       return (t.setup === setup) && (tDir === dirKey);
     });
+    setupSampleCount = peers.length;
     if (peers.length >= 2) {
       const wins = peers.filter(x => x.pl > 0).length;
+      const losses = peers.length - wins;
       const wr = Math.round(wins / peers.length * 100);
       const avgR = peers.reduce((s, x) => s + x.r, 0) / peers.length;
       const totalPL = peers.reduce((s, x) => s + x.pl, 0);
       const totalSign = totalPL >= 0 ? '+' : '−';
       const totalAbs = `$${Math.abs(Math.round(totalPL)).toLocaleString()}`;
+      const avgRText = `${avgR >= 0 ? '+' : ''}${avgR.toFixed(2)}R`;
+      const sampleMeta = alphaConfidenceMeta(peers.length, 'setup trade');
       if (avgR >= 0.4) {
-        bullets.push({ tone: 'good', chip: 'SETUP', text: `<strong>This setup has been good to you:</strong> ${peers.length} past trades, you won ${wr}% of them, ${totalSign}${totalAbs} total. Looks like a real edge.` });
+        setupBullet = { tone: 'good', chip: 'SETUP', priority: true, text: `<strong>${setupLabel} ${dirWord}: ${wins}W / ${losses}L · avg ${avgRText}.</strong> ${sampleMeta}; ${wr}% wins, ${totalSign}${totalAbs} total. Eligible for normal size if today's chart still matches.` };
       } else if (avgR >= 0) {
-        bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>Mixed history:</strong> ${peers.length} past trades, ${wr}% wins, roughly break-even (${totalSign}${totalAbs}). No strong edge yet — trade carefully.` });
+        setupBullet = { tone: 'info', chip: 'SETUP', priority: true, text: `<strong>${setupLabel} ${dirWord}: ${wins}W / ${losses}L · avg ${avgRText}.</strong> ${sampleMeta}; ${wr}% wins, ${totalSign}${totalAbs} total. No strong edge yet — trade carefully.` };
       } else {
-        bullets.push({ tone: 'bad', chip: 'SETUP', text: `<strong>This setup has been losing money:</strong> ${peers.length} past trades, only ${wr}% wins, ${totalSign}${totalAbs} total. Maybe skip until you find what's missing.` });
+        setupBullet = { tone: 'bad', chip: 'SETUP', priority: true, text: `<strong>${setupLabel} ${dirWord}: ${wins}W / ${losses}L · avg ${avgRText}.</strong> ${sampleMeta}; ${wr}% wins, ${totalSign}${totalAbs} total. Skip unless today's setup fixes the miss.` };
       }
     } else if (peers.length === 1) {
-      bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> Not enough history to call it. Ask whether today's chart still matches the playbook.` });
+      setupBullet = { tone: 'info', chip: 'SETUP', priority: true, text: `<strong>Only one ${setupLabel} ${dirWord} trade so far.</strong> ${alphaConfidenceMeta(1, 'setup trade')}; not enough history to call it. Ask whether today's chart still matches the playbook.` };
     } else {
-      bullets.push({ tone: 'info', chip: 'SETUP', text: `<strong>First time trading ${setupLabel} ${dirWord}.</strong> No track record yet. Ask, don't assume: does the setup still meet every rule?` });
+      setupBullet = { tone: 'info', chip: 'SETUP', priority: true, text: `<strong>First logged ${setupLabel} ${dirWord} trade.</strong> ${alphaConfidenceMeta(0, 'setup trade')}; treat this as rule-based, not edge-confirmed.` };
     }
   }
 
@@ -572,15 +628,16 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
 
   // Recent drawdown / kill switch.
   const rolling = computeRollingPL();
-  if (rolling.pct <= -7) {
+  const warnFloor = rolling.floor * 0.6;
+  if (rolling.killActive) {
     bullets.push({
       tone: 'bad', chip: 'TREND',
       text: `<strong>Cool-off time.</strong> You're down ${Math.abs(rolling.pct).toFixed(1)}% over the last ${rolling.days} days — step away until things turn around.`,
     });
-  } else if (rolling.pct <= -4 && rolling.count > 0) {
+  } else if (rolling.pct <= -warnFloor && rolling.count > 0) {
     bullets.push({
       tone: 'warn', chip: 'TREND',
-      text: `<strong>You've been losing lately</strong> (down ${Math.abs(rolling.pct).toFixed(1)}% over ${rolling.days} days). Tighten things up before you hit the ${'-'}7% pause line.`,
+      text: `<strong>You've been losing lately</strong> (down ${Math.abs(rolling.pct).toFixed(1)}% over ${rolling.days} days). Tighten things up before you hit the -${rolling.floor}% pause line.`,
     });
   }
 
@@ -617,39 +674,79 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
   }
 
   // All clear.
-  if (!bullets.length) {
+  if (!bullets.length && !setupBullet) {
     bullets.push({
       tone: 'info', chip: 'READ',
       text: `No logged-data warning yet. Ask the chart for confirmation before you treat this as clean.`,
     });
   }
 
+  const allBullets = collapseDuplicateIntelBullets(setupBullet ? [setupBullet, ...bullets] : bullets);
+  const priorityBullets = allBullets.filter(b => b.priority);
+  const sortedEvidence = sortBulletsBySeverity(allBullets.filter(b => !b.priority));
+  const modalBlockers = sortedEvidence.filter(b => b.tone === 'bad' || b.tone === 'warn');
+  const displayBullets = inModal
+    ? [
+        ...priorityBullets.filter(b => b.tone === 'bad' || b.tone === 'warn'),
+        ...modalBlockers,
+        ...priorityBullets.filter(b => b.tone !== 'bad' && b.tone !== 'warn'),
+        ...sortedEvidence.filter(b => b.tone !== 'bad' && b.tone !== 'warn'),
+      ].slice(0, 2)
+    : [...priorityBullets, ...sortedEvidence].slice(0, 5);
+
   // Worst tone across bullets sets the verdict headline tone.
-  const toneRank = { bad: 4, warn: 3, info: 2, good: 0 };
-  const worst = bullets.reduce((acc, b) => (toneRank[b.tone] || 0) > (toneRank[acc] || 0) ? b.tone : acc, 'good');
+  const worst = allBullets.reduce((acc, b) => alphaToneRank(b.tone) < alphaToneRank(acc) ? b.tone : acc, 'good');
   const headlineTone = worst;
 
-  // Verdict accent + tail derived from the dominant bullet category.
-  const badBullet = bullets.find(b => b.tone === 'bad');
-  const warnBullet = bullets.find(b => b.tone === 'warn');
+  // Verdict is action-first; the rows below carry the evidence.
+  const badBullet = allBullets.find(b => b.tone === 'bad');
+  const warnBullet = allBullets.find(b => b.tone === 'warn');
   let headlineAccent, headlineTail;
   if (badBullet) {
     headlineAccent = `Stand down.`;
-    headlineTail = stripTags(badBullet.text).split('.')[0] + '.';
+    switch (badBullet.chip) {
+      case 'SETUP':
+        headlineTail = `Skip this setup unless today's chart fixes the miss.`;
+        break;
+      case 'SIZE':
+        headlineTail = `Cut size before entry.`;
+        break;
+      case 'PAYOFF':
+        headlineTail = `Reward is too thin for the risk.`;
+        break;
+      case 'TAPE':
+        headlineTail = `Wait for market alignment.`;
+        break;
+      case 'SPREAD':
+        headlineTail = `Pass until the spread tightens.`;
+        break;
+      case 'BUDGET':
+      case 'TREND':
+        headlineTail = `Stop trading until the loss guard clears.`;
+        break;
+      default:
+        headlineTail = `Resolve the blocking issue before entry.`;
+    }
   } else if (warnBullet) {
     headlineAccent = `Caution.`;
-    headlineTail = stripTags(warnBullet.text).split('.')[0] + '.';
+    headlineTail = `Reduce size and require cleaner confirmation.`;
+  } else if (headlineTone === 'info') {
+    headlineAccent = `Data light.`;
+    headlineTail = `Use the rules first; the sample is still building.`;
   } else {
     headlineAccent = `Cleared.`;
-    headlineTail = `Setup, size, and tape all line up.`;
+    headlineTail = `Normal size is reasonable if the chart confirms.`;
   }
 
-  const kicker = inModal ? 'FINAL READ' : 'PRE-TRADE READ';
+  const confidenceCount = setup ? setupSampleCount : closed.length;
+  const kicker = inModal
+    ? alphaConfidenceLabel(confidenceCount)
+    : `PRE-TRADE READ · ${alphaConfidenceLabel(confidenceCount)}`;
 
   return `
-    <div class="alpha-intel-card trade-edge-intel" data-tone="${headlineTone || 'good'}">
+    <div class="alpha-intel-card trade-edge-intel${inModal ? ' compact' : ''}" data-tone="${headlineTone || 'good'}">
       <div class="alpha-intel-eyebrow">
-        <span class="alpha-intel-eyebrow-l"><span>EDGE INTELLIGENCE</span>${helpBtn}</span>
+        <span class="alpha-intel-eyebrow-l"><span class="alpha-intel-sparkle">✦</span><span class="alpha-intel-wordmark">EDGE INTELLIGENCE</span></span>
         <span class="alpha-intel-eyebrow-r">${kicker}</span>
       </div>
       <h2 class="alpha-intel-headline tone-${headlineTone}">
@@ -657,19 +754,14 @@ export function buildTradeFlowEdgeIntel({ mode, setup, direction, instrument, in
         <span class="alpha-intel-tail">${headlineTail}</span>
       </h2>
       <ul class="alpha-intel-points">
-        ${bullets.slice(0, inModal ? 4 : 5).map(b => `<li class="alpha-intel-point tone-${b.tone}"><span class="alpha-intel-chip">${b.chip || ''}</span><span class="alpha-intel-body">${b.text}</span></li>`).join('')}
+        ${displayBullets.map(alphaBulletHtml).join('')}
       </ul>
     </div>`;
-}
-
-function stripTags(html) {
-  return String(html || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 export function renderLogStats() {
   const container = document.getElementById('log-stats');
   if (!container) return;
-  const help = text => `<span class="stat-help" title="${text}">?</span>`;
   const filter = state.logModeFilter || 'all';
   const setupFilter = state.logSetupFilter || '';
   const index = buildTradeIndex(state.trades || []);
@@ -681,243 +773,13 @@ export function renderLogStats() {
   const wins   = closedWithPL.filter(x => x.pl > 0);
   const losses = closedWithPL.filter(x => x.pl < 0);
 
-  // Core P/L
   const totalPL    = closedWithPL.reduce((s, x) => s + x.pl, 0);
   const winRateNum = closed.length > 0 ? wins.length / closed.length * 100 : null;
   const winRateStr = winRateNum !== null ? winRateNum.toFixed(0) + '%' : '—';
-  const grossWin   = wins.reduce((s, x) => s + x.pl, 0);
-  const grossLoss  = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
-  const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : (grossWin > 0 ? '∞' : '—');
-  const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
-  const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
-  const avgHoldDays = (() => {
-    const holds = closed.map(t => {
-      const start = t.date ? new Date(`${t.date}T12:00:00`) : null;
-      const end = (t.exit_date || t.date) ? new Date(`${t.exit_date || t.date}T12:00:00`) : null;
-      if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
-      return Math.max(0, Math.round((end - start) / (24 * 60 * 60 * 1000)));
-    }).filter(v => v !== null);
-    return holds.length ? holds.reduce((s, v) => s + v, 0) / holds.length : 0;
-  })();
-  const riskToMakeOne = grossWin > 0 ? grossLoss / grossWin : 0;
-  const biggestWin = wins.length ? Math.max(...wins.map(x => x.pl)) : 0;
-  const biggestLoss = losses.length ? Math.min(...losses.map(x => x.pl)) : 0;
-
-  const openRisk = open.reduce((s, t) => {
-    const fallback = tradeRiskDollars(t);
-    return s + (Number(t.riskDollars) || fallback || 0);
-  }, 0);
-
-  // NEW: R expectancy per trade = winRate × avgWin_R + lossRate × avgLoss_R
   const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
   const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
-  const rExpectancy = winRateNum !== null
-    ? (winRateNum / 100) * avgWinR + (1 - winRateNum / 100) * avgLossR
-    : null;
 
-  // ── Mean Convergence (CLT) summary — sample mean R + 95% CI half-width.
-  // Surfaced as a top-line metric per UX priority.
-  let cltMean = null, cltCiHalf = null, cltSignificant = null;
-  if (closedWithPL.length >= 2) {
-    const rs = closedWithPL.map(x => x.r || 0);
-    const m = rs.reduce((s, x) => s + x, 0) / rs.length;
-    const variance = rs.length > 1 ? rs.reduce((s, x) => s + (x - m) * (x - m), 0) / (rs.length - 1) : 0;
-    const sd = Math.sqrt(variance);
-    const se = sd / Math.sqrt(rs.length);
-    const half = 1.96 * se;
-    cltMean = m;
-    cltCiHalf = half;
-    cltSignificant = (m - half) > 0 || (m + half) < 0;
-  }
-  const cltTone = cltMean === null ? 'neutral' : (cltSignificant ? (cltMean > 0 ? 'pos' : 'neg') : 'amber');
-  const cltValue = cltMean === null
-    ? '—'
-    : `${cltMean >= 0 ? '+' : ''}${cltMean.toFixed(2)}R`;
-  const cltSub = cltMean === null
-    ? 'need 2+ trades'
-    : `±${cltCiHalf.toFixed(2)}R · ${cltSignificant ? 'edge significant' : 'not yet significant'}`;
-
-  // ── Metric strip ──────────────────────────────────────────
-  // Priority order (per UX brief): Expectancy first, Mean Convergence second,
-  // then Profit Factor, Win Rate, Avg R, Total P/L, R Expectancy, Open Risk.
-  const plTone    = totalPL >= 0 ? 'pos' : 'neg';
-  const wrTone    = winRateNum === null ? 'neutral' : winRateNum >= 50 ? 'pos' : winRateNum >= 45 ? 'amber' : 'neg';
-  const avgRTone  = closed.length ? (avgR >= 0.5 ? 'pos' : avgR >= 0 ? 'neutral' : 'neg') : 'neutral';
-  const rExpTone  = rExpectancy === null ? 'neutral' : rExpectancy >= 0.3 ? 'pos' : rExpectancy >= 0 ? 'neutral' : 'neg';
-
-  const metricCells = [
-    {
-      label: 'Expectancy', tone: expectancy >= 0 ? 'pos' : 'neg',
-      help: 'Average dollars made or lost per closed trade. Top-line edge metric — keep it positive.',
-      value: closed.length ? (expectancy >= 0 ? '+$' : '-$') + Math.abs(expectancy).toFixed(0) : '$0',
-      sub: closed.length ? 'per closed trade' : 'no closed trades',
-    },
-    {
-      label: 'Mean Convergence', tone: cltTone,
-      help: 'Sample mean R-multiple with a 95% confidence band. Narrow band + non-zero mean = a real edge. Wide band = need more sample.',
-      value: cltValue,
-      sub: cltSub,
-    },
-    {
-      label: 'Profit Factor', tone: 'cyan',
-      help: 'Gross wins divided by gross losses. Above 1.00 means wins are larger than losses overall.',
-      value: profitFactor,
-      sub: grossLoss > 0 ? `$${grossWin.toFixed(0)} gross win` : (grossWin > 0 ? 'no losses yet' : ''),
-    },
-    {
-      label: 'Win Rate', tone: wrTone,
-      help: 'Percentage of closed trades with positive P/L. It does not measure how large wins or losses are.',
-      value: winRateStr,
-      sub: winRateNum !== null ? `${wins.length}W · ${losses.length}L` : 'no closed trades',
-    },
-    {
-      label: 'Avg R / Trade', tone: avgRTone,
-      help: 'Average result measured in units of risk. +1R means the trade made one times the planned risk.',
-      value: closed.length ? (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R' : '—',
-      sub: closed.length ? `${closed.length} closed` : '',
-    },
-    {
-      label: 'Total P/L', tone: plTone,
-      help: 'Realized profit or loss across closed trades in the current filter. Open trades are counted separately.',
-      value: (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toFixed(0),
-      sub: `${closed.length} closed · ${open.length} open`,
-    },
-    {
-      label: 'R Expectancy', tone: rExpTone,
-      help: 'Probability-weighted R per trade. Stable across position-size changes — the cleanest read on edge.',
-      value: rExpectancy === null ? '—' : `${rExpectancy >= 0 ? '+' : ''}${rExpectancy.toFixed(2)}R`,
-      sub: rExpectancy === null ? 'need closed trades' : 'per trade',
-    },
-    {
-      label: 'Open Exposure', tone: openRisk > 0 ? 'amber' : 'neutral',
-      help: 'Estimated dollars currently at risk in open positions.',
-      value: open.length > 0 ? '$' + openRisk.toFixed(0) : '$0',
-      sub: open.length > 0 ? `${open.length} position${open.length === 1 ? '' : 's'}` : 'no open positions',
-    },
-  ];
-
-  const smsCells = metricCells.map(c => `
-    <div class="sms-cell ${c.tone || 'neutral'}">
-      <div class="sms-label">${c.label}${c.help ? help(c.help) : ''}</div>
-      <div class="sms-value">${c.value}</div>
-      ${c.extra ? c.extra : ''}
-      ${c.sub ? `<div class="sms-sub">${c.sub}</div>` : ''}
-    </div>`).join('');
-
-  const modeLabel = filter === 'all' ? 'All trades' : filter === 'swing' ? 'Swing only' : 'Intraday only';
-  const filterLabel = setupFilter ? `${modeLabel} · ${setupFilter}` : modeLabel;
-  const legacyCards = [
-    {
-      label: 'Win Rate',
-      cls: winRateNum !== null && winRateNum >= 50 ? 'pos' : 'amber',
-      value: winRateNum !== null ? `${winRateNum.toFixed(2)}%` : '0.00%',
-      detail: winRateNum !== null ? `${wins.length}W / ${losses.length}L` : 'No closed trades',
-    },
-    {
-      label: 'Profit Factor',
-      cls: 'cyan',
-      value: profitFactor,
-      detail: grossLoss > 0 ? `$${grossWin.toFixed(0)} wins / $${grossLoss.toFixed(0)} losses` : (grossWin > 0 ? 'No losses yet' : 'No closed P/L'),
-    },
-    {
-      label: 'Avg Hold',
-      cls: 'neutral',
-      value: avgHoldDays.toFixed(1),
-      detail: 'days',
-    },
-    {
-      label: 'Trades',
-      cls: 'neutral',
-      value: String(trades.length),
-      detail: `${closed.length} closed / ${open.length} open`,
-    },
-    {
-      label: 'Risk $1 To Make',
-      cls: 'gold',
-      value: `$${riskToMakeOne.toFixed(2)}`,
-      detail: 'gross loss per $1 gross win',
-    },
-    {
-      label: 'Biggest Win',
-      cls: 'pos',
-      value: `+$${Math.abs(biggestWin).toFixed(2)}`,
-      detail: wins.length ? 'best closed trade' : 'No winning trade yet',
-    },
-    {
-      label: 'Biggest Loss',
-      cls: 'neg',
-      value: `-$${Math.abs(biggestLoss).toFixed(2)}`,
-      detail: losses.length ? 'largest closed loss' : 'No losing trade yet',
-    },
-  ];
-  const legacyStatsHtml = `
-    <section class="legacy-stat-panel" aria-label="At-a-glance stats">
-      <div class="legacy-stat-head">
-        <div>
-          <div class="legacy-stat-title">At-a-Glance</div>
-          <div class="legacy-stat-meta">${filterLabel} · ${trades.length} total · ${closed.length} closed</div>
-        </div>
-        <button type="button" class="legacy-stat-export" onclick="exportCSV()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v12"/>
-            <path d="m7 10 5 5 5-5"/>
-            <path d="M5 21h14"/>
-          </svg>
-          <span>Export CSV</span>
-        </button>
-      </div>
-      <div class="legacy-stat-grid">
-        ${legacyCards.map(c => `
-          <div class="legacy-stat-card ${c.cls}">
-            <div class="legacy-stat-label">${c.label}</div>
-            <div class="legacy-stat-value">${c.value}</div>
-            <div class="legacy-stat-detail">${c.detail}</div>
-          </div>
-        `).join('')}
-      </div>
-    </section>`;
-
-  // ── Exit discipline panel ──────────────────────────────────
-  const exitDefs = [
-    { key: 'target',       label: 'Hit target',      color: 'pos' },
-    { key: 'stop',         label: 'Stopped out',     color: 'neg' },
-    { key: 'thesis-broke', label: 'Thesis broke',    color: 'amber' },
-    { key: 'discretionary',label: 'Discretionary',   color: 'amber' },
-    { key: 'time',         label: 'Time exit',       color: 'neutral' },
-  ];
-  const exitRows = exitDefs.map(d => {
-    const group = closed.filter(t => t.exit_reason === d.key);
-    if (!group.length) return null;
-    const pl = group.reduce((s, t) => s + (calcPL(t) || 0), 0);
-    const pct = Math.round(group.length / closed.length * 100);
-    return { label: d.label, n: group.length, pct, pl, color: d.color };
-  }).filter(Boolean);
-  const maxExitPL = Math.max(...exitRows.map(r => Math.abs(r.pl)), 1);
-  const exitHtml = exitRows.length ? exitRows.map(r => `
-    <div class="bar-row">
-      <div class="bar-row-label">${r.label}<span class="bar-row-sub">${r.n} trades · ${r.pct}%</span></div>
-      <div class="bar-wrap"><div class="bar-fill ${r.color}" style="width:${Math.max(4, Math.abs(r.pl) / maxExitPL * 100).toFixed(0)}%"></div></div>
-      <div class="bar-value ${r.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${fmtMoney(r.pl)}</div>
-    </div>`).join('')
-    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Exit reasons will appear once you close trades with a reason logged.</div>`;
-
-  // ── Setup performance panel ────────────────────────────────
-  const setupSourceClosed = modeTrades.filter(t => isClosedTrade(t));
-  const setups = aggregateBySetup(setupSourceClosed);
-  const maxSetupPL = Math.max(...setups.map(s => Math.abs(s.pl)), 1);
-  const setupHtml = setups.length ? setups.map(s => {
-    const wr  = Math.round(s.winRate);
-    const isActive = setupFilter === s.key;
-    return `
-      <button class="bar-row setup-filter-row ${isActive ? 'active' : ''}" type="button" data-setup-filter="${alphaEsc(s.key)}">
-        <div class="bar-row-label">${alphaEsc(s.key)}<span class="bar-row-sub">${s.n}× · ${wr}%W · ${fmtR(s.avgR)} avg</span></div>
-        <div class="bar-wrap"><div class="bar-fill ${s.pl >= 0 ? 'pos' : 'neg'}" style="width:${Math.max(4, Math.abs(s.pl) / maxSetupPL * 100).toFixed(0)}%"></div></div>
-        <div class="bar-value ${s.pl >= 0 ? 'pl-positive' : 'pl-negative'}">${fmtMoney(s.pl)}</div>
-      </button>`;
-  }).join('')
-    : `<div style="color:var(--ink-4);font-size:12px;padding:8px 0;">Setup breakdown appears after your first closed trade.</div>`;
-
-  // ── Grade quality (Process stat) ──────────────────────────
+  // Grade quality (Process card)
   const gradeCounts = { A: 0, B: 0, C: 0, D: 0 };
   closed.forEach(t => { const g = (t.grade || '').toUpperCase(); if (gradeCounts[g] !== undefined) gradeCounts[g]++; });
   const totalGraded = gradeCounts.A + gradeCounts.B + gradeCounts.C + gradeCounts.D;
@@ -926,19 +788,16 @@ export function renderLogStats() {
   const processSubParts = [gradeCounts.A && `${gradeCounts.A}A`, gradeCounts.B && `${gradeCounts.B}B`, gradeCounts.C && `${gradeCounts.C}C`].filter(Boolean);
   const processSub = processSubParts.length ? processSubParts.join(' · ') : 'no graded trades';
 
-  // ── Avg win / avg loss in R ────────────────────────────────
   const avgWinRStr  = wins.length   ? `${avgWinR  >= 0 ? '+' : ''}${avgWinR.toFixed(2)}R`  : '—';
   const avgLossRStr = losses.length ? `${avgLossR >= 0 ? '+' : ''}${avgLossR.toFixed(2)}R` : '—';
 
-  // ── Hero heading ───────────────────────────────────────────
   const totalPLStr = (totalPL >= 0 ? '+$' : '-$') + Math.abs(totalPL).toLocaleString(undefined, { maximumFractionDigits: 0 });
   const heroModeLabel = (state.logModeFilter || 'all') === 'all' ? 'ALL' : (state.logModeFilter || '').toUpperCase();
   const heroPeriodLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
 
-  // ── 5-card stat strip ─────────────────────────────────────
   const fiveCards = [
     { label: 'Net P/L',  value: totalPLStr, sub: `${closed.length} closed · ${open.length} open`, cls: totalPL >= 0 ? 'pos' : 'neg' },
-    { label: 'Win rate', value: winRateStr, sub: `${wins.length}W / ${losses.length}L closed`, cls: winRateNum !== null && winRateNum >= 50 ? '' : '' },
+    { label: 'Win rate', value: winRateStr, sub: `${wins.length}W / ${losses.length}L closed`, cls: '' },
     { label: 'Avg win',  value: avgWinRStr,  sub: `${wins.length} trades`,  cls: 'pos' },
     { label: 'Avg loss', value: avgLossRStr, sub: `${losses.length} trades`, cls: 'neg' },
     { label: 'Process',  value: processValue, sub: processSub, cls: '' },
@@ -954,7 +813,7 @@ export function renderLogStats() {
       <div class="log-hero-left">
         <div class="log-hero-eyebrow">
           <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);flex-shrink:0;"></span>
-          TRADE LOG · ${heroPeriodLabel}${setupFilter ? ' · ' + alphaEsc(setupFilter) : ''}
+          HISTORY · ${heroPeriodLabel}${setupFilter ? ' · ' + alphaEsc(setupFilter) : ''}
         </div>
         <h1 class="log-hero-heading">${trades.length} trades · <span style="color:var(--${totalPL >= 0 ? 'green-bright' : 'red-bright'})">${totalPLStr}</span></h1>
         <p class="log-hero-sub">
@@ -969,35 +828,4 @@ export function renderLogStats() {
     </div>
     <div class="log-stat-strip">${fiveCards}</div>
   `;
-
-  if (container.dataset.setupFilterWired !== '1') {
-    container.dataset.setupFilterWired = '1';
-    container.addEventListener('click', e => {
-      const row = e.target.closest('[data-setup-filter]');
-      if (!row) return;
-      setLogSetupFilter(row.dataset.setupFilter);
-    });
-  }
 }
-
-// Expose computed stats for the Stats tab to consume.
-function buildLogStatsData() {
-  const index = buildTradeIndex(state.trades || []);
-  const closed = index.all.filter(t => isClosedTrade(t));
-  const closedWithPL = enrichClosed(closed);
-  const wins   = closedWithPL.filter(x => x.pl > 0);
-  const losses = closedWithPL.filter(x => x.pl < 0);
-  const totalPL = closedWithPL.reduce((s, x) => s + x.pl, 0);
-  const winRateNum = closed.length ? wins.length / closed.length * 100 : null;
-  const grossWin = wins.reduce((s, x) => s + x.pl, 0);
-  const grossLoss = Math.abs(losses.reduce((s, x) => s + x.pl, 0));
-  const profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? Infinity : null);
-  const expectancy = closed.length > 0 ? totalPL / closed.length : 0;
-  const avgR = closedWithPL.length ? closedWithPL.reduce((s, x) => s + x.r, 0) / closedWithPL.length : 0;
-  const avgWinR  = wins.length   ? wins.reduce((s, x) => s + x.r, 0)   / wins.length   : 0;
-  const avgLossR = losses.length ? losses.reduce((s, x) => s + x.r, 0) / losses.length : 0;
-  const setupMap = aggregateBy(closed, t => t.setup || '—');
-  return { closed, closedWithPL, wins, losses, totalPL, winRateNum, grossWin, grossLoss, profitFactor, expectancy, avgR, avgWinR, avgLossR, setupMap };
-}
-
-// Bridge to legacy.js.

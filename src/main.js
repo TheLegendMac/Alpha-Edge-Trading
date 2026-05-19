@@ -21,9 +21,8 @@ import { setRegime, togglePretradeCheck, renderRegime, renderPretradeCheck } fro
 import { touchMarketContext } from './sync/merge.js';
 import { renderHome } from './views/home.js';
 import { toast } from './modals/toast.js';
-import { closeAIGlossary } from './intel/glossary.js';
 import { addTestTrades } from './modals/trade-modal.js';
-import { exportCSV, exportJSON, importJSON, checkStaleBackup } from './modals/import-export.js';
+import { exportJSON, importJSON, checkStaleBackup } from './modals/import-export.js';
 import { exportWeeklyReport } from './intel/weekly-report.js';
 import { importBacktestFromPaste, importBacktestFromFile } from './intel/backtest.js';
 import { _wirePositionEditor } from './modals/position-editor.js';
@@ -53,7 +52,6 @@ import './market/regime.js';
 import './market/context-panel.js';
 
 // ---------- Intel ----------
-import './intel/glossary.js';
 import './intel/rolling.js';
 import './intel/alpha.js';
 import './intel/backtest.js';
@@ -129,27 +127,6 @@ function init() {
   };
   window.checkAndCloseSettings = checkAndCloseSettings;
 
-  // Auto-focus ticker input when Trade tab becomes active.
-  const tradePanel = document.getElementById('panel-trade');
-  if (tradePanel) {
-    let wasActive = tradePanel.classList.contains('active');
-    const obs = new MutationObserver(m => {
-      m.forEach(mut => {
-        if (mut.attributeName === 'class') {
-          const isActive = tradePanel.classList.contains('active');
-          if (isActive && !wasActive) {
-            setTimeout(() => {
-              const input = document.getElementById('tf-ticker-card-input');
-              if (input) input.focus();
-            }, 100);
-          }
-          wasActive = isActive;
-        }
-      });
-    });
-    obs.observe(tradePanel, { attributes: true });
-  }
-
   // Wire inline nav tab buttons in the command bar.
   document.querySelectorAll('.cmdbar-nav .tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -191,10 +168,6 @@ function init() {
       if (e.key === 'Escape' && menuPanel.classList.contains('open')) closeMenu();
     });
   }
-
-  // Wire the home actions early. If a later optional renderer fails, these
-  // buttons still work and the user can navigate out of the bad state.
-  on('brand-home', 'click', () => setTab('home'));
 
   // Log filter strip — mode tab buttons.
   document.getElementById('log-mode-tabs')?.addEventListener('click', e => {
@@ -245,19 +218,7 @@ function init() {
     attachTickerAutocomplete(legacyTickerInput);
   }
 
-  // Alpha Intel glossary panel — close on backdrop click / × / Esc.
-  document.getElementById('ai-glossary-close')?.addEventListener('click', closeAIGlossary);
-  document.getElementById('ai-glossary-backdrop')?.addEventListener('click', closeAIGlossary);
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      const panel = document.getElementById('ai-glossary-panel');
-      if (panel && panel.classList.contains('open')) closeAIGlossary();
-    }
-  });
-
-  // Add trade.
-  document.getElementById('btn-add-test-trades')?.addEventListener('click', addTestTrades);
-  document.getElementById('btn-export')?.addEventListener('click', exportCSV);
+  document.getElementById('btn-add-test-trades')?.addEventListener('click', () => addTestTrades());
   document.getElementById('btn-export-json')?.addEventListener('click', exportJSON);
   document.getElementById('btn-weekly-report')?.addEventListener('click', exportWeeklyReport);
   document.getElementById('btn-import-json')?.addEventListener('click', () => document.getElementById('import-json-file')?.click());
@@ -281,16 +242,7 @@ function init() {
     }
   });
 
-  // Log mode filter + search.
-  const logFilter = document.getElementById('log-mode-filter');
-  if (logFilter) {
-    logFilter.value = state.logModeFilter || 'all';
-    logFilter.addEventListener('change', e => {
-      setState({ logModeFilter: e.target.value });
-      renderLogStats();
-      renderLogTable();
-    });
-  }
+  // Log search.
   const logSearch = document.getElementById('log-trade-search');
   if (logSearch) {
     logSearch.value = state.logSearch || '';
@@ -390,7 +342,6 @@ function init() {
 
   // ============ SUPABASE SYNC BOOTSTRAP ============
   if (typeof ensureAuthModal === 'function') ensureAuthModal();
-  document.getElementById('btn-reference')?.addEventListener('click', () => setTab('reference'));
   // Boot the auth flow (async, non-blocking).
   bootstrapAuth();
   // Stale backup nudge — delay so it doesn't pop during initial bootstrap chaos.

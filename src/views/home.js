@@ -1,6 +1,6 @@
 // Home dashboard — main landing tab. Pulls together account/regime/portfolio summary.
 
-import { renderLogStats } from '../intel/alpha.js';
+import { alphaConfidenceLabel, renderLogStats } from '../intel/alpha.js';
 import { setTab } from '../tabs.js';
 import { loadDemoData, reviewTrade } from '../modals/trade-modal.js';
 import { state, getRiskPctForRegime } from '../state/store.js';
@@ -15,7 +15,7 @@ import {
   calcR,
 } from '../models/trade.js';
 import { formatDate, todayISO } from '../models/formatters.js';
-import { computeRollingPL } from '../intel/rolling.js';
+import { computeRollingPL, buildSparklineSvg } from '../intel/rolling.js';
 import { setState } from '../state/persistence.js';
 import { buildTradeIndex } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
@@ -55,59 +55,51 @@ function getSwingSetupDef(setup) {
   return (TRADE_SWING_SETUPS || []).find(s => s.id === setup) || null;
 }
 
-function buildHomeRiskProfile({ account, regime, settings, tradeMode, selectedSetup }) {
+function buildHomeRiskProfile({ account, regime, selectedSetup }) {
   const baseSwingRisk = Math.round(account * getRiskPctForRegime(regime));
   const selectedSetupDef = getSwingSetupDef(selectedSetup);
   const selectedSwingRisk = selectedSetupDef && selectedSetupDef.halfSize
     ? Math.round(baseSwingRisk / 2)
     : baseSwingRisk;
-  const intradayRisk = Math.round(Number(settings.intradayRiskPerTrade) || 0);
-
-  const candidates = [
-    {
-      key: 'swing-full',
-      label: `${REGIME_DATA[regime]?.text || 'REGIME'} swing`,
-      risk: baseSwingRisk,
-      mode: 'swing',
-    },
-    {
-      key: 'swing-half',
-      label: 'half-size pattern',
-      risk: Math.round(baseSwingRisk / 2),
-      mode: 'swing',
-    },
-  ];
-
-  if (intradayRisk > 0) {
-    candidates.push({
-      key: 'intraday',
-      label: 'intraday',
-      risk: intradayRisk,
-      mode: 'intraday',
-    });
-  }
-
-  const active = tradeMode === 'intraday'
-    ? candidates.find(c => c.key === 'intraday')
-    : {
-        key: selectedSetupDef && selectedSetupDef.halfSize ? 'selected-half' : 'selected-swing',
-        label: selectedSetupDef && selectedSetupDef.halfSize ? `${selectedSetup} half-size` : `${REGIME_DATA[regime]?.text || 'REGIME'} swing`,
-        risk: selectedSwingRisk,
-        mode: 'swing',
-      };
-
-  const fallback = active || candidates.find(c => c.risk > 0) || null;
+  const next = {
+    key: selectedSetupDef && selectedSetupDef.halfSize ? 'selected-half' : 'regime-risk',
+    label: selectedSetupDef && selectedSetupDef.halfSize
+      ? 'half-size risk'
+      : 'next trade risk',
+    risk: selectedSwingRisk,
+  };
 
   return {
-    active,
-    next: fallback,
+    next,
     fullSwingRisk: baseSwingRisk,
     halfSwingRisk: Math.round(baseSwingRisk / 2),
-    intradayRisk,
   };
 }
 
+// Module-scoped guard so the date-rollover refresher is only wired once.
+let _homeRefreshWired = false;
+function _ensureHomeDateRefresher() {
+  if (_homeRefreshWired) return;
+  _homeRefreshWired = true;
+  let lastDay = todayISO();
+  // Check once a minute, but skip the tick entirely when the document is
+  // hidden or Home isn't the active panel — no point burning a check when
+  // the rendered DOM the rollover would update isn't on screen. The next
+  // setTab('home') / visibilitychange forces a fresh render anyway.
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    const panel = document.getElementById('panel-home');
+    if (!panel || !panel.classList.contains('active')) return;
+    const now = todayISO();
+    if (now !== lastDay) {
+      lastDay = now;
+      renderHome();
+    }
+  }, 60 * 1000);
+}
+
 export function renderHome() {
+  _ensureHomeDateRefresher();
   const today = todayISO();
   const tradeIndex = buildTradeIndex(state.trades || []);
   const closed = tradeIndex.closed;
@@ -119,14 +111,9 @@ export function renderHome() {
   const winRate = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
   const openTrades = tradeIndex.open;
   const openUnrealized = openTrades.reduce((sum, t) => sum + openUnrealizedPL(t), 0);
-  const openUnrealizedR = openTrades.reduce((sum, t) => {
-    const risk = tradeRiskDollars(t);
-    return risk > 0 ? sum + (openUnrealizedPL(t) / risk) : sum;
-  }, 0);
   // Net P/L is cumulative realized (all closed trades, lifetime) plus current unrealized.
   const realizedAll = closed.reduce((s, t) => s + (calcPL(t) || 0), 0);
   const sessionPL = realizedAll + openUnrealized;
-  const sessionR = closed.reduce((s, t) => s + (calcR(t) || 0), 0) + openUnrealizedR;
   const settings = state.settings || {};
   const account = settings.account || 10000;
   const maxPositions = state.settings.maxPositions || 0;
@@ -135,8 +122,6 @@ export function renderHome() {
   const riskProfile = buildHomeRiskProfile({
     account,
     regime: state.regime,
-    settings,
-    tradeMode: state.tradeFlow?.mode || 'swing',
     selectedSetup: state.selectedSetup,
   });
   const nextRisk = riskProfile.next?.risk || 0;
@@ -149,7 +134,8 @@ export function renderHome() {
   const regimeText = REGIME_DATA[state.regime]?.text || 'RISK-ON';
   const positionsOk = openTrades.length < state.settings.maxPositions;
   const rolling = computeRollingPL();
-  const killActive = rolling.pct <= -7;
+  const killActive = rolling.killActive;
+  const confidenceLabel = alphaConfidenceLabel(closed.length);
 
   // Money formatter — keeps lines compact and consistent.
   const $ = (v) => `${v >= 0 ? '+$' : '-$'}${Math.abs(Math.round(v)).toLocaleString()}`;
@@ -159,32 +145,26 @@ export function renderHome() {
   let headlineTone = '';
   let headlineAccent = 'Cleared to trade.';
   let headlineTail = '';
-  let heroStatus = 'TODAY\'S READ';
   if (killActive) {
     headlineTone = 'risk-off';
     headlineAccent = `Don't trade.`;
     headlineTail = `Last ${rolling.days}d down ${Math.abs(rolling.pct).toFixed(1)}% — kill switch on.`;
-    heroStatus = 'KILL SWITCH · ACTIVE';
   } else if (!positionsOk) {
     headlineTone = 'neutral';
     headlineAccent = `Position cap full.`;
     headlineTail = `Close one to free a slot.`;
-    heroStatus = 'CAP · LOCKED';
   } else if (state.regime === 'risk-off') {
     headlineTone = 'risk-off';
     headlineAccent = `Risk-off.`;
     headlineTail = `Defensive — puts on Avoid sectors only.`;
-    heroStatus = 'RISK OFF · DEFENSIVE';
   } else if (state.regime === 'neutral') {
     headlineTone = 'neutral';
     headlineAccent = `Neutral tape.`;
     headlineTail = `Half size · wait for confirmation.`;
-    heroStatus = 'NEUTRAL · HALF SIZE';
   } else {
     headlineTone = '';
     headlineAccent = `Cleared to trade.`;
-    headlineTail = `${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk.toLocaleString()}.`;
-    heroStatus = 'TODAY\'S READ';
+    headlineTail = `${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · ${nextRiskLabel} $${nextRisk.toLocaleString()}.`;
   }
 
   // Today-focused bullets. Each line is one breath; the color carries tone.
@@ -195,11 +175,11 @@ export function renderHome() {
   // (Empty days were noise, per user feedback.)
   if (todayClosed.length) {
     const tone = todayPL >= 0 ? 'good' : 'bad';
-    const wins = todayClosed.filter(t => (calcPL(t) || 0) > 0).length;
+    const dayWins = todayClosed.filter(t => (calcPL(t) || 0) > 0).length;
     const rPart = todayR ? ` · ${todayR >= 0 ? '+' : ''}${todayR.toFixed(2)}R` : '';
     intelPoints.push({
       tone, chip: 'SESSION',
-      html: `<strong>Today: ${$(todayPL)}</strong> · ${wins}W ${todayClosed.length - wins}L${rPart}.`,
+      html: `<strong>Today: ${$(todayPL)}</strong> · ${dayWins}W ${todayClosed.length - dayWins}L${rPart}.`,
     });
   } else if (openTrades.length) {
     intelPoints.push({
@@ -213,9 +193,10 @@ export function renderHome() {
     const tone = killActive ? 'bad' : rolling.pct < 0 ? 'warn' : 'good';
     const verdict = killActive ? 'kill switch on' : rolling.pct < 0 ? 'in drawdown' : 'in form';
     const wrPart = rolling.winRate !== null ? ` · ${rolling.winRate}% wins` : '';
+    const spark = buildSparklineSvg(rolling.series, { w: 60, h: 16 });
     intelPoints.push({
       tone, chip: 'TREND',
-      html: `Last ${rolling.days}d: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}%) · ${rolling.count} closed${wrPart} — ${verdict}.`,
+      html: `Last ${rolling.days}d: <strong>${$(rolling.totalPL)}</strong> (${rolling.pct >= 0 ? '+' : ''}${rolling.pct.toFixed(1)}%) · ${rolling.count} closed${wrPart} — ${verdict}.${spark}`,
     });
   } else if (closed.length === 0) {
     intelPoints.push({
@@ -230,7 +211,7 @@ export function renderHome() {
       ? `<strong>${top3.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : 'none strong';
     const avoidPart = avoid.length
-      ? ` · avoid <strong style="color:var(--red-bright)">${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
+      ? ` · avoid <strong>${avoid.slice(0, 3).map(s => `<span title="${s.ticker}">${s.name}</span>`).join(' · ')}</strong>`
       : '';
     intelPoints.push({
       tone: top3.length ? 'good' : 'warn', chip: 'SECTORS',
@@ -256,7 +237,7 @@ export function renderHome() {
   let actionTone = 'good', actionHtml = '';
   if (killActive) {
     actionTone = 'bad';
-    actionHtml = `<strong>Don't trade.</strong> Wait for rolling P/L above -7%, or widen the window in Settings.`;
+    actionHtml = `<strong>Don't trade.</strong> Wait for rolling P/L above -${rolling.floor}%, or widen the window in Settings.`;
   } else if (state.regime === 'risk-off') {
     actionTone = 'bad';
     actionHtml = `<strong>Defensive.</strong> Skip longs. Puts on Avoid sectors at half size only.`;
@@ -268,7 +249,7 @@ export function renderHome() {
     actionHtml = `<strong>Half size.</strong> Both directions OK on confirmed setups only.`;
   } else {
     actionTone = 'good';
-    actionHtml = `<strong>Cleared.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · next trade $${nextRisk}.`;
+    actionHtml = `<strong>Cleared.</strong> ${tradesLeft} slot${tradesLeft === 1 ? '' : 's'} left · ${nextRiskLabel} $${nextRisk.toLocaleString()}.`;
   }
   intelPoints.push({ tone: actionTone, chip: 'ACTION', html: actionHtml });
 
@@ -289,31 +270,29 @@ export function renderHome() {
   }
   setText('home-intel-headline-accent', headlineAccent);
   setText('home-intel-headline-tail', headlineTail);
-  const kickerEl = document.getElementById('home-deep-kicker');
-  if (kickerEl) {
-    kickerEl.textContent = sectorStaleNow
-      ? 'STALE SECTOR DATA'
-      : heroStatus;
-  }
+  setText('home-intel-confidence', confidenceLabel);
   const pointsEl = document.getElementById('home-intel-points');
   if (pointsEl) {
-    pointsEl.innerHTML = intelPoints.map(p =>
+    // Action stays first; the rest are evidence sorted by severity.
+    const toneRank = { bad: 0, warn: 1, info: 2, good: 3 };
+    const actionPoint = intelPoints.find(p => p.chip === 'ACTION');
+    const evidence = intelPoints
+      .filter(p => p.chip !== 'ACTION')
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => (toneRank[a.p.tone] ?? 4) - (toneRank[b.p.tone] ?? 4) || a.i - b.i)
+      .map(x => x.p);
+    const sorted = actionPoint ? [actionPoint, ...evidence] : evidence;
+    pointsEl.innerHTML = sorted.map(p =>
       `<li class="alpha-intel-point tone-${p.tone}"><span class="alpha-intel-chip">${p.chip || ''}</span><span class="alpha-intel-body">${p.html}</span></li>`
     ).join('');
   }
 
   // ========== 4-stat row ==========
-  // Session P/L: format like the design — "+$1,247" with green/red tinting + sub line
   const sessionPlEl = document.getElementById('home-session-pl');
   if (sessionPlEl) {
-    const v = `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`;
-    sessionPlEl.textContent = v;
+    sessionPlEl.textContent = `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`;
     sessionPlEl.className = `home-stat-value ${sessionPL > 0 ? 'green' : sessionPL < 0 ? 'red' : ''}`;
   }
-  setText('home-session-sub', `${sessionR >= 0 ? '+' : '-'}${Math.abs(sessionR).toFixed(1)}R · realized ${todayPL >= 0 ? '$' : '-$'}${Math.abs(Math.round(todayPL))} · open ${openUnrealized >= 0 ? '$' : '-$'}${Math.abs(Math.round(openUnrealized))}`);
-
-  // New stat card IDs
-  setText('home-session-pl', `${sessionPL >= 0 ? '+$' : '-$'}${Math.abs(Math.round(sessionPL)).toLocaleString()}`);
   setText('home-win-rate', winRate > 0 ? `${winRate}%` : '—');
   const wrSub = document.getElementById('home-win-rate-sub');
   if (wrSub) wrSub.textContent = closed.length ? `${wins.length} / ${closed.length} closed` : 'all time';
@@ -338,15 +317,6 @@ export function renderHome() {
     }
   }
   setText('home-edge-ratio-sub', `${closed.length} closed trade${closed.length === 1 ? '' : 's'}`);
-
-  // Status dot colour mirrors headline tone
-  const dot = document.getElementById('home-status-dot');
-  if (dot) {
-    dot.style.background = killActive ? 'var(--red-bright)'
-      : state.regime === 'neutral' ? 'var(--amber-bright)'
-      : 'var(--green-bright)';
-    dot.style.boxShadow = `0 0 8px ${dot.style.background}`;
-  }
 
   // Intel card background tone
   const intelCard = document.getElementById('home-intel-card');
@@ -375,30 +345,33 @@ export function renderHome() {
     return `${y}-${m}-${day}`;
   };
   if (calendar) {
-    // 2-week rolling view — lazy-default to 0 offset on first render.
+    // Month view — offset is in months (0 = current month, -1 = previous, +1 = next).
     if (typeof state.homeCalendarOffset !== 'number') {
       state.homeCalendarOffset = 0;
     }
     const offset = state.homeCalendarOffset;
     const todayObj = new Date();
-    // Find Saturday of the current week
-    const currentSat = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate() + (6 - todayObj.getDay()));
-    // Apply offset (2 weeks = 14 days)
-    currentSat.setDate(currentSat.getDate() + (offset * 14));
-    // Start is 13 days before Saturday (previous week's Sunday)
-    const startSun = new Date(currentSat.getFullYear(), currentSat.getMonth(), currentSat.getDate() - 13);
-    
-    const totalCells = 14;
+    // Anchor on the first day of the target month.
+    const monthAnchor = new Date(todayObj.getFullYear(), todayObj.getMonth() + offset, 1);
+    const monthIdx = monthAnchor.getMonth();
+    const yearIdx = monthAnchor.getFullYear();
+    // Leading blanks = day-of-week of the 1st (Sunday=0). Grid starts on Sunday.
+    const leadingBlanks = monthAnchor.getDay();
+    // First cell = previous month's day to fill the leading slots.
+    const gridStart = new Date(yearIdx, monthIdx, 1 - leadingBlanks);
+    // Render only the weeks actually needed (5 most months, 6 when the month
+    // starts late + has 31 days). Keeps the calendar tight against the EI card.
+    const daysInMonth = new Date(yearIdx, monthIdx + 1, 0).getDate();
+    const totalCells = Math.ceil((leadingBlanks + daysInMonth) / 7) * 7;
 
     if (title) {
-      const formatOpts = { month: 'short', day: 'numeric' };
-      const rangeLabel = `${startSun.toLocaleDateString('en-US', formatOpts)} – ${currentSat.toLocaleDateString('en-US', formatOpts)}`;
+      const monthLabel = monthAnchor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       title.innerHTML = `
         <div class="home-calendar-nav" style="display: flex; align-items: center;">
-          <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous 2 weeks">‹</button>
-          <span class="home-cal-month" style="font-size: 12px;">${rangeLabel}</span>
-          <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next 2 weeks">›</button>
-          <button type="button" class="home-cal-today" data-cal-today="1" title="Reset to current week" aria-label="Reset calendar to current week">↻</button>
+          <button type="button" class="home-cal-arrow" data-cal-arrow="prev" aria-label="Previous month">‹</button>
+          <span class="home-cal-month" style="font-size: 12px;">${monthLabel}</span>
+          <button type="button" class="home-cal-arrow" data-cal-arrow="next" aria-label="Next month">›</button>
+          <button type="button" class="home-cal-today" data-cal-today="1" title="Reset to current month" aria-label="Reset calendar to current month">↻</button>
         </div>`;
     }
 
@@ -408,13 +381,15 @@ export function renderHome() {
     const filterIso = state.homeCalendarFilter || null;
 
     const cellsHtml = Array.from({ length: totalCells }, (_, i) => {
-      const d = new Date(startSun.getFullYear(), startSun.getMonth(), startSun.getDate() + i);
+      const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
       const iso = isoLocal(d);
+      const isOutside = d.getMonth() !== monthIdx;
       const dayTrades = tradeIndex.byExitDate.get(iso) || [];
       const pl = dayTrades.reduce((s, t) => s + (calcPL(t) || 0), 0);
-      totalPeriodPL += pl;
+      if (!isOutside) totalPeriodPL += pl;
       const isFuture = iso > today;
       let cls = iso === today ? 'active' : pl > 0 ? 'good' : pl < 0 ? 'bad' : '';
+      if (isOutside) cls += ' outside';
       if (isFuture) cls += ' future';
       if (iso === filterIso) cls += ' selected';
       if (dayTrades.length) cls += ' has-trades';
@@ -540,7 +515,9 @@ export function renderHome() {
             </span>
             <span class="home-trade-setup">
               ${esc(t.setup || 'No setup')}
-              <span class="home-trade-detail">${esc(qtyStr)}</span>
+              <span class="home-trade-detail">
+                ${esc(qtyStr)}${Array.isArray(t.tags) && t.tags.length ? ' · ' + t.tags.slice(0, 3).map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(' ') : ''}
+              </span>
             </span>
             <span class="home-trade-risk">
               <span class="home-trade-risk-val">$${risk.toLocaleString()}</span>
@@ -636,4 +613,3 @@ export function toggleHomePortfolioView() {
   setState({ homePortfolioView: state.homePortfolioView === 'open' ? 'recent' : 'open' });
   renderHome();
 }
-

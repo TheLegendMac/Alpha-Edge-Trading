@@ -18,6 +18,7 @@ import { formatDate, fmtMoney } from '../models/formatters.js';
 import { setState } from '../state/persistence.js';
 import { buildTradeIndex, filterLogTrades } from '../models/trade-index.js';
 import { esc, attr } from '../dom/html.js';
+import { getSetupDisplayName } from '../config/constants.js';
 
 function setLogSetupFilter(setup) {
   setState({ logSetupFilter: setup || '' });
@@ -41,7 +42,7 @@ export function renderLogHero() {
 
   const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
   const kicker = document.getElementById('log-hero-kicker-text');
-  if (kicker) kicker.textContent = `TRADE LOG · ${monthName}`;
+  if (kicker) kicker.textContent = `HISTORY · ${monthName}`;
 
   const countEl = document.getElementById('log-hero-count');
   if (countEl) countEl.textContent = trades.length;
@@ -86,7 +87,11 @@ export function renderLogTable() {
     return;
   }
 
-  const sorted = [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const sorted = [...filtered].sort((a, b) => {
+    const bKey = b.exit_date || b.date || '';
+    const aKey = a.exit_date || a.date || '';
+    return bKey.localeCompare(aKey);
+  });
 
   const formatMoney = value => `${value >= 0 ? '+$' : '-$'}${Math.abs(value || 0).toFixed(0)}`;
   const formatR = r => r !== null && Number.isFinite(r)
@@ -129,8 +134,10 @@ export function renderLogTable() {
               <span class="home-trade-meta">${formatDate(t.date)} · <span style="color: var(--${dirColor});">${esc(t.direction || '—')}</span> · ${esc(mode)}</span>
             </span>
             <span class="home-trade-setup">
-              ${esc(t.setup || 'No setup')}
-              <span class="home-trade-detail">${esc(qtyStr)}</span>
+              ${esc(t.setup ? getSetupDisplayName(t.setup, mode, state) : 'No setup')}
+              <span class="home-trade-detail">
+                ${esc(qtyStr)}${Array.isArray(t.tags) && t.tags.length ? ' · ' + t.tags.slice(0, 3).map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(' ') : ''}
+              </span>
             </span>
             <span class="home-trade-risk">
               <span class="home-trade-risk-val">$${Math.round(risk).toLocaleString()}</span>

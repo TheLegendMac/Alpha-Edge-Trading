@@ -3,7 +3,7 @@
 
 import { state, refreshAllUI } from '../state/store.js';
 import { saveState } from '../state/persistence.js';
-import { calcPL, tradeRiskDollars, tradeMultiplier, tradeQty } from '../models/trade.js';
+import { calcPL, calcR, isClosedTrade, tradeRiskDollars, tradeMultiplier, tradeQty } from '../models/trade.js';
 import { toast } from '../modals/toast.js';
 import { setTab } from '../tabs.js';
 import { renderTrade } from '../trade-flow/stepper.js';
@@ -77,6 +77,60 @@ function regimeColor(r) {
 function qtyLabel(w, qty) {
   const unit = (w.mode === 'intraday' || w.instrument === 'options') ? 'ctr' : 'sh';
   return `${qty} ${unit}`;
+}
+
+// ── Edge Intelligence callout — live position read + setup history ──────
+// Returns { live, history } as HTML strings. Numbers are tone-colored via
+// inline strong tags so the callout matches the brand voice used elsewhere.
+function edgeConfidenceLabel(count) {
+  const n = Number(count) || 0;
+  if (n >= 15) return 'RELIABLE';
+  if (n >= 5) return 'BUILDING';
+  return 'EARLY DATA';
+}
+
+function buildEdgeIntelLines(w, ctx) {
+  const { r, hasTarget, pctToTarget, pctToStop, isProfit, isLong, plPct } = ctx;
+  const sign = (n) => (n >= 0 ? '+' : '');
+  const rStr = `${sign(r)}${r.toFixed(2)}R`;
+
+  let live;
+  if (!hasTarget) {
+    live = `<strong style="color:var(--amber-bright)">No target set.</strong> Add one to read R-progress on this position.`;
+  } else if (r >= 1) {
+    live = `<strong style="color:var(--green-bright)">${rStr}</strong> in your favor, <strong>${pctToTarget}%</strong> to target — let it work and consider trailing to break-even.`;
+  } else if (r > 0) {
+    live = `Up <strong style="color:var(--green-bright)">${rStr}</strong> (<strong>${pctToTarget}%</strong> to target) — early progress, give the setup room.`;
+  } else if (r === 0) {
+    live = `Flat to entry, <strong>${pctToStop}%</strong> buffer to stop — wait for confirmation.`;
+  } else if (r > -0.5) {
+    live = `Down <strong style="color:var(--red-bright)">${rStr}</strong>, <strong>${pctToStop}%</strong> buffer to stop — within noise, hold the line.`;
+  } else {
+    live = `Down <strong style="color:var(--red-bright)">${rStr}</strong> — stop <strong>${pctToStop}%</strong> away, watch for a thesis break.`;
+  }
+
+  const setupId = w.setup || w.selectedSetup || '';
+  const sameSetup = (state.trades || []).filter(t =>
+    isClosedTrade(t) && (t.setup || '') === setupId && setupId && t.id !== w.id
+  );
+  const confidence = edgeConfidenceLabel(sameSetup.length);
+
+  let history;
+  if (!setupId) {
+    history = `No setup tagged on this trade — historical edge can't be matched.`;
+  } else if (sameSetup.length === 0) {
+    history = `No prior closed trades on this setup yet — log the outcome to start building the edge picture.`;
+  } else {
+    const rs = sameSetup.map(t => calcR(t) || 0);
+    const wins = rs.filter(x => x > 0).length;
+    const losses = sameSetup.length - wins;
+    const avgR = rs.reduce((s, x) => s + x, 0) / rs.length;
+    const wrPct = Math.round(wins / sameSetup.length * 100);
+    const avgRTone = avgR >= 0 ? 'var(--green-bright)' : 'var(--red-bright)';
+    history = `Setup history: <strong>${wins}W / ${losses}L</strong> on ${sameSetup.length} closed (${wrPct}% wins · avg <strong style="color:${avgRTone}">${sign(avgR)}${avgR.toFixed(2)}R</strong>).`;
+  }
+
+  return { live, history, confidence };
 }
 
 function getFrozenSnapshot(trade) {
@@ -302,6 +356,10 @@ function renderEditTrade(trade) {
   const inputReadOnly = editMode ? '' : 'readonly';
   const editHint = editMode ? 'EDITING' : 'READ ONLY';
 
+  const edgeIntel = buildEdgeIntelLines(w, {
+    r, hasTarget, pctToTarget, pctToStop, isProfit, isLong, plPct,
+  });
+
   // ── body html ───────────────────────────────────────────────────────────
   mainEl.innerHTML = `
     <section class="et-drawer-head">
@@ -338,6 +396,18 @@ function renderEditTrade(trade) {
         <div class="et-pnl-label">% Away</div>
         <div class="et-pnl-val" style="color:${hasTarget ? 'var(--cyan)' : 'var(--ink-4)'}">${percentAway === null ? '—' : percentAway.toFixed(1) + '%'}</div>
       </div>
+    </section>
+
+    <section class="et-edge-intel">
+      <div class="et-edge-intel-kicker">
+        <span class="et-edge-intel-kicker-main">
+          <span class="alpha-intel-sparkle">✦</span>
+          <span class="alpha-intel-wordmark">EDGE INTELLIGENCE</span>
+        </span>
+        <span class="et-edge-intel-confidence">${edgeIntel.confidence}</span>
+      </div>
+      <div class="et-edge-intel-line">${edgeIntel.live}</div>
+      <div class="et-edge-intel-line et-edge-intel-line-muted">${edgeIntel.history}</div>
     </section>
 
     <section class="et-snapshot-card" style="background:rgba(10,13,20,0.72);border:1px solid rgba(119,154,199,0.22);">
@@ -393,6 +463,8 @@ function renderEditTrade(trade) {
     </section>
 
     ${editMode ? renderManageForms(w, mark, qty, a, isProfit, r) : ''}
+
+    ${renderTagsCard(w)}
 
     <section class="et-journal-card">
       <div class="et-card-heading">
@@ -648,6 +720,43 @@ function wireEvents(trade, w, ctx) {
     toast(`Repeating ${w.setup}`);
   });
 
+  // Tags — only mutable in edit mode. Adding pushes onto draft.tags; clicking
+  // ✕ removes. We dedupe and lowercase on the way in.
+  if (editMode) {
+    const tagInput = mainEl.querySelector('#et-tag-input');
+    if (tagInput) {
+      const commit = () => {
+        if (!draft) return;
+        const raw = tagInput.value;
+        if (!raw.trim()) return;
+        const cur = normalizeTagList(draft.tags);
+        const additions = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const next = [...cur];
+        additions.forEach(t => { if (!next.includes(t)) next.push(t); });
+        draft.tags = next;
+        tagInput.value = '';
+        renderEditTrade(trade);
+        // Keep focus on the input across the re-render.
+        requestAnimationFrame(() => document.getElementById('et-tag-input')?.focus());
+      };
+      tagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          commit();
+        }
+      });
+      tagInput.addEventListener('blur', commit);
+    }
+    mainEl.querySelectorAll('[data-tag-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!draft) return;
+        const t = btn.dataset.tagRemove;
+        draft.tags = normalizeTagList(draft.tags).filter(x => x !== t);
+        renderEditTrade(trade);
+      });
+    });
+  }
+
   mainEl.querySelector('#et-edit-journal-btn')?.addEventListener('click', () => {
     journalEditOnRender = true;
     if (!editMode) enterEditMode(trade);
@@ -798,6 +907,36 @@ function applyCloseAll(trade, q, px, ctx) {
   toast(`Closed ${trade.ticker || ''} @ $${px.toFixed(2)}`);
   closeEditTrade();
   if (typeof refreshAllUI === 'function') refreshAllUI();
+}
+
+// ── tags helpers ──────────────────────────────────────────────────────────
+function normalizeTagList(input) {
+  return (Array.isArray(input) ? input : [])
+    .map(t => String(t || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function renderTagsCard(w) {
+  const tags = normalizeTagList(w.tags);
+  const inEdit = editMode;
+  const chips = tags.length
+    ? tags.map(t => `
+        <span class="et-tag-chip${inEdit ? ' editable' : ''}">
+          <span>${escapeHtml(t)}</span>
+          ${inEdit ? `<button class="et-tag-remove" type="button" data-tag-remove="${escapeHtml(t)}" aria-label="Remove tag ${escapeHtml(t)}">×</button>` : ''}
+        </span>`).join('')
+    : `<span class="et-tag-empty">${inEdit ? 'Type a tag and press Enter, or comma-separate.' : 'No tags.'}</span>`;
+  const input = inEdit
+    ? `<input type="text" id="et-tag-input" class="et-tag-input" placeholder="add tag…" autocomplete="off" spellcheck="false" maxlength="32" />`
+    : '';
+  return `
+    <section class="et-tags-card">
+      <div class="et-card-heading">
+        <h2 class="et-card-title">Tags</h2>
+        ${inEdit ? '<div class="et-card-meta">PRESS ENTER OR COMMA</div>' : ''}
+      </div>
+      <div class="et-tag-list">${chips}${input}</div>
+    </section>`;
 }
 
 // ── journal helpers ───────────────────────────────────────────────────────

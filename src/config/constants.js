@@ -66,6 +66,11 @@ export function createDefaultState() {
     deletedTradeIds: {},
     backtestReports: [],
     recentTickers: [],
+    // AI-generated custom setups, keyed by id (e.g. "ai_abc_123"). Each entry
+    // is { id, name, desc, bias, thesis, preMortem, isOrb?, mode, createdAt }.
+    // They live in localStorage so trades that reference them keep a readable
+    // setup name after the AI builder is closed.
+    aiCustomSetups: {},
     // Swing flow
     selectedSetup: null,
     instrument: 'options',  // 'options' | 'stocks'
@@ -90,7 +95,7 @@ export function createDefaultState() {
     logModeFilter: 'all',  // 'all' | 'swing' | 'intraday'
     logSearch: '',
     logSetupFilter: '',
-    homePortfolioView: 'open', // 'recent' | 'open'
+    homePortfolioView: 'recent', // 'recent' (all) | 'open'
     homeCalendar: null,
     homeCalendarFilter: null,
     statsExpanded: false,
@@ -231,6 +236,31 @@ export const TRADE_BREADTH_OPTIONS = [
   { id: 'flat', label: 'BREADTH FLAT' },
   { id: 'down', label: 'BREADTH DOWN' },
 ];
+
+// Resolve a setup id to its definition across catalog + AI-generated setups.
+// Returns null if nothing matches.
+//   id   — the setup id stored on a trade or state.selectedSetup
+//   mode — 'swing' | 'intraday'
+//   stateLike — pass `state` so AI setups in state.aiCustomSetups can be found.
+//               Optional; if omitted only the catalog is searched.
+export function findSetupDef(id, mode, stateLike) {
+  if (!id) return null;
+  const list = mode === 'intraday' ? TRADE_INTRADAY_SETUPS : TRADE_SWING_SETUPS;
+  const catalog = list.find(s => s.id === id);
+  if (catalog) return catalog;
+  if (stateLike && stateLike.aiCustomSetups && stateLike.aiCustomSetups[id]) {
+    return stateLike.aiCustomSetups[id];
+  }
+  return null;
+}
+
+// Display name for a setup id. Falls back to the raw id (which for swing
+// setups is already human-readable like "21-EMA Pullback").
+export function getSetupDisplayName(id, mode, stateLike) {
+  const def = findSetupDef(id, mode, stateLike);
+  if (def) return def.name || def.id || id;
+  return id || '';
+}
 
 // Bridge to legacy.js (regular <script>): expose every constant as a window global
 // so unmoved code in legacy.js keeps resolving identifiers.

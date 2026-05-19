@@ -7,9 +7,15 @@ import { tfDeriveIntradaySpread, tfAutoFillIntradayOptionBracket, tfAutoFillIntr
 import { tfRefreshAll, tfRefreshHeaderOnly, tfGoToStep } from './stepper.js';
 import { toast } from '../modals/toast.js';
 import { tfBindPriceLevelSliders } from './risk.js';
+import { openAiSetupBuilder } from '../modals/ai-setup-builder.js';
 
 export function tfFindIntradaySetup(id) {
-  return TRADE_INTRADAY_SETUPS.find(s => s.id === id) || null;
+  if (!id) return null;
+  const catalog = TRADE_INTRADAY_SETUPS.find(s => s.id === id);
+  if (catalog) return catalog;
+  const ai = state && state.aiCustomSetups && state.aiCustomSetups[id];
+  if (ai && (ai.mode || 'intraday') === 'intraday') return ai;
+  return null;
 }
 
 export function tfParseHumanNumber(raw) {
@@ -148,23 +154,37 @@ export function tfIntradayStep1() {
   const isOrb = !!(setupDef && setupDef.isOrb);
   const dirKey = (it.direction || '').toString().toLowerCase().startsWith('s') ? 'short' : 'long';
   // Hide setups whose bias doesn't match the active direction (either always shows).
-  const visible = TRADE_INTRADAY_SETUPS.filter(s => {
-    const b = s.bias || 'either';
-    return b === 'either' || b === dirKey;
-  });
-  const cards = visible.map(s => {
-    const biasTag = s.bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
-                  : s.bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
-                                       : '<span class="tf-bias-tag neutral">EITHER</span>';
-    return `
+  const biasOk = (b) => {
+    const v = b || 'either';
+    return v === 'either' || v === dirKey;
+  };
+  const visible = TRADE_INTRADAY_SETUPS.filter(s => biasOk(s.bias));
+  const aiVisible = Object.values(state.aiCustomSetups || {})
+    .filter(s => s && (s.mode || 'swing') === 'intraday' && biasOk(s.bias));
+  const renderBiasTag = (bias) => bias === 'long'  ? '<span class="tf-bias-tag long">LONG</span>'
+                                  : bias === 'short' ? '<span class="tf-bias-tag short">SHORT</span>'
+                                                     : '<span class="tf-bias-tag neutral">EITHER</span>';
+  const catalogCards = visible.map(s => `
     <button class="trade-setup-card ${it.setup === s.id ? 'selected' : ''}" type="button" data-tf-i-setup="${s.id}">
-      <span class="trade-setup-card-num">${s.num} · ${biasTag}</span>
+      <span class="trade-setup-card-num">${s.num} · ${renderBiasTag(s.bias)}</span>
       <span class="trade-setup-card-name">${s.name}</span>
       <span class="trade-setup-card-detail">${s.desc}</span>
+    </button>`).join('');
+  const aiCards = aiVisible.map(s => `
+    <button class="trade-setup-card ai-setup-card ${it.setup === s.id ? 'selected' : ''}" type="button" data-tf-i-setup="${s.id}">
+      <span class="trade-setup-card-num"><span class="tf-bias-tag ai">✨ AI</span> · ${renderBiasTag(s.bias)}</span>
+      <span class="trade-setup-card-name">${s.name || 'AI setup'}</span>
+      <span class="trade-setup-card-detail">${s.desc || ''}</span>
+    </button>`).join('');
+  const aiBuilderCard = `
+    <button class="trade-setup-card trade-setup-card-ai-cta" type="button" id="tf-i-setup-ai-open">
+      <span class="ai-cta-kicker"><span class="ai-cta-sparkle">✦</span>EDGE INTELLIGENCE</span>
+      <span class="trade-setup-card-name">Describe with Edge Intelligence</span>
+      <span class="trade-setup-card-detail">Describe a pattern. Edge Intelligence builds the setup.</span>
     </button>`;
-  }).join('');
-  const emptyMsg = !visible.length
-    ? `<div class="input-help">No setups match this direction. Switch direction in the header.</div>`
+  const cards = catalogCards + aiCards + aiBuilderCard;
+  const emptyMsg = !visible.length && !aiVisible.length
+    ? `<div class="input-help">No setups match this direction. Switch direction in the header, or use "Describe with Edge Intelligence" above.</div>`
     : '';
 
   const orbChips = isOrb ? `
@@ -355,6 +375,14 @@ export function tfMountIntradayStep1() {
       tfRefreshAll();
     });
   });
+
+  const aiBtn = document.getElementById('tf-i-setup-ai-open');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      openAiSetupBuilder('intraday');
+    });
+  }
 
   // ORB range chips (only present when setup is an ORB variant).
   document.querySelectorAll('#panel-trade [data-tf-i-orb-type]').forEach(b => {
@@ -688,4 +716,3 @@ export function tfMountIntradayStep4() {
     });
   }
 }
-
